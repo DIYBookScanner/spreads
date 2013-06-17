@@ -24,8 +24,10 @@ THE SOFTWARE.
 import argparse
 import logging
 import multiprocessing
+import operator
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -220,13 +222,12 @@ def shoot(args):
     while True:
         if getch() != 'b':
             break
-        run_parallel([{'func': x.shoot, 'args': [],
+        _run_parallel([{'func': x.shoot, 'args': [],
                       'kwargs': {'shutter_speed': 448}}
                       for x in cameras])
         shot_count += len(cameras)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
-        status = "{0} pages [{1}/h]\r".format(colored.blue(
-                                              sum(shot_count.values())),
+        status = "{0} pages [{1}/h]\r".format(colored.blue(shot_count),
                                               pages_per_hour)
         sys.stdout.write(status)
         sys.stdout.flush()
@@ -237,10 +238,12 @@ def download(args):
     if not os.path.exists(destination):
         os.mkdir(destination)
     cameras = _detect_cameras()
-    run_parallel([{'func': x.download_files,
-                   'args': [os.path.join(destination. camera.orientation)],
+    puts(colored.green("Downloading images from cameras"))
+    _run_parallel([{'func': x.download_files,
+                   'args': [os.path.join(destination, x.orientation)],
                    'kwargs': {}} for x in cameras])
-    run_parallel([{'func': x.delete_files, 'args': [], 'kwargs': {}}
+    puts(colored.green("Deleting images from cameras"))
+    _run_parallel([{'func': x.delete_files, 'args': [], 'kwargs': {}}
                   for x in cameras])
 
 
@@ -257,7 +260,7 @@ def merge(args):
     left_dir = os.path.join(path, 'left')
     right_dir = os.path.join(path, 'right')
     target_dir = os.path.join(path, 'combined')
-    for x in (left_dir, right_dir):
+    for x in (right_dir, left_dir):
         if not os.path.exists(x):
             puts(colored.red("Could not find directory \'{0}\'!"
                             .format(x)))
@@ -271,12 +274,12 @@ def merge(args):
     if len(left_pages) != len(right_pages):
         puts(colored.yellow("Left and Right folders do not have the same"
                             "amount of images!"))
-    combined_pages = reduce(operator.add, zip(left_pages, right_pages))
+    combined_pages = reduce(operator.add, zip(right_pages, left_pages))
     puts(colored.green("Merging images."))
     for idx, fname in enumerate(combined_pages):
-        fext = os.path.split(os.path.split(fname)[1])[1]
-        target_file = os.path.join(target_dir, "{0:02d}.{1}".format(idx, fext))
-        shutil.copyfile(f, target_file)
+        fext = os.path.splitext(os.path.split(fname)[1])[1]
+        target_file = os.path.join(target_dir, "{0:04d}{1}".format(idx, fext))
+        shutil.copyfile(fname, target_file)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Scanning Tool for  DIY Book"
