@@ -37,22 +37,33 @@ Usage
 configure
 *********
 ``diyshoot.py configure``
-Sets up your cameras for shooting by assigning every connected camera with a 'left' or 'right' label. This step only has to be performed once, as the information is permanently stored on the cameras.
+Sets up your cameras for shooting by assigning every connected camera with a
+'left' or 'right' label. This step only has to be performed once, as the
+information is permanently stored on the cameras.
 
 shoot
 *****
 ``diyshoot.py shoot [--iso <int>] [--shutter <int>] [--zoom <int>]``
-Launches a shooting loop. You can set values for ISO, shutter speed and zoom level. ISO and shutter speed have to be provided as APEX96 values, see the CHDK wiki (ISO_, shutter_) for more information. Please be careful not to specify a zoom level that is outside of your camera's range, as the program currently does not check for that. Capture an image by pressing 'b' and stop the shooting process by pressing any other key.
+Launches a shooting loop. You can set values for ISO, shutter speed and zoom
+level. ISO and shutter speed have to be provided as APEX96 values, see the CHDK
+wiki (ISO_, shutter_) for more information. Please be careful not to specify a
+zoom level that is outside of your camera's range, as the program currently
+does not check for that. Capture an image by pressing 'b' and stop the shooting
+process by pressing any other key.
 
 download
 ********
-``diyshoot.py download <destination-path>``
-Downloads the images from both cameras to *left* and *right* subdirectories of the *destination-path*. Once the download is completed, the images will be removed from the cameras to save space.
+``diyshoot.py download [--keep] <destination-path>``
+Downloads the images from both cameras to *left* and *right* subdirectories of
+the *destination-path*. Once the download is completed, the images will be
+removed from the cameras to save space. This last step can be skipped with
+the *--keep* option.
 
 merge
 *****
 ``diyshoot.py merge <image-path>``
-Combines the images stored in the *left* and *right* subdirectories of *image-path* to a new *combined* directory.
+Combines the images stored in the *left* and *right* subdirectories of
+*image-path* to a new *combined* directory.
 
 .. _DIYBookScanner: http://diybookscanner.org
 .. _ppmunwarp: http://diybookscanner.org/forum/viewtopic.php?f=19&t=2589&p=14281#p14281

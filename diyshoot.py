@@ -1,3 +1,4 @@
+#!/usr/bin/env python2.7
 """
 Tool to facilitate book digitization with the DIY BookScanner.
 
@@ -224,9 +225,9 @@ def shoot(args):
         if getch() != 'b':
             break
         _run_parallel([{'func': x.shoot, 'args': [],
-                      'kwargs': {'shutter_speed': args.shutter_speed,
-                                 'iso_value': args.iso_value}}
-                      for x in cameras])
+                        'kwargs': {'shutter_speed': args.shutter_speed,
+                                   'iso_value': args.iso_value}}
+                       for x in cameras])
         shot_count += len(cameras)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
         status = "{0} pages [{0:.0f}/h]\r".format(colored.blue(shot_count),
@@ -242,11 +243,12 @@ def download(args):
     cameras = _detect_cameras()
     puts(colored.green("Downloading images from cameras"))
     _run_parallel([{'func': x.download_files,
-                   'args': [os.path.join(destination, x.orientation)],
-                   'kwargs': {}} for x in cameras])
-    puts(colored.green("Deleting images from cameras"))
-    _run_parallel([{'func': x.delete_files, 'args': [], 'kwargs': {}}
-                  for x in cameras])
+                    'args': [os.path.join(destination, x.orientation)],
+                    'kwargs': {}} for x in cameras])
+    if not args.keep:
+        puts(colored.green("Deleting images from cameras"))
+        _run_parallel([{'func': x.delete_files, 'args': [], 'kwargs': {}}
+                       for x in cameras])
 
 
 def postprocess(args):
@@ -306,6 +308,9 @@ if __name__ == '__main__':
                                             help="Download scanned images.")
     download_parser.add_argument("path", help="Path where scanned images are"
                                               "to be stored")
+    download_parser.add_argument("--keep", "-k", dest="keep",
+                                 action="store_true",
+                                 help="Keep files on cameras after download")
     download_parser.set_defaults(func=download)
 
     merge_parser = subparsers.add_parser('merge', help="Merge left and right"
