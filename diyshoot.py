@@ -205,7 +205,7 @@ def shoot(args):
     if not any(bool(x.orientation) for x in cameras):
         puts(colored.red("At least one of the cameras has not been properly"
                          "configured, please re-run the program with the"
-                        "\'configure\' option!"))
+                         "\'configure\' option!"))
         sys.exit(0)
     # Set up for shooting
     for camera in cameras:
@@ -228,8 +228,8 @@ def shoot(args):
                       for x in cameras])
         shot_count += len(cameras)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
-        status = "{0} pages [{1}/h]\r".format(colored.blue(shot_count),
-                                              pages_per_hour)
+        status = "{0} pages [{0:.0f}/h]\r".format(colored.blue(shot_count),
+                                                  pages_per_hour)
         sys.stdout.write(status)
         sys.stdout.flush()
 
@@ -263,8 +263,7 @@ def merge(args):
     target_dir = os.path.join(path, 'combined')
     for x in (right_dir, left_dir):
         if not os.path.exists(x):
-            puts(colored.red("Could not find directory \'{0}\'!"
-                            .format(x)))
+            puts(colored.red("Could not find directory \'{0}\'!".format(x)))
             sys.exit(0)
     if not os.path.exists(target_dir):
         os.mkdir(target_dir)
@@ -309,8 +308,8 @@ if __name__ == '__main__':
     config_parser.set_defaults(func=configure)
 
     args = parser.parse_args()
-    loglevel=logging.INFO
+    loglevel = logging.INFO
     if args.verbose:
-        loglevel=logging.DEBUG
+        loglevel = logging.DEBUG
     logging.basicConfig(level=loglevel)
     args.func(args)
