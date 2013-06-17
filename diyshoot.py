@@ -32,7 +32,6 @@ import time
 
 from clint.textui import puts, colored
 
-logging.basicConfig(level=logging.DEBUG)
 
 # Kudos to http://stackoverflow.com/a/1394994/487903
 try:
@@ -50,29 +49,22 @@ except ImportError:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
-def run_parallel(jobs):
-    running = []
-    for job in jobs:
-        p = multiprocessing.Process(target=job['func'],
-                                    args=job['args'],
-                                    kwargs=job['kwargs'])
-        running.append(p)
-        p.start()
-    for proc in running:
-        proc.join()
-
-
 class Camera(object):
     def __init__(self, usb_port):
         self._port = usb_port
         self.orientation = (self._gphoto2(["--get-config",
                                            "/main/settings/ownername"])
-                            .split("\n")[-2][9:])
+                            .split("\n")[-2][9:] or None)
 
     def _gphoto2(self, args):
         cmd = (["gphoto2", "--port", self._port] + args)
         logging.debug("Running " + " ".join(cmd))
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        try:
+            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        except OSError:
+            logging.error("gphoto2 executable could not be found, please"
+                          "install!")
+            sys.exit(0)
         return out
 
     def _ptpcam(self, command):
@@ -81,8 +73,13 @@ class Camera(object):
                "--bus={0}".format(bus),
                "--chdk='{0}'".format(command)]
         logging.debug("Running " + " ".join(cmd))
-        out = subprocess.check_output(" ".join(cmd), shell=True,
-                                      stderr=subprocess.STDOUT)
+        try:
+            out = subprocess.check_output(" ".join(cmd), shell=True,
+                                          stderr=subprocess.STDOUT)
+        except OSError:
+            logging.error("ptpcam executable could not be found, please"
+                          "install!")
+            sys.exit(0)
         return out
 
     def set_orientation(self, orientation):
@@ -156,12 +153,40 @@ class Camera(object):
         self._ptpcam("lua play_sound({1})".format(sound_num))
 
 
-def detect_cameras():
+def _run_parallel(jobs):
+    running = []
+    for job in jobs:
+        p = multiprocessing.Process(target=job['func'],
+                                    args=job['args'],
+                                    kwargs=job['kwargs'])
+        running.append(p)
+        p.start()
+    for proc in running:
+        proc.join()
+
+
+def _detect_cameras():
+    cmd = ['gphoto2', '--auto-detect']
+    logging.debug("Running " + " ".join(cmd))
     cams = [Camera(re.search(r'usb:\d+,\d+', x).group()) for x in
-            (subprocess.check_output(['gphoto2', '--auto-detect'])
-                .split('\n')[2:-1])
-            ]
+            subprocess.check_output(cmd).split('\n')[2:-1]]
     return cams
+
+
+def configure(args):
+    for orientation in ('left', 'right'):
+        puts("Please connect the camera labeled \'{0}\'".format(orientation))
+        puts(colored.blue("Press any key when ready."))
+        cams = _detect_cameras()
+        if len(cams) > 1:
+            puts(colored.red("Please ensure that only one camera is"
+                             "connected!"))
+            sys.exit(0)
+        if not cams:
+            puts(colored.red("No camera found!"))
+            sys.exit(0)
+        cams[0].set_orientation(orientation)
+        puts(colored.green("Configured \'{0}\' camera.".format(orientation)))
 
 
 def shoot(args):
@@ -169,8 +194,17 @@ def shoot(args):
     puts(colored.blue("Press any key to continue."))
     getch()
     puts("Detecting cameras.")
-    cameras = detect_cameras()
+    cameras = _detect_cameras()
+    if len(cameras) != 2:
+        puts(colored.red("Please connect two pre-configured cameras!"
+                         " ({0} were found)".format(len(cameras))))
+        sys.exit(0)
     puts(colored.green("Found {0} cameras!".format(len(cameras))))
+    if not any(bool(x.orientation) for x in cameras):
+        puts(colored.red("At least one of the cameras has not been properly"
+                         "configured, please re-run the program with the"
+                        "\'configure\' option!"))
+        sys.exit(0)
     # Set up for shooting
     for camera in cameras:
         puts("Setting up {0} camera.".format(camera.orientation))
@@ -199,10 +233,10 @@ def shoot(args):
 
 
 def download(args):
-    destination = args.destination
+    destination = args.path
     if not os.path.exists(destination):
         os.mkdir(destination)
-    cameras = detect_cameras()
+    cameras = _detect_cameras()
     run_parallel([{'func': x.download_files,
                    'args': [os.path.join(destination. camera.orientation)],
                    'kwargs': {}} for x in cameras])
@@ -210,31 +244,69 @@ def download(args):
                   for x in cameras])
 
 
-def calibrate(args):
+def postprocess(args):
     # TODO: Calculate DPI from grid and set it in the JPGs
     # TODO: Dewarp the pictures
     # TODO: Rotate the pictures depending on orientation
+    # TODO: Generate ScanTailor configuration
     raise NotImplementedError
 
 
 def merge(args):
-    # TODO: Merge folders 'left' and 'right' into one 'combined' folder while
-    #       preserving the page order
-    # TODO: Warn if the folder's have a different number of pages
-    raise NotImplementedError
+    path = args.path
+    left_dir = os.path.join(path, 'left')
+    right_dir = os.path.join(path, 'right')
+    target_dir = os.path.join(path, 'combined')
+    for x in (left_dir, right_dir):
+        if not os.path.exists(x):
+            puts(colored.red("Could not find directory \'{0}\'!"
+                            .format(x)))
+            sys.exit(0)
+    if not os.path.exists(target_dir):
+        os.mkdir(target_dir)
+    left_pages = [os.path.join(left_dir, x)
+                  for x in sorted(os.listdir(left_dir))]
+    right_pages = [os.path.join(right_dir, x)
+                   for x in sorted(os.listdir(right_dir))]
+    if len(left_pages) != len(right_pages):
+        puts(colored.yellow("Left and Right folders do not have the same"
+                            "amount of images!"))
+    combined_pages = reduce(operator.add, zip(left_pages, right_pages))
+    puts(colored.green("Merging images."))
+    for idx, fname in enumerate(combined_pages):
+        fext = os.path.split(os.path.split(fname)[1])[1]
+        target_file = os.path.join(target_dir, "{0:02d}.{1}".format(idx, fext))
+        shutil.copyfile(f, target_file)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Scanning Tool for  DIY Book"
-                                     "Scanner")
+                                                 "Scanner")
+    parser.add_argument('--verbose', '-v', dest="verbose", action="store_true")
     subparsers = parser.add_subparsers()
 
     shoot_parser = subparsers.add_parser('shoot',
                                          help="Start the shooting workflow")
     shoot_parser.set_defaults(func=shoot)
+
     download_parser = subparsers.add_parser('download',
                                             help="Download scanned images.")
-    download_parser.add_argument("-d", "--destination", help="Path where"
-                                 "scanned images will be stored")
+    download_parser.add_argument("path", help="Path where scanned images are"
+                                              "to be stored")
     download_parser.set_defaults(func=download)
+
+    merge_parser = subparsers.add_parser('merge', help="Merge left and right"
+                                         "image folders for post-processing.")
+    merge_parser.add_argument("path", help="Path where the left and right"
+                                           "image folders are stored.")
+    merge_parser.set_defaults(func=merge)
+
+    config_parser = subparsers.add_parser('configure', help="Perform initial"
+                                          "configuration of the cameras.")
+    config_parser.set_defaults(func=configure)
+
     args = parser.parse_args()
+    loglevel=logging.INFO
+    if args.verbose:
+        loglevel=logging.DEBUG
+    logging.basicConfig(level=loglevel)
     args.func(args)
