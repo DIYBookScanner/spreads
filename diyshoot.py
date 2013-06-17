@@ -212,8 +212,8 @@ def shoot(args):
         puts("Setting up {0} camera.".format(camera.orientation))
         camera.set_record_mode()
         time.sleep(1)
-        camera.set_zoom()
-        camera.set_iso()
+        camera.set_zoom(args.zoom_value)
+        camera.set_iso(args.iso_value)
         camera.disable_flash()
         camera.disable_ndfilter()
     # Start shooting loop
@@ -224,7 +224,8 @@ def shoot(args):
         if getch() != 'b':
             break
         _run_parallel([{'func': x.shoot, 'args': [],
-                      'kwargs': {'shutter_speed': 448}}
+                      'kwargs': {'shutter_speed': args.shutter_speed,
+                                 'iso_value': args.iso_value}}
                       for x in cameras])
         shot_count += len(cameras)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
@@ -289,6 +290,16 @@ if __name__ == '__main__':
 
     shoot_parser = subparsers.add_parser('shoot',
                                          help="Start the shooting workflow")
+    shoot_parser.add_argument('--iso', '-i', dest="iso_value", type=int,
+                              default=373, metavar="<int>",
+                              help="ISO value (APEX96)")
+    shoot_parser.add_argument("--shutter", '-s', dest="shutter_speed",
+                              type=int, default=448, metavar="<int>",
+                              help="Shutter speed value (APEX96). For more"
+                              " information, visit http://chdk.wikia.com/wiki/"
+                              "CHDK_scripting#set_tv96_direct")
+    shoot_parser.add_argument("--zoom", "-z", dest="zoom_value", type=int,
+                              metavar="<int>", default=3, help="Zoom level")
     shoot_parser.set_defaults(func=shoot)
 
     download_parser = subparsers.add_parser('download',
