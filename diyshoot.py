@@ -113,16 +113,16 @@ class Camera(object):
     def set_record_mode(self):
         self._ptpcam("mode 1")
 
+    def get_zoom(self):
+        return int(self._ptpcam('luar get_zoom()').split()[1][-1])
+
     def set_zoom(self, level=3):
-        # TODO: Cross-check with zoom-value obtained via get_zoom to avoid
-        #       superfluous presses
-        # TODO: Wait some time before the first press, this way we can skip
-        #       the +1 on the xrange
-        # TODO: See if we can lower the time sleeping between zoom steps
-        for x in xrange(level+1):
-            self._ptpcam('luar click("zoom_in")')
-            time.sleep(1)
-            print self._ptpcam('luar get_zoom()')
+        while self.get_zoom() != level:
+            if self.get_zoom() > level:
+                self._ptpcam('luar click("zoom_out")')
+            else:
+                self._ptpcam('luar click("zoom_in")')
+            time.sleep(0.25)
 
     def disable_flash(self):
         self._ptpcam("luar set_prop(16, 2)")
@@ -211,6 +211,7 @@ def shoot(args):
     for camera in cameras:
         puts("Setting up {0} camera.".format(camera.orientation))
         camera.set_record_mode()
+        time.sleep(1)
         camera.set_zoom()
         camera.set_iso()
         camera.disable_flash()
