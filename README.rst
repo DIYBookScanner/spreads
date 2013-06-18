@@ -12,7 +12,7 @@ The following features are supported:
   which is right)
 * Shoot with both cameras **simultaneously**
 * Download images from cameras
-* Merge left and right images into a combined directory
+* Combine left and right images into a single directory
 
 The following features are on the agenda, but not implemented yet:
 
@@ -59,9 +59,9 @@ the *destination-path*. Once the download is completed, the images will be
 removed from the cameras to save space. This last step can be skipped with
 the *--keep* option.
 
-merge
-*****
-``diyshoot.py merge <image-path>``
+combine
+*******
+``diyshoot.py combine <image-path>``
 Combines the images stored in the *left* and *right* subdirectories of
 *image-path* to a new *combined* directory.
 

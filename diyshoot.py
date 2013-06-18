@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+# -*- coding: utf-8 -*-
 """
 Tool to facilitate book digitization with the DIY BookScanner.
 
@@ -273,7 +274,7 @@ def postprocess(args):
     raise NotImplementedError
 
 
-def merge(args):
+def combine(args):
     path = args.path
     left_dir = os.path.join(path, 'left')
     right_dir = os.path.join(path, 'right')
@@ -292,50 +293,62 @@ def merge(args):
         puts(colored.yellow("Left and Right folders do not have the same"
                             "amount of images!"))
     combined_pages = reduce(operator.add, zip(right_pages, left_pages))
-    puts(colored.green("Merging images."))
+    puts(colored.green("Combining images."))
     for idx, fname in enumerate(combined_pages):
         fext = os.path.splitext(os.path.split(fname)[1])[1]
         target_file = os.path.join(target_dir, "{0:04d}{1}".format(idx, fext))
         shutil.copyfile(fname, target_file)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Scanning Tool for  DIY Book"
-                                                 "Scanner")
-    parser.add_argument('--verbose', '-v', dest="verbose", action="store_true")
+    parser = argparse.ArgumentParser(
+        description="Scanning Tool for  DIY Book Scanner")
+    parser.add_argument(
+        '--verbose', '-v', dest="verbose", action="store_true")
     subparsers = parser.add_subparsers()
 
-    shoot_parser = subparsers.add_parser('shoot',
-                                         help="Start the shooting workflow")
-    shoot_parser.add_argument('--iso', '-i', dest="iso_value", type=int,
-                              default=373, metavar="<int>",
-                              help="ISO value (APEX96)")
-    shoot_parser.add_argument("--shutter", '-s', dest="shutter_speed",
-                              type=int, default=448, metavar="<int>",
-                              help="Shutter speed value (APEX96). For more"
-                              " information, visit http://chdk.wikia.com/wiki/"
-                              "CHDK_scripting#set_tv96_direct")
-    shoot_parser.add_argument("--zoom", "-z", dest="zoom_value", type=int,
-                              metavar="<int>", default=3, help="Zoom level")
+    config_parser = subparsers.add_parser(
+        'configure', help="Perform initial configuration of the cameras.")
+    config_parser.set_defaults(func=configure)
+
+    shoot_parser = subparsers.add_parser(
+        'shoot', help="Start the shooting workflow")
+    shoot_parser.add_argument(
+        '--iso', '-i', dest="iso_value", type=int, default=373,
+        metavar="<int>", help="ISO value (APEX96)")
+    shoot_parser.add_argument(
+        "--shutter", '-s', dest="shutter_speed", type=int, default=448,
+        metavar="<int>", help="Shutter speed value (APEX96). For more"
+        " information, visit http://chdk.wikia.com/wiki/CHDK_scripting"
+        "#set_tv96_direct")
+    shoot_parser.add_argument(
+        "--zoom", "-z", dest="zoom_value", type=int, metavar="<int>",
+        default=3, help="Zoom level")
     shoot_parser.set_defaults(func=shoot)
 
-    download_parser = subparsers.add_parser('download',
-                                            help="Download scanned images.")
-    download_parser.add_argument("path", help="Path where scanned images are"
-                                              "to be stored")
-    download_parser.add_argument("--keep", "-k", dest="keep",
-                                 action="store_true",
-                                 help="Keep files on cameras after download")
+    download_parser = subparsers.add_parser(
+        'download', help="Download scanned images.")
+    download_parser.add_argument(
+        "path", help="Path where scanned images are to be stored")
+    download_parser.add_argument(
+        "--keep", "-k", dest="keep", action="store_true",
+        help="Keep files on cameras after download")
     download_parser.set_defaults(func=download)
 
-    merge_parser = subparsers.add_parser('merge', help="Merge left and right"
-                                         "image folders for post-processing.")
-    merge_parser.add_argument("path", help="Path where the left and right"
-                                           "image folders are stored.")
-    merge_parser.set_defaults(func=merge)
+    postprocess_parser = subparsers.add_parser(
+        'postprocess',
+        help="Postprocess scanned images.")
+    postprocess_parser.add_argument(
+        "path", help="Path where scanned images are stored")
+    postprocess_parser.add_argument(
+        "--rotate-inverse", "-ri", dest="rotate_inverse", action="store_true",
+        help="Rotate by +/- 180° instead of +/- 90°")
+    postprocess_parser.set_defaults(func=postprocess)
 
-    config_parser = subparsers.add_parser('configure', help="Perform initial"
-                                          "configuration of the cameras.")
-    config_parser.set_defaults(func=configure)
+    merge_parser = subparsers.add_parser(
+        'combine', help="Combine left and right image folders.")
+    merge_parser.add_argument(
+        "path", help="Path where the left and right image folders are stored.")
+    merge_parser.set_defaults(func=combine)
 
     args = parser.parse_args()
     loglevel = logging.INFO
