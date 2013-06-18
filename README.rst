@@ -58,7 +58,7 @@ Downloads the images from both cameras and combines them in the *raw*
 subdirectory of the *project-path*. Once the download is completed,
 the images will be removed from the cameras to save space.
 
-This last step can be skipped with the *--keep* option.
+This last step can be skipped with the **--keep** option.
 
 postprocess
 ***********
