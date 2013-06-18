@@ -11,15 +11,14 @@ The following features are supported:
 * Configure the cameras for shooting (i.e. configure which camera is left,
   which is right)
 * Shoot with both cameras **simultaneously**
-* Download images from cameras
-* Combine left and right images into a single directory
+* Download images from cameras and combine them into a single directory
+* Create a ScanTailor project file that the user can either further edit
+  or run automatically
 
 The following features are on the agenda, but not implemented yet:
 
 * Automatically dewarp the scanned images using ppmunwarp_
 * Do color-correction using a `graycard and imagemagick`_
-* Create a ScanTailor project file that the user can either further edit
-  or run automatically
 * Interactive Wizard-Mode that handles the full workflow from image
   capturing to post-processing
 
@@ -27,6 +26,7 @@ Requirements
 ------------
 * Python 2.7
 * The `clint library`_ (used for the console interface)
+* The `pillow library`_ (used to obtain EXIF information and rotate images)
 * Two cameras running CHDK (development was done using two Canon A2200s,
   no further cameras were tested, but should work in theory)
 * A version of `ptpcam modified for CHDK`_ in /usr/bin
@@ -82,6 +82,7 @@ the ScanTailor output. This setting can be adjusted with the **--jobs** option.
 .. _ppmunwarp: http://diybookscanner.org/forum/viewtopic.php?f=19&t=2589&p=14281#p14281
 .. _graycard and imagemagick: http://diybookscanner.org/forum/viewtopic.php?f=20&t=2848
 .. _clint library: https://github.com/kennethreitz/clint
+.. _pillow library: https://github.com/python-imaging/Pillow
 .. _ptpcam modified for CHDK: http://forum.chdk-treff.de/download/file.php?id=1640
 .. _ISO: http://chdk.wikia.com/wiki/CHDK_scripting#set_sv96
 .. _shutter: http://chdk.wikia.com/wiki/CHDK_scripting#set_tv96_direct
