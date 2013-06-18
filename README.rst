@@ -59,6 +59,13 @@ the *destination-path*. Once the download is completed, the images will be
 removed from the cameras to save space. This last step can be skipped with
 the *--keep* option.
 
+postprocess
+***********
+``diyshoot.py postprocess [--rotate-inverse] <image-path>``
+Rotates the images in the *left* and *right* subdirectories of *image-path*.
+The default rotation applied is +/- 90° for right/left pages, by specifying
+the *--rotate-inverse* option, this can be changed to +/- 180°.
+
 combine
 *******
 ``diyshoot.py combine <image-path>``

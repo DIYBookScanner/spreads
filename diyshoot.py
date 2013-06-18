@@ -35,6 +35,8 @@ import sys
 import time
 
 from clint.textui import puts, colored
+from PIL import Image
+from PIL.ExifTags import TAGS
 
 
 # Kudos to http://stackoverflow.com/a/1394994/487903
@@ -191,6 +193,25 @@ def _detect_cameras():
     return cams
 
 
+def _rotate_image(path, inverse=False):
+    im = Image.open(path)
+    # Butt-ugly, yes, but works fairly reliably and doesn't require
+    # some exotic library not available from PyPi (I'm looking at you,
+    # gexiv2...)
+    orientation = re.search(
+        'right|left',
+        {TAGS.get(tag, tag): value for tag, value in im._getexif().items()}
+        ['MakerNote']).group()
+    rotation = 90
+    if inverse:
+        rotation *= 2
+    if orientation == 'left':
+        rotation *= -1
+    logging.debug("Rotating image \'{0}\' by {1} degrees"
+                  .format(path, rotation))
+    im.rotate(rotation).save(path)
+
+
 def configure(args):
     for orientation in ('left', 'right'):
         puts("Please connect the camera labeled \'{0}\'".format(orientation))
@@ -267,11 +288,16 @@ def download(args):
 
 
 def postprocess(args):
+    img_dir = os.path.join(args.path, 'combined')
+    # Rotation, left -> cw; right -> ccw
+    puts(colored.green("Rotating images"))
+    _run_parallel([{'func': _rotate_image, 'args': [os.path.join(img_dir, x)],
+                    'kwargs': {'inverse': args.rotate_inverse}}
+                   for x in os.listdir(img_dir)])
+
     # TODO: Calculate DPI from grid and set it in the JPGs
-    # TODO: Dewarp the pictures
-    # TODO: Rotate the pictures depending on orientation
     # TODO: Generate ScanTailor configuration
-    raise NotImplementedError
+    # TODO: Dewarp the pictures from grid information
 
 
 def combine(args):
