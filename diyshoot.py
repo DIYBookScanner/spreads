@@ -25,6 +25,7 @@ THE SOFTWARE.
 
 import argparse
 import logging
+import math
 import multiprocessing
 import operator
 import os
@@ -32,7 +33,9 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
+from xml.etree.cElementTree import ElementTree as ET
 
 from clint.textui import puts, colored
 from PIL import Image
@@ -212,6 +215,43 @@ def _rotate_image(path, inverse=False):
     im.rotate(rotation).save(path)
 
 
+def _scantailor_parallel(projectfile, out_dir, num_procs=None):
+    if not num_procs:
+        num_procs = multiprocessing.cpu_count()
+    tree = ET(file=projectfile)
+    num_files = len(tree.findall('./files/file'))
+    files_per_job = int(math.ceil(float(num_files)/num_procs))
+    temp_dir = tempfile.mkdtemp(prefix="diyshoot")
+    splitfiles = []
+
+    for idx in xrange(num_procs):
+        tree = ET(file=projectfile)
+        root = tree.getroot()
+        start = idx*files_per_job
+        end = start + files_per_job
+        if end > num_files:
+            end = None
+        for elem in ('files', 'images', 'pages', 'file-name-disambiguation'):
+            elem_root = root.find(elem)
+            to_keep = elem_root.getchildren()[start:end]
+            to_remove = [x for x in elem_root.getchildren()
+                         if not x in to_keep]
+            for node in to_remove:
+                elem_root.remove(node)
+        out_file = os.path.join(temp_dir,
+                                "{0}-{1}.ScanTailor".format(
+                                os.path.splitext(os.path.basename(projectfile))
+                                [0], idx))
+        tree.write(out_file)
+        splitfiles.append(out_file)
+
+    _run_parallel([{'func': subprocess.call, 'args': [['scantailor-cli',
+                                                      '--start-filter=6',
+                                                      x, out_dir]],
+                    'kwargs': {}} for x in splitfiles], num_procs=num_procs)
+    shutil.rmtree(temp_dir)
+
+
 def configure(args):
     for orientation in ('left', 'right'):
         puts("Please connect the camera labeled \'{0}\'".format(orientation))
@@ -293,11 +333,29 @@ def postprocess(args):
     puts(colored.green("Rotating images"))
     _run_parallel([{'func': _rotate_image, 'args': [os.path.join(img_dir, x)],
                     'kwargs': {'inverse': args.rotate_inverse}}
-                   for x in os.listdir(img_dir)])
+                   for x in os.listdir(img_dir)], num_procs=args.num_jobs)
 
     # TODO: Calculate DPI from grid and set it in the JPGs
-    # TODO: Generate ScanTailor configuration
     # TODO: Dewarp the pictures from grid information
+
+    # Generate ScanTailor configuration
+    projectfile = os.path.join(args.path, "{0}.ScanTailor".format(
+        os.path.basename(args.path)))
+    out_dir = os.path.join(args.path, 'done')
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+    puts(colored.green("Generating ScanTailor configuration"))
+    generation_cmd = ['scantailor-cli', '--start-filter=2', '--end-filter=5',
+                      '--layout=1.5', '--margins=2.5',
+                      '-o={0}'.format(projectfile), img_dir, out_dir]
+    logging.debug(" ".join(generation_cmd))
+    subprocess.call(generation_cmd)
+    if not args.autopilot:
+        puts(colored.green("Opening ScanTailor GUI for manual adjustment"))
+        subprocess.call(['scantailor', projectfile])
+    puts(colored.green("Generating output images from ScanTailor"
+                       " configuration."))
+    _scantailor_parallel(projectfile, out_dir, num_procs=args.num_jobs)
 
 
 def combine(args):
@@ -368,6 +426,12 @@ if __name__ == '__main__':
     postprocess_parser.add_argument(
         "--rotate-inverse", "-ri", dest="rotate_inverse", action="store_true",
         help="Rotate by +/- 180° instead of +/- 90°")
+    postprocess_parser.add_argument(
+        "--jobs", "-j", dest="num_jobs", type=int, default=None,
+        metavar="<int>", help="Number of concurrent processes")
+    postprocess_parser.add_argument(
+        "--auto", "-a", dest="autopilot", action="store_true",
+        help="Don't prompt user to edit ScanTailor configuration")
     postprocess_parser.set_defaults(func=postprocess)
 
     merge_parser = subparsers.add_parser(
