@@ -156,16 +156,30 @@ class Camera(object):
         self._ptpcam("lua play_sound({1})".format(sound_num))
 
 
-def _run_parallel(jobs):
+def _run_parallel(jobs, num_procs=None):
+    class Worker(multiprocessing.Process):
+        def __init__(self, queue):
+            super(Worker, self).__init__()
+            self.queue = queue
+
+        def run(self):
+            for job in iter(self.queue.get, None):
+                job['func'](*job['args'], **job['kwargs'])
+
+    if not num_procs:
+        num_procs = multiprocessing.cpu_count()
     running = []
+    queue = multiprocessing.Queue()
+    for i in xrange(num_procs):
+        w = Worker(queue)
+        running.append(w)
+        w.start()
     for job in jobs:
-        p = multiprocessing.Process(target=job['func'],
-                                    args=job['args'],
-                                    kwargs=job['kwargs'])
-        running.append(p)
-        p.start()
-    for proc in running:
-        proc.join()
+        queue.put(job)
+    for i in xrange(num_procs):
+        queue.put(None)
+    for worker in running:
+        worker.join()
 
 
 def _detect_cameras():
