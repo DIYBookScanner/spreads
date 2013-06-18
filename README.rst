@@ -14,13 +14,13 @@ The following features are supported:
 * Download images from cameras and combine them into a single directory
 * Create a ScanTailor project file that the user can either further edit
   or run automatically
+* Interactive Wizard-Mode that handles the full workflow from image
+  capturing to post-processing
 
 The following features are on the agenda, but not implemented yet:
 
 * Automatically dewarp the scanned images using ppmunwarp_
 * Do color-correction using a `graycard and imagemagick`_
-* Interactive Wizard-Mode that handles the full workflow from image
-  capturing to post-processing
 
 Requirements
 ------------
@@ -35,16 +35,27 @@ Requirements
 
 Usage
 -----
+wizard
+******
+``diyshoot.py wizard <project-path>``
+
+Interactive dialog that asks the user for all relevant parameters, runs all
+of the steps below and stores the output in *project-path*.
+
+
 configure
 *********
 ``diyshoot.py configure``
+
 Sets up your cameras for shooting by assigning every connected camera with a
 'left' or 'right' label. This step only has to be performed once, as the
 information is permanently stored on the cameras.
 
+
 shoot
 *****
 ``diyshoot.py shoot [--iso <int>] [--shutter <int>] [--zoom <int>]``
+
 Launches a shooting loop. You can set values for ISO, shutter speed and zoom
 level. ISO and shutter speed have to be provided as APEX96 values, see the CHDK
 wiki (ISO_, shutter_) for more information. Please be careful not to specify a
@@ -52,18 +63,22 @@ zoom level that is outside of your camera's range, as the program currently
 does not check for that. Capture an image by pressing 'b' and stop the shooting
 process by pressing any other key.
 
+
 download
 ********
 ``diyshoot.py download [--keep] <project-path>``
+
 Downloads the images from both cameras and combines them in the *raw*
 subdirectory of the *project-path*. Once the download is completed,
 the images will be removed from the cameras to save space.
 
 This last step can be skipped with the **--keep** option.
 
+
 postprocess
 ***********
 ``diyshoot.py postprocess [--rotate-inverse] [--jobs <int>] [--auto] <project-path>``
+
 Rotates the images in *project-path*, creates a ScanTailor configuration and
 processes the images with ScanTailor. The ScanTailor output can be found in the
 *done* subdirectory of *project-path*.
