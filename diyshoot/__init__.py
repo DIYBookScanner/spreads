@@ -1,26 +1,26 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
+
+# Copyright (c) 2013 Johannes Baiter. All rights reserved.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
 """
 Tool to facilitate book digitization with the DIY BookScanner.
-
-Copyright (c) 2013 Johannes Baiter. All rights reserved.
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
 """
 
 import argparse
@@ -40,160 +40,31 @@ from xml.etree.cElementTree import ElementTree as ET
 from clint.textui import puts, colored
 from PIL import Image
 from PIL.ExifTags import TAGS
+from usb.core import find as find_usb
 
-
-# Kudos to http://stackoverflow.com/a/1394994/487903
-try:
-    from msvcrt import getch
-except ImportError:
-    def getch():
-        import tty
-        import termios
-        fd = sys.stdin.fileno()
-        old = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd)
-            return sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old)
-
-
-class Camera(object):
-    def __init__(self, usb_port):
-        self._port = usb_port
-        self.orientation = (self._gphoto2(["--get-config",
-                                           "/main/settings/ownername"])
-                            .split("\n")[-2][9:] or None)
-
-    def _gphoto2(self, args):
-        cmd = (["gphoto2", "--port", self._port] + args)
-        logging.debug("Running " + " ".join(cmd))
-        try:
-            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-        except OSError:
-            logging.error("gphoto2 executable could not be found, please"
-                          "install!")
-            sys.exit(0)
-        return out
-
-    def _ptpcam(self, command):
-        bus, device = self._port[4:].split(',')
-        cmd = ["/usr/bin/ptpcam", "--dev={0}".format(device),
-               "--bus={0}".format(bus),
-               "--chdk='{0}'".format(command)]
-        logging.debug("Running " + " ".join(cmd))
-        try:
-            out = subprocess.check_output(" ".join(cmd), shell=True,
-                                          stderr=subprocess.STDOUT)
-        except OSError:
-            logging.error("ptpcam executable could not be found, please"
-                          "install!")
-            sys.exit(0)
-        return out
-
-    def set_orientation(self, orientation):
-        self._gphoto2(["--set-config",
-                       "/main/settings/ownername={0}".format(orientation)])
-        self.orientation = orientation
-
-    def delete_files(self):
-        try:
-            self._gphoto2(["--recurse", "-D", "A/store00010001/DCIM/"])
-        except subprocess.CalledProcessError:
-            # For some reason gphoto2 throws an error despite everything going
-            # well...
-            pass
-
-    def download_files(self, path):
-        cur_dir = os.getcwd()
-        if not os.path.exists(path):
-            os.mkdir(path)
-        os.chdir(path)
-        try:
-            self._gphoto2(["--recurse", "-P", "A/store00010001/DCIM/"])
-        except subprocess.CalledProcessError:
-            # For some reason gphoto2 throws an error despite everything going
-            # well...
-            pass
-        os.chdir(cur_dir)
-
-    def set_record_mode(self):
-        self._ptpcam("mode 1")
-
-    def get_zoom(self):
-        return int(self._ptpcam('luar get_zoom()').split()[1][-1])
-
-    def set_zoom(self, level=3):
-        while self.get_zoom() != level:
-            if self.get_zoom() > level:
-                self._ptpcam('luar click("zoom_out")')
-            else:
-                self._ptpcam('luar click("zoom_in")')
-            time.sleep(0.25)
-
-    def disable_flash(self):
-        self._ptpcam("luar set_prop(16, 2)")
-
-    def set_iso(self, iso_value=373):
-        self._ptpcam("luar set_sv96({0})".format(iso_value))
-
-    def disable_ndfilter(self):
-        self._ptpcam("luar set_nd_filter(2)")
-
-    def shoot(self, shutter_speed=320, iso_value=373):
-        """ Values for shutter speed are as follows:
-            http://chdk.wikia.com/wiki/CHDK_scripting#set_tv96_direct
-        """
-        # Set shutter speed (has to be set for every shot)
-        self._ptpcam("luar set_sv96({0})".format(iso_value))
-        self._ptpcam("luar set_tv96_direct({0})".format(shutter_speed))
-        self._ptpcam("luar shoot()")
-
-    def play_sound(self, sound_num):
-        """ Plays one of the following sounds:
-                0 = startup sound
-                1 = shutter sound
-                2 = button press sound
-                3 = selftimer
-                4 = short beep
-                5 = af (auto focus) confirmation
-                6 = error beep
-        """
-        self._ptpcam("lua play_sound({1})".format(sound_num))
-
-
-def _run_parallel(jobs, num_procs=None):
-    class Worker(multiprocessing.Process):
-        def __init__(self, queue):
-            super(Worker, self).__init__()
-            self.queue = queue
-
-        def run(self):
-            for job in iter(self.queue.get, None):
-                job['func'](*job['args'], **job['kwargs'])
-
-    if not num_procs:
-        num_procs = multiprocessing.cpu_count()
-    running = []
-    queue = multiprocessing.Queue()
-    for i in xrange(num_procs):
-        w = Worker(queue)
-        running.append(w)
-        w.start()
-    for job in jobs:
-        queue.put(job)
-    for i in xrange(num_procs):
-        queue.put(None)
-    for worker in running:
-        worker.join()
+import diyshoot.cameras
+from diyshoot.util import getch, run_parallel
 
 
 def _detect_cameras():
     cmd = ['gphoto2', '--auto-detect']
     logging.debug("Running " + " ".join(cmd))
-    cams = [Camera(re.search(r'usb:\d+,\d+', x).group()) for x in
-            subprocess.check_output(cmd).split('\n')[2:-1]]
-    return cams
+    cam_ports = [re.search(r'usb:\d+,\d+', x).group() for x in
+                 subprocess.check_output(cmd).split('\n')[2:-1]]
+    cameras = []
+    for cam_port in cam_ports:
+        bus, device = cam_port[4:].split(',')
+        usb_dev = find_usb(bus=int(bus), address=int(device))
+        vendor_id, product_id = (hex(x)[2:].zfill(4) for x in
+                                 (usb_dev.idVendor, usb_dev.idProduct))
+        try:
+            driver = [x for x in (diyshoot.cameras.base.BaseCamera
+                                  .__subclasses__())
+                      if x.match(vendor_id, product_id)][0]
+        except IndexError:
+            raise Exception("Could not find driver for camera!")
+        cameras.append(driver(bus, device))
+    return cameras
 
 
 def _combine_images(path):
@@ -268,10 +139,10 @@ def _scantailor_parallel(projectfile, out_dir, num_procs=None):
         tree.write(out_file)
         splitfiles.append(out_file)
 
-    _run_parallel([{'func': subprocess.call, 'args': [['scantailor-cli',
+    run_parallel([{'func': subprocess.call, 'args': [['scantailor-cli',
                                                       '--start-filter=6',
                                                       x, out_dir]],
-                    'kwargs': {}} for x in splitfiles], num_procs=num_procs)
+                   'kwargs': {}} for x in splitfiles], num_procs=num_procs)
     shutil.rmtree(temp_dir)
 
 
@@ -300,13 +171,13 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
         cameras = _detect_cameras()
         if len(cameras) != 2:
             puts(colored.red("Please connect two pre-configured cameras!"
-                            " ({0} were found)".format(len(cameras))))
+                             " ({0} were found)".format(len(cameras))))
             sys.exit(0)
         puts(colored.green("Found {0} cameras!".format(len(cameras))))
         if not any(bool(x.orientation) for x in cameras):
-            puts(colored.red("At least one of the cameras has not been properly"
-                            "configured, please re-run the program with the"
-                            "\'configure\' option!"))
+            puts(colored.red("At least one of the cameras has not been"
+                             " properly configured, please re-run the program"
+                             " with the \'configure\' option!"))
             sys.exit(0)
     # Set up for shooting
     for camera in cameras:
@@ -324,10 +195,10 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
     while True:
         if getch() != 'b':
             break
-        _run_parallel([{'func': x.shoot, 'args': [],
-                        'kwargs': {'shutter_speed': shutter_speed,
-                                   'iso_value': iso_value}}
-                       for x in cameras])
+        run_parallel([{'func': x.shoot, 'args': [],
+                       'kwargs': {'shutter_speed': shutter_speed,
+                                  'iso_value': iso_value}}
+                      for x in cameras])
         shot_count += len(cameras)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
         status = "\r{0} pages [{0:.0f}/h]".format(colored.blue(shot_count),
@@ -341,13 +212,13 @@ def download(path, keep=False):
         os.mkdir(path)
     cameras = _detect_cameras()
     puts(colored.green("Downloading images from cameras"))
-    _run_parallel([{'func': x.download_files,
-                    'args': [os.path.join(path, x.orientation)],
-                    'kwargs': {}} for x in cameras])
-    if not args.keep:
+    run_parallel([{'func': x.download_files,
+                   'args': [os.path.join(path, x.orientation)],
+                   'kwargs': {}} for x in cameras])
+    if not keep:
         puts(colored.green("Deleting images from cameras"))
-        _run_parallel([{'func': x.delete_files, 'args': [], 'kwargs': {}}
-                       for x in cameras])
+        run_parallel([{'func': x.delete_files, 'args': [], 'kwargs': {}}
+                      for x in cameras])
     _combine_images(path)
     shutil.rmtree(os.path.join(path, 'left'))
     shutil.rmtree(os.path.join(path, 'right'))
@@ -357,9 +228,9 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=False):
     img_dir = os.path.join(path, 'raw')
     # Rotation, left -> cw; right -> ccw
     puts(colored.green("Rotating images"))
-    _run_parallel([{'func': _rotate_image, 'args': [os.path.join(img_dir, x)],
-                    'kwargs': {'inverse': rotate_inverse}}
-                   for x in os.listdir(img_dir)], num_procs=num_jobs)
+    run_parallel([{'func': _rotate_image, 'args': [os.path.join(img_dir, x)],
+                   'kwargs': {'inverse': rotate_inverse}}
+                  for x in os.listdir(img_dir)], num_procs=num_jobs)
 
     # TODO: Calculate DPI from grid and set it in the JPGs
     # TODO: Dewarp the pictures from grid information
@@ -434,12 +305,12 @@ def wizard(path):
     else:
         num_jobs = int(num_jobs)
     autopilot = (raw_input("Do you want to manually adjust the generated"
-        " ScanTailor configuration? [y]: ").lower() == 'n')
-    postprocessing(path, rotate_inverse=rotate_inverse, num_jobs=num_jobs,
-                   autopilot=autopilot)
+                           " ScanTailor configuration? [y]: ").lower() == 'n')
+    postprocess(path, rotate_inverse=rotate_inverse, num_jobs=num_jobs,
+                autopilot=autopilot)
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(
         description="Scanning Tool for  DIY Book Scanner")
     parser.add_argument(
