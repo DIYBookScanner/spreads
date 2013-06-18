@@ -31,6 +31,7 @@ Requirements
   no further cameras were tested, but should work in theory)
 * A version of `ptpcam modified for CHDK`_ in /usr/bin
 * gphoto2
+* An up-to date version of ScanTailor-enhanced_
 
 Usage
 -----
@@ -84,5 +85,6 @@ the ScanTailor output. This setting can be adjusted with the **--jobs** option.
 .. _clint library: https://github.com/kennethreitz/clint
 .. _pillow library: https://github.com/python-imaging/Pillow
 .. _ptpcam modified for CHDK: http://forum.chdk-treff.de/download/file.php?id=1640
+.. _ScanTailor-enhanced: http://sourceforge.net/p/scantailor/code/ci/enhanced/tree/
 .. _ISO: http://chdk.wikia.com/wiki/CHDK_scripting#set_sv96
 .. _shutter: http://chdk.wikia.com/wiki/CHDK_scripting#set_tv96_direct
