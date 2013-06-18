@@ -196,6 +196,27 @@ def _detect_cameras():
     return cams
 
 
+def _combine_images(path):
+    left_dir = os.path.join(path, 'left')
+    right_dir = os.path.join(path, 'right')
+    target_dir = os.path.join(path, 'raw')
+    if not os.path.exists(target_dir):
+        os.mkdir(target_dir)
+    left_pages = [os.path.join(left_dir, x)
+                  for x in sorted(os.listdir(left_dir))]
+    right_pages = [os.path.join(right_dir, x)
+                   for x in sorted(os.listdir(right_dir))]
+    if len(left_pages) != len(right_pages):
+        puts(colored.yellow("The left and right camera produced an inequal"
+                            " amount of images!"))
+    combined_pages = reduce(operator.add, zip(right_pages, left_pages))
+    puts(colored.green("Combining images."))
+    for idx, fname in enumerate(combined_pages):
+        fext = os.path.splitext(os.path.split(fname)[1])[1]
+        target_file = os.path.join(target_dir, "{0:04d}{1}".format(idx, fext))
+        shutil.copyfile(fname, target_file)
+
+
 def _rotate_image(path, inverse=False):
     im = Image.open(path)
     # Butt-ugly, yes, but works fairly reliably and doesn't require
@@ -325,10 +346,13 @@ def download(args):
         puts(colored.green("Deleting images from cameras"))
         _run_parallel([{'func': x.delete_files, 'args': [], 'kwargs': {}}
                        for x in cameras])
+    _combine_images(destination)
+    shutil.rmtree(os.path.join(destination, 'left'))
+    shutil.rmtree(os.path.join(destination, 'right'))
 
 
 def postprocess(args):
-    img_dir = os.path.join(args.path, 'combined')
+    img_dir = os.path.join(args.path, 'raw')
     # Rotation, left -> cw; right -> ccw
     puts(colored.green("Rotating images"))
     _run_parallel([{'func': _rotate_image, 'args': [os.path.join(img_dir, x)],
@@ -357,31 +381,6 @@ def postprocess(args):
                        " configuration."))
     _scantailor_parallel(projectfile, out_dir, num_procs=args.num_jobs)
 
-
-def combine(args):
-    path = args.path
-    left_dir = os.path.join(path, 'left')
-    right_dir = os.path.join(path, 'right')
-    target_dir = os.path.join(path, 'combined')
-    for x in (right_dir, left_dir):
-        if not os.path.exists(x):
-            puts(colored.red("Could not find directory \'{0}\'!".format(x)))
-            sys.exit(0)
-    if not os.path.exists(target_dir):
-        os.mkdir(target_dir)
-    left_pages = [os.path.join(left_dir, x)
-                  for x in sorted(os.listdir(left_dir))]
-    right_pages = [os.path.join(right_dir, x)
-                   for x in sorted(os.listdir(right_dir))]
-    if len(left_pages) != len(right_pages):
-        puts(colored.yellow("Left and Right folders do not have the same"
-                            "amount of images!"))
-    combined_pages = reduce(operator.add, zip(right_pages, left_pages))
-    puts(colored.green("Combining images."))
-    for idx, fname in enumerate(combined_pages):
-        fext = os.path.splitext(os.path.split(fname)[1])[1]
-        target_file = os.path.join(target_dir, "{0:04d}{1}".format(idx, fext))
-        shutil.copyfile(fname, target_file)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -433,12 +432,6 @@ if __name__ == '__main__':
         "--auto", "-a", dest="autopilot", action="store_true",
         help="Don't prompt user to edit ScanTailor configuration")
     postprocess_parser.set_defaults(func=postprocess)
-
-    merge_parser = subparsers.add_parser(
-        'combine', help="Combine left and right image folders.")
-    merge_parser.add_argument(
-        "path", help="Path where the left and right image folders are stored.")
-    merge_parser.set_defaults(func=combine)
 
     args = parser.parse_args()
     loglevel = logging.INFO
