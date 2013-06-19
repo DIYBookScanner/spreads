@@ -54,6 +54,7 @@ def configure():
     for orientation in ('left', 'right'):
         puts("Please connect the camera labeled \'{0}\'".format(orientation))
         puts(colored.blue("Press any key when ready."))
+        _ = getch()
         cams = detect_cameras()
         if len(cams) > 1:
             puts(colored.red("Please ensure that only one camera is"
@@ -64,6 +65,9 @@ def configure():
             sys.exit(0)
         cams[0].set_orientation(orientation)
         puts(colored.green("Configured \'{0}\' camera.".format(orientation)))
+        puts("Please disconnect the camera.")
+        puts(colored.blue("Press any key when ready."))
+        _ = getch()
 
 config_parser = subparsers.add_parser(
     'configure', help="Perform initial configuration of the cameras.")
@@ -113,10 +117,17 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
                       for x in cameras])
         shot_count += len(cameras)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
-        status = "\r{0} pages [{0:.0f}/h]".format(colored.blue(shot_count),
+        status = "\rShot {0} pages [{1:.0f}/h]".format(
+                                                  colored.green(shot_count),
                                                   pages_per_hour)
         sys.stdout.write(status)
         sys.stdout.flush()
+    sys.stdout.write("\rShot {0} pages in {1:.1f} minutes, average speed was"
+                     " {2:.0f} pages per hour".format(
+                                               colored.green(shot_count),
+                                               (time.time() - start_time)/60,
+                                               pages_per_hour))
+    sys.stdout.flush()
 
 shoot_parser = subparsers.add_parser(
     'shoot', help="Start the shooting workflow")

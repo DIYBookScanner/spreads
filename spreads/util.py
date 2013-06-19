@@ -127,7 +127,7 @@ def detect_cameras():
     cameras = []
     for cam_port in cam_ports:
         bus, device = cam_port[4:].split(',')
-        usb_dev = usb.find(bus=int(bus), address=int(device))
+        usb_dev = usb.core.find(bus=int(bus), address=int(device))
         vendor_id, product_id = (hex(x)[2:].zfill(4) for x in
                                  (usb_dev.idVendor, usb_dev.idProduct))
         try:
