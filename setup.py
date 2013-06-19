@@ -2,13 +2,13 @@
 from distutils.core import setup
 
 setup(
-    name='diyshoot',
+    name='spreads',
     version='0.1.0',
     author='Johannes Baiter',
     author_email='johannes.baiter@gmail.com',
-    packages=['diyshoot', 'diyshoot.cameras'],
-    scripts=['bin/diyshoot', ],
-    url='http://github.com/jbaiter/diyshoot',
+    packages=['spreads', 'spreadsplug'],
+    scripts=['spread', ],
+    url='http://github.com/jbaiter/spreads',
     license='LICENSE.txt',
     description='Tool to facilitate book digitization with the DIY Book '
                 'Scanner',

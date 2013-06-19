@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+# -*- coding: utf-8 -*-
 
 # Copyright (c) 2013 Johannes Baiter. All rights reserved.
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,7 +19,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import diyshoot
+"""
+Tool to facilitate book digitization with the DIY BookScanner.
+"""
 
-if __name__ == '__main__':
-    diyshoot.main()
+import logging
+
+from spreads.commands import parser
+from spreadsplug import *
+
+
+def main():
+    parser.add_argument(
+        '--verbose', '-v', dest="verbose", action="store_true")
+    args = parser.parse_args()
+    loglevel = logging.INFO
+    if args.verbose:
+        loglevel = logging.DEBUG
+    logging.basicConfig(level=loglevel)
+    func_args = dict(x for x in args._get_kwargs()
+                     if x[0] not in ('func', 'verbose'))
+    logging.debug(func_args)
+    args.func(**func_args)

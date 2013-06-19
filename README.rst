@@ -1,5 +1,5 @@
-diyshoot: *They shoot pages, don't they?*
-=========================================
+spreads
+=======
 
 This small Python tool tries to help establishing a quick and painless
 scanning workflow for users of the DIYBookScanner_.
@@ -27,6 +27,7 @@ Requirements
 * Python 2.7
 * The `clint library`_ (used for the console interface)
 * The `pillow library`_ (used to obtain EXIF information and rotate images)
+* The `pyusb library`_ (used to obtain information about attached cameras)
 * Two cameras running CHDK (development was done using two Canon A2200s,
   no further cameras were tested, but should work in theory)
 * A version of `ptpcam modified for CHDK`_ in /usr/bin
@@ -37,7 +38,7 @@ Usage
 -----
 wizard
 ******
-``diyshoot.py wizard <project-path>``
+``spread wizard <project-path>``
 
 Interactive dialog that asks the user for all relevant parameters, runs all
 of the steps below and stores the output in *project-path*.
@@ -45,7 +46,7 @@ of the steps below and stores the output in *project-path*.
 
 configure
 *********
-``diyshoot.py configure``
+``spread configure``
 
 Sets up your cameras for shooting by assigning every connected camera with a
 'left' or 'right' label. This step only has to be performed once, as the
@@ -54,7 +55,7 @@ information is permanently stored on the cameras.
 
 shoot
 *****
-``diyshoot.py shoot [--iso <int>] [--shutter <int>] [--zoom <int>]``
+``spread shoot [--iso <int>] [--shutter <int>] [--zoom <int>]``
 
 Launches a shooting loop. You can set values for ISO, shutter speed and zoom
 level. ISO and shutter speed have to be provided as APEX96 values, see the CHDK
@@ -66,7 +67,7 @@ process by pressing any other key.
 
 download
 ********
-``diyshoot.py download [--keep] <project-path>``
+``spread download [--keep] <project-path>``
 
 Downloads the images from both cameras and combines them in the *raw*
 subdirectory of the *project-path*. Once the download is completed,
@@ -77,7 +78,7 @@ This last step can be skipped with the **--keep** option.
 
 postprocess
 ***********
-``diyshoot.py postprocess [--rotate-inverse] [--jobs <int>] [--auto] <project-path>``
+``spread postprocess [--rotate-inverse] [--jobs <int>] [--auto] <project-path>``
 
 Rotates the images in *project-path*, creates a ScanTailor configuration and
 processes the images with ScanTailor. The ScanTailor output can be found in the
@@ -99,6 +100,7 @@ the ScanTailor output. This setting can be adjusted with the **--jobs** option.
 .. _graycard and imagemagick: http://diybookscanner.org/forum/viewtopic.php?f=20&t=2848
 .. _clint library: https://github.com/kennethreitz/clint
 .. _pillow library: https://github.com/python-imaging/Pillow
+.. _pyusb library: https://pypi.python.org/pypi/pyusb/1.0.0a3
 .. _ptpcam modified for CHDK: http://forum.chdk-treff.de/download/file.php?id=1640
 .. _ScanTailor-enhanced: http://sourceforge.net/p/scantailor/code/ci/enhanced/tree/
 .. _ISO: http://chdk.wikia.com/wiki/CHDK_scripting#set_sv96

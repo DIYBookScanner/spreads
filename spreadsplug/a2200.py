@@ -26,7 +26,7 @@ import os
 import subprocess
 import time
 
-from diyshoot.cameras.base import BaseCamera
+from spreads.plugin import BaseCamera
 
 
 class CanonA2200Camera(BaseCamera):
