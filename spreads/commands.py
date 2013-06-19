@@ -237,12 +237,25 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=False):
         # Butt-ugly, yes, but works fairly reliably and doesn't require
         # some exotic library not available from PyPi (I'm looking at you,
         # gexiv2...)
-        orientation = re.search(
-            'right|left',
-            {TAGS.get(tag, tag): value for tag, value in im._getexif().items()}
-            ['MakerNote']).group()
-        logging.debug("Image {0} has orientation {1}".format(path,
-                                                             orientation))
+        try:
+            orientation = re.search(
+                'right|left',
+                {TAGS.get(tag, tag): value
+                 for tag, value in im._getexif().items()}
+                ['MakerNote']).group()
+            logging.debug("Image {0} has orientation {1}".format(path,
+                                                                orientation))
+        except AttributeError:
+            # Looks like the images are already rotated and have lost their
+            # EXIF information. Or they didn't have any EXIF information
+            # to begin with...
+            warning = ""
+            if im._getexif() is None:
+                warning += ("Image {0} didn't have any EXIF information. "
+                            .format(path))
+            logging.warn(warning + "Cannot determine rotation for image {0}"
+                         .format(path))
+            return
         rotation = 90
         if inverse:
             rotation *= 2
