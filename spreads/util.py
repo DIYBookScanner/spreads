@@ -65,8 +65,12 @@ def run_parallel(tasks):
     """
     procs = []
     for task in tasks:
-        proc = Process(target=task['func'], args=task['args'],
-                       kwargs=task['kwargs'])
+        if not 'args' in task:
+            task['args'] = []
+        if not 'kwargs' in task:
+            task['kwargs'] = {}
+        func, m_args, m_kwargs = task['func'], task['args'], task['kwargs']
+        proc = Process(target=func, args=m_args, kwargs=m_kwargs)
         proc.start()
         procs.append(proc)
     for proc in procs:

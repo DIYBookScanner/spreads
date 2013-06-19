@@ -75,6 +75,14 @@ config_parser.set_defaults(func=configure)
 
 
 def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
+    def setup_camera(camera):
+        camera.set_record_mode()
+        time.sleep(1)
+        camera.set_zoom(zoom_value)
+        camera.set_iso(iso_value)
+        camera.disable_flash()
+        camera.disable_ndfilter()
+
     if not find_in_path('ptpcam'):
         raise Exception("Could not find executable `ptpcam``in $PATH."
                         " Please install the appropriate package(s)!")
@@ -95,14 +103,9 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
                              " with the \'configure\' option!"))
             sys.exit(0)
     # Set up for shooting
-    for camera in cameras:
-        puts("Setting up {0} camera.".format(camera.orientation))
-        camera.set_record_mode()
-        time.sleep(1)
-        camera.set_zoom(zoom_value)
-        camera.set_iso(iso_value)
-        camera.disable_flash()
-        camera.disable_ndfilter()
+    puts("Setting up cameras for shooting.")
+    run_parallel([{'func': setup_camera,
+                   'args': [camera]} for camera in cameras])
     # Start shooting loop
     puts(colored.blue("Press 'b' or the footpedal to shoot."))
     shot_count = 0
@@ -111,7 +114,6 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
         if getch() != 'b':
             break
         run_parallel([{'func': x.shoot,
-                       'args': [x, 'shoot'],
                        'kwargs': {'shutter_speed': shutter_speed,
                                   'iso_value': iso_value}}
                       for x in cameras])
