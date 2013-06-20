@@ -22,6 +22,8 @@
 """ Canon A2200 driver
 """
 
+from __future__ import division, unicode_literals
+
 import os
 import subprocess
 import time

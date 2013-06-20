@@ -22,6 +22,8 @@
 """ Various utility functions.
 """
 
+from __future__ import division, unicode_literals
+
 import itertools
 import logging
 import os
