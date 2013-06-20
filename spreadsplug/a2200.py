@@ -62,6 +62,9 @@ class CanonA2200Camera(BaseCamera):
         return int(self._ptpcam('luar get_zoom()').split()[1][-1])
 
     def set_zoom(self, level=3):
+        if level > 7:
+            raise Exception("Zoom level {0} exceeds the camera's range!"
+                            .format(level))
         while self.get_zoom() != level:
             if self.get_zoom() > level:
                 self._ptpcam('luar click("zoom_out")')
