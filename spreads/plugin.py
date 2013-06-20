@@ -28,16 +28,31 @@ import sys
 
 class BaseCamera(object):
     """ Base class for cameras.
+
         Subclass to implement support for different cameras.
+
     """
     @classmethod
     def match(cls, vendor_id, product_id):
-        """ @return: True if `vendor_id` and `product_id` match the
-                     implemented model. """
+        """ Match camera against USB device information.
+
+        :param vendor_id:   idVendor of the USB device
+        :type vendor_id:    unicode (hex, zero-padded to 4, e.g. "04a1")
+        :param product_id:  idProduct of the USB device
+        :type product_id:   unicode (hex, zero-padded to 4, e.g. "12a3")
+        :return:            True if the IDs match the implemented model
+
+        """
         raise NotImplementedError
 
     def __init__(self, bus, device):
-        """ Connects to the camera at `bus`:`device`.
+        """ Set connection information and try to retrieve orientation.
+
+        :param bus:     USB bus number of the camera
+        :type bus:      int, str, unicode
+        :param device:  USB device number of the camera
+        :type bus:      int, str, unicode
+
         """
         self._port = (int(bus), int(device))
         self.orientation = (self._gphoto2(["--get-config",
@@ -45,8 +60,13 @@ class BaseCamera(object):
                             .split("\n")[-2][9:] or None)
 
     def _gphoto2(self, args):
-        """ Call gphoto2 with `args` (list).
-            @return: stdout of the gphoto2 process.
+        """ Call gphoto2.
+
+        :param args:  The arguments for gphoto2
+        :type args:   list
+        :returns:     unicode -- combined stdout and stderr of the gphoto2
+                                    process.
+
         """
         cmd = (["gphoto2", "--port", "usb:{0:03},{1:03}".format(*self._port)]
                + args)
@@ -60,8 +80,13 @@ class BaseCamera(object):
         return out
 
     def _ptpcam(self, command):
-        """ Call ptpcam with `command` (str/unicode).
-            @return: stdout of the ptpcam process
+        """ Call ptpcam to execute command on camera.
+
+        :param command: The CHDK command to execute on the camera
+        :type command:  unicode
+        :returns:       unicode -- combined stdout and stderr of the ptpcam
+                                    process
+
         """
         bus, device = self._port
         cmd = ["ptpcam", "--dev={0:03}".format(device),
@@ -78,7 +103,12 @@ class BaseCamera(object):
         return out
 
     def set_orientation(self, orientation):
-        """ Set the camera's `orientation` ("left"/"right"). """
+        """ Set the camera orientation.
+
+        :param orientation: The orientation name
+        :type orientation:  unicode in (u"left", u"right")
+
+        """
         self._gphoto2(["--set-config",
                        "/main/settings/ownername={0}".format(orientation)])
         self.orientation = orientation
@@ -88,8 +118,12 @@ class BaseCamera(object):
         raise NotImplementedError
 
     def download_files(self, path):
-        """ Download all files from camera to `path` and create `path` if
-            it does not exist yet. """
+        """ Download all files from camera.
+
+        :param path:  The destination path for the downloaded images
+        :type path:   unicode
+
+        """
         raise NotImplementedError
 
     def set_record_mode(self):
@@ -97,11 +131,20 @@ class BaseCamera(object):
         raise NotImplementedError
 
     def get_zoom(self):
-        """ @return: current zoom level (int). """
+        """ Get current zoom level.
+
+        :returns: int -- the current zoom level
+
+        """
         raise NotImplementedError
 
     def set_zoom(self, level):
-        """ Set zoom `level` (int). """
+        """ Set zoom level.
+
+        :param level: The zoom level to be used
+        :type level:  int
+
+        """
         raise NotImplementedError
 
     def disable_flash(self):
@@ -109,7 +152,11 @@ class BaseCamera(object):
         raise NotImplementedError
 
     def set_iso(self, iso_value):
-        """ Set the camera's ISO value to `iso_value` (int, APEX96 format).
+        """ Set the camera's ISO value.
+
+        :param iso_value: The ISO value in ISO/ASA format
+        :type iso-value:  int
+
         """
         raise NotImplementedError
 
@@ -118,11 +165,19 @@ class BaseCamera(object):
         raise NotImplementedError
 
     def shoot(self, shutter_speed, iso_value):
-        """ Shoot a picture with `shutter_speed` and `iso_value` (both int
-            and in APEX96 format).
+        """ Shoot a picture.
+
+        :param shutter_speed: The shutter speed to be used
+        :type shutter_speed:  float (e.g. 64.0 or 1/25)
+
         """
         raise NotImplementedError
 
     def play_sound(self, sound_num):
-        """ Play sound identified by `sound_num` (int). """
+        """ Play sound.
+
+        :param sound_num: The ID of the sound
+        :type sound_num:  int
+
+        """
         raise NotImplementedError

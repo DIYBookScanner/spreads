@@ -41,7 +41,10 @@ try:
     from msvcrt import getch
 except ImportError:
     def getch():
-        """ Wait for keypress on stdin and return the appropriate character.
+        """ Wait for keypress on stdin.
+
+        :returns: unicode -- Value of character that was pressed
+
         """
         import tty
         import termios
@@ -55,15 +58,30 @@ except ImportError:
 
 
 def find_in_path(name):
-    """ :return `True` if `name` is in $PATH. """
+    """ Find executable in $PATH.
+
+    :param name:  name of the executable
+    :type name:   unicode
+    :returns:     bool -- True if *name* is found or False
+
+    """
     return name in itertools.chain(*tuple(os.listdir(x)
                                    for x in os.environ.get('PATH').split(':')
                                    if os.path.exists(x)))
 
 
 def run_parallel(tasks):
-    """ Run all tasks defined in `tasks` in parallel (i.e. no upper bound
-        on the number of processes!).
+    """ Run tasks at the same time (i.e. no upper bound on the number of
+        parallel processes!).
+
+    :param tasks: Tasks to be performed
+    :type tasks:  list with dict members:
+                  {'func': function,
+                  'args': None or list,
+                  'kwargs': None or dict,
+                  }
+
+
     """
     procs = []
     for task in tasks:
@@ -80,9 +98,16 @@ def run_parallel(tasks):
 
 
 def run_multicore(task, m_args=[], m_kwargs={}, num_procs=None):
-    """ Run `task` once for each set of parameters in `param_list`, using
-        either `num_procs` worker processes or as many as CPU cores are
-        available. `param_list` must contain only items that are picklable.
+    """ Run function for set of arguments and distribute the work among a
+        number of worker processes.
+
+    :param task:      The task to be performed
+    :type task:       function
+    :param m_args:    One or multiple sets of arguments to be passed
+    :type m_args:     list, list of lists
+    :param m_kwargs:  One or multiple sets of keyword arguments to be passed
+    :type m_kwargs:   dict, list of dicts
+
     """
     class Worker(Process):
         def __init__(self, task, queue):
@@ -121,7 +146,8 @@ def run_multicore(task, m_args=[], m_kwargs={}, num_procs=None):
 def detect_cameras():
     """ Detect all attached cameras and select a fitting driver.
 
-        :return A list of `Camera` objects.
+    :returns:  list(BaseCamera) -- All supported cameras that were detected
+
     """
     if not find_in_path('gphoto2'):
         raise Exception("Could not find executable `gphoto2``in $PATH."

@@ -93,6 +93,7 @@ More Topics
 
    commands
    extending
+   api
 
 
 .. note::
