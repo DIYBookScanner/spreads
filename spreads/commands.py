@@ -177,9 +177,9 @@ def download(path, keep=False):
     cameras = detect_cameras()
     puts(colored.green("Downloading images from cameras"))
     out_paths = [os.path.join(path, x.orientation) for x in cameras]
-    for path in out_paths:
-        if not os.path.exists(path):
-            os.mkdir(path)
+    for subpath in out_paths:
+        if not os.path.exists(subpath):
+            os.mkdir(subpath)
     run_parallel([{'func': x.download_files,
                    'args': [os.path.join(path, x.orientation)],
                    'kwargs': {}} for x in cameras])
