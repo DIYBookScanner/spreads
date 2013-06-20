@@ -1,0 +1,58 @@
+# Valid values: 'debug', 'info', 'warning', 'error', 'critical'
+loglevel: info
+
+# Options for 'shoot' command
+shoot:
+    # ISO sensitivity
+    sensitivity: 80
+    shutter_speed: 1/25
+    zoom_level: 3
+    dpi: auto
+
+# Options for 'download' command
+download:
+    # keep files on cameras after downloading
+    keep: no
+
+# Options for 'postprocess' command
+# Changing the order of filters in the configuration will also effect the
+# order in which the filters are executed
+postprocess:
+    # Number of concurrent jobs
+    jobs: auto
+
+    # Rotation applied to images from left and right camera
+    rotation:
+        left: 90
+        right: -90
+
+    # ScanTailor options, see `scantailor-cli --help`
+    scantailor:
+        autopilot: no
+        rotate: no
+        split_pages: yes
+        deskew: yes
+        content: yes
+        margins: yes
+        detection: content
+        content_detection: normal
+        auto_margins: no
+        margins: [2.5, 2.5, 2.5, 2.5]
+        output_dpi: auto
+        color_mode: black_and_white
+        binarize_threshold: 0
+        despeckle: normal
+        dewarp: no
+
+    # PDF output options, see `pdfbeads --help`
+    pdf:
+        layout: SinglePage
+        mask_compression: jbig2
+        jbig2_dict_size: 15
+        bg_compression: jp2
+
+    # DJVU output options, see `djvubind --help`
+    djvu:
+        ocr: none
+        tesseract_options: []
+        cuneiform_options: []

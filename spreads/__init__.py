@@ -25,14 +25,22 @@ Tool to facilitate book digitization with the DIY BookScanner.
 
 import logging
 
+import confit
+
 from spreads.commands import parser
+
+# Import all plugins into spreads namespace
 from spreadsplug import *
+
+# Lazy-load configuration
+config = confit.LazyConfig('spreads', __name__)
 
 
 def main():
     parser.add_argument(
         '--verbose', '-v', dest="verbose", action="store_true")
     args = parser.parse_args()
+    config.set_args(args)
     loglevel = logging.INFO
     if args.verbose:
         loglevel = logging.DEBUG
