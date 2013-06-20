@@ -15,14 +15,14 @@ Prerequisites
 
 Installing from PyPi
 --------------------
-This will grab the latest release and install all Python dependencies.
+This will grab the latest release and install all Python dependencies::
 
-``$ pip install spreads``
+    $ pip install spreads
 
 Installing from GitHub
 ----------------------
 Like from PyPi, only using the development version from GitHub (might break,
-use with caution!)
+use with caution!)::
 
-``$ pip install git+git://github.com/jbaiter/spreads.git@master``
+    $ pip install git+git://github.com/jbaiter/spreads.git@master
 

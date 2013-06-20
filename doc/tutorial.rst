@@ -5,23 +5,23 @@ Tutorial
    :doc:`change that! <extending>`).
    Make sure that you have *gphoto2* and *ptpcam* installed.
 2. Run the following command in the shell of your choice and follow the
-   instructions on the screen:
+   instructions on the screen::
    
-  ``$ spread configure``
+       $ spread configure
 
-3. Now you can begin shooting:
+3. Now you can begin shooting::
 
-   ``$ spread shoot``
+       $ spread shoot
 
    When you're done, press any key besides the **spacebar** or **b**.
 
-4. Time to get those images to your computer!
+4. Time to get those images to your computer::
 
-   ``$ spread download ~/scans/mybook``
+       $ spread download ~/scans/mybook
 
-5. And now let's make those scans pretty :-)
+5. And now let's make those scans pretty (::
 
-   ``$ spread postprocess ~/scans/mybook``
+       $ spread postprocess ~/scans/mybook
 
 If you want to know more about any of the above commands, check out their
 respective entries in the :doc:`command-line reference <commands>`.

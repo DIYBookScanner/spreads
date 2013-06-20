@@ -16,18 +16,22 @@ Along the way you can always fine-tune the auto-generated results either
 by supplying arguments beforehand, or by inspecting the output and
 applying your modifications.
 
-.. *spreads* is meant to be fully customizable. This means, adding support
-   for new cameras is made as painless as possible and you can hook into
-   the scanning process at multiple points and add your own functions
-   via plugins. (see :doc:`Extending spreads <extending>`)
+*spreads* is meant to be fully customizable. This means, :ref:`adding support
+for new cameras <add_cameras>` is made as painless as possible.  Support for
+plugins that can either hook into the various commands or add new ones is on
+the agenda, stay tuned!
 
 
 Quickstart
 ----------
-*spreads* offers an interactive wizard that guides you through the whole
-process:
+*spreads* can be easily installed from PyPi::
 
-``$ spread wizard ~/my_scanning_project``
+    $ pip install spreads
+
+*spreads* offers an interactive wizard that guides you through the whole
+process::
+
+    $ spread wizard ~/my_scanning_project
 
 Refer to the :doc:`Command-Line Reference <commands>` if you want a more
 in-depth explanation of what is happening.

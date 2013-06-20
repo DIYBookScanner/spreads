@@ -29,7 +29,14 @@ import sys
 class BaseCamera(object):
     """ Base class for cameras.
 
-        Subclass to implement support for different cameras.
+        Subclass to implement support for different cameras. Provides some
+        methods that are likely to be of use for CHDK-based cameras.
+
+        .. note::
+
+            Might change a lot in the future, as the API is still tightly
+            coupled to CHDK details and should grow more abstract when
+            support for more cameras is added.
 
     """
     @classmethod

@@ -3,15 +3,17 @@ Command-Line Interface
 
 **spread** is *spreads'* command-line interface.
 
-It takes a *command* as its first argument:
+It takes a *command* as its first argument::
 
-``$ spread COMMAND [ARGS...]``
+    $ spread COMMAND [ARGS...]
 
 All of *spreads'* functionality is accesible via the following commands:
 
 wizard
 ======
-``$ spread wizard <project-path>``
+::
+
+    $ spread wizard <project-path>
 
 Start *spreads* in wizard mode. This will perform all the commands listed below
 and asks the user for options along the way. Images will be stored in
@@ -19,7 +21,9 @@ and asks the user for options along the way. Images will be stored in
 
 configure
 =========
-``$ spread configure``
+::
+
+    $ spread configure
 
 This command sets up your cameras for shooting. Currently, this means nothing
 more than assigning each of the cameras with a label 'left' or 'right', to
@@ -31,8 +35,9 @@ label is stored permanently on the cameras' internal memory.
 
 shoot
 =====
+::
 
-``$ spread shoot [--iso <int>] [--shutter <int/float/str>] [--zoom <int>]``
+    $ spread shoot [--iso <int>] [--shutter <int/float/str>] [--zoom <int>]
 
 This command will start a shooting workflow. As usual, you will be asked
 to connect and turn on your cameras. The application will then set them up,
@@ -62,7 +67,9 @@ other key to finish scanning.
 
 download
 ========
-``$ spread download <project-directory``
+::
+
+    $ spread download <project-directory
 
 This will tell spreads to download all images from your cameras to the folder
 *project-directory*. Images from both cameras will automatically be assembled
@@ -78,7 +85,10 @@ from the cameras.
 
 postprocess
 ===========
-``$ spread postprocess [--auto] [--rotate-inverse] [--jobs <int>] <project-directory>``
+::
+
+    $ spread postprocess [--auto] [--rotate-inverse] [--jobs <int>]\
+      <project-directory>
 
 This will begin the postprocessing workflow. First, all images in the
 *project-directory* will be rotated depending on their camera of origin. Then,
