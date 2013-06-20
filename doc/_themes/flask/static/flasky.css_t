@@ -398,6 +398,20 @@ a:hover tt {
     height: 270px;
 }
 
+/* Hide sidebar logo on home page */
 .indexwrapper img.logo {
+    display: none;
+}
+
+/* Highlight current position in TOC */
+li.current {
+    font-weight: bold;
+}
+li.current ul {
+    font-weight: normal;
+}
+
+/* Don't display home page link in home page TOC */
+.indexwrapper .toctree-wrapper li.current {
     display: none;
 }
