@@ -52,20 +52,21 @@ subparsers = parser.add_subparsers()
 
 def configure():
     for orientation in ('left', 'right'):
-        puts("Please connect the camera labeled \'{0}\'".format(orientation))
+        puts("Please connect and turn on the camera labeled \'{0}\'"
+             .format(orientation))
         puts(colored.blue("Press any key when ready."))
         _ = getch()
         cams = detect_cameras()
         if len(cams) > 1:
             puts(colored.red("Please ensure that only one camera is"
-                             "connected!"))
+                             " turned one!"))
             sys.exit(0)
         if not cams:
             puts(colored.red("No camera found!"))
             sys.exit(0)
         cams[0].set_orientation(orientation)
         puts(colored.green("Configured \'{0}\' camera.".format(orientation)))
-        puts("Please disconnect the camera.")
+        puts("Please turn off the camera.")
         puts(colored.blue("Press any key when ready."))
         _ = getch()
 
@@ -87,14 +88,15 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
         raise Exception("Could not find executable `ptpcam``in $PATH."
                         " Please install the appropriate package(s)!")
     if not cameras:
-        puts("Starting scanning workflow, please connect the cameras.")
+        puts("Starting scanning workflow, please connect and turn on the"
+             " cameras.")
         puts(colored.blue("Press any key to continue."))
         getch()
         puts("Detecting cameras.")
         cameras = detect_cameras()
         if len(cameras) != 2:
-            puts(colored.red("Please connect two pre-configured cameras!"
-                             " ({0} were found)".format(len(cameras))))
+            puts(colored.red("Please connect and turn on two pre-configured"
+                             "cameras! ({0} were found)".format(len(cameras))))
             sys.exit(0)
         puts(colored.green("Found {0} cameras!".format(len(cameras))))
         if not any(bool(x.orientation) for x in cameras):
@@ -319,14 +321,14 @@ postprocess_parser.set_defaults(func=postprocess)
 
 
 def wizard(path):
-    puts("Please connect the cameras.")
+    puts("Please connect and turn on the cameras.")
     puts(colored.blue("Press any key to continue."))
     getch()
     puts(colored.green("Detecting cameras."))
     cameras = detect_cameras()
     if not any(bool(x.orientation) for x in cameras):
         puts(colored.yellow("Cameras not yet configured!"))
-        puts(colored.blue("Please disconnect both cameras."
+        puts(colored.blue("Please turn both cameras off."
                           " Press any key when ready."))
         configure()
 
