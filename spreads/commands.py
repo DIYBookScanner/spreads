@@ -272,11 +272,32 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=False):
                       .format(path, rotation))
         im.rotate(rotation).save(path)
 
+    def assemble_pdf(img_path, output):
+        logging.info("Assembling PDF.")
+        img_files = [os.path.join(img_path, x)
+                     for x in os.listdir(img_path)
+                     if x.lower().endswith('tif')]
+        cmd = ["pdfbeads"] + img_files + ["-o", output]
+        _ = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+
+    def assemble_djvu(img_path, output):
+        logging.info("Assembling DJVU.")
+        orig_dir = os.path.abspath(os.curdir)
+        os.chdir(os.path.join(img_path, '..'))
+        _ = subprocess.check_output(["djvubind", img_path, "--no-ocr"],
+                                    stderr=subprocess.STDOUT)
+        os.rename("book.djvu", "{0}.djvu".format(
+                  os.path.basename(os.path.abspath(os.curdir))))
+        os.chdir(orig_dir)
+
     if not find_in_path('scantailor-cli'):
-        raise Exception("Could not find executable `scantailor-cli``in $PATH."
+        raise Exception("Could not find executable `scantailor-cli` in $PATH."
                         "Please install the appropriate package(s)!")
     if not autopilot and not find_in_path('scantailor'):
-        raise Exception("Could not find executable `scantailor``in $PATH."
+        raise Exception("Could not find executable `scantailor` in $PATH."
+                        "Please install the appropriate package(s)!")
+    if not find_in_path('pdfbeads'):
+        raise Exception("Could not find executable `pdfbeads` in $PATH."
                         "Please install the appropriate package(s)!")
     img_dir = os.path.join(path, 'raw')
     # Rotation, left -> cw; right -> ccw
@@ -307,6 +328,11 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=False):
     puts(colored.green("Generating output images from ScanTailor"
                        " configuration."))
     scantailor_parallel(projectfile, out_dir, num_procs=num_jobs)
+    puts(colored.green("Generating PDF"))
+    pdf_file = os.path.join(path, "{0}.pdf".format(os.path.basename(path)))
+    djvu_file = os.path.join(path, "{0}.djvu".format(os.path.basename(path)))
+    assemble_pdf(out_dir, pdf_file)
+    assemble_djvu(out_dir, djvu_file)
 
 postprocess_parser = subparsers.add_parser(
     'postprocess',
