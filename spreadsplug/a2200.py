@@ -28,10 +28,16 @@ import os
 import subprocess
 import time
 
+from math import log
+
 from spreads.plugin import BaseCamera
 
 
 class CanonA2200Camera(BaseCamera):
+    ISO_TO_APEX = {
+        80: 373,
+    }
+
     @classmethod
     def match(cls, vendor_id, product_id):
         return vendor_id == "04a9" and product_id == "322a"
@@ -46,8 +52,6 @@ class CanonA2200Camera(BaseCamera):
 
     def download_files(self, path):
         cur_dir = os.getcwd()
-        if not os.path.exists(path):
-            os.mkdir(path)
         os.chdir(path)
         try:
             self._gphoto2(["--recurse", "-P", "A/store00010001/DCIM/"])
@@ -77,19 +81,24 @@ class CanonA2200Camera(BaseCamera):
     def disable_flash(self):
         self._ptpcam("luar set_prop(16, 2)")
 
-    def set_iso(self, iso_value=373):
-        self._ptpcam("luar set_sv96({0})".format(iso_value))
+    def set_iso(self, iso_value=80):
+        try:
+            sv96_value = CanonA2200Camera.ISO_TO_APEX[iso_value]
+        except KeyError:
+            raise Exception("The desired ISO value is not supported.")
+        self._ptpcam("luar set_sv96({0})".format(sv96_value))
 
     def disable_ndfilter(self):
         self._ptpcam("luar set_nd_filter(2)")
 
-    def shoot(self, shutter_speed=320, iso_value=373):
-        """ Values for shutter speed are as follows:
-            http://chdk.wikia.com/wiki/CHDK_scripting#set_tv96_direct
-        """
+    def shoot(self, shutter_speed=1/25, iso_value=80):
         # Set shutter speed (has to be set for every shot)
-        self._ptpcam("luar set_sv96({0})".format(iso_value))
-        self._ptpcam("luar set_tv96_direct({0})".format(shutter_speed))
+        self.set_iso(iso_value)
+        # Calculate TV96 value from shutter_speed
+        tv96_value = -96*log(shutter_speed)/log(2)
+        # Round to nearest multiple of 32
+        tv96_value = int(32*round(tv96_value/32))
+        self._ptpcam("luar set_tv96_direct({0})".format(tv96_value))
         self._ptpcam("luar shoot()")
 
     def play_sound(self, sound_num):
