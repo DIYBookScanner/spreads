@@ -38,10 +38,11 @@ import sys
 import tempfile
 import time
 
-from PIL import Image
-from PIL.ExifTags import TAGS
+from fractions import Fraction
 from xml.etree.cElementTree import ElementTree as ET
 
+from PIL import Image
+from PIL.ExifTags import TAGS
 from clint.textui import puts, colored
 
 from spreads.util import (detect_cameras, getch, run_parallel, run_multicore,
@@ -118,33 +119,31 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
         if getch() != 'b':
             break
         run_parallel([{'func': x.shoot,
-                       'kwargs': {'shutter_speed': shutter_speed,
+                       'kwargs': {'shutter_speed': float(Fraction(
+                                                         shutter_speed)),
                                   'iso_value': iso_value}}
                       for x in cameras])
         shot_count += len(cameras)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
-        status = "\rShot {0} pages [{1:.0f}/h]".format(
-                                                  colored.green(shot_count),
-                                                  pages_per_hour)
+        status = ("\rShot {0} pages [{1:.0f}/h]"
+                  .format(colored.green(shot_count), pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
     sys.stdout.write("\rShot {0} pages in {1:.1f} minutes, average speed was"
-                     " {2:.0f} pages per hour".format(
-                                               colored.green(shot_count),
-                                               (time.time() - start_time)/60,
-                                               pages_per_hour))
+                     " {2:.0f} pages per hour"
+                     .format(colored.green(shot_count),
+                             (time.time() - start_time)/60, pages_per_hour))
     sys.stdout.flush()
 
 shoot_parser = subparsers.add_parser(
     'shoot', help="Start the shooting workflow")
 shoot_parser.add_argument(
-    '--iso', '-i', dest="iso_value", type=int, default=373,
-    metavar="<int>", help="ISO value (APEX96)")
+    '--iso', '-i', dest="iso_value", type=int, default=80,
+    metavar="<int>", help="ISO value")
 shoot_parser.add_argument(
-    "--shutter", '-s', dest="shutter_speed", type=int, default=448,
-    metavar="<int>", help="Shutter speed value (APEX96). For more"
-    " information, visit http://chdk.wikia.com/wiki/CHDK_scripting"
-    "#set_tv96_direct")
+    "--shutter", '-s', dest="shutter_speed", type=unicode, default="1/25",
+    metavar="<int/float/str>", help="Shutter speed value."
+)
 shoot_parser.add_argument(
     "--zoom", "-z", dest="zoom_value", type=int, metavar="<int>",
     default=3, help="Zoom level")
@@ -341,16 +340,16 @@ def wizard(path):
     puts(colored.green("========================="))
     puts(colored.green("Starting scanning process"))
     puts(colored.green("========================="))
-    iso_value = raw_input("ISO [373]: ")
+    iso_value = raw_input("ISO [80]: ")
     if not iso_value:
-        iso_value = 373
+        iso_value = 80
     else:
         iso_value = int(iso_value)
-    shutter_speed = raw_input("Shutter speed [448]: ")
+    shutter_speed = raw_input("Shutter speed [1/25]: ")
     if not shutter_speed:
-        shutter_speed = 448
+        shutter_speed = 0.04
     else:
-        shutter_speed = int(shutter_speed)
+        shutter_speed = float(Fraction(shutter_speed))
     zoom_value = raw_input("Zoom value [3]: ")
     if not zoom_value:
         zoom_value = 3

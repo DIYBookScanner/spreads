@@ -168,7 +168,7 @@ class BaseCamera(object):
         """ Shoot a picture.
 
         :param shutter_speed: The shutter speed to be used
-        :type shutter_speed:  float (e.g. 64.0 or 1/25)
+        :type shutter_speed:  float
 
         """
         raise NotImplementedError

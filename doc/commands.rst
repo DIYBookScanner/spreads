@@ -32,7 +32,7 @@ label is stored permanently on the cameras' internal memory.
 shoot
 =====
 
-``$ spread shoot [--iso <int>] [--shutter <int>] [--zoom <int>]``
+``$ spread shoot [--iso <int>] [--shutter <int/float/str>] [--zoom <int>]``
 
 This command will start a shooting workflow. As usual, you will be asked
 to connect and turn on your cameras. The application will then set them up,
@@ -45,21 +45,14 @@ other key to finish scanning.
 
 .. option:: --iso iso-level, -i iso-level
 
-   Set the ISO sensitivity value used for shooting. The value has to be the
-   desired APEX96 value (see the `CHDK wiki`_ for `more information`_).  The
-   default value is **373**, which corresponds to an ISO level of 80.
-
-   .. _CHDK wiki: http://chdk.wikia.com
-   .. _more information: http://chdk.wikia.com/wiki/CHDK_scripting#set_sv96
+   Set the ISO sensitivity value used for shooting. The default value is
+   **80**.
 
 .. option:: --shutter shutter-speed, -s shutter-speed
 
-   Set the shutter speed used for shooting. Like **--iso**, this value has
-   to be in the APEX96 format. The `CHDK wiki`_ has a list_ of standard
-   shutter speeds with their appropriate APEX96 value.
-   The default value is **448**, which corresponds to a shutter speed of 1/25.
-
-   .. _list: http://chdk.wikia.com/wiki/CHDK_scripting#set_tv96_direct
+   Set the shutter speed used for shooting. The value can be either an integer
+   ("20"), a float ("12.7") or a fraction ("1/25").
+   The default value is **1/25**.
 
 .. option:: --zoom zoom-level, -z zoom-level
 

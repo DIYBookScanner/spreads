@@ -91,7 +91,7 @@ class CanonA2200Camera(BaseCamera):
     def disable_ndfilter(self):
         self._ptpcam("luar set_nd_filter(2)")
 
-    def shoot(self, shutter_speed=1/25, iso_value=80):
+    def shoot(self, shutter_speed=0.04, iso_value=80):
         # Set shutter speed (has to be set for every shot)
         self.set_iso(iso_value)
         # Calculate TV96 value from shutter_speed
