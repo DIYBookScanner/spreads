@@ -1,15 +1,16 @@
 #!/usr/bin/env python2.7
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(
     name='spreads',
-    version='0.1.0',
+    version='0.1',
     author='Johannes Baiter',
     author_email='johannes.baiter@gmail.com',
-    packages=['spreads', 'spreadsplug'],
+    #packages=['spreads', 'spreadsplug'],
+    packages=find_packages(),
     scripts=['spread', ],
     url='http://github.com/jbaiter/spreads',
-    license='LICENSE.txt',
+    license='MIT',
     description='Tool to facilitate book digitization with the DIY Book '
                 'Scanner',
     long_description=open('README.rst').read(),
