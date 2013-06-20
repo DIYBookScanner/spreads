@@ -62,7 +62,7 @@ class BaseCamera(object):
             @return: stdout of the ptpcam process
         """
         bus, device = self._port
-        cmd = ["/usr/bin/ptpcam", "--dev={0:03}".format(device),
+        cmd = ["ptpcam", "--dev={0:03}".format(device),
                "--bus={0:03}".format(bus),
                "--chdk='{0}'".format(command)]
         logging.debug("Running " + " ".join(cmd))
