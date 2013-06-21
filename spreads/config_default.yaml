@@ -1,4 +1,4 @@
-# Valid values: 'debug', 'info', 'warning', 'error', 'critical'
+# Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
 loglevel: info
 
 # Options for 'shoot' command
@@ -15,16 +15,14 @@ download:
     keep: no
 
 # Options for 'postprocess' command
-# Changing the order of filters in the configuration will also effect the
-# order in which the filters are executed
 postprocess:
     # Number of concurrent jobs
     jobs: auto
 
     # Rotation applied to images from left and right camera
     rotation:
-        left: 90
-        right: -90
+        left: -90
+        right: 90
 
     # ScanTailor options, see `scantailor-cli --help`
     scantailor:
@@ -34,25 +32,25 @@ postprocess:
         deskew: yes
         content: yes
         margins: yes
-        detection: content
-        content_detection: normal
-        auto_margins: no
-        margins: [2.5, 2.5, 2.5, 2.5]
-        output_dpi: auto
-        color_mode: black_and_white
-        binarize_threshold: 0
-        despeckle: normal
-        dewarp: no
+        detection: content # not yet implemented
+        content_detection: normal # not yet implemented
+        auto_margins: no # not yet implemented
+        margins: [2.5, 2.5, 2.5, 2.5] # top, right, bottom, left
+        output_dpi: auto # not yet implemented
+        color_mode: black_and_white # not yet implemented
+        binarize_threshold: 0 # not yet implemented
+        despeckle: normal # not yet implemented
+        dewarp: no # not yet implemented
 
     # PDF output options, see `pdfbeads --help`
     pdf:
-        layout: SinglePage
-        mask_compression: jbig2
-        jbig2_dict_size: 15
-        bg_compression: jp2
+        layout: SinglePage # not yet implemented
+        mask_compression: jbig2 # not yet implemented
+        jbig2_dict_size: 15 # not yet implemented
+        bg_compression: jp2 # not yet implemented
 
     # DJVU output options, see `djvubind --help`
     djvu:
         ocr: none
-        tesseract_options: []
-        cuneiform_options: []
+        tesseract_options: [] # not yet implemented
+        cuneiform_options: [] # not yet implemented

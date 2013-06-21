@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import spreads
+import spreads.ui
 
 if __name__ == '__main__':
-    spreads.main()
+    spreads.ui.main()

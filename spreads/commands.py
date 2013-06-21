@@ -25,7 +25,6 @@ spreads CLI commands.
 
 from __future__ import division, unicode_literals
 
-import argparse
 import logging
 import math
 import multiprocessing
@@ -44,13 +43,11 @@ from xml.etree.cElementTree import ElementTree as ET
 from PIL import Image
 from PIL.ExifTags import TAGS
 from clint.textui import puts, colored
+from spreads.confit import ConfigTypeError
 
+from spreads import config
 from spreads.util import (detect_cameras, getch, run_parallel, run_multicore,
                           find_in_path)
-
-parser = argparse.ArgumentParser(
-    description="Scanning Tool for  DIY Book Scanner")
-subparsers = parser.add_subparsers()
 
 
 def configure():
@@ -73,12 +70,8 @@ def configure():
         puts(colored.blue("Press any key when ready."))
         _ = getch()
 
-config_parser = subparsers.add_parser(
-    'configure', help="Perform initial configuration of the cameras.")
-config_parser.set_defaults(func=configure)
 
-
-def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
+def shoot(iso_value=None, shutter_speed=None, zoom_value=None, cameras=[]):
     # TODO: This should *really* be a BaseCamera method
     def setup_camera(camera):
         camera.set_record_mode()
@@ -87,6 +80,13 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
         camera.set_iso(iso_value)
         camera.disable_flash()
         camera.disable_ndfilter()
+
+    if not iso_value:
+        iso_value = config['shoot']['sensitivity'].get(int)
+    if not shutter_speed:
+        shutter_speed = config['shoot']['shutter_speed'].get(unicode)
+    if not zoom_value:
+        zoom_value = config['shoot']['zoom_level']
 
     if not find_in_path('ptpcam'):
         raise IOError("Could not find executable `ptpcam``in $PATH."
@@ -137,22 +137,8 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
                              (time.time() - start_time)/60, pages_per_hour))
     sys.stdout.flush()
 
-shoot_parser = subparsers.add_parser(
-    'shoot', help="Start the shooting workflow")
-shoot_parser.add_argument(
-    '--iso', '-i', dest="iso_value", type=int, default=80,
-    metavar="<int>", help="ISO value")
-shoot_parser.add_argument(
-    "--shutter", '-s', dest="shutter_speed", type=unicode, default="1/25",
-    metavar="<int/float/str>", help="Shutter speed value."
-)
-shoot_parser.add_argument(
-    "--zoom", "-z", dest="zoom_value", type=int, metavar="<int>",
-    default=3, help="Zoom level")
-shoot_parser.set_defaults(func=shoot)
 
-
-def download(path, keep=False):
+def download(path, keep=None):
     def combine_images(path):
         left_dir = os.path.join(path, 'left')
         right_dir = os.path.join(path, 'right')
@@ -174,6 +160,8 @@ def download(path, keep=False):
                                        .format(idx, fext))
             shutil.copyfile(fname, target_file)
 
+    if keep is None:
+        keep = config['download']['keep'].get(bool)
     if not os.path.exists(path):
         os.mkdir(path)
     cameras = detect_cameras()
@@ -193,20 +181,9 @@ def download(path, keep=False):
     shutil.rmtree(os.path.join(path, 'left'))
     shutil.rmtree(os.path.join(path, 'right'))
 
-download_parser = subparsers.add_parser(
-    'download', help="Download scanned images.")
-download_parser.add_argument(
-    "path", help="Path where scanned images are to be stored")
-download_parser.add_argument(
-    "--keep", "-k", dest="keep", action="store_true",
-    help="Keep files on cameras after download")
-download_parser.set_defaults(func=download)
 
-
-def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=False):
-    def scantailor_parallel(projectfile, out_dir, num_procs=None):
-        if not num_procs:
-            num_procs = multiprocessing.cpu_count()
+def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=None):
+    def scantailor_parallel(projectfile, out_dir, num_procs):
         tree = ET(file=projectfile)
         num_files = len(tree.findall('./files/file'))
         files_per_job = int(math.ceil(float(num_files)/num_procs))
@@ -240,7 +217,7 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=False):
                       num_procs=num_procs)
         shutil.rmtree(temp_dir)
 
-    def rotate_image(path, inverse=False):
+    def rotate_image(path, left, right, inverse=False):
         logging.debug("Rotating image {0}".format(path))
         im = Image.open(path)
         # Butt-ugly, yes, but works fairly reliably and doesn't require
@@ -253,23 +230,23 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=False):
                  for tag, value in im._getexif().items()}
                 ['MakerNote']).group()
             logging.debug("Image {0} has orientation {1}".format(path,
-                                                                orientation))
+                                                                 orientation))
         except AttributeError:
             # Looks like the images are already rotated and have lost their
             # EXIF information. Or they didn't have any EXIF information
             # to begin with...
             warning = ""
             if im._getexif() is None:
-                warning += ("Image {0} didn't have any EXIF information. "
-                            .format(path))
+                warning += "No EXIF information. "
             logging.warn(warning + "Cannot determine rotation for image {0}"
                          .format(path))
             return
-        rotation = 90
+        if orientation == 'left':
+            rotation = left
+        else:
+            rotation = right
         if inverse:
             rotation *= 2
-        if orientation == 'left':
-            rotation *= -1
         logging.debug("Rotating image \'{0}\' by {1} degrees"
                       .format(path, rotation))
         im.rotate(rotation).save(path)
@@ -280,18 +257,30 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=False):
                      for x in os.listdir(img_path)
                      if x.lower().endswith('tif')]
         cmd = ["pdfbeads"] + img_files + ["-o", output]
+        logging.debug("Running " + " ".join(cmd))
         _ = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
     def assemble_djvu(img_path, output):
         logging.info("Assembling DJVU.")
         orig_dir = os.path.abspath(os.curdir)
         os.chdir(os.path.join(img_path, '..'))
-        _ = subprocess.check_output(["djvubind", img_path, "--no-ocr"],
-                                    stderr=subprocess.STDOUT)
+        cmd = ["djvubind", img_path]
+        if config['postprocess']['djvu']['ocr'].get(unicode) == 'none':
+            cmd.append("--no-ocr")
+        logging.debug("Running " + " ".join(cmd))
+        _ = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         os.rename("book.djvu", "{0}.djvu".format(
                   os.path.basename(os.path.abspath(os.curdir))))
         os.chdir(orig_dir)
 
+    m_config = config['postprocess']
+    if not num_jobs:
+        try:
+            num_jobs = m_config['jobs'].get(int)
+        except:
+            num_jobs = multiprocessing.cpu_count()
+    if autopilot is None:
+        autopilot = m_config['autopilot']
     if not find_in_path('scantailor-cli'):
         raise Exception("Could not find executable `scantailor-cli` in $PATH."
                         "Please install the appropriate package(s)!")
@@ -304,9 +293,12 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=False):
     img_dir = os.path.join(path, 'raw')
     # Rotation, left -> cw; right -> ccw
     puts(colored.green("Rotating images"))
+    rotate_config = m_config['rotation']
     run_multicore(rotate_image, [[os.path.join(img_dir, x)]
                                  for x in os.listdir(img_dir)],
-                  {'inverse': rotate_inverse},
+                  {'inverse': rotate_inverse,
+                   'left': rotate_config['left'].get(int),
+                   'right': rotate_config['right'].get(int)},
                   num_procs=num_jobs)
 
     # TODO: Calculate DPI from grid and set it in the JPGs
@@ -319,8 +311,20 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=False):
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
     puts(colored.green("Generating ScanTailor configuration"))
-    generation_cmd = ['scantailor-cli', '--start-filter=2', '--end-filter=5',
-                      '--layout=1.5', '--margins=2.5',
+    st_config = m_config['scantailor']
+    filterconf = [st_config[x].get(bool)
+                  for x in ('rotate', 'split_pages', 'deskew', 'content',
+                            'auto_margins')]
+    start_filter = filterconf.index(True)+1
+    end_filter = len(filterconf) - list(reversed(filterconf)).index(True)+1
+    generation_cmd = ['scantailor-cli',
+                      '--start-filter={0}'.format(start_filter),
+                      '--end-filter={0}'.format(end_filter),
+                      '--layout=1.5',
+                      '--margins-top={0}'.format(st_config['margins'][0]),
+                      '--margins-right={0}'.format(st_config['margins'][1]),
+                      '--margins-bottom={0}'.format(st_config['margins'][2]),
+                      '--margins-left={0}'.format(st_config['margins'][3]),
                       '-o={0}'.format(projectfile), img_dir, out_dir]
     logging.debug(" ".join(generation_cmd))
     subprocess.call(generation_cmd)
@@ -335,22 +339,6 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=False):
     djvu_file = os.path.join(path, "{0}.djvu".format(os.path.basename(path)))
     assemble_pdf(out_dir, pdf_file)
     assemble_djvu(out_dir, djvu_file)
-
-postprocess_parser = subparsers.add_parser(
-    'postprocess',
-    help="Postprocess scanned images.")
-postprocess_parser.add_argument(
-    "path", help="Path where scanned images are stored")
-postprocess_parser.add_argument(
-    "--rotate-inverse", "-ri", dest="rotate_inverse", action="store_true",
-    help="Rotate by +/- 180° instead of +/- 90°")
-postprocess_parser.add_argument(
-    "--jobs", "-j", dest="num_jobs", type=int, default=None,
-    metavar="<int>", help="Number of concurrent processes")
-postprocess_parser.add_argument(
-    "--auto", "-a", dest="autopilot", action="store_true",
-    help="Don't prompt user to edit ScanTailor configuration")
-postprocess_parser.set_defaults(func=postprocess)
 
 
 def wizard(path):
@@ -406,9 +394,3 @@ def wizard(path):
                            " ScanTailor configuration? [y]: ").lower() == 'n')
     postprocess(path, rotate_inverse=rotate_inverse, num_jobs=num_jobs,
                 autopilot=autopilot)
-
-wizard_parser = subparsers.add_parser(
-    'wizard', help="Interactive mode")
-wizard_parser.add_argument(
-    "path", help="Path where scanned images are to be stored")
-wizard_parser.set_defaults(func=wizard)

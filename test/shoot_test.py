@@ -5,14 +5,13 @@ from nose.tools import raises
 from mock import call, MagicMock as Mock, patch
 
 import spreads.commands as cmd
-#from spreads import config
+from spreads import config
 
 
 class TestConfigure(object):
     def setUp(self):
-        pass
-#        config.clear()
-#        config.read(user=False)
+        config.clear()
+        config.read(user=False)
 
     def test_configure(self):
         cams = [Mock(), Mock()]
@@ -34,9 +33,8 @@ class TestConfigure(object):
 
 class TestShoot(object):
     def setUp(self):
-        pass
-        #config.clear()
-        #config.read(user=False)
+        config.clear()
+        config.read(user=False)
 
     def test_shoot(self):
         cams = [Mock(), Mock()]
@@ -80,8 +78,8 @@ class TestShoot(object):
 
 class TestDownload(object):
     def setUp(self):
-        #config.clear()
-        #config.read(user=False)
+        config.clear()
+        config.read(user=False)
         cams = [Mock(), Mock()]
         cams[0].orientation = 'left'
         cams[1].orientation = 'right'
@@ -113,4 +111,3 @@ class TestPostProcess(object):
     def setUp(self):
         cmd.run_multicore = Mock()
         cmd.subprocess.call = Mock()
-
