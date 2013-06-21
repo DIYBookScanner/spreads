@@ -19,7 +19,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import sys
+import traceback
+
+from clint.textui import puts, colored
+
 import spreads.ui
+from spreads import logging
+from spreads.confit import ConfigError
+from spreads.util import SpreadsException, CameraException
 
 if __name__ == '__main__':
-    spreads.ui.main()
+    try:
+        spreads.ui.main()
+    except Exception as e:
+        typ, val, tb = sys.exc_info()
+        logging.debug(traceback.format_exception(typ, val, tb))
+        if isinstance(e, CameraException):
+            puts(colored.red("There is a problem with your camera"
+                             " configuration:"))
+            puts(colored.red(e.message))
+        elif isinstance(e, ConfigError):
+            puts(colored.red("There is a problem with your configuration"
+                             " file(s):"))
+            puts(colored.red(e.message))
+        else:
+            puts(colored.red("spreads encountered an error:"))
+            puts(colored.red(
+                "".join(traceback.format_exception(typ, val, tb))))

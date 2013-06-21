@@ -25,15 +25,17 @@
 from __future__ import division, unicode_literals
 
 import itertools
-import logging
 import os
-import re
-import subprocess
 import sys
-import usb
 from multiprocessing import Process, Queue, cpu_count
 
-from spreads.plugin import BaseCamera
+
+class SpreadsException(Exception):
+    pass
+
+
+class CameraException(SpreadsException):
+    pass
 
 
 # Kudos to http://stackoverflow.com/a/1394994/487903
@@ -141,31 +143,3 @@ def run_multicore(task, m_args=[], m_kwargs={}, num_procs=None):
         queue.put(None)
     for worker in running:
         worker.join()
-
-
-def detect_cameras():
-    """ Detect all attached cameras and select a fitting driver.
-
-    :returns:  list(BaseCamera) -- All supported cameras that were detected
-
-    """
-    if not find_in_path('gphoto2'):
-        raise Exception("Could not find executable `gphoto2``in $PATH."
-                        " Please install the appropriate package(s)!")
-    cmd = ['gphoto2', '--auto-detect']
-    logging.debug("Running " + " ".join(cmd))
-    cam_ports = [re.search(r'usb:\d+,\d+', x).group() for x in
-                 subprocess.check_output(cmd).split('\n')[2:-1]]
-    cameras = []
-    for cam_port in cam_ports:
-        bus, device = cam_port[4:].split(',')
-        usb_dev = usb.core.find(bus=int(bus), address=int(device))
-        vendor_id, product_id = (hex(x)[2:].zfill(4) for x in
-                                 (usb_dev.idVendor, usb_dev.idProduct))
-        try:
-            driver = [x for x in (BaseCamera.__subclasses__())
-                      if x.match(vendor_id, product_id)][0]
-        except IndexError:
-            raise Exception("Could not find driver for camera!")
-        cameras.append(driver(bus, device))
-    return cameras

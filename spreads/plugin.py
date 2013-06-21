@@ -22,8 +22,12 @@
 from __future__ import division, unicode_literals
 
 import logging
+import re
 import subprocess
-import sys
+
+import usb
+
+from spreads.util import SpreadsException
 
 
 class BaseCamera(object):
@@ -81,9 +85,8 @@ class BaseCamera(object):
         try:
             out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         except OSError:
-            logging.error("gphoto2 executable could not be found, please"
-                          "install!")
-            sys.exit(0)
+            raise SpreadsException("gphoto2 executable could not be found,"
+                                   "please install!")
         return out
 
     def _ptpcam(self, command):
@@ -104,9 +107,8 @@ class BaseCamera(object):
             out = subprocess.check_output(" ".join(cmd), shell=True,
                                           stderr=subprocess.STDOUT)
         except OSError:
-            logging.error("ptpcam executable could not be found, please"
-                          "install!")
-            sys.exit(0)
+            raise SpreadsException("ptpcam executable could not be found,"
+                                   " please install!")
         return out
 
     def set_orientation(self, orientation):
@@ -188,3 +190,31 @@ class BaseCamera(object):
 
         """
         raise NotImplementedError
+
+
+def detect_cameras():
+    """ Detect all attached cameras and select a fitting driver.
+
+    :returns:  list(BaseCamera) -- All supported cameras that were detected
+
+    """
+    if not find_in_path('gphoto2'):
+        raise Exception("Could not find executable `gphoto2``in $PATH."
+                        " Please install the appropriate package(s)!")
+    cmd = ['gphoto2', '--auto-detect']
+    logging.debug("Running " + " ".join(cmd))
+    cam_ports = [re.search(r'usb:\d+,\d+', x).group() for x in
+                 subprocess.check_output(cmd).split('\n')[2:-1]]
+    cameras = []
+    for cam_port in cam_ports:
+        bus, device = cam_port[4:].split(',')
+        usb_dev = usb.core.find(bus=int(bus), address=int(device))
+        vendor_id, product_id = (hex(x)[2:].zfill(4) for x in
+                                 (usb_dev.idVendor, usb_dev.idProduct))
+        try:
+            driver = [x for x in (BaseCamera.__subclasses__())
+                      if x.match(vendor_id, product_id)][0]
+        except IndexError:
+            raise Exception("Could not find driver for camera!")
+        cameras.append(driver(bus, device))
+    return cameras

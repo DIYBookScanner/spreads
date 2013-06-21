@@ -43,11 +43,11 @@ from xml.etree.cElementTree import ElementTree as ET
 from PIL import Image
 from PIL.ExifTags import TAGS
 from clint.textui import puts, colored
-from spreads.confit import ConfigTypeError
 
 from spreads import config
-from spreads.util import (detect_cameras, getch, run_parallel, run_multicore,
-                          find_in_path)
+from spreads.plugin import detect_cameras
+from spreads.util import (getch, run_parallel, run_multicore,
+                          find_in_path, CameraException, SpreadsException)
 
 
 def configure():
@@ -58,12 +58,10 @@ def configure():
         _ = getch()
         cams = detect_cameras()
         if len(cams) > 1:
-            puts(colored.red("Please ensure that only one camera is"
-                             " turned one!"))
-            sys.exit(0)
+            raise CameraException("Please ensure that only one camera is"
+                                  " turned on!")
         if not cams:
-            puts(colored.red("No camera found!"))
-            sys.exit(0)
+            raise CameraException("No camera found!")
         cams[0].set_orientation(orientation)
         puts(colored.green("Configured \'{0}\' camera.".format(orientation)))
         puts("Please turn off the camera.")
@@ -89,8 +87,8 @@ def shoot(iso_value=None, shutter_speed=None, zoom_value=None, cameras=[]):
         zoom_value = config['shoot']['zoom_level']
 
     if not find_in_path('ptpcam'):
-        raise IOError("Could not find executable `ptpcam``in $PATH."
-                      " Please install the appropriate package(s)!")
+        raise SpreadsException("Could not find executable `ptpcam``in $PATH."
+                               " Please install the appropriate package(s)!")
     if not cameras:
         puts("Starting scanning workflow, please connect and turn on the"
              " cameras.")
@@ -99,15 +97,14 @@ def shoot(iso_value=None, shutter_speed=None, zoom_value=None, cameras=[]):
         puts("Detecting cameras.")
         cameras = detect_cameras()
         if len(cameras) != 2:
-            puts(colored.red("Please connect and turn on two pre-configured"
-                             "cameras! ({0} were found)".format(len(cameras))))
-            sys.exit(0)
+            raise CameraException("Please connect and turn on two"
+                                  " pre-configured cameras! ({0} were"
+                                  " found)".format(len(cameras)))
         puts(colored.green("Found {0} cameras!".format(len(cameras))))
         if not any(bool(x.orientation) for x in cameras):
-            puts(colored.red("At least one of the cameras has not been"
-                             " properly configured, please re-run the program"
-                             " with the \'configure\' option!"))
-            sys.exit(0)
+            raise CameraException("At least one of the cameras has not been"
+                                  " properly configured, please re-run the"
+                                  " program with the \'configure\' option!")
     # Set up for shooting
     puts("Setting up cameras for shooting.")
     run_parallel([{'func': setup_camera,

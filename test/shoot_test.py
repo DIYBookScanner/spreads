@@ -6,6 +6,7 @@ from mock import call, MagicMock as Mock, patch
 
 import spreads.commands as cmd
 from spreads import config
+from spreads.util import SpreadsException, CameraException
 
 
 class TestConfigure(object):
@@ -24,7 +25,7 @@ class TestConfigure(object):
         assert cams[0].set_orientation.call_args == call('left')
         assert cams[1].set_orientation.call_args == call('right')
 
-    @raises(SystemExit)
+    @raises(CameraException)
     def test_configure_nocamera(self):
         cmd.detect_cameras = Mock(return_value=[])
         cmd.getch = Mock(return_value=' ')
@@ -59,13 +60,13 @@ class TestShoot(object):
                                                  supposed_calls)):
                 assert supposed_call == real_call
 
-    @raises(SystemExit)
+    @raises(CameraException)
     def test_shoot_nocams(self):
         cmd.getch = Mock(return_value='b')
         cmd.detect_cameras = Mock(return_value=[])
         cmd.shoot(cameras=[])
 
-    @raises(SystemExit)
+    @raises(CameraException)
     def test_shoot_noorientation(self):
         cams = [Mock(), Mock()]
         for cam in cams:
