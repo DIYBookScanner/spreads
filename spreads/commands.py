@@ -79,6 +79,7 @@ config_parser.set_defaults(func=configure)
 
 
 def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
+    # TODO: This should *really* be a BaseCamera method
     def setup_camera(camera):
         camera.set_record_mode()
         time.sleep(1)
@@ -88,8 +89,8 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
         camera.disable_ndfilter()
 
     if not find_in_path('ptpcam'):
-        raise Exception("Could not find executable `ptpcam``in $PATH."
-                        " Please install the appropriate package(s)!")
+        raise IOError("Could not find executable `ptpcam``in $PATH."
+                      " Please install the appropriate package(s)!")
     if not cameras:
         puts("Starting scanning workflow, please connect and turn on the"
              " cameras.")
@@ -115,6 +116,7 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
     puts(colored.blue("Press 'b' or the footpedal to shoot."))
     shot_count = 0
     start_time = time.time()
+    pages_per_hour = 0
     while True:
         if getch() != 'b':
             break
@@ -126,12 +128,12 @@ def shoot(iso_value=373, shutter_speed=448, zoom_value=3, cameras=[]):
         shot_count += len(cameras)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
         status = ("\rShot {0} pages [{1:.0f}/h]"
-                  .format(colored.green(shot_count), pages_per_hour))
+                  .format(colored.green(unicode(shot_count)), pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
     sys.stdout.write("\rShot {0} pages in {1:.1f} minutes, average speed was"
                      " {2:.0f} pages per hour"
-                     .format(colored.green(shot_count),
+                     .format(colored.green(str(shot_count)),
                              (time.time() - start_time)/60, pages_per_hour))
     sys.stdout.flush()
 
