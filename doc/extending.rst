@@ -25,20 +25,21 @@ you just have to inherit from one of the :class:`SpreadsPlugin
 <spreads.plugin.SpreadsPlugin>` subclasses and implement one or more of their
 abstract methods.  The following types of plugins are available:
 
-ShootPlugin
------------
+*shoot* plugin
+--------------
 See :class:`ShootPlugin <spreads.plugin.ShootPlugin>`.
 
-You can hook into the **shoot** command by implementing :meth:`snap` (executed
-every time both cameras have captured an image) and :meth:`finish` (executed
-once the shooting workflow has finished).
+You can hook into the **shoot** command by implementing :meth:`snap
+<spreads.plugin.ShootPlugin.snap>` (executed every time both cameras have
+captured an image) and :meth:`finish <spreads.plugin.ShootPlugin.finish>`
+(executed once the shooting workflow has finished).
 
-DownloadPlugin
---------------
+*download* plugin
+-----------------
 See :class:`DownloadPlugin <spreads.plugin.DownloadPlugin>`.
 
 Do stuff with the images downloaded from the camera by implementing
-:meth:`download <spreads.plugins.DownloadPlugin.download>` (executed once all
+:meth:`download <spreads.plugin.DownloadPlugin.download>` (executed once all
 files are downloaded) and :meth:`delete <spreads.plugin.DownloadPlugin.delete>`
 (executed once all files are deleted). By convention, all
 :class:`DownloadPlugin <spreads.plugin.DownloadPlugin>` implementations only
@@ -52,8 +53,8 @@ Example implementation: spreadsplug.combine_
 .. _spreadsplug.combine: https://github.com/jbaiter/spreads/blob/master/spreadsplug/combine.py
 
 
-FilterPlugin
-------------
+*postprocess* plugin
+--------------------
 See :class:`FilterPlugin <spreads.plugin.FilterPlugin>`.
 
 Most plugins will probably fall into this category. Implement the :meth:`process
