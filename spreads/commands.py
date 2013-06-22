@@ -127,7 +127,14 @@ def shoot(iso_value=None, shutter_speed=None, zoom_value=None, cameras=[]):
 
 
 def download(path, keep=None):
-    keep = config['download']['keep'].get(bool)
+    m_config = config['download']
+    keep = m_config['keep'].get(bool)
+    plugins = []
+    plugin_list = [x for x in m_config['plugins'].all_contents()]
+    plugin_classes = {x.config_key for x in get_plugins(DownloadPlugin)}
+    for key in plugin_list:
+        plugin = plugin_classes[key](config)
+        plugins.append(plugin)
     if not os.path.exists(path):
         os.mkdir(path)
     cameras = get_cameras()
@@ -139,11 +146,14 @@ def download(path, keep=None):
     run_parallel([{'func': x.download_files,
                    'args': [os.path.join(path, x.orientation)],
                    'kwargs': {}} for x in cameras])
+    for plugin in plugins:
+        plugin.download(cameras, path)
     if not keep:
         puts(colored.green("Deleting images from cameras"))
         run_parallel([{'func': x.delete_files,
                        'args': [], 'kwargs': {}} for x in cameras])
-    m_plugins = get_plugins(DownloadPlugin)
+        for plugin in plugins:
+            plugin.delete(cameras)
 
 
 def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=None):
@@ -157,8 +167,8 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=None):
     filter_list = [x for x in m_config['filters'].all_contents()]
     filter_classes = {x.config_key: x for x in get_plugins(FilterPlugin)}
     filters = []
-    for name in filter_list:
-        filter_ = filter_classes[name](config)
+    for key in filter_list:
+        filter_ = filter_classes[key](config)
         filter_.process(path)
         filters.append(filter_)
 

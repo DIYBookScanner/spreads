@@ -11,6 +11,8 @@ shoot:
 
 # Options for 'download' command
 download:
+    # Activated plugins
+    plugins: [combine]
     # keep files on cameras after downloading
     keep: no
 

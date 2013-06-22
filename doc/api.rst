@@ -7,7 +7,7 @@ spreads.plugin
 .. automodule:: spreads.plugin
    :members:
    :private-members:
-   :special-members:
+   :inherited-members:
    :member-order: bysource
 
 spreads.util

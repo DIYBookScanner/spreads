@@ -31,10 +31,22 @@ from spreads.util import find_in_path, SpreadsException
 
 
 class SpreadsPlugin(object):
-    # Configuration key
+    """ Plugin base class.
+
+    """
+    
+    #: The config key to be used for the plugin. Plugins should take care to
+    #: set this to a value different from None if they want to use
+    #: configuration. (type: *unicode*)
     config_key = None
 
     def __init__(self, config):
+        """ Initialize the plugin.
+
+        :param config: The global configuration object
+        :type config: confit.ConfigView
+
+        """
         if self.config_key:
             self.parent_config = config
             self.config = config[self.config_key]
@@ -213,35 +225,79 @@ class ShootPlugin(SpreadsPlugin):
         super(ShootPlugin, self).__init__(config['shoot'])
 
     def snap(self, cameras, count, time):
+        """ Perform some action after each successful shot.
+
+        :param cameras: The cameras used for shooting
+        :type cameras: list(CameraPlugin)
+        :param count: The shot count
+        :type count: int
+        :param time: The elapsed time since shooting began
+        :type time: time.timedelta
+
+        """
         raise NotImplementedError
 
     def finish(self, cameras, count, time):
+        """ Perform some action after shooting has finished.
+
+        :param cameras: The cameras used for shooting
+        :type cameras: list(CameraPlugin)
+        :param count: The shot count
+        :type count: int
+        :param time: The elapsed time since shooting began
+        :type time: time.timedelta
+
+        """
         raise NotImplementedError
 
 
 class DownloadPlugin(SpreadsPlugin):
-    """ Add functionality to *download* command.
+    """ Add functionality to *download* command. Perform one or more actions
+        that modify the captured images while retaining all of the original
+        information (i.e: rotation, metadata annotation)
 
     """
     def __init__(self, config):
         super(DownloadPlugin, self).__init__(config['download'])
 
-    def download(self, path):
+    def download(self, cameras, path):
+        """ Perform some action after download from cameras has finished.
+
+        :param cameras: The cameras that were downloaded from.
+        :type cameras: list(CameraPlugin)
+        :param path: The destination directory for the downloads
+        :type path: unicode
+
+        """
         raise NotImplementedError
 
-    def delete(self):
+    def delete(self, cameras):
+        """ Perform some action after images have been deleted from the
+            cameras.
+
+        :param cameras: The cameras that were downloaded from.
+        :type cameras: list(CameraPlugin)
+
+        """
         raise NotImplementedError
 
 
 class FilterPlugin(SpreadsPlugin):
-    """ An extension to the *postprocess* command. Not to be implemented
-        directly, see subclasses below.
+    """ An extension to the *postprocess* command. Performs one or more
+        actions that either modify the captured images or generate a
+        different output.
 
     """
     def __init__(self, config):
         super(FilterPlugin, self).__init__(config['postprocess'])
 
     def process(self, path):
+        """ Perform a postprocessing step.
+
+        :param path: The project path
+        :type path: unicode
+
+        """
         raise NotImplementedError
 
 
@@ -274,4 +330,10 @@ def get_cameras():
 
 
 def get_plugins(plugin_class):
+    """ Get all plugins of a certain type.
+
+    :param plugin_class: The type of plugin to obtain
+    :type plugin_class: SpreadsPlugin
+
+    """
     return [x for x in plugin_class.__subclasses__()]
