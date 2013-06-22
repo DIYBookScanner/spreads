@@ -35,10 +35,20 @@ class SpreadsPlugin(object):
 
     """
     
-    #: The config key to be used for the plugin. Plugins should take care to
-    #: set this to a value different from None if they want to use
-    #: configuration. (type: *unicode*)
+    #: The config key to be used for the plugin.  Plugins must set this
+    #  attribute or else it will not be found. (type: *unicode*)
     config_key = None
+
+    @classmethod
+    def add_arguments(self, parser):
+        """ Allows a plugin to register new arguments with the command-line
+            parser.
+
+        :param parser: The parser that can be modified
+        :type parser: argparse.ArgumentParser
+
+        """
+        pass
 
     def __init__(self, config):
         """ Initialize the plugin.

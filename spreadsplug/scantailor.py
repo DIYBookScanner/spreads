@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import division, unicode_literals
+
 import logging
 import math
 import os
@@ -12,6 +16,12 @@ from spreads.util import find_in_path, run_multicore, SpreadsException
 
 class ScanTailorFilter(FilterPlugin):
     config_key = 'scantailor'
+
+    @classmethod
+    def add_arguments(cls, parser):
+        parser.add_argument("--auto", "-a", dest="autopilot",
+            action="store_true",
+            help="Don't prompt user to edit ScanTailor configuration")
 
     def _generate_configuration(self, projectfile, img_dir, out_dir):
         if not os.path.exists(out_dir):

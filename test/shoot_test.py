@@ -86,8 +86,9 @@ class TestDownload(object):
         cams[1].orientation = 'right'
         cmd.get_cameras = Mock(return_value=cams)
         cmd.run_parallel = Mock()
-        #cmd.shutil.rmtree = Mock()
-        #cmd.shutil.copyfile = Mock()
+        mock_plugin = Mock()
+        mock_plugin.config_key = 'combine'
+        cmd.get_plugins = Mock(return_value=[mock_plugin])
 
     @patch('os.mkdir')
     @patch('os.path.exists')

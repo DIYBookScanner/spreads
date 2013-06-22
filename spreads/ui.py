@@ -30,6 +30,8 @@ import logging
 
 import spreads.commands as commands
 from spreads import config
+from spreads.plugin import (DownloadPlugin, ShootPlugin,
+                            FilterPlugin, get_plugins)
 
 parser = argparse.ArgumentParser(
     description="Scanning Tool for  DIY Book Scanner")
@@ -57,6 +59,11 @@ shoot_parser.add_argument(
     help="Zoom level [default: {0}]".format(config['shoot']['zoom_level']
                                             .get(int)))
 shoot_parser.set_defaults(func=commands.shoot)
+# Add arguments from plugins
+plugin_list = [x for x in config['shoot']['plugins'].all_contents()]
+plugin_classes = {x.config_key: x for x in get_plugins(ShootPlugin)}
+for key in plugin_list:
+    plugin_classes[key].add_arguments(shoot_parser)
 
 download_parser = subparsers.add_parser(
     'download', help="Download scanned images.")
@@ -66,6 +73,11 @@ download_parser.add_argument(
     "--keep", "-k", dest="keep", action="store_true",
     help="Keep files on cameras after download")
 download_parser.set_defaults(func=commands.download)
+# Add arguments from plugins
+plugin_list = [x for x in config['download']['plugins'].all_contents()]
+plugin_classes = {x.config_key: x for x in get_plugins(DownloadPlugin)}
+for key in plugin_list:
+    plugin_classes[key].add_arguments(download_parser)
 
 postprocess_parser = subparsers.add_parser(
     'postprocess',
@@ -73,15 +85,14 @@ postprocess_parser = subparsers.add_parser(
 postprocess_parser.add_argument(
     "path", help="Path where scanned images are stored")
 postprocess_parser.add_argument(
-    "--rotate-inverse", "-ri", dest="rotate_inverse", action="store_true",
-    help="Rotate by +/- 180° instead of +/- 90°")
-postprocess_parser.add_argument(
     "--jobs", "-j", dest="num_jobs", type=int, default=None,
     metavar="<int>", help="Number of concurrent processes")
-postprocess_parser.add_argument(
-    "--auto", "-a", dest="autopilot", action="store_true",
-    help="Don't prompt user to edit ScanTailor configuration")
 postprocess_parser.set_defaults(func=commands.postprocess)
+# Add arguments from plugins
+plugin_list = [x for x in config['postprocess']['filters'].all_contents()]
+plugin_classes = {x.config_key: x for x in get_plugins(FilterPlugin)}
+for key in plugin_list:
+    plugin_classes[key].add_arguments(postprocess_parser)
 
 wizard_parser = subparsers.add_parser(
     'wizard', help="Interactive mode")

@@ -7,6 +7,8 @@ from spreads.plugin import DownloadPlugin
 
 
 class CombinePlugin(DownloadPlugin):
+    config_key = 'combine'
+
     def download(self, cameras, path):
         left_dir = os.path.join(path, 'left')
         right_dir = os.path.join(path, 'right')

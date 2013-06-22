@@ -131,7 +131,7 @@ def download(path, keep=None):
     keep = m_config['keep'].get(bool)
     plugins = []
     plugin_list = [x for x in m_config['plugins'].all_contents()]
-    plugin_classes = {x.config_key for x in get_plugins(DownloadPlugin)}
+    plugin_classes = {x.config_key: x for x in get_plugins(DownloadPlugin)}
     for key in plugin_list:
         plugin = plugin_classes[key](config)
         plugins.append(plugin)

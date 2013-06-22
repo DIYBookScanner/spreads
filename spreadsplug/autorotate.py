@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import division, unicode_literals
+
 import logging
 import os
 import re
@@ -11,6 +15,13 @@ from spreads.util import run_multicore
 
 class AutoRotateFilter(FilterPlugin):
     config_key = 'autorotate'
+
+    @classmethod
+    def add_arguments(cls, parser):
+        logging.debug("Adding autorotate arguments.")
+        parser.add_argument("--rotate-inverse", "-ri", dest="rotate_inverse",
+                            action="store_true",
+                            help="Rotate by +/- 180° instead of +/- 90°")
 
     def rotate_image(self, path, left, right, inverse=False):
         logging.debug("Rotating image {0}".format(path))
