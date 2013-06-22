@@ -7,7 +7,7 @@ from spreads.plugin import DownloadPlugin
 
 
 class CombinePlugin(DownloadPlugin):
-    def download(self, path):
+    def download(self, cameras, path):
         left_dir = os.path.join(path, 'left')
         right_dir = os.path.join(path, 'right')
         target_dir = os.path.join(path, 'raw')
@@ -30,5 +30,5 @@ class CombinePlugin(DownloadPlugin):
         shutil.rmtree(right_dir)
         shutil.rmtree(left_dir)
 
-    def delete(self):
+    def delete(self, cameras):
         pass
