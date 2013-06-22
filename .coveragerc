@@ -1,5 +1,6 @@
 [run]
 source =
     spreads
+    spreadsplug
 omit = 
-    confit.py
+    spreads/confit.py

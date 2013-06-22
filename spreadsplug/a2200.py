@@ -21,7 +21,7 @@
 
 """ Canon A2200 driver
 """
-
+# TODO: Rename to CHDKCameraPlugin
 from __future__ import division, unicode_literals
 
 import os
@@ -30,10 +30,10 @@ import time
 
 from math import log
 
-from spreads.plugin import BaseCamera
+from spreads.plugin import CameraPlugin
 
 
-class CanonA2200Camera(BaseCamera):
+class CanonA2200CameraPlugin(CameraPlugin):
     ISO_TO_APEX = {
         80: 373,
     }

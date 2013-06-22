@@ -27,10 +27,22 @@ import subprocess
 
 import usb
 
-from spreads.util import SpreadsException
+from spreads.util import find_in_path, SpreadsException
 
 
-class BaseCamera(object):
+class SpreadsPlugin(object):
+    # Configuration key
+    config_key = None
+
+    def __init__(self, config):
+        if self.config_key:
+            self.parent_config = config
+            self.config = config[self.config_key]
+        else:
+            self.config = None
+
+
+class CameraPlugin(object):
     """ Base class for cameras.
 
         Subclass to implement support for different cameras. Provides some
@@ -56,7 +68,7 @@ class BaseCamera(object):
         """
         raise NotImplementedError
 
-    def __init__(self, bus, device):
+    def __init__(self, config, bus, device):
         """ Set connection information and try to retrieve orientation.
 
         :param bus:     USB bus number of the camera
@@ -65,6 +77,7 @@ class BaseCamera(object):
         :type bus:      int, str, unicode
 
         """
+        super(BaseCamera, self).__init__(config['camera'])
         self._port = (int(bus), int(device))
         self.orientation = (self._gphoto2(["--get-config",
                                            "/main/settings/ownername"])
@@ -192,10 +205,50 @@ class BaseCamera(object):
         raise NotImplementedError
 
 
-def detect_cameras():
+class ShootPlugin(SpreadsPlugin):
+    """ Add functionality to *shoot* command.
+
+    """
+    def __init__(self, config):
+        super(ShootPlugin, self).__init__(config['shoot'])
+
+    def snap(self, cameras, count, time):
+        raise NotImplementedError
+
+    def finish(self, cameras, count, time):
+        raise NotImplementedError
+
+
+class DownloadPlugin(SpreadsPlugin):
+    """ Add functionality to *download* command.
+
+    """
+    def __init__(self, config):
+        super(DownloadPlugin, self).__init__(config['download'])
+
+    def download(self, path):
+        raise NotImplementedError
+
+    def delete(self):
+        raise NotImplementedError
+
+
+class FilterPlugin(SpreadsPlugin):
+    """ An extension to the *postprocess* command. Not to be implemented
+        directly, see subclasses below.
+
+    """
+    def __init__(self, config):
+        super(FilterPlugin, self).__init__(config['postprocess'])
+
+    def process(self, path):
+        raise NotImplementedError
+
+
+def get_cameras():
     """ Detect all attached cameras and select a fitting driver.
 
-    :returns:  list(BaseCamera) -- All supported cameras that were detected
+    :returns:  list(CameraPlugin) -- All supported cameras that were detected
 
     """
     if not find_in_path('gphoto2'):
@@ -212,9 +265,13 @@ def detect_cameras():
         vendor_id, product_id = (hex(x)[2:].zfill(4) for x in
                                  (usb_dev.idVendor, usb_dev.idProduct))
         try:
-            driver = [x for x in (BaseCamera.__subclasses__())
+            driver = [x for x in CameraPlugin.__subclasses__()
                       if x.match(vendor_id, product_id)][0]
         except IndexError:
             raise Exception("Could not find driver for camera!")
         cameras.append(driver(bus, device))
     return cameras
+
+
+def get_plugins(plugin_class):
+    return [x for x in plugin_class.__subclasses__()]

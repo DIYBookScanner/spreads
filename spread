@@ -34,7 +34,7 @@ if __name__ == '__main__':
         spreads.ui.main()
     except Exception as e:
         typ, val, tb = sys.exc_info()
-        logging.debug(traceback.format_exception(typ, val, tb))
+        logging.debug("".join(traceback.format_exception(typ, val, tb)))
         if isinstance(e, CameraException):
             puts(colored.red("There is a problem with your camera"
                              " configuration:"))

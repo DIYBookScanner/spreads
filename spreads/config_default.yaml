@@ -19,8 +19,11 @@ postprocess:
     # Number of concurrent jobs
     jobs: auto
 
+    # Filters to be applied in order
+    filters: [autorotate, scantailor, pdfbeads, djvubind]
+
     # Rotation applied to images from left and right camera
-    rotation:
+    autorotate:
         left: -90
         right: 90
 
@@ -43,14 +46,14 @@ postprocess:
         dewarp: no # not yet implemented
 
     # PDF output options, see `pdfbeads --help`
-    pdf:
+    pdfbeads:
         layout: SinglePage # not yet implemented
         mask_compression: jbig2 # not yet implemented
         jbig2_dict_size: 15 # not yet implemented
         bg_compression: jp2 # not yet implemented
 
     # DJVU output options, see `djvubind --help`
-    djvu:
+    djvubind:
         ocr: none
         tesseract_options: [] # not yet implemented
         cuneiform_options: [] # not yet implemented
