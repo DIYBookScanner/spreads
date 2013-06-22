@@ -28,13 +28,13 @@ Quickstart
 
     $ pip install spreads
 
-*spreads* offers an interactive wizard that guides you through the whole
-process::
+*spreads* offers an interactive wizard that takes you from a physical book
+to a digitized version in one single workflow with minimal user input::
 
     $ spread wizard ~/my_scanning_project
 
-Refer to the :doc:`Command-Line Reference <commands>` if you want a more
-in-depth explanation of what is happening.
+Refer to the :doc:`Command-Line Reference <commands>` if you want to explore
+further commands and options.
 
 
 More Documentation
@@ -46,6 +46,7 @@ More Documentation
    installation
    tutorial
    commands
+   plugins
    extending
    api
 

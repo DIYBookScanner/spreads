@@ -195,33 +195,14 @@ def wizard(path):
     puts(colored.green("========================="))
     puts(colored.green("Starting scanning process"))
     puts(colored.green("========================="))
-    iso_value = raw_input("ISO [80]: ")
-    if iso_value:
-        config['shoot']['sensitivty'] = int(iso_value)
-    shutter_speed = raw_input("Shutter speed [1/25]: ")
-    if shutter_speed:
-        config['shoot']['shutter_speed'] = float(Fraction(shutter_speed))
-    zoom_value = raw_input("Zoom value [3]: ")
-    if zoom_value:
-        config['shoot']['zoom_level'] = int(zoom_value)
     shoot(cameras=cameras)
 
     puts(colored.green("========================="))
     puts(colored.green("Starting download process"))
     puts(colored.green("========================="))
-    keep = raw_input("Keep images on camera? [n]").lower() == 'y'
-    config['download']['keep'] = keep
     download(path=path)
 
     puts(colored.green("======================="))
     puts(colored.green("Starting postprocessing"))
     puts(colored.green("======================="))
-    rotate_inverse = (raw_input("Inverse rotation? (+/-180°) [n]")
-                      .lower() == 'y')
-    num_jobs = raw_input("Number of concurrent jobs? [auto]")
-    if num_jobs:
-        config['postprocess']['jobs'] = int(num_jobs)
-    autopilot = (raw_input("Do you want to manually adjust the generated"
-                           " ScanTailor configuration? [y]: ").lower() == 'n')
-    config['postprocess']['scantailor']['autopilot'] = autopilot
     postprocess(path, rotate_inverse=rotate_inverse)

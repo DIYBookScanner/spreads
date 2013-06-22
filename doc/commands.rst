@@ -15,9 +15,8 @@ wizard
 
     $ spread wizard <project-path>
 
-Start *spreads* in wizard mode. This will perform all the commands listed below
-and asks the user for options along the way. Images will be stored in
-*project-path*
+Start *spreads* in wizard mode. This will go through all of the steps outlined
+below and store images and output files in *project-path*
 
 configure
 =========
@@ -87,32 +86,15 @@ postprocess
 ===========
 ::
 
-    $ spread postprocess [--auto] [--rotate-inverse] [--jobs <int>]\
-      <project-directory>
+    $ spread postprocess [--jobs <int>] <project-directory>
 
-This will begin the postprocessing workflow. First, all images in the
-*project-directory* will be rotated depending on their camera of origin. Then,
-*spreads* will automatically generate a *ScanTailor* configuration for your
-project. Upon completion, it will open the *ScanTailor* interface, where you
-can fine-tune it. To proceed, just save the project and close *ScanTailor*. The
-application will then generate the output images on as many CPU cores as your
-machine has, which speeds up your postprocessing speed linearly, when compared
-to a manual workflow. The finished page images can be found in the **done**
-subdirectory of the `project-directory`.
+Start the postprocessing workflog by calling each of the :ref:`postprocessing
+plugins <postproc_plugs>` defined in the configuration one after the other (by
+default: `autorotate <plug_autorotate>`, `scantailor <plug_scantailor>`,
+`pdfbeads <plug_pdfbeads>`). All output files will be stored in
+*project-directory*.
 
 .. program:: spread-postprocess
-
-.. option:: --rotate-inverse, -ri
-   
-   By default, *spreads* will rotate your images either by +/- 90 degrees,
-   depending on their camera of origin. With this setting, you can change
-   this value to +/- 180 degrees, in case you scanned your book upside down.
-
-.. option:: --auto, -a
-
-   Tell *spreads* to run on autopilot and not require and user input during
-   postprocessing. This skips the step where you can manually adjust the
-   *ScanTailor* configuration.
 
 .. option:: --jobs number-of-jobs, -j number-of-jobs
 

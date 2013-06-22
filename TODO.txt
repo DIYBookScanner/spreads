@@ -1,12 +1,12 @@
-
-Bugs
-====
-
 General
 =======
+- Enhance confit to allow the writing of configuration files to disk, this
+  probably involves monkey-patching yaml.serializer.Serializer
 - Add support for different scanning profiles that can be selected
-  (e.g.: 'illustrations', 'text')
+  (e.g.: 'illustrations', 'text'), involves enhancing confit to load
+  configuration from arbitrary files.
 - More tests, espescially for included plugins
+- Find a way to re-use CLI arguments in the wizard
 
 API
 ===

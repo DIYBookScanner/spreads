@@ -3,6 +3,7 @@ loglevel: info
 
 # Options for 'shoot' command
 shoot:
+    plugins: []
     # ISO sensitivity
     sensitivity: 80
     shutter_speed: 1/25
