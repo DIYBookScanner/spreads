@@ -17,9 +17,9 @@ by supplying arguments beforehand, or by inspecting the output and
 applying your modifications.
 
 *spreads* is meant to be fully customizable. This means, :ref:`adding support
-for new cameras <add_cameras>` is made as painless as possible.  Support for
-plugins that can either hook into the various commands or add new ones is on
-the agenda, stay tuned!
+for new cameras <add_cameras>` is made as painless as possible. You can also
+hook into any of the *spread* commands by imlementing one of the available
+:ref:`plugin classes <extend_commands>`
 
 
 Quickstart

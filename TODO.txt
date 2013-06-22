@@ -1,27 +1,23 @@
+
 Bugs
 ====
 
 General
 =======
-- Checks for the existence of external programs
-- More logging (debug/info)
-- Replace non-interactive puts()-calls with logging.info()-calls
 - Add support for different scanning profiles that can be selected
   (e.g.: 'illustrations', 'text')
-- Add support for (optional) configuration file
-- Allow more ScanTailor fine-tuning
+- More tests, espescially for included plugins
 
 API
 ===
-- Hooks for plugins in commands.postprocess and commands.wizard
-- Better docstrings (at least for public interfaces)
+- Hooks for plugins in commands.wizard
 - Refactor to abstract as much away from UI-specific code to prepare for an
   eventual (optional) PySide GUI.
 
 Plugin ideas
 ============
 - OCR plugin leveraging ocropus or tesseract
-- CBR (rar), PDF (pdfbeads) and DJVU (djvubind) plugins for postprocess
-- Metadata plugin for postprocess using OpenLibrary for ISBN-queries and
-  Dublin Core for serialization
+- CBR (rar) plugin
+- Metadata plugin using OpenLibrary for ISBN-queries and Dublin Core for
+  serialization
 - Archive.org upload plugin
