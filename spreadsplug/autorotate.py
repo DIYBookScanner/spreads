@@ -18,7 +18,6 @@ class AutoRotateFilter(FilterPlugin):
 
     @classmethod
     def add_arguments(cls, parser):
-        logging.debug("Adding autorotate arguments.")
         parser.add_argument("--rotate-inverse", "-ri", dest="rotate_inverse",
                             action="store_true",
                             help="Rotate by +/- 180° instead of +/- 90°")

@@ -30,8 +30,7 @@ import logging
 
 import spreads.commands as commands
 from spreads import config
-from spreads.plugin import (DownloadPlugin, ShootPlugin,
-                            FilterPlugin, get_plugins)
+from spreads.plugin import *
 
 parser = argparse.ArgumentParser(
     description="Scanning Tool for  DIY Book Scanner")
@@ -46,24 +45,16 @@ config_parser.set_defaults(func=commands.configure)
 
 shoot_parser = subparsers.add_parser(
     'shoot', help="Start the shooting workflow")
-shoot_parser.add_argument(
-    '--iso', '-i', dest="iso_value", type=int, metavar="<int>",
-    help="ISO sensitivity [default: {0}]".format(
-        config['shoot']['sensitivity'].get(int)))
-shoot_parser.add_argument(
-    "--shutter", '-s', dest="shutter_speed", type=unicode,
-    metavar="<int/float/str>", help="Shutter speed [default: {0}]".format(
-        config['shoot']['shutter_speed'].get(unicode)))
-shoot_parser.add_argument(
-    "--zoom", "-z", dest="zoom_value", type=int, metavar="<int>",
-    help="Zoom level [default: {0}]".format(config['shoot']['zoom_level']
-                                            .get(int)))
 shoot_parser.set_defaults(func=commands.shoot)
 # Add arguments from plugins
 plugin_list = [x for x in config['shoot']['plugins'].all_contents()]
 plugin_classes = {x.config_key: x for x in get_plugins(ShootPlugin)}
 for key in plugin_list:
     plugin_classes[key].add_arguments(shoot_parser)
+# Add arguments from cameras
+camera_classes = get_plugins(CameraPlugin)
+for camera in camera_classes:
+    camera.add_arguments(shoot_parser)
 
 download_parser = subparsers.add_parser(
     'download', help="Download scanned images.")
@@ -85,7 +76,7 @@ postprocess_parser = subparsers.add_parser(
 postprocess_parser.add_argument(
     "path", help="Path where scanned images are stored")
 postprocess_parser.add_argument(
-    "--jobs", "-j", dest="num_jobs", type=int, default=None,
+    "--jobs", "-j", dest="jobs", type=int, default=None,
     metavar="<int>", help="Number of concurrent processes")
 postprocess_parser.set_defaults(func=commands.postprocess)
 # Add arguments from plugins
@@ -115,7 +106,4 @@ def main():
     if args.verbose:
         loglevel = logging.DEBUG
     logging.basicConfig(level=loglevel)
-    func_args = dict(x for x in args._get_kwargs()
-                     if x[0] not in ('func', 'verbose'))
-    logging.debug(func_args)
-    args.func(**func_args)
+    args.func(args)

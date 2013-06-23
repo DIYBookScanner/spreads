@@ -7,10 +7,10 @@ General
   configuration from arbitrary files.
 - More tests, espescially for included plugins
 - Find a way to re-use CLI arguments in the wizard
+- Add more cli-switches to scantailor plugin (compare to config)
 
 API
 ===
-- Hooks for plugins in commands.wizard
 - Refactor to abstract as much away from UI-specific code to prepare for an
   eventual (optional) PySide GUI.
 

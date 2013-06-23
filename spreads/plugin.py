@@ -32,18 +32,17 @@ import spreads
 from spreads.util import find_in_path, SpreadsException
 
 
-
 class SpreadsPlugin(object):
     """ Plugin base class.
 
     """
-    
+
     #: The config key to be used for the plugin.  Plugins must set this
-    #  attribute or else it will not be found. (type: *unicode*)
+    #: attribute or else it will not be found. (type: *unicode*)
     config_key = None
 
     @classmethod
-    def add_arguments(self, parser):
+    def add_arguments(cls, parser):
         """ Allows a plugin to register new arguments with the command-line
             parser.
 
@@ -64,7 +63,7 @@ class SpreadsPlugin(object):
             self.parent_config = config
             self.config = config[self.config_key]
         else:
-            self.config = None
+            self.config = config
 
 
 class CameraPlugin(SpreadsPlugin):
@@ -173,60 +172,17 @@ class CameraPlugin(SpreadsPlugin):
         """
         raise NotImplementedError
 
-    def set_record_mode(self):
-        """ Put the camera in record mode. """
-        raise NotImplementedError
+    def prepare_shoot(self):
+        """ Prepare camera for shooting.
 
-    def get_zoom(self):
-        """ Get current zoom level.
-
-        :returns: int -- the current zoom level
+            What this means exactly is up to the implementation, usually
+            it involves things like switching the camera into record mode and
+            applying all relevant settings.
 
         """
-        raise NotImplementedError
-
-    def set_zoom(self, level):
-        """ Set zoom level.
-
-        :param level: The zoom level to be used
-        :type level:  int
-
-        """
-        raise NotImplementedError
-
-    def disable_flash(self):
-        """ Disable the camera's flash. """
-        raise NotImplementedError
-
-    def set_iso(self, iso_value):
-        """ Set the camera's ISO value.
-
-        :param iso_value: The ISO value in ISO/ASA format
-        :type iso-value:  int
-
-        """
-        raise NotImplementedError
-
-    def disable_ndfilter(self):
-        """ Disable the camera's ND Filter. """
         raise NotImplementedError
 
     def shoot(self, shutter_speed, iso_value):
-        """ Shoot a picture.
-
-        :param shutter_speed: The shutter speed to be used
-        :type shutter_speed:  float
-
-        """
-        raise NotImplementedError
-
-    def play_sound(self, sound_num):
-        """ Play sound.
-
-        :param sound_num: The ID of the sound
-        :type sound_num:  int
-
-        """
         raise NotImplementedError
 
 
@@ -316,7 +272,6 @@ class FilterPlugin(SpreadsPlugin):
 
 def get_cameras():
     # Import all plugins into spreads namespace
-    import spreadsplug
     """ Detect all attached cameras and select a fitting driver.
 
     :returns:  list(CameraPlugin) -- All supported cameras that were detected

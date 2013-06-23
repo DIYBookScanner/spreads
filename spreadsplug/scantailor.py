@@ -19,8 +19,8 @@ class ScanTailorFilter(FilterPlugin):
 
     @classmethod
     def add_arguments(cls, parser):
-        parser.add_argument("--auto", "-a", dest="autopilot",
-            action="store_true",
+        parser.add_argument(
+            "--auto", "-a", dest="autopilot", action="store_true",
             help="Don't prompt user to edit ScanTailor configuration")
 
     def _generate_configuration(self, projectfile, img_dir, out_dir):

@@ -25,6 +25,7 @@ spreads CLI commands.
 
 from __future__ import division, unicode_literals
 
+import logging
 import multiprocessing
 import os
 import sys
@@ -41,7 +42,7 @@ from spreads.util import (getch, run_parallel, find_in_path, CameraException,
                           SpreadsException)
 
 
-def configure():
+def configure(args=None):
     for orientation in ('left', 'right'):
         puts("Please connect and turn on the camera labeled \'{0}\'"
              .format(orientation))
@@ -60,26 +61,7 @@ def configure():
         _ = getch()
 
 
-def shoot(iso_value=None, shutter_speed=None, zoom_value=None, cameras=[]):
-    # TODO: This should *really* be a CameraPlugin method
-    def setup_camera(camera):
-        camera.set_record_mode()
-        time.sleep(1)
-        camera.set_zoom(zoom_value)
-        camera.set_iso(iso_value)
-        camera.disable_flash()
-        camera.disable_ndfilter()
-
-    if not iso_value:
-        iso_value = config['shoot']['sensitivity'].get(int)
-    if not shutter_speed:
-        shutter_speed = config['shoot']['shutter_speed'].get(unicode)
-    if not zoom_value:
-        zoom_value = config['shoot']['zoom_level'].get(int)
-
-    if not find_in_path('ptpcam'):
-        raise SpreadsException("Could not find executable `ptpcam``in $PATH."
-                               " Please install the appropriate package(s)!")
+def shoot(args=None, cameras=[]):
     if not cameras:
         puts("Starting scanning workflow, please connect and turn on the"
              " cameras.")
@@ -98,8 +80,7 @@ def shoot(iso_value=None, shutter_speed=None, zoom_value=None, cameras=[]):
                                   " program with the \'configure\' option!")
     # Set up for shooting
     puts("Setting up cameras for shooting.")
-    run_parallel([{'func': setup_camera,
-                   'args': [camera]} for camera in cameras])
+    run_parallel([{'func': camera.prepare_shoot} for camera in cameras])
     # Start shooting loop
     puts(colored.blue("Press 'b' or the footpedal to shoot."))
     shot_count = 0
@@ -108,11 +89,7 @@ def shoot(iso_value=None, shutter_speed=None, zoom_value=None, cameras=[]):
     while True:
         if getch() != 'b':
             break
-        run_parallel([{'func': x.shoot,
-                       'kwargs': {'shutter_speed': float(Fraction(
-                                                         shutter_speed)),
-                                  'iso_value': iso_value}}
-                      for x in cameras])
+        run_parallel([{'func': x.shoot} for x in cameras])
         shot_count += len(cameras)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
         status = ("\rShot {0} pages [{1:.0f}/h]"
@@ -126,11 +103,15 @@ def shoot(iso_value=None, shutter_speed=None, zoom_value=None, cameras=[]):
     sys.stdout.flush()
 
 
-def download(path, keep=None):
-    m_config = config['download']
-    keep = m_config['keep'].get(bool)
+def download(args=None, path=None):
+    if args.path:
+        path = args.path
+    if args.keep is not None:
+        keep = args.keep
+    else:
+        keep = config['download']['keep'].get(bool)
     plugins = []
-    plugin_list = [x for x in m_config['plugins'].all_contents()]
+    plugin_list = [x for x in config['download']['plugins'].all_contents()]
     plugin_classes = {x.config_key: x for x in get_plugins(DownloadPlugin)}
     for key in plugin_list:
         plugin = plugin_classes[key](config)
@@ -156,14 +137,15 @@ def download(path, keep=None):
             plugin.delete(cameras)
 
 
-def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=None):
+def postprocess(args=None, path=None):
+    if args.path:
+        path = args.path
     m_config = config['postprocess']
-    if not num_jobs:
-        try:
-            num_jobs = m_config['jobs'].get(int)
-        except:
-            num_jobs = multiprocessing.cpu_count()
-            m_config['jobs'] = num_jobs
+    num_jobs = m_config['jobs']
+    try:
+        num_jobs.get(int)
+    except:
+        m_config['jobs'] = multiprocessing.cpu_count()
     filter_list = [x for x in m_config['filters'].all_contents()]
     filter_classes = {x.config_key: x for x in get_plugins(FilterPlugin)}
     filters = []
@@ -173,9 +155,10 @@ def postprocess(path, rotate_inverse=False, num_jobs=None, autopilot=None):
         filters.append(filter_)
 
 
-def wizard(path):
+def wizard(args):
     # TODO: Think about how we can make this more dynamic, i.e. get list of
     #       options for plugin with a description for each entry
+    path = args.path
     puts("Please connect and turn on the cameras.")
     puts(colored.blue("Press any key to continue."))
     getch()
@@ -205,4 +188,4 @@ def wizard(path):
     puts(colored.green("======================="))
     puts(colored.green("Starting postprocessing"))
     puts(colored.green("======================="))
-    postprocess(path, rotate_inverse=rotate_inverse)
+    postprocess(path=path)

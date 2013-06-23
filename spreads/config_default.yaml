@@ -1,14 +1,16 @@
 # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
-loglevel: info
+loglevel: debug
+
+# Options for cameras
+camera:
+    sensitivity: 80
+    shutter_speed: 1/25
+    zoom_level: 3
+    dpi: 300
 
 # Options for 'shoot' command
 shoot:
     plugins: []
-    # ISO sensitivity
-    sensitivity: 80
-    shutter_speed: 1/25
-    zoom_level: 3
-    dpi: auto
 
 # Options for 'download' command
 download:
@@ -29,6 +31,7 @@ postprocess:
     autorotate:
         left: -90
         right: 90
+        rotate_inverse: no
 
     # ScanTailor options, see `scantailor-cli --help`
     scantailor:
