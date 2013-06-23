@@ -75,7 +75,7 @@ def shoot(iso_value=None, shutter_speed=None, zoom_value=None, cameras=[]):
     if not shutter_speed:
         shutter_speed = config['shoot']['shutter_speed'].get(unicode)
     if not zoom_value:
-        zoom_value = config['shoot']['zoom_level']
+        zoom_value = config['shoot']['zoom_level'].get(int)
 
     if not find_in_path('ptpcam'):
         raise SpreadsException("Could not find executable `ptpcam``in $PATH."

@@ -27,7 +27,10 @@ import subprocess
 
 import usb
 
+
+import spreads
 from spreads.util import find_in_path, SpreadsException
+
 
 
 class SpreadsPlugin(object):
@@ -64,7 +67,7 @@ class SpreadsPlugin(object):
             self.config = None
 
 
-class CameraPlugin(object):
+class CameraPlugin(SpreadsPlugin):
     """ Base class for cameras.
 
         Subclass to implement support for different cameras. Provides some
@@ -99,7 +102,7 @@ class CameraPlugin(object):
         :type bus:      int, str, unicode
 
         """
-        super(BaseCamera, self).__init__(config['camera'])
+        super(CameraPlugin, self).__init__(config['camera'])
         self._port = (int(bus), int(device))
         self.orientation = (self._gphoto2(["--get-config",
                                            "/main/settings/ownername"])
@@ -312,6 +315,8 @@ class FilterPlugin(SpreadsPlugin):
 
 
 def get_cameras():
+    # Import all plugins into spreads namespace
+    import spreadsplug
     """ Detect all attached cameras and select a fitting driver.
 
     :returns:  list(CameraPlugin) -- All supported cameras that were detected
@@ -335,7 +340,7 @@ def get_cameras():
                       if x.match(vendor_id, product_id)][0]
         except IndexError:
             raise Exception("Could not find driver for camera!")
-        cameras.append(driver(bus, device))
+        cameras.append(driver(spreads.config, bus, device))
     return cameras
 
 

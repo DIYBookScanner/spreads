@@ -83,7 +83,7 @@ class CanonA2200CameraPlugin(CameraPlugin):
 
     def set_iso(self, iso_value=80):
         try:
-            sv96_value = CanonA2200Camera.ISO_TO_APEX[iso_value]
+            sv96_value = CanonA2200CameraPlugin.ISO_TO_APEX[iso_value]
         except KeyError:
             raise Exception("The desired ISO value is not supported.")
         self._ptpcam("luar set_sv96({0})".format(sv96_value))

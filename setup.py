@@ -8,6 +8,7 @@ setup(
     author_email='johannes.baiter@gmail.com',
     #packages=['spreads', 'spreadsplug'],
     packages=find_packages(),
+    include_package_data = True,
     scripts=['spread', ],
     url='http://github.com/jbaiter/spreads',
     license='MIT',
@@ -18,5 +19,7 @@ setup(
         "Pillow >=2.0.0",
         "clint >= 0.3.1",
         "pyusb >=1.0.0a3",
+        "PyYAML>=3.10",
+        "setuptools-git>=1.0",
     ],
 )
