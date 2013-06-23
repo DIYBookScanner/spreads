@@ -45,15 +45,12 @@ class TestShoot(object):
         cmd.getch = Mock(side_effect=chain(' ', repeat('b', 8), 'c'))
         cmd.run_parallel = Mock()
         cmd.find_in_path = Mock(return_value=True)
-        cmd.shoot(iso_value=100, shutter_speed=0.5, zoom_value=4)
+        cmd.shoot()
         for cam in cams:
             # 1 for setup, 8 for shooting
             assert cmd.getch.call_count == 10
             assert cmd.run_parallel.call_count == 9
-            supposed_calls = repeat(call([{'func': x.shoot,
-                                           'kwargs': {'iso_value': 100,
-                                                      'shutter_speed': 0.5}}
-                                          for x in cams]),
+            supposed_calls = repeat(call([{'func': x.shoot} for x in cams]),
                                     8)
             for supposed_call, real_call in (zip(cmd.run_parallel
                                                  .call_args_list[1:],
@@ -74,7 +71,7 @@ class TestShoot(object):
         cmd.get_cameras = Mock(return_value=cams)
         cmd.getch = Mock(side_effect=[' ', ' '])
         cmd.find_in_path = Mock(return_value=True)
-        cmd.shoot(iso_value=100, shutter_speed=0.5, zoom_value=4)
+        cmd.shoot()
 
 
 class TestDownload(object):
@@ -99,7 +96,7 @@ class TestDownload(object):
         cmd.os.mkdir = mkdir
         cmd.os.path.exists = exists
         cmd.os.listdir = listdir
-        cmd.download('/tmp/foo')
+        cmd.download(args=Mock(), path='/tmp/foo')
         # TODO: Path is created?
         # TODO: Files are downloaded?
         # TODO: Files are deleted?
