@@ -90,8 +90,8 @@ postprocess
 
 Start the postprocessing workflog by calling each of the :ref:`postprocessing
 plugins <postproc_plugs>` defined in the configuration one after the other (by
-default: `autorotate <plug_autorotate>`, `scantailor <plug_scantailor>`,
-`pdfbeads <plug_pdfbeads>`). All output files will be stored in
+default: :ref:`autorotate <plug_autorotate>`, :ref:`scantailor <plug_scantailor>`,
+:ref:`pdfbeads <plug_pdfbeads>`). All output files will be stored in
 *project-directory*.
 
 .. program:: spread-postprocess
