@@ -1,22 +1,22 @@
 # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
 loglevel: debug
 
-# Options for cameras
-camera:
+# Options for devices
+device:
     sensitivity: 80
     shutter_speed: 1/25
     zoom_level: 3
     dpi: 300
 
-# Options for 'shoot' command
-shoot:
+# Options for 'capture' command
+capture:
     plugins: []
 
 # Options for 'download' command
 download:
     # Activated plugins
     plugins: [combine]
-    # keep files on cameras after downloading
+    # keep files on devices after downloading
     keep: no
 
 # Options for 'postprocess' command
@@ -27,7 +27,7 @@ postprocess:
     # Filters to be applied in order
     filters: [autorotate, scantailor, pdfbeads, djvubind]
 
-    # Rotation applied to images from left and right camera
+    # Rotation applied to images from left and right device
     autorotate:
         left: -90
         right: 90

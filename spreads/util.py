@@ -34,7 +34,7 @@ class SpreadsException(Exception):
     pass
 
 
-class CameraException(SpreadsException):
+class DeviceException(SpreadsException):
     pass
 
 

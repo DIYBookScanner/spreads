@@ -31,66 +31,65 @@ import os
 import sys
 import time
 
-from fractions import Fraction
-
 from clint.textui import puts, colored
 
 from spreads import config
-from spreads.plugin import (get_cameras, get_plugins, DownloadPlugin,
+from spreads.plugin import (get_devices, get_plugins, DownloadPlugin,
                             FilterPlugin)
-from spreads.util import (getch, run_parallel, find_in_path, CameraException,
+from spreads.util import (getch, run_parallel, DeviceException,
                           SpreadsException)
 
 
 def configure(args=None):
     for orientation in ('left', 'right'):
-        puts("Please connect and turn on the camera labeled \'{0}\'"
+        puts("Please connect and turn on the device labeled \'{0}\'"
              .format(orientation))
         puts(colored.blue("Press any key when ready."))
         _ = getch()
-        cams = get_cameras()
-        if len(cams) > 1:
-            raise CameraException("Please ensure that only one camera is"
+        devs = get_devices()
+        if len(devs) > 1:
+            raise DeviceException("Please ensure that only one device is"
                                   " turned on!")
-        if not cams:
-            raise CameraException("No camera found!")
-        cams[0].set_orientation(orientation)
-        puts(colored.green("Configured \'{0}\' camera.".format(orientation)))
-        puts("Please turn off the camera.")
+        if not devs:
+            raise DeviceException("No device found!")
+        devs[0].set_orientation(orientation)
+        puts(colored.green("Configured \'{0}\' device.".format(orientation)))
+        puts("Please turn off the device.")
         puts(colored.blue("Press any key when ready."))
         _ = getch()
 
 
-def shoot(args=None, cameras=[]):
-    if not cameras:
-        puts("Starting scanning workflow, please connect and turn on the"
-             " cameras.")
+def capture(args=None, devices=[]):
+    if not devices:
+        puts("Starting capture workflow, please connect and turn on the"
+             " devices.")
         puts(colored.blue("Press any key to continue."))
         getch()
-        puts("Detecting cameras.")
-        cameras = get_cameras()
-        if len(cameras) != 2:
-            raise CameraException("Please connect and turn on two"
-                                  " pre-configured cameras! ({0} were"
-                                  " found)".format(len(cameras)))
-        puts(colored.green("Found {0} cameras!".format(len(cameras))))
-        if not any(bool(x.orientation) for x in cameras):
-            raise CameraException("At least one of the cameras has not been"
+        puts("Detecting devices.")
+        devices = get_devices()
+        if len(devices) != 2:
+            raise DeviceException("Please connect and turn on two"
+                                  " pre-configured devices! ({0} were"
+                                  " found)".format(len(devices)))
+        puts(colored.green("Found {0} devices!".format(len(devices))))
+        if not any(bool(x.orientation) for x in devices):
+            raise DeviceException("At least one of the devices has not been"
                                   " properly configured, please re-run the"
                                   " program with the \'configure\' option!")
-    # Set up for shooting
-    puts("Setting up cameras for shooting.")
-    run_parallel([{'func': camera.prepare_shoot} for camera in cameras])
-    # Start shooting loop
-    puts(colored.blue("Press 'b' or the footpedal to shoot."))
+    # Set up for capturing
+    puts("Setting up devices for capturing.")
+    run_parallel([{'func': device.prepare_capture} for device in devices])
+    # Start capture loop
+    # TODO: Make 'capture' key configurable
+    puts(colored.blue("Press 'b' to capture."))
     shot_count = 0
     start_time = time.time()
     pages_per_hour = 0
     while True:
         if getch() != 'b':
             break
-        run_parallel([{'func': x.shoot} for x in cameras])
-        shot_count += len(cameras)
+        run_parallel([{'func': x.capture} for x in devices])
+        shot_count += len(devices)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
         status = ("\rShot {0} pages [{1:.0f}/h]"
                   .format(colored.green(unicode(shot_count)), pages_per_hour))
@@ -118,23 +117,25 @@ def download(args=None, path=None):
         plugins.append(plugin)
     if not os.path.exists(path):
         os.mkdir(path)
-    cameras = get_cameras()
-    puts(colored.green("Downloading images from cameras"))
-    out_paths = [os.path.join(path, x.orientation) for x in cameras]
+    devices = get_devices()
+    puts(colored.green("Downloading images from devices"))
+    # TODO: Make this more generic, so that devices that capture the whole
+    #       spread in one image can be used, too.
+    out_paths = [os.path.join(path, x.orientation) for x in devices]
     for subpath in out_paths:
         if not os.path.exists(subpath):
             os.mkdir(subpath)
     run_parallel([{'func': x.download_files,
                    'args': [os.path.join(path, x.orientation)],
-                   'kwargs': {}} for x in cameras])
+                   'kwargs': {}} for x in devices])
     for plugin in plugins:
-        plugin.download(cameras, path)
+        plugin.download(devices, path)
     if not keep:
-        puts(colored.green("Deleting images from cameras"))
+        puts(colored.green("Deleting images from devices"))
         run_parallel([{'func': x.delete_files,
-                       'args': [], 'kwargs': {}} for x in cameras])
+                       'args': [], 'kwargs': {}} for x in devices])
         for plugin in plugins:
-            plugin.delete(cameras)
+            plugin.delete(devices)
 
 
 def postprocess(args=None, path=None):
@@ -159,26 +160,26 @@ def wizard(args):
     # TODO: Think about how we can make this more dynamic, i.e. get list of
     #       options for plugin with a description for each entry
     path = args.path
-    puts("Please connect and turn on the cameras.")
+    puts("Please connect and turn on the devices.")
     puts(colored.blue("Press any key to continue."))
     getch()
-    puts(colored.green("Detecting cameras."))
-    cameras = get_cameras()
-    if not any(bool(x.orientation) for x in cameras):
-        puts(colored.yellow("Cameras not yet configured!"))
-        puts(colored.blue("Please turn both cameras off."
+    puts(colored.green("Detecting devices."))
+    devices = get_devices()
+    if not any(bool(x.orientation) for x in devices):
+        puts(colored.yellow("Devices not yet configured!"))
+        puts(colored.blue("Please turn both devices off."
                           " Press any key when ready."))
         while True:
             try:
                 configure()
                 break
-            except CameraException as e:
+            except DeviceException as e:
                 print e
 
-    puts(colored.green("========================="))
-    puts(colored.green("Starting scanning process"))
-    puts(colored.green("========================="))
-    shoot(cameras=cameras)
+    puts(colored.green("=========================="))
+    puts(colored.green("Starting capturing process"))
+    puts(colored.green("=========================="))
+    capture(devices=devices)
 
     puts(colored.green("========================="))
     puts(colored.green("Starting download process"))

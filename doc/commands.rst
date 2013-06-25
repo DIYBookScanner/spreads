@@ -24,45 +24,27 @@ configure
 
     $ spread configure
 
-This command sets up your cameras for shooting. Currently, this means nothing
-more than assigning each of the cameras with a label 'left' or 'right', to
+This command sets up your devices for capturing. Currently, this means nothing
+more than assigning each of the devices with a label 'left' or 'right', to
 later help maintain the correct page order and apply the right rotation.
-The UI will ask you to successively connect and turn on each of your cameras
+The UI will ask you to successively connect and turn on each of your devices
 and turn it off again when configuration has succeeded.
-This command only has to be performed once for each set of cameras, as the
-label is stored permanently on the cameras' internal memory.
+This command only has to be performed once for each set of devices, as the
+label is stored permanently on the devices' internal memory.
 
-shoot
+capture
 =====
 ::
 
-    $ spread shoot [--iso <int>] [--shutter <int/float/str>] [--zoom <int>]
+    $ spread capture [OPTIONS]
 
-This command will start a shooting workflow. As usual, you will be asked
-to connect and turn on your cameras. The application will then set them up,
+This command will start a capturing workflow. As usual, you will be asked
+to connect and turn on your devices. The application will then set them up,
 e.g. by switching them into record mode, disabling the flash and setting the
-options listed below. You will then enter a loop, where both cameras will
-trigger simultaneously when you press the **spacebar** or **b**. Press any
-other key to finish scanning.
-
-.. program:: spread-shoot
-
-.. option:: --iso iso-level, -i iso-level
-
-   Set the ISO sensitivity value used for shooting. The default value is
-   **80**.
-
-.. option:: --shutter shutter-speed, -s shutter-speed
-
-   Set the shutter speed used for shooting. The value can be either an integer
-   ("20"), a float ("12.7") or a fraction ("1/25").
-   The default value is **1/25**.
-
-.. option:: --zoom zoom-level, -z zoom-level
-
-   Set the zoom level used for shooting. Accepts any integer starting from 0,
-   although the application might throw an error if the level chosen exceeds
-   your camera's supported range.
+options listed below. You will then enter a loop, where both devices will
+trigger simultaneously when you press the **b** key. Press any other key to
+finish capturing. Consult the documentation of your device for available
+options.
 
 download
 ========
@@ -70,16 +52,16 @@ download
 
     $ spread download <project-directory
 
-This will tell spreads to download all images from your cameras to the folder
-*project-directory*. Images from both cameras will automatically be assembled
+This will tell spreads to download all images from your devices to the folder
+*project-directory*. Images from both devices will automatically be assembled
 into a single directory, named **raw**. On success, the images will be removed
-from the cameras.
+from the devices.
 
 .. program:: spread-download
 
 .. option:: --keep, -k
 
-   Do not remove the images from the cameras, once the download has been
+   Do not remove the images from the devices, once the download has been
    completed.
 
 postprocess

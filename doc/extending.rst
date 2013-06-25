@@ -1,20 +1,21 @@
 Extending *spreads*
 *******************
-.. _add_cameras:
+.. _add_devices:
 
-Adding support for new cameras
+Adding support for new devices
 ==============================
-To support new cameras, just subclass :class:`CameraPlugin
-<spreads.plugin.CameraPlugin>` somewhere in the ``spreadsplug`` namespace and
-override and implement the features supported by your camera. Take a look at
-the `plugin for the Canon A2200`_ for a reference implementation.
+To support new devices, just subclass :class:`DevicePlugin
+<spreads.plugin.DevicePlugin>` somewhere in the ``spreadsplug`` namespace and
+override and implement the features supported by your device. Take a look at
+the `plugin for CHDK-based cameras`_ for a reference implementation.
 
-Cameras are assigned a :class:`CameraPlugin <spreads.plugin.CameraPlugin>`
-implementation based on their USB device and vendor IDs. This means that you
-can support a whole range of devices with a single :class:`CameraPlugin
-<spreads.plugin.CameraPlugin>` implementation, if you know their respective IDs.
+Devices are assigned a :class:`DevicePlugin <spreads.plugin.DevicePlugin>`
+implementation based on their USB device's properties. This means that you
+can support a whole range of devices with a single :class:`DevicePlugin
+<spreads.plugin.DevicePlugin>` implementation, if you know a set of
+attributes that apply to all of them.
 
-.. _plugin for the Canon A2200: https://github.com/jbaiter/spreads/blob/master/spreadsplug/a2200.py
+.. _plugin for CHDK-based cameras: https://github.com/jbaiter/spreads/blob/master/spreadsplug/chdkcamera.py
 
 .. _extend_commands:
 
@@ -25,20 +26,22 @@ you just have to inherit from one of the :class:`SpreadsPlugin
 <spreads.plugin.SpreadsPlugin>` subclasses and implement one or more of their
 abstract methods.  The following types of plugins are available:
 
-*shoot* plugin
+*capture* plugin
 --------------
-See :class:`ShootPlugin <spreads.plugin.ShootPlugin>`.
+See :class:`CapturePlugin <spreads.plugin.CapturePlugin>`.
 
-You can hook into the **shoot** command by implementing :meth:`snap
-<spreads.plugin.ShootPlugin.snap>` (executed every time both cameras have
-captured an image) and :meth:`finish <spreads.plugin.ShootPlugin.finish>`
-(executed once the shooting workflow has finished).
+You can hook into the **capture** command by implementing :meth:`prepare
+<spreads.plugin.CapturePlugin.prepare>` (executed before the capture process
+begins), :meth:`capture <spreads.plugin.CapturePlugin.capture>` (executed every
+time both devices have captured an image) and :meth:`finish
+<spreads.plugin.CapturePlugin.finish>` (executed once the capture workflow has
+finished).
 
 *download* plugin
 -----------------
 See :class:`DownloadPlugin <spreads.plugin.DownloadPlugin>`.
 
-Do stuff with the images downloaded from the camera by implementing
+Do stuff with the images downloaded from the device by implementing
 :meth:`download <spreads.plugin.DownloadPlugin.download>` (executed once all
 files are downloaded) and :meth:`delete <spreads.plugin.DownloadPlugin.delete>`
 (executed once all files are deleted). By convention, all

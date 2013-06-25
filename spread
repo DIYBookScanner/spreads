@@ -27,7 +27,7 @@ from clint.textui import puts, colored
 import spreads.ui
 from spreads import logging
 from spreads.confit import ConfigError
-from spreads.util import SpreadsException, CameraException
+from spreads.util import SpreadsException, DeviceException
 
 if __name__ == '__main__':
     try:
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     except Exception as e:
         typ, val, tb = sys.exc_info()
         logging.debug("".join(traceback.format_exception(typ, val, tb)))
-        if isinstance(e, CameraException):
+        if isinstance(e, DeviceException):
             puts(colored.red("There is a problem with your camera"
                              " configuration:"))
             puts(colored.red(e.message))

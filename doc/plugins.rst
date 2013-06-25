@@ -9,7 +9,7 @@ and arguments to the command-line switches of each command.
 *download* plugins
 ==================
 These provide functionality that is executed after the files have been
-downloaded from the cameras. They are only allowed to change the images in
+downloaded from the devices. They are only allowed to change the images in
 ways that preserve all of their original data (i.e. they are allowed to rotate
 the images while preserving all of the metadata, but not to scale them).
 
@@ -26,15 +26,15 @@ either modify the captured images or generate a different output.
 
 autorotate
 ----------
-Automatically rotates the images according to their camera of origin. By
-default this means -90° for the left camera and 90° for the right camera, but
+Automatically rotates the images according to their device of origin. By
+default this means -90° for the left device and 90° for the right device, but
 this can be set to +/- 180° by specifying the :option:`rotate-inverse
 <--rotate-inverse, -ri>` option.
 
 .. option:: --rotate-inverse, -ri
 
    By default, *spreads* will rotate your images either by +/- 90 degrees,
-   depending on their camera of origin. With this setting, you can change
+   depending on their device of origin. With this setting, you can change
    this value to +/- 180 degrees, in case you scanned your book upside down.
 
 scantailor

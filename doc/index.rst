@@ -9,7 +9,7 @@ Introduction
 ------------
 *spreads* is a tool that aims to streamline your book scanning workflow.
 It takes care of every step: Setting up your capturing devices, handling
-the shooting process, downloading the images to your machine,
+the capturing process, downloading the images to your machine,
 post-processing them and finally assembling a variety of output formats.
 
 Along the way you can always fine-tune the auto-generated results either
@@ -17,7 +17,7 @@ by supplying arguments beforehand, or by inspecting the output and
 applying your modifications.
 
 *spreads* is meant to be fully customizable. This means, :ref:`adding support
-for new cameras <add_cameras>` is made as painless as possible. You can also
+for new devices <add_devices>` is made as painless as possible. You can also
 hook into any of the *spread* commands by imlementing one of the available
 :ref:`plugin classes <extend_commands>`
 

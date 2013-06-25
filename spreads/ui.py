@@ -40,21 +40,21 @@ parser.add_argument(
     '--verbose', '-v', dest="verbose", action="store_true")
 
 config_parser = subparsers.add_parser(
-    'configure', help="Perform initial configuration of the cameras.")
+    'configure', help="Perform initial configuration of the devices.")
 config_parser.set_defaults(func=commands.configure)
 
-shoot_parser = subparsers.add_parser(
-    'shoot', help="Start the shooting workflow")
-shoot_parser.set_defaults(func=commands.shoot)
+capture_parser = subparsers.add_parser(
+    'capture', help="Start the capturing workflow")
+capture_parser.set_defaults(func=commands.capture)
 # Add arguments from plugins
-plugin_list = [x for x in config['shoot']['plugins'].all_contents()]
-plugin_classes = {x.config_key: x for x in get_plugins(ShootPlugin)}
+plugin_list = [x for x in config['capture']['plugins'].all_contents()]
+plugin_classes = {x.config_key: x for x in get_plugins(CapturePlugin)}
 for key in plugin_list:
-    plugin_classes[key].add_arguments(shoot_parser)
-# Add arguments from cameras
-camera_classes = get_plugins(CameraPlugin)
-for camera in camera_classes:
-    camera.add_arguments(shoot_parser)
+    plugin_classes[key].add_arguments(capture_parser)
+# Add arguments from devices
+device_classes = get_plugins(DevicePlugin)
+for device in device_classes:
+    device.add_arguments(capture_parser)
 
 download_parser = subparsers.add_parser(
     'download', help="Download scanned images.")
@@ -62,7 +62,7 @@ download_parser.add_argument(
     "path", help="Path where scanned images are to be stored")
 download_parser.add_argument(
     "--keep", "-k", dest="keep", action="store_true",
-    help="Keep files on cameras after download")
+    help="Keep files on devices after download")
 download_parser.set_defaults(func=commands.download)
 # Add arguments from plugins
 plugin_list = [x for x in config['download']['plugins'].all_contents()]

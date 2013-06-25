@@ -1,7 +1,7 @@
 Tutorial
 ========
-1. Connect your cameras to your computer (at the moment only Canon A2200 models
-   with the custom CHDK firmware are supported, but you can
+1. Connect your devices to your computer (at the moment only Canon A2200
+   cameras with the custom CHDK firmware are supported, but you can
    :doc:`change that! <extending>`).
    Make sure that you have *gphoto2* and *ptpcam* installed.
 2. Run the following command in the shell of your choice and follow the
@@ -9,11 +9,11 @@ Tutorial
    
        $ spread configure
 
-3. Now you can begin shooting::
+3. Now you can begin capturing::
 
-       $ spread shoot
+       $ spread capture
 
-   When you're done, press any key besides the **spacebar** or **b**.
+   When you're done, press any key besides **b**.
 
 4. Time to get those images to your computer::
 

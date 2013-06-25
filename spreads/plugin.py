@@ -39,6 +39,7 @@ class SpreadsPlugin(object):
 
     #: The config key to be used for the plugin.  Plugins must set this
     #: attribute or else it will not be found. (type: *unicode*)
+    # TODO: Auto-determine this from each plugin's `__name__`
     config_key = None
 
     @classmethod
@@ -66,105 +67,51 @@ class SpreadsPlugin(object):
             self.config = config
 
 
-class CameraPlugin(SpreadsPlugin):
-    """ Base class for cameras.
+class DevicePlugin(SpreadsPlugin):
+    """ Base class for devices.
 
-        Subclass to implement support for different cameras. Provides some
-        methods that are likely to be of use for CHDK-based cameras.
-
-        .. note::
-
-            Might change a lot in the future, as the API is still tightly
-            coupled to CHDK details and should grow more abstract when
-            support for more cameras is added.
+        Subclass to implement support for different devices.
 
     """
     @classmethod
-    def match(cls, vendor_id, product_id):
-        """ Match camera against USB device information.
+    def match(cls, usbdevice):
+        """ Match device against USB device information.
 
-        :param vendor_id:   idVendor of the USB device
-        :type vendor_id:    unicode (hex, zero-padded to 4, e.g. "04a1")
-        :param product_id:  idProduct of the USB device
-        :type product_id:   unicode (hex, zero-padded to 4, e.g. "12a3")
-        :return:            True if the IDs match the implemented model
+        :param device:      The USB device to match against
+        :type vendor_id:    `usb.core.Device <http://github.com/walac/pyusb>`_
+        :return:            True if the :param usbdevice: matches the
+                            implemented category
 
         """
         raise NotImplementedError
 
-    def __init__(self, config, bus, device):
-        """ Set connection information and try to retrieve orientation.
+    def __init__(self, config, device):
+        """ Set connection information and other properties.
 
-        :param bus:     USB bus number of the camera
-        :type bus:      int, str, unicode
-        :param device:  USB device number of the camera
-        :type bus:      int, str, unicode
-
-        """
-        super(CameraPlugin, self).__init__(config['camera'])
-        self._port = (int(bus), int(device))
-        self.orientation = (self._gphoto2(["--get-config",
-                                           "/main/settings/ownername"])
-                            .split("\n")[-2][9:] or None)
-
-    def _gphoto2(self, args):
-        """ Call gphoto2.
-
-        :param args:  The arguments for gphoto2
-        :type args:   list
-        :returns:     unicode -- combined stdout and stderr of the gphoto2
-                                    process.
+        :param config:  spreads configuration
+        :type config:   spreads.confit.ConfigView
+        :param device:  USB device to use for the object
+        :type device:   `usb.core.Device <http://github.com/walac/pyusb>`_
 
         """
-        cmd = (["gphoto2", "--port", "usb:{0:03},{1:03}".format(*self._port)]
-               + args)
-        logging.debug("Running " + " ".join(cmd))
-        try:
-            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-        except OSError:
-            raise SpreadsException("gphoto2 executable could not be found,"
-                                   "please install!")
-        return out
-
-    def _ptpcam(self, command):
-        """ Call ptpcam to execute command on camera.
-
-        :param command: The CHDK command to execute on the camera
-        :type command:  unicode
-        :returns:       unicode -- combined stdout and stderr of the ptpcam
-                                    process
-
-        """
-        bus, device = self._port
-        cmd = ["ptpcam", "--dev={0:03}".format(device),
-               "--bus={0:03}".format(bus),
-               "--chdk='{0}'".format(command)]
-        logging.debug("Running " + " ".join(cmd))
-        try:
-            out = subprocess.check_output(" ".join(cmd), shell=True,
-                                          stderr=subprocess.STDOUT)
-        except OSError:
-            raise SpreadsException("ptpcam executable could not be found,"
-                                   " please install!")
-        return out
+        super(DevicePlugin, self).__init__(config['device'])
+        self._device = device
 
     def set_orientation(self, orientation):
-        """ Set the camera orientation.
+        """ Set the device orientation, if applicable.
 
         :param orientation: The orientation name
         :type orientation:  unicode in (u"left", u"right")
 
         """
-        self._gphoto2(["--set-config",
-                       "/main/settings/ownername={0}".format(orientation)])
-        self.orientation = orientation
+        raise NotImplementedError
 
     def delete_files(self):
-        """ Delete all files from camera. """
+        """ Delete all files from device. """
         raise NotImplementedError
 
     def download_files(self, path):
-        """ Download all files from camera.
+        """ Download all files from device.
 
         :param path:  The destination path for the downloaded images
         :type path:   unicode
@@ -172,48 +119,60 @@ class CameraPlugin(SpreadsPlugin):
         """
         raise NotImplementedError
 
-    def prepare_shoot(self):
-        """ Prepare camera for shooting.
+    def prepare_capture(self):
+        """ Prepare device for scanning.
 
-            What this means exactly is up to the implementation, usually
-            it involves things like switching the camera into record mode and
-            applying all relevant settings.
+            What this means exactly is up to the implementation and the type,
+            of device, usually it involves things like switching into record
+            mode and applying all relevant settings.
 
         """
         raise NotImplementedError
 
-    def shoot(self, shutter_speed, iso_value):
+    def capture(self):
+        """ Capture a single image with the device.
+
+        """
         raise NotImplementedError
 
 
-class ShootPlugin(SpreadsPlugin):
-    """ Add functionality to *shoot* command.
+class CapturePlugin(SpreadsPlugin):
+    """ Add functionality to *capture* command.
 
     """
     def __init__(self, config):
-        super(ShootPlugin, self).__init__(config['shoot'])
+        super(CapturePlugin, self).__init__(config['capture'])
 
-    def snap(self, cameras, count, time):
-        """ Perform some action after each successful shot.
+    def prepare(self, devices):
+        """ Perform some action before capturing begins.
 
-        :param cameras: The cameras used for shooting
-        :type cameras: list(CameraPlugin)
+        :param devices: The devices used for capturing
+        :type devices: list(DevicePlugin)
+
+        """
+        raise NotImplementedError
+
+    def capture(self, devices, count, time):
+        """ Perform some action after each successful capture.
+
+        :param devices: The devices used for capturing
+        :type devices: list(DevicePlugin)
         :param count: The shot count
         :type count: int
-        :param time: The elapsed time since shooting began
+        :param time: The elapsed time since capturing began
         :type time: time.timedelta
 
         """
         raise NotImplementedError
 
-    def finish(self, cameras, count, time):
-        """ Perform some action after shooting has finished.
+    def finish(self, devices, count, time):
+        """ Perform some action after capturing has finished.
 
-        :param cameras: The cameras used for shooting
-        :type cameras: list(CameraPlugin)
+        :param devices: The devices used for capturing
+        :type devices: list(DevicePlugin)
         :param count: The shot count
         :type count: int
-        :param time: The elapsed time since shooting began
+        :param time: The elapsed time since capturing began
         :type time: time.timedelta
 
         """
@@ -229,23 +188,23 @@ class DownloadPlugin(SpreadsPlugin):
     def __init__(self, config):
         super(DownloadPlugin, self).__init__(config['download'])
 
-    def download(self, cameras, path):
-        """ Perform some action after download from cameras has finished.
+    def download(self, devices, path):
+        """ Perform some action after download from devices has finished.
 
-        :param cameras: The cameras that were downloaded from.
-        :type cameras: list(CameraPlugin)
+        :param devices: The devices that were downloaded from.
+        :type devices: list(DevicePlugin)
         :param path: The destination directory for the downloads
         :type path: unicode
 
         """
         raise NotImplementedError
 
-    def delete(self, cameras):
+    def delete(self, devices):
         """ Perform some action after images have been deleted from the
-            cameras.
+            devices.
 
-        :param cameras: The cameras that were downloaded from.
-        :type cameras: list(CameraPlugin)
+        :param devices: The devices that were downloaded from.
+        :type devices: list(DevicePlugin)
 
         """
         raise NotImplementedError
@@ -270,33 +229,37 @@ class FilterPlugin(SpreadsPlugin):
         raise NotImplementedError
 
 
-def get_cameras():
-    # Import all plugins into spreads namespace
-    """ Detect all attached cameras and select a fitting driver.
+def get_devices():
+    def all_subclasses(cls):
+        """ Get all subclasses and all subclasses of those, for a given class.
+            Kudos to http://stackoverflow.com/a/3862957/487903
 
-    :returns:  list(CameraPlugin) -- All supported cameras that were detected
+        """
+        return cls.__subclasses__() + [g for s in cls.__subclasses__()
+                                       for g in all_subclasses(s)]
+
+    # Import all plugins into spreads namespace
+    """ Detect all attached devices and select a fitting driver.
+
+    :returns:  list(DevicePlugin) -- All supported devices that were detected
 
     """
-    if not find_in_path('gphoto2'):
-        raise Exception("Could not find executable `gphoto2``in $PATH."
-                        " Please install the appropriate package(s)!")
-    cmd = ['gphoto2', '--auto-detect']
-    logging.debug("Running " + " ".join(cmd))
-    cam_ports = [re.search(r'usb:\d+,\d+', x).group() for x in
-                 subprocess.check_output(cmd).split('\n')[2:-1]]
-    cameras = []
-    for cam_port in cam_ports:
-        bus, device = cam_port[4:].split(',')
-        usb_dev = usb.core.find(bus=int(bus), address=int(device))
-        vendor_id, product_id = (hex(x)[2:].zfill(4) for x in
-                                 (usb_dev.idVendor, usb_dev.idProduct))
-        try:
-            driver = [x for x in CameraPlugin.__subclasses__()
-                      if x.match(vendor_id, product_id)][0]
-        except IndexError:
-            raise Exception("Could not find driver for camera!")
-        cameras.append(driver(spreads.config, bus, device))
-    return cameras
+    candidates = usb.core.find(find_all=True)
+    devices = []
+    for device in candidates:
+        driver = None
+        for cls in all_subclasses(DevicePlugin):
+            try:
+                logging.debug("Matching class %s" % cls)
+                if cls.match(device):
+                    driver = cls
+            except NotImplementedError:
+                continue
+        if driver:
+            devices.append(driver(spreads.config, device))
+    if not devices:
+        raise Exception("Could not find driver for devices!")
+    return devices
 
 
 def get_plugins(plugin_class):
