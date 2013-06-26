@@ -7,7 +7,7 @@ from fractions import Fraction
 from math import log
 
 from spreads.plugin import DevicePlugin
-from spreads.util import SpreadsException
+from spreads.util import SpreadsException, CameraException
 
 
 class CHDKCameraDevice(DevicePlugin):
@@ -153,8 +153,11 @@ class CHDKCameraDevice(DevicePlugin):
         :type level:  int
 
         """
-        # TODO: Implement this the proper way!
-        raise NotImplementedError
+        available_levels = int(self._ptpcam('luar get_zoom_steps()')
+                               .split()[1][-1])
+        if not level in available_levels:
+            raise CameraException("Level outside of supported range!")
+        self._ptpcam('lua set_zoom({0})'.format(level))
 
     def _disable_flash(self):
         """ Disable the camera's flash. """
@@ -167,8 +170,7 @@ class CHDKCameraDevice(DevicePlugin):
         :type iso-value:  int
 
         """
-        # TODO: Implement this the proper way!
-        raise NotImplementedError
+        self._ptpcam('lua set_iso_mode({0})'.format(value))
 
     def _disable_ndfilter(self):
         """ Disable the camera's ND Filter. """
@@ -209,6 +211,10 @@ class CanonA2200CameraPlugin(CHDKCameraDevice):
     def _set_zoom(self, level):
         """ Set zoom level.
 
+            The A2200 currently has a bug, where setting the zoom level
+            directly via set_zoom crashes the camera quite frequently, so
+            we work around that by simulating button presses.
+
         :param level: The zoom level to be used
         :type level:  int
 
@@ -228,6 +234,12 @@ class CanonA2200CameraPlugin(CHDKCameraDevice):
 
     def _set_sensitivity(self, value=80):
         """ Set the camera's ISO value.
+
+            `set_iso_mode` doesn't seem to work, so we have to use set_sv96.
+            Problem is that I've not yet figured out the conversion formula
+            from ISO to the ASA/APEX value required for this function, which,
+            from what I understand, has to be determined for every camera
+            separately...
 
         :param iso_value: The ISO value in ISO/ASA format
         :type iso-value:  int
