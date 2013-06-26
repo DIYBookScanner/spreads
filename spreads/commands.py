@@ -84,7 +84,7 @@ def capture(args=None, devices=[]):
     shot_count = 0
     start_time = time.time()
     pages_per_hour = 0
-    capture_keys = config['capture']['capture_keys']
+    capture_keys = config['capture']['capture_keys'].as_str_seq()
     while True:
         if not getch().lower() in capture_keys:
             break

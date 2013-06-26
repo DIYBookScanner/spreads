@@ -7,7 +7,7 @@ from fractions import Fraction
 from math import log
 
 from spreads.plugin import DevicePlugin
-from spreads.util import SpreadsException, CameraException
+from spreads.util import SpreadsException, DeviceException
 
 
 class CHDKCameraDevice(DevicePlugin):
