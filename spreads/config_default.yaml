@@ -10,6 +10,8 @@ device:
 
 # Options for 'capture' command
 capture:
+    # Keys that trigger a capture. Put the space bar inside double ticks.
+    capture_keys: [" " , b]
     plugins: []
 
 # Options for 'download' command

@@ -80,13 +80,13 @@ def capture(args=None, devices=[]):
     puts("Setting up devices for capturing.")
     run_parallel([{'func': device.prepare_capture} for device in devices])
     # Start capture loop
-    # TODO: Make 'capture' key configurable
     puts(colored.blue("Press 'b' to capture."))
     shot_count = 0
     start_time = time.time()
     pages_per_hour = 0
+    capture_keys = config['capture']['capture_keys']
     while True:
-        if getch() != 'b':
+        if not getch().lower() in capture_keys:
             break
         run_parallel([{'func': x.capture} for x in devices])
         shot_count += len(devices)
