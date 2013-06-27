@@ -6,13 +6,11 @@ import logging
 import os
 import subprocess
 
-from spreads.plugin import FilterPlugin
+from spreads.plugin import HookPlugin
 from spreads.util import SpreadsException, find_in_path
 
 
-class PDFBeadsFilter(FilterPlugin):
-    config_key = 'pdfbeads'
-
+class PDFBeadsPlugin(HookPlugin):
     def process(self, path):
         if not find_in_path('pdfbeads'):
             raise SpreadsException("Could not find executable `pdfbeads` in"

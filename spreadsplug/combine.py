@@ -3,12 +3,10 @@ import operator
 import os
 import shutil
 
-from spreads.plugin import DownloadPlugin
+from spreads.plugin import HookPlugin
 
 
-class CombinePlugin(DownloadPlugin):
-    config_key = 'combine'
-
+class CombinePlugin(HookPlugin):
     def download(self, cameras, path):
         left_dir = os.path.join(path, 'left')
         right_dir = os.path.join(path, 'right')
@@ -31,6 +29,3 @@ class CombinePlugin(DownloadPlugin):
             shutil.copyfile(fname, target_file)
         shutil.rmtree(right_dir)
         shutil.rmtree(left_dir)
-
-    def delete(self, cameras):
-        pass

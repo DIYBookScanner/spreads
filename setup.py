@@ -20,6 +20,21 @@ setup(
         "clint >= 0.3.1",
         "pyusb >=1.0.0a3",
         "PyYAML>=3.10",
-        "setuptools-git>=1.0",
+        "stevedore>=0.9.1",
+        "setuptools-git>=1.0b1",
     ],
+    entry_points={
+        'spreadsplug.devices': [
+            'chdkcamera = spreadsplug.chdkcamera:CHDKCameraDevice',
+            'a2200      = spreadsplug.chdkcamera:CanonA2200CameraDevice',
+        ],
+        'spreadsplug.hooks': [
+            'combine    = spreadsplug.combine:CombinePlugin',
+            'autorotate = spreadsplug.autorotate:AutoRotatePlugin',
+            'scantailor = spreadsplug.scantailor:ScanTailorPlugin',
+            'pdfbeads   = spreadsplug.pdfbeads:PDFBeadsPlugin',
+            'djvubind   = spreadsplug.djvubind:DjvuBindPlugin',
+        ],
+    },
+
 )

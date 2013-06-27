@@ -1,5 +1,8 @@
 General
 =======
+- Write documentation for configuration format/files
+- Try to replace calls to ptpcam/gphoto2 with pyptpchdk to lessen core's
+  dependency on external tools and potentially improve portability.
 - Enhance confit to allow the writing of configuration files to disk, this
   probably involves monkey-patching yaml.serializer.Serializer
 - Add support for different scanning profiles that can be selected

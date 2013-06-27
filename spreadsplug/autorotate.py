@@ -9,18 +9,20 @@ import re
 from PIL import Image
 from PIL.ExifTags import TAGS
 
-from spreads.plugin import FilterPlugin
+from spreads.plugin import HookPlugin
 from spreads.util import run_multicore
 
 
-class AutoRotateFilter(FilterPlugin):
-    config_key = 'autorotate'
-
+class AutoRotatePlugin(HookPlugin):
     @classmethod
-    def add_arguments(cls, parser):
-        parser.add_argument("--rotate-inverse", "-ri", dest="rotate_inverse",
-                            action="store_true",
-                            help="Rotate by +/- 180° instead of +/- 90°")
+    def add_arguments(cls, command, parser):
+        if command == 'postprocess':
+            parser.add_argument("--rotate-inverse", "-ri",
+                                dest="rotate_inverse", action="store_true",
+                                help="Rotate by +/- 180° instead of +/- 90°")
+
+    def __init__(self, config):
+        self.config = config['postprocess']
 
     def rotate_image(self, path, left, right, inverse=False):
         logging.debug("Rotating image {0}".format(path))
@@ -59,12 +61,12 @@ class AutoRotateFilter(FilterPlugin):
     def process(self, path):
         logging.info("Rotating images")
         # FIXME: Get this from commandline arguments
-        rotate_inverse = False
         img_dir = os.path.join(path, 'raw')
         num_jobs = self.parent_config['jobs'].get(int)
         run_multicore(self.rotate_image, [[os.path.join(img_dir, x)]
                                            for x in os.listdir(img_dir)],
-                      {'inverse': rotate_inverse,
-                       'left': self.config['left'].get(int),
-                       'right': self.config['right'].get(int)},
+                      {'inverse': (self.config['autorotate']['rotate_inverse']
+                                   .get(bool)),
+                       'left': self.config['autorotate']['left'].get(int),
+                       'right': self.config['autorotate']['right'].get(int)},
                       num_procs=num_jobs)

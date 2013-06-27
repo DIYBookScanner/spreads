@@ -35,7 +35,7 @@ class CHDKCameraDevice(DevicePlugin):
         :type device:   `usb.core.Device <http://github.com/walac/pyusb>`_
 
         """
-        super(DevicePlugin, self).__init__(config['device'])
+        self.config = config['device']
         self._device = device
         self.orientation = (self._gphoto2(["--get-config",
                                            "/main/settings/ownername"])
@@ -189,7 +189,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._ptpcam("lua play_sound({1})".format(sound_num))
 
 
-class CanonA2200CameraPlugin(CHDKCameraDevice):
+class CanonA2200CameraDevice(CHDKCameraDevice):
     """ Canon A2200 driver.
 
         Works around some quirks of that CHDK port.
@@ -247,7 +247,7 @@ class CanonA2200CameraPlugin(CHDKCameraDevice):
         """
         iso_value = self.config['sensitivity'].get(int)
         try:
-            sv96_value = CanonA2200CameraPlugin.ISO_TO_APEX[iso_value]
+            sv96_value = CanonA2200CameraDevice.ISO_TO_APEX[iso_value]
         except KeyError:
             raise Exception("The desired ISO value is not supported.")
         self._ptpcam("luar set_sv96({0})".format(sv96_value))

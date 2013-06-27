@@ -24,6 +24,7 @@
 
 from __future__ import division, unicode_literals
 
+import abc
 import itertools
 import os
 import sys
@@ -143,3 +144,50 @@ def run_multicore(task, m_args=[], m_kwargs={}, num_procs=None):
         queue.put(None)
     for worker in running:
         worker.join()
+
+
+class _instancemethodwrapper(object):
+    def __init__(self, callable):
+        self.callable = callable
+        self.__dontcall__ = False
+
+    def __getattr__(self, key):
+        return getattr(self.callable, key)
+
+    def __call__(self, *args, **kwargs):
+        if self.__dontcall__:
+            raise TypeError('Attempted to call abstract method.')
+        return self.callable(*args,**kwargs)
+
+
+class _classmethod(classmethod):
+    def __init__(self, func):
+        super(_classmethod, self).__init__(func)
+        isabstractmethod = getattr(func,'__isabstractmethod__',False)
+        if isabstractmethod:
+            self.__isabstractmethod__ = isabstractmethod
+
+    def __get__(self, instance, owner):
+        result = _instancemethodwrapper(super(_classmethod, self)
+                                        .__get__(instance, owner))
+        isabstractmethod = getattr(self,'__isabstractmethod__',False)
+        if isabstractmethod:
+            result.__isabstractmethod__ = isabstractmethod
+            abstractmethods = getattr(owner,'__abstractmethods__',None)
+            if abstractmethods and result.__name__ in abstractmethods:
+                result.__dontcall__ = True
+        return result
+
+
+class abstractclassmethod(_classmethod):
+    """ New decorator class that implements the @abstractclassmethod decorator
+        added in Python 3.3 for Python 2.7.
+        
+        Kudos to http://stackoverflow.com/a/13640018/487903
+
+    """
+    def __init__(self, func):
+        func = abc.abstractmethod(func)
+        super(abstractclassmethod,self).__init__(func)
+
+

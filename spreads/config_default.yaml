@@ -1,5 +1,6 @@
 # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
-loglevel: debug
+loglevel: error
+plugins: [combine, autorotate, scantailor, pdfbeads, djvubind]
 
 # Options for devices
 device:
@@ -12,12 +13,9 @@ device:
 capture:
     # Keys that trigger a capture. Put the space bar inside double ticks.
     capture_keys: [" " , b]
-    plugins: []
 
 # Options for 'download' command
 download:
-    # Activated plugins
-    plugins: [combine]
     # keep files on devices after downloading
     keep: no
 
@@ -25,9 +23,6 @@ download:
 postprocess:
     # Number of concurrent jobs
     jobs: auto
-
-    # Filters to be applied in order
-    filters: [autorotate, scantailor, pdfbeads, djvubind]
 
     # Rotation applied to images from left and right device
     autorotate:

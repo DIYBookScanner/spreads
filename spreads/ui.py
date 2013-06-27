@@ -30,7 +30,7 @@ import logging
 
 import spreads.commands as commands
 from spreads import config
-from spreads.plugin import *
+from spreads.plugin import pluginmanager
 
 parser = argparse.ArgumentParser(
     description="Scanning Tool for  DIY Book Scanner")
@@ -47,14 +47,13 @@ capture_parser = subparsers.add_parser(
     'capture', help="Start the capturing workflow")
 capture_parser.set_defaults(func=commands.capture)
 # Add arguments from plugins
-plugin_list = [x for x in config['capture']['plugins'].all_contents()]
-plugin_classes = {x.config_key: x for x in get_plugins(CapturePlugin)}
-for key in plugin_list:
-    plugin_classes[key].add_arguments(capture_parser)
+pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                  'capture', capture_parser)
+
 # Add arguments from devices
-device_classes = get_plugins(DevicePlugin)
-for device in device_classes:
-    device.add_arguments(capture_parser)
+#devices = get_devices()
+#for device in devices:
+#    device.add_arguments(capture_parser)
 
 download_parser = subparsers.add_parser(
     'download', help="Download scanned images.")
@@ -65,10 +64,8 @@ download_parser.add_argument(
     help="Keep files on devices after download")
 download_parser.set_defaults(func=commands.download)
 # Add arguments from plugins
-plugin_list = [x for x in config['download']['plugins'].all_contents()]
-plugin_classes = {x.config_key: x for x in get_plugins(DownloadPlugin)}
-for key in plugin_list:
-    plugin_classes[key].add_arguments(download_parser)
+pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                  'download', download_parser)
 
 postprocess_parser = subparsers.add_parser(
     'postprocess',
@@ -80,10 +77,8 @@ postprocess_parser.add_argument(
     metavar="<int>", help="Number of concurrent processes")
 postprocess_parser.set_defaults(func=commands.postprocess)
 # Add arguments from plugins
-plugin_list = [x for x in config['postprocess']['filters'].all_contents()]
-plugin_classes = {x.config_key: x for x in get_plugins(FilterPlugin)}
-for key in plugin_list:
-    plugin_classes[key].add_arguments(postprocess_parser)
+pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                  'postprocess', postprocess_parser)
 
 wizard_parser = subparsers.add_parser(
     'wizard', help="Interactive mode")

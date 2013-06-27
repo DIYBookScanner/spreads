@@ -10,18 +10,20 @@ import subprocess
 import tempfile
 from xml.etree.cElementTree import ElementTree as ET
 
-from spreads.plugin import FilterPlugin
+from spreads.plugin import HookPlugin
 from spreads.util import find_in_path, run_multicore, SpreadsException
 
 
-class ScanTailorFilter(FilterPlugin):
-    config_key = 'scantailor'
-
+class ScanTailorPlugin(HookPlugin):
     @classmethod
-    def add_arguments(cls, parser):
-        parser.add_argument(
-            "--auto", "-a", dest="autopilot", action="store_true",
-            help="Don't prompt user to edit ScanTailor configuration")
+    def add_arguments(cls, command, parser):
+        if command == "postprocess":
+            parser.add_argument(
+                "--auto", "-a", dest="autopilot", action="store_true",
+                help="Don't prompt user to edit ScanTailor configuration")
+
+    def __init__(self, config):
+        self.config = config['postprocess']
 
     def _generate_configuration(self, projectfile, img_dir, out_dir):
         if not os.path.exists(out_dir):

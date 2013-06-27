@@ -34,8 +34,7 @@ import time
 from clint.textui import puts, colored
 
 from spreads import config
-from spreads.plugin import (get_devices, get_plugins, DownloadPlugin,
-                            FilterPlugin)
+from spreads.plugin import get_devices, pluginmanager
 from spreads.util import (getch, run_parallel, DeviceException,
                           SpreadsException)
 
@@ -109,12 +108,6 @@ def download(args=None, path=None):
         keep = args.keep
     else:
         keep = config['download']['keep'].get(bool)
-    plugins = []
-    plugin_list = [x for x in config['download']['plugins'].all_contents()]
-    plugin_classes = {x.config_key: x for x in get_plugins(DownloadPlugin)}
-    for key in plugin_list:
-        plugin = plugin_classes[key](config)
-        plugins.append(plugin)
     if not os.path.exists(path):
         os.mkdir(path)
     devices = get_devices()
@@ -128,14 +121,14 @@ def download(args=None, path=None):
     run_parallel([{'func': x.download_files,
                    'args': [os.path.join(path, x.orientation)],
                    'kwargs': {}} for x in devices])
-    for plugin in plugins:
-        plugin.download(devices, path)
+    pluginmanager.map(lambda x, y, z: x.obj.download(y, z),
+                        devices, path)
     if not keep:
         puts(colored.green("Deleting images from devices"))
         run_parallel([{'func': x.delete_files,
                        'args': [], 'kwargs': {}} for x in devices])
-        for plugin in plugins:
-            plugin.delete(devices)
+        pluginmanager.map(lambda x, y: x.obj.delete(y),
+                          devices)
 
 
 def postprocess(args=None, path=None):

@@ -21,15 +21,20 @@
 
 from __future__ import division, unicode_literals
 
+import abc
 import logging
 import re
 import subprocess
 
 import usb
+from stevedore.extension import ExtensionManager
+from stevedore.named import NamedExtensionManager
 
 
 import spreads
-from spreads.util import find_in_path, SpreadsException
+from spreads.util import (abstractclassmethod, find_in_path, SpreadsException,
+                          DeviceException)
+
 
 
 class SpreadsPlugin(object):
@@ -43,10 +48,12 @@ class SpreadsPlugin(object):
     config_key = None
 
     @classmethod
-    def add_arguments(cls, parser):
+    def add_arguments(cls, command, parser):
         """ Allows a plugin to register new arguments with the command-line
             parser.
 
+        :param command: The command to be modified
+        :type command: unicode
         :param parser: The parser that can be modified
         :type parser: argparse.ArgumentParser
 
@@ -60,11 +67,7 @@ class SpreadsPlugin(object):
         :type config: confit.ConfigView
 
         """
-        if self.config_key:
-            self.parent_config = config
-            self.config = config[self.config_key]
-        else:
-            self.config = config
+        self.config = config
 
 
 class DevicePlugin(SpreadsPlugin):
@@ -73,7 +76,9 @@ class DevicePlugin(SpreadsPlugin):
         Subclass to implement support for different devices.
 
     """
-    @classmethod
+    __metaclass__ = abc.ABCMeta
+
+    @abstractclassmethod
     def match(cls, usbdevice):
         """ Match device against USB device information.
 
@@ -106,10 +111,12 @@ class DevicePlugin(SpreadsPlugin):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def delete_files(self):
         """ Delete all files from device. """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def download_files(self, path):
         """ Download all files from device.
 
@@ -119,6 +126,7 @@ class DevicePlugin(SpreadsPlugin):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def prepare_capture(self):
         """ Prepare device for scanning.
 
@@ -129,6 +137,7 @@ class DevicePlugin(SpreadsPlugin):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def capture(self):
         """ Capture a single image with the device.
 
@@ -136,21 +145,19 @@ class DevicePlugin(SpreadsPlugin):
         raise NotImplementedError
 
 
-class CapturePlugin(SpreadsPlugin):
-    """ Add functionality to *capture* command.
+class HookPlugin(SpreadsPlugin):
+    """ Add functionality to any of spreads' commands by implementing one or
+        more of the available hooks.
 
     """
-    def __init__(self, config):
-        super(CapturePlugin, self).__init__(config['capture'])
-
-    def prepare(self, devices):
+    def prepare_capture(self, devices):
         """ Perform some action before capturing begins.
 
         :param devices: The devices used for capturing
         :type devices: list(DevicePlugin)
 
         """
-        raise NotImplementedError
+        pass
 
     def capture(self, devices, count, time):
         """ Perform some action after each successful capture.
@@ -163,9 +170,9 @@ class CapturePlugin(SpreadsPlugin):
         :type time: time.timedelta
 
         """
-        raise NotImplementedError
+        pass
 
-    def finish(self, devices, count, time):
+    def finish_capture(self, devices, count, time):
         """ Perform some action after capturing has finished.
 
         :param devices: The devices used for capturing
@@ -176,20 +183,13 @@ class CapturePlugin(SpreadsPlugin):
         :type time: time.timedelta
 
         """
-        raise NotImplementedError
-
-
-class DownloadPlugin(SpreadsPlugin):
-    """ Add functionality to *download* command. Perform one or more actions
-        that modify the captured images while retaining all of the original
-        information (i.e: rotation, metadata annotation)
-
-    """
-    def __init__(self, config):
-        super(DownloadPlugin, self).__init__(config['download'])
+        pass
 
     def download(self, devices, path):
         """ Perform some action after download from devices has finished.
+            
+            Retains all of the original information (i.e: rotation,
+            metadata annotations).
 
         :param devices: The devices that were downloaded from.
         :type devices: list(DevicePlugin)
@@ -197,7 +197,7 @@ class DownloadPlugin(SpreadsPlugin):
         :type path: unicode
 
         """
-        raise NotImplementedError
+        pass
 
     def delete(self, devices):
         """ Perform some action after images have been deleted from the
@@ -207,66 +207,49 @@ class DownloadPlugin(SpreadsPlugin):
         :type devices: list(DevicePlugin)
 
         """
-        raise NotImplementedError
-
-
-class FilterPlugin(SpreadsPlugin):
-    """ An extension to the *postprocess* command. Performs one or more
-        actions that either modify the captured images or generate a
-        different output.
-
-    """
-    def __init__(self, config):
-        super(FilterPlugin, self).__init__(config['postprocess'])
+        pass
 
     def process(self, path):
-        """ Perform a postprocessing step.
+        """ Perform one or more actions that either modify the captured images
+            or generate a different output.
 
         :param path: The project path
         :type path: unicode
 
         """
-        raise NotImplementedError
+        pass
 
+# Load drivers for all supported devices
+devicemanager = ExtensionManager(namespace='spreadsplug.devices')
+pluginmanager = NamedExtensionManager('spreadsplug.hooks',
+        names=spreads.config['plugins'].as_str_seq(),
+        invoke_on_load=True,
+        invoke_args=[spreads.config],
+        name_order=True)
 
 def get_devices():
-    def all_subclasses(cls):
-        """ Get all subclasses and all subclasses of those, for a given class.
-            Kudos to http://stackoverflow.com/a/3862957/487903
-
-        """
-        return cls.__subclasses__() + [g for s in cls.__subclasses__()
-                                       for g in all_subclasses(s)]
-
-    # Import all plugins into spreads namespace
     """ Detect all attached devices and select a fitting driver.
 
     :returns:  list(DevicePlugin) -- All supported devices that were detected
 
     """
-    candidates = usb.core.find(find_all=True)
+    def match(extension, device):
+        try:
+            match = extension.plugin.match(device)
+        # Ignore devices that don't implement `match`
+        except TypeError:
+            return
+        if match:
+            return extension.plugin
     devices = []
+    candidates = usb.core.find(find_all=True)
     for device in candidates:
-        driver = None
-        for cls in all_subclasses(DevicePlugin):
-            try:
-                logging.debug("Matching class %s" % cls)
-                if cls.match(device):
-                    driver = cls
-            except NotImplementedError:
-                continue
-        if driver:
-            devices.append(driver(spreads.config, device))
+        matches = filter(None, devicemanager.map(match, device))
+
+        # FIXME: Make this more robust: What if, for instance, two plugins
+        #        are found for a device, one of which inherits from the other?
+        if matches:
+            devices.append(matches[0](spreads.config, device))
     if not devices:
-        raise Exception("Could not find driver for devices!")
+        raise DeviceException("Could not find any compatible devices!")
     return devices
-
-
-def get_plugins(plugin_class):
-    """ Get all plugins of a certain type.
-
-    :param plugin_class: The type of plugin to obtain
-    :type plugin_class: SpreadsPlugin
-
-    """
-    return [x for x in plugin_class.__subclasses__()]

@@ -25,8 +25,6 @@ Tool to facilitate book digitization with the DIY BookScanner.
 
 import confit
 
-# Import all plugins into spreads namespace
-from spreadsplug import *
-
-# Lazy-load configuration
+# Lazy-load configuration as a global object
+# NOTE: This is the only global object in this codebase, promised ;-)
 config = confit.LazyConfig('spreads', __name__)

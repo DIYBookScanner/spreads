@@ -6,13 +6,11 @@ import logging
 import os
 import subprocess
 
-from spreads.plugin import FilterPlugin
+from spreads.plugin import HookPlugin
 from spreads.util import SpreadsException, find_in_path
 
 
-class DjvuBindFilter(FilterPlugin):
-    config_key = 'djvubind'
-
+class DjvuBindPlugin(HookPlugin):
     def process(self, path):
         if not find_in_path('djvubind'):
             raise SpreadsException("Could not find executable `djvubind` in"
