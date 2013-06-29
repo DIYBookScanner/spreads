@@ -8,7 +8,7 @@ setup(
     author_email='johannes.baiter@gmail.com',
     #packages=['spreads', 'spreadsplug'],
     packages=find_packages(),
-    include_package_data = True,
+    include_package_data=True,
     scripts=['spread', ],
     url='http://github.com/jbaiter/spreads',
     license='MIT',
@@ -17,10 +17,11 @@ setup(
     long_description=open('README.rst').read(),
     install_requires=[
         "clint >= 0.3.1",
-        "pyusb >=1.0.0a3",
-        "PyYAML>=3.10",
-        "stevedore>=0.9.1",
-        "setuptools-git>=1.0b1",
+        "pyusb >= 1.0.0a3",
+        "pyptpchdk >= 0.2.1",
+        "PyYAML >= 3.10",
+        "stevedore >= 0.9.1",
+        "setuptools-git >= 1.0b1",
     ],
     entry_points={
         'spreadsplug.devices': [
