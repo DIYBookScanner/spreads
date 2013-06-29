@@ -26,28 +26,19 @@ class AutoRotatePlugin(HookPlugin):
 
     def rotate_image(self, path, left, right, inverse=False):
         logging.debug("Rotating image {0}".format(path))
-        im = Image.open(path)
-        # Butt-ugly, yes, but works fairly reliably and doesn't require
-        # some exotic library not available from PyPi (I'm looking at you,
-        # gexiv2...)
-        try:
-            orientation = re.search(
-                'right|left',
-                {TAGS.get(tag, tag): value
-                 for tag, value in im._getexif().items()}
-                ['MakerNote']).group()
-            logging.debug("Image {0} has orientation {1}".format(path,
-                                                                 orientation))
-        except AttributeError:
-            # Looks like the images are already rotated and have lost their
-            # EXIF information. Or they didn't have any EXIF information
-            # to begin with...
-            warning = ""
-            if im._getexif() is None:
-                warning += "No EXIF information. "
-            logging.warn(warning + "Cannot determine rotation for image {0}"
-                         .format(path))
+        # Read the JPEG comment that contains the orientation of the image
+        with open(path, 'rb') as fp:
+            fp.seek(-12, 2)
+            data = fp.read()
+            orientation = data[data.find('\xfe')+1:].lower()
+        if orientation not in ('left', 'right'):
+            logging.warn("Cannot determine rotation for image {0}, got \"{1}\""
+                         .format(path, orientation))
             return
+        logging.debug("Orientation for \"{0]\" is {1}"
+                      .format(path, orientation))
+
+        im = Image.open(path)
         if orientation == 'left':
             rotation = left
         else:

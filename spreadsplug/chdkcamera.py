@@ -121,6 +121,8 @@ class PTPDevice(object):
         #         pages, this way we can still use it ater combine and don't
         #         have to rely on EXIF tags.
         self._device.chdkDownload(camera_path, local_path)
+        with open(local_path, "a+b") as fp:
+            fp.write("\xff\xfe{0}".format(self._orientation.upper()))
 
     def delete_image(self, camera_path):
         self.execute_lua("os.remove(\"{0}\")".format(camera_path))
