@@ -20,6 +20,7 @@ setup(
         "pyusb >= 1.0.0a3",
         "pyptpchdk >= 0.2.1",
         "PyYAML >= 3.10",
+        "Pillow >= 2.0.0.",
         "stevedore >= 0.9.1",
         "setuptools-git >= 1.0b1",
     ],
