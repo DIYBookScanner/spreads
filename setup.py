@@ -16,7 +16,6 @@ setup(
                 'Scanner',
     long_description=open('README.rst').read(),
     install_requires=[
-        "Pillow >=2.0.0",
         "clint >= 0.3.1",
         "pyusb >=1.0.0a3",
         "PyYAML>=3.10",
