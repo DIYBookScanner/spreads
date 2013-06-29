@@ -43,8 +43,9 @@ More Documentation
    :maxdepth: 2
 
    self
-   installation
    tutorial
+   installation
+   configuring
    commands
    plugins
    extending

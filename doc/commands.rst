@@ -33,7 +33,7 @@ This command only has to be performed once for each set of devices, as the
 label is stored permanently on the devices' internal memory.
 
 capture
-=====
+=======
 ::
 
     $ spread capture [OPTIONS]

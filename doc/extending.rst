@@ -22,55 +22,12 @@ attributes that apply to all of them.
 Extending *spreads* functionality
 =================================
 You can extend all of *spread's* built-in commands with your own code. To do,
-you just have to inherit from one of the :class:`SpreadsPlugin
-<spreads.plugin.SpreadsPlugin>` subclasses and implement one or more of their
-abstract methods.  The following types of plugins are available:
+you just have to inherit from one the :class:`HookPlugin
+<spreads.plugin.HookPlugin>` class and implement one or more of its hooks.
+For a list of available hooks and their options, refer to the
+:doc:`API documentation <api>`. Example implementations can be found on
+GitHub_
 
-*capture* plugin
---------------
-See :class:`CapturePlugin <spreads.plugin.CapturePlugin>`.
-
-You can hook into the **capture** command by implementing :meth:`prepare
-<spreads.plugin.CapturePlugin.prepare>` (executed before the capture process
-begins), :meth:`capture <spreads.plugin.CapturePlugin.capture>` (executed every
-time both devices have captured an image) and :meth:`finish
-<spreads.plugin.CapturePlugin.finish>` (executed once the capture workflow has
-finished).
-
-*download* plugin
------------------
-See :class:`DownloadPlugin <spreads.plugin.DownloadPlugin>`.
-
-Do stuff with the images downloaded from the device by implementing
-:meth:`download <spreads.plugin.DownloadPlugin.download>` (executed once all
-files are downloaded) and :meth:`delete <spreads.plugin.DownloadPlugin.delete>`
-(executed once all files are deleted). By convention, all
-:class:`DownloadPlugin <spreads.plugin.DownloadPlugin>` implementations only
-modify the downloaded images in a **lossless** way, this means that while
-information may be added to them (e.g. setting new metadata fields, rotating
-them while preserving image quality, etc), no lossy changes may occur. Use
-:class:`FilterPlugin <spreads.plugin.FilterPlugin>` for these types of changes.
-
-Example implementation: spreadsplug.combine_
-
-.. _spreadsplug.combine: https://github.com/jbaiter/spreads/blob/master/spreadsplug/combine.py
-
-
-*postprocess* plugin
---------------------
-See :class:`FilterPlugin <spreads.plugin.FilterPlugin>`.
-
-Most plugins will probably fall into this category. Implement the :meth:`process
-<spreads.plugin.FilterPlugin.process>` method to deal with the downloaded
-images in ``project-path/raw`` in any way you please, as long as you don't
-overwrite them.
-
-Example implementations:
-
-- spreadsplug.scantailor_ (image postprocessing)
-- spreadsplug.pdfbeans_ (output generation)
-
-.. _spreadsplug.scantailor: https://github.com/jbaiter/spreads/blob/master/spreadsplug/scantailor.py
-.. _spreadsplug.pdfbeans: https://github.com/jbaiter/spreads/blob/master/spreadsplug/pdfbeans.py
+.. _GitHub: https://github.com/jbaiter/spreads/blob/master/spreadsplug
 
 .. seealso:: module :py:mod:`spreads.plugin`, module :py:mod:`spreads.util`

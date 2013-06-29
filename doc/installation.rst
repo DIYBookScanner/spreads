@@ -2,16 +2,22 @@ Installation
 ============
 Prerequisites
 -------------
-* Two cameras running CHDK (development was done using two Canon A2200s,
-  no further cameras were tested, but should work in theory)
 * Python 2.7 with pip_ installed
-* A version of `ptpcam modified for CHDK`_
-* gphoto2
+* libusb with headers installed
+
+Optional requirements
+---------------------
+To use some of the included plugins, you might want to install the following
+dependencies:
+
 * An up-to date version of ScanTailor-enhanced_
+* pdfbeads_
+* djvubind_
 
 .. _pip: http://www.pip-installer.org
-.. _ptpcam modified for CHDK: http://forum.chdk-treff.de/download/file.php?id=1640
 .. _ScanTailor-enhanced: http://sourceforge.net/p/scantailor/code/ci/enhanced/tree/
+.. _pdfbeads: http://rubygems.org/gems/pdfbeads
+.. _djvubind: http://code.google.com/p/djvubind/
 
 Installing from PyPi
 --------------------

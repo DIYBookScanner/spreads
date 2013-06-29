@@ -1,0 +1,71 @@
+Configuration
+=============
+Upon first launch, *spreads* writes a configuration file to
+`~/.config/spreads/config.yaml`. In it, you can change all of the available
+settings to your liking::
+
+    # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
+    loglevel: error
+    plugins: [combine, autorotate, scantailor, pdfbeads, djvubind]
+
+    # Options for devices
+    device:
+        sensitivity:
+        shutter_speed: 1/25 #  Can also be a float, e.g. 0.1
+        zoom_level: 3
+        dpi: 300
+
+    # Options for 'capture' step
+    capture:
+        # Keys that trigger a capture. Put the space bar inside quotes.
+        capture_keys: [" " , b]
+
+    # Options for 'download' step
+    download:
+        # keep files on devices after downloading
+        keep: no
+
+    # Options for 'postprocess' step
+    postprocess:
+        # Number of concurrent jobs or 'auto' to leave the decision to the
+        # program
+        jobs: auto
+
+        # Rotation applied to images from left and right device in degrees,
+        # can be positive or negative
+        autorotate:
+            left: -90
+            right: 90
+            # Easy way to flip images
+            rotate_inverse: no
+
+        # ScanTailor options, see `scantailor-cli --help`
+        scantailor:
+            autopilot: no
+            rotate: no
+            split_pages: yes
+            deskew: yes
+            content: yes
+            margins: yes
+            detection: content # not yet implemented
+            content_detection: normal # not yet implemented
+            auto_margins: no # not yet implemented
+            margins: [2.5, 2.5, 2.5, 2.5] # top, right, bottom, left
+            output_dpi: auto # not yet implemented
+            color_mode: black_and_white # not yet implemented
+            binarize_threshold: 0 # not yet implemented
+            despeckle: normal # not yet implemented
+            dewarp: no # not yet implemented
+
+        # PDF output options, see `pdfbeads --help`
+        pdfbeads:
+            layout: SinglePage # not yet implemented
+            mask_compression: jbig2 # not yet implemented
+            jbig2_dict_size: 15 # not yet implemented
+            bg_compression: jp2 # not yet implemented
+
+        # DJVU output options, see `djvubind --help`
+        djvubind:
+            ocr: none
+            tesseract_options: [] # not yet implemented
+            cuneiform_options: [] # not yet implemented

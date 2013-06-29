@@ -24,6 +24,8 @@ Combines images from the left and right images to a single folder.
 An extension to the *postprocess* command. Performs one or more actions that
 either modify the captured images or generate a different output.
 
+.. _plug_autorotate:
+
 autorotate
 ----------
 Automatically rotates the images according to their device of origin. By
@@ -36,6 +38,8 @@ this can be set to +/- 180° by specifying the :option:`rotate-inverse
    By default, *spreads* will rotate your images either by +/- 90 degrees,
    depending on their device of origin. With this setting, you can change
    this value to +/- 180 degrees, in case you scanned your book upside down.
+
+.. _plug_scantailor:
 
 scantailor
 ----------
@@ -50,6 +54,8 @@ the output images will run on all CPU cores in parallel.
    Run ScanTailor on on autopilot and do not require and user input during
    postprocessing. This skips the step where you can manually adjust the
    ScanTailor configuration.
+
+.. _plug_pdfbeads:
 
 pdfbeads
 --------
