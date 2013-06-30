@@ -3,11 +3,10 @@ from setuptools import setup, find_packages
 
 setup(
     name='spreads',
-    version='0.1',
+    version='0.2',
     author='Johannes Baiter',
     author_email='johannes.baiter@gmail.com',
-    #packages=['spreads', 'spreadsplug'],
-    packages=find_packages(),
+    packages=['spreads', 'spreadsplug'],
     include_package_data=True,
     scripts=['spread', ],
     url='http://github.com/jbaiter/spreads',
@@ -22,7 +21,6 @@ setup(
         "PyYAML >= 3.10",
         "Wand >= 0.3.1",
         "stevedore >= 0.9.1",
-        "setuptools-git >= 1.0b1",
     ],
     entry_points={
         'spreadsplug.devices': [

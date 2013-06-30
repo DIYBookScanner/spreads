@@ -1,0 +1,14 @@
+0.2 (2013/06/30)
+    - New plugin system based on Doug Hellmann's `stevedore` package,
+      allows packages to extend spreads without being included in the core
+      distribution
+    - The driver for CHDK cameras no longer relies on gphoto2 and ptpcam,
+      but relies on Abel Deuring's `pyptpchdk` package to communicate with
+      the cameras.
+    - `Wand` is now used to deal with image data instead of `Pillow`
+    - New 'colorcorrection' plugin allows users to automatically correct
+      white balance.
+    - Improved tutorial
+
+0.1 (2013/06/23)
+    Initial release
