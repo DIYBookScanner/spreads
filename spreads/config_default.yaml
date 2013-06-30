@@ -1,6 +1,6 @@
 # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
 loglevel: error
-plugins: [combine, autorotate, scantailor, pdfbeads, djvubind]
+plugins: [combine, autorotate, scantailor, pdfbeads]
 
 # Options for devices
 device:

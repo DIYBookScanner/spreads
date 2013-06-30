@@ -24,17 +24,18 @@ class ScanTailorPlugin(HookPlugin):
 
     def __init__(self, config):
         self.config = config['postprocess']
+        self.config['dpi'] = config['device']['dpi'].get(int)
 
     def _generate_configuration(self, projectfile, img_dir, out_dir):
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
         logging.info("Generating ScanTailor configuration")
-        filterconf = [self.config[x].get(bool)
+        filterconf = [self.config['scantailor'][x].get(bool)
                       for x in ('rotate', 'split_pages', 'deskew', 'content',
                                 'auto_margins')]
         start_filter = filterconf.index(True)+1
         end_filter = len(filterconf) - list(reversed(filterconf)).index(True)+1
-        marginconf = self.config['margins']
+        marginconf = self.config['scantailor']['margins'].as_str_seq()
         generation_cmd = ['scantailor-cli',
                           '--start-filter={0}'.format(start_filter),
                           '--end-filter={0}'.format(end_filter),
@@ -43,6 +44,8 @@ class ScanTailorPlugin(HookPlugin):
                           '--margins-right={0}'.format(marginconf[1]),
                           '--margins-bottom={0}'.format(marginconf[2]),
                           '--margins-left={0}'.format(marginconf[3]),
+                          '--dpi={0}'.format(self.config['dpi']
+                                             .get(int)),
                           '-o={0}'.format(projectfile), img_dir, out_dir]
         logging.debug(" ".join(generation_cmd))
         subprocess.call(generation_cmd)
@@ -76,7 +79,7 @@ class ScanTailorPlugin(HookPlugin):
         return splitfiles
 
     def _generate_output(self, projectfile, out_dir):
-        num_procs = self.parent_config['jobs'].get(int)
+        num_procs = self.config['jobs'].get(int)
         temp_dir = tempfile.mkdtemp(prefix="spreads.")
         split_config = self._split_configuration(projectfile, temp_dir,
                                                  num_procs)
@@ -87,7 +90,7 @@ class ScanTailorPlugin(HookPlugin):
         shutil.rmtree(temp_dir)
 
     def process(self, path):
-        autopilot = self.config['autopilot'].get(bool)
+        autopilot = self.config['scantailor']['autopilot'].get(bool)
         if not find_in_path('scantailor-cli'):
             raise SpreadsException("Could not find executable `scantailor-cli`"
                                    " in $PATH. Please install the appropriate"

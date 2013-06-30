@@ -122,7 +122,7 @@ def download(args=None, path=None):
                    'args': [os.path.join(path, x.orientation)],
                    'kwargs': {}} for x in devices])
     pluginmanager.map(lambda x, y, z: x.obj.download(y, z),
-                        devices, path)
+                      devices, path)
     if not keep:
         puts(colored.green("Deleting images from devices"))
         run_parallel([{'func': x.delete_files,
@@ -140,13 +140,7 @@ def postprocess(args=None, path=None):
         num_jobs.get(int)
     except:
         m_config['jobs'] = multiprocessing.cpu_count()
-    filter_list = [x for x in m_config['filters'].all_contents()]
-    filter_classes = {x.config_key: x for x in get_plugins(FilterPlugin)}
-    filters = []
-    for key in filter_list:
-        filter_ = filter_classes[key](config)
-        filter_.process(path)
-        filters.append(filter_)
+    pluginmanager.map(lambda x, y: x.obj.process(y), path)
 
 
 def wizard(args):
