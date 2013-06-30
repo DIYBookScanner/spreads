@@ -18,16 +18,10 @@ class CombinePlugin(HookPlugin):
         right_pages = [os.path.join(right_dir, x)
                        for x in sorted(os.listdir(right_dir))]
         # Write the orientation as a JPEG comment to the end of the file
-        for page in left_pages:
-            with open(page, "a+b") as fp:
-                fp.write("\xff\xfeLEFT")
-        for page in left_pages:
-            with open(page, "a+b") as fp:
-                fp.write("\xff\xfeRIGHT")
         if len(left_pages) != len(right_pages):
             logging.warn("The left and right camera produced an inequal"
                          " amount of images!")
-        combined_pages = reduce(operator.add, zip(right_pages, left_pages))
+        combined_pages = reduce(operator.add, zip(left_pages, right_pages))
         logging.info("Combining images.")
         for idx, fname in enumerate(combined_pages):
             fext = os.path.splitext(os.path.split(fname)[1])[1]

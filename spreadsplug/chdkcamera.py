@@ -105,10 +105,11 @@ class PTPDevice(object):
         img_path = self.execute_lua("get_image_dir()")[0]
         file_list = [os.path.join(img_path, x.split("\t")[1])
                      for x in (self.execute_lua("os.listdir(\"{0}\")"
-                               .format(img_path))[0].split("\n")[:1])]
+                               .format(img_path))[0].split("\n")[:-1])]
         return file_list
 
     def download_image(self, camera_path, local_path):
+        logging.debug("Downloading \"{0}\"".format(local_path))
         self._device.chdkDownload(camera_path, local_path)
         # TODO: Don't just append the comment, but write it to a proper
         #       location within the JPEG structure, so all applications
