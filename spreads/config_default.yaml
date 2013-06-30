@@ -25,11 +25,17 @@ postprocess:
     # program
     jobs: auto
 
-    # Rotation applied to images from left and right device
+    # Rotation applied to images from left and right device in degrees,
+    # can be positive or negative
     autorotate:
         left: -90
         right: 90
         rotate_inverse: no
+
+    colorcorrect:
+        true_red: 119
+        true_green: 119
+        true_blue: 119
 
     # ScanTailor options, see `scantailor-cli --help`
     scantailor:

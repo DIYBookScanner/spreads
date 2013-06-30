@@ -35,6 +35,7 @@ setup(
             'scantailor = spreadsplug.scantailor:ScanTailorPlugin',
             'pdfbeads   = spreadsplug.pdfbeads:PDFBeadsPlugin',
             'djvubind   = spreadsplug.djvubind:DjvuBindPlugin',
+            'colorcorrect = spreadsplug.colorcorrect:ColorCorrectionPlugin',
         ],
     },
 
