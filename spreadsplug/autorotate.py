@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division, unicode_literals
+from __future__ import division
 
 import logging
 import os
-import re
 
-from PIL import Image
-from PIL.ExifTags import TAGS
+import wand.image
 
 from spreads.plugin import HookPlugin
 from spreads.util import run_multicore
@@ -31,31 +29,32 @@ class AutoRotatePlugin(HookPlugin):
             fp.seek(-12, 2)
             data = fp.read()
             orientation = data[data.find('\xfe')+1:].lower()
+            logging.debug(orientation)
         if orientation not in ('left', 'right'):
-            logging.warn("Cannot determine rotation for image {0}, got \"{1}\""
-                         .format(path, orientation))
+            logging.warn("Cannot determine rotation for image {0}!"
+                         .format(path))
             return
-        logging.debug("Orientation for \"{0]\" is {1}"
+        logging.debug("Orientation for \"{0}\" is {1}"
                       .format(path, orientation))
 
-        im = Image.open(path)
-        if orientation == 'left':
-            rotation = left
-        else:
-            rotation = right
-        if inverse:
-            rotation *= 2
-        logging.debug("Rotating image \'{0}\' by {1} degrees"
-                      .format(path, rotation))
-        im.rotate(rotation).save(path)
+        with wand.image.Image(filename=path) as img:
+            if orientation == 'left':
+                rotation = left
+            else:
+                rotation = right
+            if inverse:
+                rotation *= 2
+            logging.debug("Rotating image \'{0}\' by {1} degrees"
+                          .format(path, rotation))
+            img.rotate(rotation)
+            img.save(filename=path)
 
     def process(self, path):
         logging.info("Rotating images")
-        # FIXME: Get this from commandline arguments
         img_dir = os.path.join(path, 'raw')
-        num_jobs = self.parent_config['jobs'].get(int)
+        num_jobs = self.config['jobs'].get(int)
         run_multicore(self.rotate_image, [[os.path.join(img_dir, x)]
-                                           for x in os.listdir(img_dir)],
+                                          for x in os.listdir(img_dir)],
                       {'inverse': (self.config['autorotate']['rotate_inverse']
                                    .get(bool)),
                        'left': self.config['autorotate']['left'].get(int),
