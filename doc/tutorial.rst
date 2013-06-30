@@ -13,6 +13,8 @@ adapt that, if you want.
 The described (and recommended) way to install *spreads* is inside of a
 virtualenv, not system-wide, though you can do so as well, if you like.
 
+.. _DIYBookScanner Hackerspace build: http://diybookscanner.org/forum/viewtopic.php?f=1&t=1192 
+
 Installation
 ------------
 First, ensure that you have all the dependencies installed::

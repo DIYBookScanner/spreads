@@ -41,6 +41,12 @@ this can be set to +/- 180° by specifying the :option:`rotate-inverse
 
 .. _plug_scantailor:
 
+colorcorrect
+------------
+Automatically fixes white balance for your scanned images. To use it, enable
+it in the configuration, set the RGB values for your grey cards and ensure
+that the first two images you take are of your grey cards.
+
 scantailor
 ----------
 Automatically generate a ScanTailor configuration file for your scanned book
