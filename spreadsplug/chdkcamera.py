@@ -6,7 +6,7 @@ from fractions import Fraction
 from math import log
 
 import pyptpchdk
-from PIL import Image
+import wand.image
 
 from spreads.plugin import DevicePlugin
 from spreads.util import SpreadsException, DeviceException
@@ -109,18 +109,10 @@ class PTPDevice(object):
         return file_list
 
     def download_image(self, camera_path, local_path):
-        # TODO: Due to how vendor-specific the storage of identifying
-        #       information on the device itself and the EXIF tags is,
-        #       we should resort to the following hacky workaround:
-        #       - Download images from left and right camera to same folder
-        #       - Add an orientation prefix to the filenames:
-        #           "IMG_1234.JPG" => "LEFT_IMG_1234.JPG"
-        #       - Modify the combine plugin to adapt
-        #       - The autorotate plugin should work with the assumption
-        #         that even filenames are left, and odd filenames are right
-        #         pages, this way we can still use it ater combine and don't
-        #         have to rely on EXIF tags.
         self._device.chdkDownload(camera_path, local_path)
+        # TODO: Don't just append the comment, but write it to a proper
+        #       location within the JPEG structure, so all applications
+        #       can read it.
         with open(local_path, "a+b") as fp:
             fp.write("\xff\xfe{0}".format(self._orientation.upper()))
 
@@ -145,8 +137,9 @@ class PTPDevice(object):
             flags |= pyptpchdk.LiveViewFlags.BITMAP
         data = self._device.chdkGetLiveData(flags)
         viewport = data['viewport']
-        return Image.fromstring('RGB', (viewport['width'], viewport['height']),
-                                viewport['data'])
+        return wand.image.Image(blob=viewport['data'], format='RGB',
+                                width=viewport['width'],
+                                height=viewport['height'])
 
 
 class CHDKCameraDevice(DevicePlugin):
