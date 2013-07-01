@@ -245,6 +245,7 @@ def get_devices():
             return extension.plugin
     devices = []
     candidates = usb.core.find(find_all=True)
+    devicemanager = get_devicemanager()
     for device in candidates:
         matches = filter(None, devicemanager.map(match, device))
 
