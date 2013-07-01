@@ -34,7 +34,7 @@ import time
 from clint.textui import puts, colored
 
 from spreads import config
-from spreads.plugin import get_devices, pluginmanager
+from spreads.plugin import get_devices, get_pluginmanager
 from spreads.util import (getch, run_parallel, DeviceException,
                           SpreadsException)
 
@@ -121,14 +121,21 @@ def download(args=None, path=None):
     run_parallel([{'func': x.download_files,
                    'args': [os.path.join(path, x.orientation)],
                    'kwargs': {}} for x in devices])
-    pluginmanager.map(lambda x, y, z: x.obj.download(y, z),
-                      devices, path)
+    pluginmanager = get_pluginmanager()
+    try:
+        pluginmanager.map(lambda x, y, z: x.obj.download(y, z),
+                          devices, path)
+    except RuntimeError:
+        pass
     if not keep:
         puts(colored.green("Deleting images from devices"))
         run_parallel([{'func': x.delete_files,
                        'args': [], 'kwargs': {}} for x in devices])
-        pluginmanager.map(lambda x, y: x.obj.delete(y),
-                          devices)
+        try:
+            pluginmanager.map(lambda x, y: x.obj.delete(y),
+                              devices)
+        except RuntimeError:
+            pass
 
 
 def postprocess(args=None, path=None):
@@ -140,6 +147,7 @@ def postprocess(args=None, path=None):
         num_jobs.get(int)
     except:
         m_config['jobs'] = multiprocessing.cpu_count()
+    pluginmanager = get_pluginmanager()
     pluginmanager.map(lambda x, y: x.obj.process(y), path)
 
 

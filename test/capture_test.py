@@ -4,15 +4,16 @@ from itertools import chain, repeat
 from nose.tools import raises
 from mock import call, MagicMock as Mock, patch
 
+import spreads
 import spreads.commands as cmd
-from spreads import config
 from spreads.util import SpreadsException, DeviceException
 
 
 class TestConfigure(object):
     def setUp(self):
-        config.clear()
-        config.read(user=False)
+        spreads.config.clear()
+        spreads.config.read(user=False)
+        spreads.config['plugins'] = []
 
     def test_configure(self):
         cams = [Mock(), Mock()]
@@ -34,8 +35,9 @@ class TestConfigure(object):
 
 class TestCapture(object):
     def setUp(self):
-        config.clear()
-        config.read(user=False)
+        spreads.config.clear()
+        spreads.config.read(user=False)
+        spreads.config['plugins'] = []
 
     def test_capture(self):
         cams = [Mock(), Mock()]
@@ -76,8 +78,9 @@ class TestCapture(object):
 
 class TestDownload(object):
     def setUp(self):
-        config.clear()
-        config.read(user=False)
+        spreads.config.clear()
+        spreads.config.read(user=False)
+        spreads.config['plugins'] = []
         cams = [Mock(), Mock()]
         cams[0].orientation = 'left'
         cams[1].orientation = 'right'

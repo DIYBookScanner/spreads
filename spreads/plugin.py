@@ -42,11 +42,6 @@ class SpreadsPlugin(object):
 
     """
 
-    #: The config key to be used for the plugin.  Plugins must set this
-    #: attribute or else it will not be found. (type: *unicode*)
-    # TODO: Auto-determine this from each plugin's `__name__`
-    config_key = None
-
     @classmethod
     def add_arguments(cls, command, parser):
         """ Allows a plugin to register new arguments with the command-line
@@ -219,13 +214,20 @@ class HookPlugin(SpreadsPlugin):
         """
         pass
 
+
 # Load drivers for all supported devices
-devicemanager = ExtensionManager(namespace='spreadsplug.devices')
-pluginmanager = NamedExtensionManager('spreadsplug.hooks',
+def get_devicemanager():
+    return ExtensionManager(namespace='spreadsplug.devices')
+
+
+def get_pluginmanager():
+    return NamedExtensionManager(
+        namespace='spreadsplug.hooks',
         names=spreads.config['plugins'].as_str_seq(),
         invoke_on_load=True,
         invoke_args=[spreads.config],
         name_order=True)
+
 
 def get_devices():
     """ Detect all attached devices and select a fitting driver.

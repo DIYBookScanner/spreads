@@ -30,8 +30,10 @@ import logging
 
 import spreads.commands as commands
 from spreads import config
-from spreads.plugin import pluginmanager
+from spreads.plugin import get_pluginmanager
 
+
+pluginmanager = get_pluginmanager()
 parser = argparse.ArgumentParser(
     description="Scanning Tool for  DIY Book Scanner")
 subparsers = parser.add_subparsers()
