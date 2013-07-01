@@ -8,6 +8,12 @@ import spreads
 import spreads.commands as cmd
 from spreads.util import SpreadsException, DeviceException
 
+# NOTE: As spreads is really just a thin wrapper around external tools and
+# dependencies, these tests rely on Mocks **a lot**, to a degree that one might
+# actually question their value, at least from the perspective of ensuring
+# continuous integration. I think they do fine as black box unit tests for the
+# various workflow commands, though we could use a lot more of them, especially
+# for the plugins.
 
 class TestConfigure(object):
     def setUp(self):
