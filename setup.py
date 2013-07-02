@@ -34,6 +34,7 @@ setup(
             'pdfbeads   = spreadsplug.pdfbeads:PDFBeadsPlugin',
             'djvubind   = spreadsplug.djvubind:DjvuBindPlugin',
             'colorcorrect = spreadsplug.colorcorrect:ColorCorrectionPlugin',
+            'gui        = spreadsplug.gui:GuiCommand',
         ],
     },
 
