@@ -145,6 +145,21 @@ class HookPlugin(SpreadsPlugin):
         more of the available hooks.
 
     """
+    @classmethod
+    def add_command_parser(cls, rootparser):
+        """ Allows a plugin to register a new command with the command-line
+            parser. The subparser that is added to :param rootparser: should
+            set the class' ``__call__`` method as the ``func`` (via
+            ``set_defaults``) that is executed when the subcommand is specified
+            on the CLI.
+
+        :param rootparser: The root parser that this plugin should add a
+                           subparser to.
+        :type rootparser:  argparse.ArgumentParser
+
+        """
+        pass
+
     def prepare_capture(self, devices):
         """ Perform some action before capturing begins.
 

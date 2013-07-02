@@ -36,3 +36,14 @@ GitHub_
 .. _GitHub: https://github.com/jbaiter/spreads/blob/master/spreadsplug
 
 .. seealso:: module :py:mod:`spreads.plugin`, module :py:mod:`spreads.util`
+
+
+Adding new commands
+===================
+You can also add entirely new commands to the application. Simply subclass
+:class:`HookPlugin <spreads.plugin.HookPlugin>` again,
+implement the ``add_command_parser`` method and add your new class as an
+entry point to the ``spreadsplug.hooks`` namespace. Your plugin class will
+most probably be a very few lines, telling the CLI parser its name, arguments
+and pass a function that will do the main work.
+

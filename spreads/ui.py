@@ -88,6 +88,9 @@ wizard_parser.add_argument(
     "path", help="Path where scanned images are to be stored")
 wizard_parser.set_defaults(func=commands.wizard)
 
+pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),
+                  subparsers)
+
 
 def main():
     args = parser.parse_args()
