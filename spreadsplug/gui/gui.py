@@ -1,4 +1,4 @@
-from PySide import QtGui
+from PySide import QtCore, QtGui
 
 import spreads.commands as cmd
 import spreads.util as util
@@ -12,7 +12,6 @@ class SpreadsWizard(QtGui.QWizard):
 
         self.addPage(IntroPage(config))
         self.addPage(ConnectPage(config))
-        self.addPage(ConfigurePage(config))
         self.addPage(PreviewPage(config))
         self.addPage(CapturePage(config))
         self.addPage(PostprocessPage(config))
@@ -24,13 +23,11 @@ class SpreadsWizard(QtGui.QWizard):
         button_layout = []
         button_layout.append(QtGui.QWizard.BackButton)
         button_layout.append(QtGui.QWizard.Stretch)
-        button_layout.append(QtGui.QWizard.CustomButton1)
+        button_layout.append(QtGui.QWizard.CancelButton)
         button_layout.append(QtGui.QWizard.Stretch)
         button_layout.append(QtGui.QWizard.NextButton)
         button_layout.append(QtGui.QWizard.FinishButton)
         self.setButtonLayout(button_layout)
-
-        self.setButtonText(QtGui.QWizard.CustomButton1, "Settings")
 
         self.setWindowTitle("Spreads Wizard")
 
@@ -44,14 +41,14 @@ class IntroPage(QtGui.QWizardPage):
             "This wizard will guide you through the digitization workflow. "
         )
 
-        # TODO: Add signal to browse_btn that calls QFileDialog and updates
-        #       line_edit.
         dirpick_label = QtGui.QLabel("Please select a project directory.")
         dirpick_layout = QtGui.QHBoxLayout()
         self.line_edit = QtGui.QLineEdit()
         browse_btn = QtGui.QPushButton("Browse")
         dirpick_layout.addWidget(self.line_edit)
         dirpick_layout.addWidget(browse_btn)
+
+        browse_btn.clicked.connect(self.show_filepicker)
 
         layout = QtGui.QVBoxLayout()
         layout.addWidget(intro_label)
@@ -60,13 +57,12 @@ class IntroPage(QtGui.QWizardPage):
         layout.addLayout(dirpick_layout)
         self.setLayout(layout)
 
-
-class SettingsPage(QtGui.QWizardPage):
-    # TODO: This shouldn't be a widget page, but a separate window
-    def __init__(self, config, parent=None):
-        super(SettingsPage, self).__init__(parent)
-
-        self.setTitle("Settings")
+    def show_filepicker(self):
+        dialog = QtGui.QFileDialog()
+        dialog.setFileMode(QtGui.QFileDialog.Directory)
+        dialog.setOption(QtGui.QFileDialog.ShowDirsOnly, True)
+        dialog.exec_()
+        self.line_edit.setText(dialog.selectedFiles()[0])
 
 
 class ConnectPage(QtGui.QWizardPage):
@@ -78,27 +74,35 @@ class ConnectPage(QtGui.QWizardPage):
 
         self.setTitle("Connect")
 
-        # TODO: Get this via get_devices()
-        devices = []
-        if not devices:
-            label = QtGui.QLabel("<font color=red>No devices found!</font>")
-        else:
-            label = QtGui.QLabel("Please select one or more devices:")
-        devicewidget = QtGui.QListWidget()
-        devicewidget.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
-        for device in devices:
-            devicewidget.setCurrentItem(QtGui.QListWidgetItem(device,
-                                                              devicewidget))
+        self.label = QtGui.QLabel("Detecting devices...")
+        self.devicewidget = QtGui.QListWidget()
+        self.devicewidget.setSelectionMode(QtGui.QAbstractItemView
+                                           .MultiSelection)
 
-        # TODO: Trigger signal to run get_devices() again and refresh label
-        #       and devicewidget
+        self.update_devices()
         refresh_btn = QtGui.QPushButton("Refresh")
+        refresh_btn.clicked.connect(self.update_devices)
 
         layout = QtGui.QVBoxLayout()
-        layout.addWidget(label)
-        layout.addWidget(devicewidget)
+        layout.addWidget(self.label)
+        layout.addWidget(self.devicewidget)
         layout.addWidget(refresh_btn)
         self.setLayout(layout)
+
+    def update_devices(self):
+        # TODO: Use some kind of activity indicator to keep users from
+        #       becoming impatient
+        self.devicewidget.clear()
+        self.label.setText("Detecting devices...")
+        devices = ["Camera A", "Camera B"]
+        if not devices:
+            self.label.setText("<font color=red>No devices found!</font>")
+        else:
+            self.label.setText("Please select one or more devices:")
+        for device in devices:
+            self.devicewidget.setCurrentItem(
+                QtGui.QListWidgetItem(device,
+                                      self.devicewidget))
 
 
 class ConfigurePage(QtGui.QWizardPage):
@@ -148,13 +152,19 @@ class DownloadPage(QtGui.QWizardPage):
 class PostprocessPage(QtGui.QWizardPage):
     def __init__(self, config, parent=None):
         super(PostprocessPage, self).__init__(parent)
-        # TODO: Show textarea with logging.info
         self.setTitle("Postprocessing")
+
+        # TODO: Update logbox from logging.info
+        self.logbox = QtGui.QTextEdit()
+
+        layout = QtGui.QVBoxLayout()
+        layout.addWidget(self.logbox)
+        self.setLayout(layout)
 
 
 class FinishPage(QtGui.QWizardPage):
     def __init__(self, config, parent=None):
         super(FinishPage, self).__init__(parent)
-        
+
         self.setFinalPage(True)
         self.setTitle("Done!")
