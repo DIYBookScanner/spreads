@@ -107,16 +107,27 @@ class DevicePlugin(SpreadsPlugin):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def delete_files(self):
-        """ Delete all files from device. """
+    def list_files(self):
+        """ List all files on the device.
+
+        :return: list() - The files on the device
+
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def download_files(self, path):
-        """ Download all files from device.
+    def download_files(self, local_path):
+        """ Download all files from the device.
 
-        :param path:  The destination path for the downloaded images
-        :type path:   unicode
+        :param local_path:  The destination path for the downloaded files
+        :type local_path:   unicode
+
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def delete_files(self):
+        """ Delete all files from the device.
 
         """
         raise NotImplementedError
@@ -169,28 +180,20 @@ class HookPlugin(SpreadsPlugin):
         """
         pass
 
-    def capture(self, devices, count, time):
+    def capture(self, devices):
         """ Perform some action after each successful capture.
 
         :param devices: The devices used for capturing
         :type devices: list(DevicePlugin)
-        :param count: The shot count
-        :type count: int
-        :param time: The elapsed time since capturing began
-        :type time: time.timedelta
 
         """
         pass
 
-    def finish_capture(self, devices, count, time):
+    def finish_capture(self, devices):
         """ Perform some action after capturing has finished.
 
         :param devices: The devices used for capturing
         :type devices: list(DevicePlugin)
-        :param count: The shot count
-        :type count: int
-        :param time: The elapsed time since capturing began
-        :type time: time.timedelta
 
         """
         pass

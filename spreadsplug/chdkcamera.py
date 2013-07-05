@@ -188,6 +188,9 @@ class CHDKCameraDevice(DevicePlugin):
     def download_files(self, path):
         self._device.download_all_images(path)
 
+    def list_files(self):
+        return self._device.get_image_list()
+
     def prepare_capture(self):
         self._set_record_mode()
         time.sleep(0.25)
