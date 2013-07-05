@@ -4,6 +4,7 @@ from __future__ import division, unicode_literals
 
 import logging
 import math
+import multiprocessing
 import os
 import shutil
 import subprocess
@@ -50,7 +51,8 @@ class ScanTailorPlugin(HookPlugin):
         logging.debug(" ".join(generation_cmd))
         subprocess.call(generation_cmd)
 
-    def _split_configuration(self, projectfile, temp_dir, num_pieces):
+    def _split_configuration(self, projectfile, temp_dir):
+        num_pieces = multiprocessing.cpu_count()
         tree = ET(file=projectfile)
         num_files = len(tree.findall('./files/file'))
         splitfiles = []
