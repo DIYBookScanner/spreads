@@ -9,7 +9,6 @@ General
 
 Plugin ideas
 ============
-- OCR plugin leveraging ocropus or tesseract
 - CBR (rar) plugin
 - Metadata plugin using OpenLibrary for ISBN-queries and Dublin Core for
   serialization
