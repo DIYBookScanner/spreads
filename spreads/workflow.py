@@ -32,7 +32,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 from spreads import config
 from spreads.plugin import get_pluginmanager
-from spreads.util import run_parallel
 
 
 def prepare_capture(devices):
