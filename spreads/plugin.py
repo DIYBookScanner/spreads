@@ -237,8 +237,11 @@ class HookPlugin(SpreadsPlugin):
 def get_devicemanager():
     return ExtensionManager(namespace='spreadsplug.devices')
 
-
+# Poor man's memoization...
+_pluginmanager = None
 def get_pluginmanager():
+    if _pluginmanager:
+        return _pluginmanager
     return NamedExtensionManager(
         namespace='spreadsplug.hooks',
         names=spreads.config['plugins'].as_str_seq(),
