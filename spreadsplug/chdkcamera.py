@@ -1,15 +1,14 @@
 import logging
 import os
-import subprocess
 import time
 from fractions import Fraction
 from math import log
 
 import pyptpchdk
-import wand.image
+from PIL import Image
 
 from spreads.plugin import DevicePlugin
-from spreads.util import SpreadsException, DeviceException
+from spreads.util import DeviceException
 
 
 class PTPDevice(object):
@@ -137,10 +136,11 @@ class PTPDevice(object):
         if ui_overlay:
             flags |= pyptpchdk.LiveViewFlags.BITMAP
         data = self._device.chdkGetLiveData(flags)
-        viewport = data['viewport']
-        return wand.image.Image(blob=viewport['data'], format='RGB',
-                                width=viewport['width'],
-                                height=viewport['height'])
+        img = data['viewport']
+        # FIXME: Use wand for this, once the new version is out that supports
+        #        raw RGB data.
+        return Image.fromstring('RGB', (img['width'], img['height']),
+                                img['data'])
 
 
 class CHDKCameraDevice(DevicePlugin):
