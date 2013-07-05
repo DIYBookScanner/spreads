@@ -20,23 +20,22 @@
 # THE SOFTWARE.
 
 """
-spreads CLI commands.
+spreads CLI code.
 """
 
 from __future__ import division, unicode_literals
 
+import argparse
 import logging
-import multiprocessing
-import os
 import sys
 import time
 
 from clint.textui import puts, colored
 
+import spreads.workflow as workflow
 from spreads import config
 from spreads.plugin import get_devices, get_pluginmanager
-from spreads.util import (getch, run_parallel, DeviceException,
-                          SpreadsException)
+from spreads.util import getch, DeviceException
 
 
 def configure(args=None):
@@ -77,7 +76,7 @@ def capture(args=None, devices=[]):
                                   " program with the \'configure\' option!")
     # Set up for capturing
     puts("Setting up devices for capturing.")
-    run_parallel([{'func': device.prepare_capture} for device in devices])
+    workflow.prepare_capture(devices)
     # Start capture loop
     puts(colored.blue("Press 'b' to capture."))
     shot_count = 0
@@ -87,13 +86,14 @@ def capture(args=None, devices=[]):
     while True:
         if not getch().lower() in capture_keys:
             break
-        run_parallel([{'func': x.capture} for x in devices])
+        workflow.capture(devices)
         shot_count += len(devices)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
         status = ("\rShot {0} pages [{1:.0f}/h]"
                   .format(colored.green(unicode(shot_count)), pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
+    workflow.finish_capture(devices)
     sys.stdout.write("\rShot {0} pages in {1:.1f} minutes, average speed was"
                      " {2:.0f} pages per hour"
                      .format(colored.green(str(shot_count)),
@@ -104,51 +104,20 @@ def capture(args=None, devices=[]):
 def download(args=None, path=None):
     if args.path:
         path = args.path
-    if args.keep is not None:
-        keep = args.keep
-    else:
-        keep = config['download']['keep'].get(bool)
-    if not os.path.exists(path):
-        os.mkdir(path)
     devices = get_devices()
-    puts(colored.green("Downloading images from devices"))
-    # TODO: Make this more generic, so that devices that capture the whole
-    #       spread in one image can be used, too.
-    out_paths = [os.path.join(path, x.orientation) for x in devices]
-    for subpath in out_paths:
-        if not os.path.exists(subpath):
-            os.mkdir(subpath)
-    run_parallel([{'func': x.download_files,
-                   'args': [os.path.join(path, x.orientation)],
-                   'kwargs': {}} for x in devices])
-    pluginmanager = get_pluginmanager()
-    try:
-        pluginmanager.map(lambda x, y, z: x.obj.download(y, z),
-                          devices, path)
-    except RuntimeError:
-        pass
-    if not keep:
-        puts(colored.green("Deleting images from devices"))
-        run_parallel([{'func': x.delete_files,
-                       'args': [], 'kwargs': {}} for x in devices])
-        try:
-            pluginmanager.map(lambda x, y: x.obj.delete(y),
-                              devices)
-        except RuntimeError:
-            pass
+    status_str = "Downloading {0}images from devices"
+    if config['download']['keep'].get(bool):
+        status_str = status_str.format("and deleting ")
+    else:
+        status_str = status_str.format("")
+    puts(colored.green(status_str))
+    workflow.download(devices, path)
 
 
 def postprocess(args=None, path=None):
     if args.path:
         path = args.path
-    m_config = config['postprocess']
-    num_jobs = m_config['jobs']
-    try:
-        num_jobs.get(int)
-    except:
-        m_config['jobs'] = multiprocessing.cpu_count()
-    pluginmanager = get_pluginmanager()
-    pluginmanager.map(lambda x, y: x.obj.process(y), path)
+    workflow.process(path)
 
 
 def wizard(args):
@@ -185,3 +154,74 @@ def wizard(args):
     puts(colored.green("Starting postprocessing"))
     puts(colored.green("======================="))
     postprocess(path=path)
+
+
+pluginmanager = get_pluginmanager()
+parser = argparse.ArgumentParser(
+    description="Scanning Tool for  DIY Book Scanner")
+subparsers = parser.add_subparsers()
+
+parser.add_argument(
+    '--verbose', '-v', dest="verbose", action="store_true")
+
+config_parser = subparsers.add_parser(
+    'configure', help="Perform initial configuration of the devices.")
+config_parser.set_defaults(func=configure)
+
+capture_parser = subparsers.add_parser(
+    'capture', help="Start the capturing workflow")
+capture_parser.set_defaults(func=capture)
+# Add arguments from plugins
+pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                  'capture', capture_parser)
+
+download_parser = subparsers.add_parser(
+    'download', help="Download scanned images.")
+download_parser.add_argument(
+    "path", help="Path where scanned images are to be stored")
+download_parser.add_argument(
+    "--keep", "-k", dest="keep", action="store_true",
+    help="Keep files on devices after download")
+download_parser.set_defaults(func=download)
+# Add arguments from plugins
+pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                  'download', download_parser)
+
+postprocess_parser = subparsers.add_parser(
+    'postprocess',
+    help="Postprocess scanned images.")
+postprocess_parser.add_argument(
+    "path", help="Path where scanned images are stored")
+postprocess_parser.add_argument(
+    "--jobs", "-j", dest="jobs", type=int, default=None,
+    metavar="<int>", help="Number of concurrent processes")
+postprocess_parser.set_defaults(func=postprocess)
+# Add arguments from plugins
+pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                  'postprocess', postprocess_parser)
+
+wizard_parser = subparsers.add_parser(
+    'wizard', help="Interactive mode")
+wizard_parser.add_argument(
+    "path", help="Path where scanned images are to be stored")
+wizard_parser.set_defaults(func=wizard)
+
+pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),
+                  subparsers)
+
+
+def main():
+    args = parser.parse_args()
+    config.set_args(args)
+    loglevel = config['loglevel'].as_choice({
+        'none':     logging.NOTSET,
+        'info':     logging.INFO,
+        'debug':    logging.DEBUG,
+        'warning':  logging.WARNING,
+        'error':    logging.ERROR,
+        'critical': logging.CRITICAL,
+    })
+    if args.verbose:
+        loglevel = logging.DEBUG
+    logging.basicConfig(level=loglevel)
+    args.func(args)

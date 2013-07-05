@@ -26,13 +26,13 @@ import traceback
 
 from clint.textui import puts, colored
 
-import spreads.ui
+import spreads.cli
 from spreads.confit import ConfigError
 from spreads.util import SpreadsException, DeviceException
 
 if __name__ == '__main__':
     try:
-        spreads.ui.main()
+        spreads.cli.main()
     except Exception as e:
         typ, val, tb = sys.exc_info()
         logging.debug("".join(traceback.format_exception(typ, val, tb)))
