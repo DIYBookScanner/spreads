@@ -35,7 +35,27 @@ from clint.textui import puts, colored
 import spreads.workflow as workflow
 from spreads import config
 from spreads.plugin import get_devices, get_pluginmanager
-from spreads.util import getch, DeviceException
+from spreads.util import DeviceException
+
+# Kudos to http://stackoverflow.com/a/1394994/487903
+try:
+    from msvcrt import getch
+except ImportError:
+    def getch():
+        """ Wait for keypress on stdin.
+
+        :returns: unicode -- Value of character that was pressed
+
+        """
+        import tty
+        import termios
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            return sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
 def configure(args=None):
