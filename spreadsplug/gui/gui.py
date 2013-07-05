@@ -1,9 +1,13 @@
+import sys
 import time
 
-from concurrent.futures import ThreadPoolExecutor 
+import PySide
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from PySide import QtCore, QtGui
+sys.modules['PyQt4'] = PySide
+from PIL import Image, ImageQt
 
-import spreads.commands as cmd
+import spreads.workflow as workflow
 import spreads.util as util
 from spreads.plugin import get_devices
 
@@ -16,7 +20,6 @@ class SpreadsWizard(QtGui.QWizard):
         self.addPage(IntroPage(config))
         self.addPage(ConnectPage(config))
         self.addPage(ConfigurePage(config))
-        self.addPage(PreviewPage(config))
         self.addPage(CapturePage(config))
         self.addPage(PostprocessPage(config))
         self.addPage(FinishPage(config))
@@ -88,10 +91,6 @@ class ConnectPage(QtGui.QWizardPage):
 
         self.setTitle("Connect")
 
-    def initializePage(self):
-        self.progress = QtGui.QProgressDialog("Detecting devices...",
-                                              "Cancel", 0, 0, self)
-
         self.label = QtGui.QLabel("Detecting devices...")
         self.devicewidget = QtGui.QListWidget()
         self.devicewidget.setSelectionMode(QtGui.QAbstractItemView
@@ -106,9 +105,12 @@ class ConnectPage(QtGui.QWizardPage):
         layout.addWidget(refresh_btn)
         self.setLayout(layout)
 
+    def initializePage(self):
         self.update_devices()
 
     def update_devices(self):
+        self.progress = QtGui.QProgressDialog("Detecting devices...",
+                                              "Cancel", 0, 0, self)
         self.devicewidget.clear()
         self.label.setText("Detecting devices...")
         with ThreadPoolExecutor(max_workers=1) as executor:
@@ -134,24 +136,40 @@ class ConnectPage(QtGui.QWizardPage):
             self.devices.append(device)
 
     def nextId(self):
-        self.wizard().selected_devices = [self.devices[x.type()-1000]
-                                          for x
-                                          in self.devicewidget.selectedItems()]
-        if any([not x.orientation for x in self.wizard().selected_devices]):
-            return super(ConnectPage, self).nextId()
+        try:
+            if any([not x.orientation
+                    for x in self.wizard().selected_devices]):
+                return super(ConnectPage, self).nextId()
+        except AttributeError:
+            pass
         return super(ConnectPage, self).nextId()+1
 
     def validatePage(self):
-        if not self.wizard().selected_devices:
-            msg_box = QtGui.QMessageBox()
+        self.wizard().selected_devices = [self.devices[x.type()-1000]
+                                          for x
+                                          in self.devicewidget.selectedItems()]
+        if len(self.wizard().selected_devices) in (1, 2):
+            print len(self.wizard().selected_devices)
+            workflow.prepare_capture(self.wizard().selected_devices)
+            return True
+        msg_box = QtGui.QMessageBox()
+        msg_box.setIcon(QtGui.QMessageBox.Critical)
+        if len(self.wizard().selected_devices) > 2:
+            msg_box.setText("Please don't select more than two devices!")
+        elif not self.wizard().selected_devices:
             msg_box.setText("No device selected.")
-            msg_box.setIcon(QtGui.QMessageBox.Critical)
-            msg_box.exec_()
-            return False
-        return True
+        msg_box.exec_()
+        return False
 
 
 class ConfigurePage(QtGui.QWizardPage):
+    # TODO: Meeeeeh, this is a bit more finicky... First, erase the devices,
+    #       then connect one after the other, then connect and register both,
+    #       what a PITA :3
+    def __init__(self, config, parent=None):
+        super(ConfigurePage, self).__init__(parent)
+        self.config = config
+
     def initializePage(self):
         self.setTitle("Configure devices")
         devices = [x for x in self.wizard().selected_devices
@@ -172,53 +190,102 @@ class ConfigurePage(QtGui.QWizardPage):
         return super(ConnectPage, self).nextId()
 
 
-class PreviewPage(QtGui.QWizardPage):
-    def __init__(self, config, parent=None):
-        super(PreviewPage, self).__init__(parent)
-        # TODO: Get viewport from devices, construct QImage from it
-        # TODO: Display the Qimages in two label widgets that are refreshed
-        #       at 10fps or so. Format from pyptpchdk is wand.Image with RGB32,
-        #       should be fine.
-
-        self.setTitle("Device preview")
-
-        label = QtGui.QLabel("Please check if your cameras are well adjusted:")
-
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(label)
-        self.setLayout(layout)
-
-
 class CapturePage(QtGui.QWizardPage):
     def __init__(self, config, parent=None):
         super(CapturePage, self).__init__(parent)
-
         self.setTitle("Capturing from devices")
+        self.start_time = None
+        self.shot_count = None
+
+        layout = QtGui.QVBoxLayout(self)
+        self.status = QtGui.QLabel("Press a capture key (default: Space, B)"
+                                   " to begin capturing.")
+
+        previewbox = QtGui.QHBoxLayout()
+        self.left_preview = QtGui.QLabel()
+        self.right_preview = QtGui.QLabel()
+        previewbox.addWidget(self.left_preview)
+        previewbox.addWidget(self.right_preview)
+
+        refresh_btn = QtGui.QPushButton("Refresh")
+        refresh_btn.clicked.connect(self.update_preview)
+
+        capture_btn = QtGui.QPushButton("Capture")
+        capture_btn.clicked.connect(self.doCapture)
+        layout.addWidget(self.status)
+        layout.addWidget(refresh_btn)
+        layout.addLayout(previewbox)
+        layout.addWidget(capture_btn)
+        self.setLayout(layout)
+
+    def initializePage(self):
+        time.sleep(0.5)
+        self.update_preview()
 
     def validatePage(self):
-        def download_images():
-            time.sleep(2)
+        workflow.finish_capture(self.wizard().selected_devices)
         #TODO: Display a real progress bar here, update it according to the
         #      combined number of files in raw or its subfolders
         progress = QtGui.QProgressDialog("Downloading files...",
                                          "Cancel", 0, 0, self)
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(download_images)
-            while not future.done():
+            future = executor.submit(workflow.download,
+                                     self.wizard().selected_devices,
+                                     self.wizard().project_path)
+            while future.running():
                 QtGui.qApp.processEvents()
                 progress.setValue(1)
                 time.sleep(0.001)
         progress.close()
         return True
 
+    def keyPressEvent(self, event):
+        if event.key() in (QtCore.Qt.Key_B, QtCore.Qt.Key_Space):
+            self.doCapture()
+
+    def doCapture(self):
+        if self.start_time is None:
+            self.start_time = time.time()
+        if self.shot_count is None:
+            self.shot_count = 0
+        workflow.capture(self.wizard().selected_devices)
+        self.update_preview()
+        self.shot_count += 2
+        self.status.setText("Shot {0} pages in {1:.0f} minutes "
+                            "({2:.0f} pages/hour)".format(
+                                self.shot_count,
+                                (time.time() - self.start_time) / 60,
+                                ((3600 / (time.time() - self.start_time))
+                                 * self.shot_count)))
+
+    def update_preview(self):
+        def get_preview(dev):
+            img = dev._device.get_preview_image()
+            img = img.resize((320, 240), Image.ANTIALIAS).convert('RGBA')
+            data = img.tostring('raw')
+            image = QtGui.QImage(data, img.size[0], img.size[1],
+                                 QtGui.QImage.Format_ARGB32).rgbSwapped()
+            return dev.orientation, image
+
+        # TODO: Auto-refreh at 5fps
+        # TODO: Don't go via PIL, find a way to use RGB data directly
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = executor.map(get_preview,
+                                   self.wizard().selected_devices)
+            previews = tuple(futures)
+        for orientation, image in previews:
+            pixmap = QtGui.QPixmap.fromImage(image)
+            if orientation == 'left':
+                self.left_preview.setPixmap(pixmap)
+            else:
+                self.right_preview.setPixmap(pixmap)
+
 
 class PostprocessPage(QtGui.QWizardPage):
     def __init__(self, config, parent=None):
         super(PostprocessPage, self).__init__(parent)
         self.setTitle("Postprocessing")
-        # TODO: Make postprocess() a generator and update progress according
-        #       to it.
-        # TODO: Update logbox from logging.info
+
         self.progressbar = QtGui.QProgressBar(self)
         self.progressbar.setRange(0, 0)
         self.progressbar.setAlignment(QtCore.Qt.AlignCenter)
@@ -228,6 +295,21 @@ class PostprocessPage(QtGui.QWizardPage):
         layout.addWidget(self.progressbar)
         layout.addWidget(self.logbox)
         self.setLayout(layout)
+
+    def initializePage(self):
+        QtCore.QTimer.singleShot(0, self.doPostprocess)
+        # TODO: Update logbox from logging.info:
+        #       Implement a custom StreamHandler that flushes to our LineEdit
+
+    def doPostprocess(self):
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(workflow.process,
+                                     self.wizard().project_path)
+            while not future.done():
+                QtGui.qApp.processEvents()
+                self.progressbar.setValue(1)
+                time.sleep(0.001)
+        self.progressbar.hide()
 
 
 class FinishPage(QtGui.QWizardPage):
