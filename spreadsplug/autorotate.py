@@ -6,9 +6,39 @@ import logging
 import os
 
 import wand.image
+from concurrent import futures
 
 from spreads.plugin import HookPlugin
-from spreads.util import run_multicore
+
+
+def rotate_image(path, left, right, inverse=False):
+    # Silence Wand logger
+    (logging.getLogger("wand")
+            .setLevel(logging.ERROR))
+    logging.debug("Rotating image {0}".format(path))
+    # Read the JPEG comment that contains the orientation of the image
+    with open(path, 'rb') as fp:
+        fp.seek(-12, 2)
+        data = fp.read()
+        orientation = data[data.find('\xfe')+1:].lower()
+        logging.debug(orientation)
+    if orientation not in ('left', 'right'):
+        logging.warn("Cannot determine rotation for image {0}!"
+                     .format(path))
+        return
+    logging.debug("Orientation for \"{0}\" is {1}"
+                  .format(path, orientation))
+    with wand.image.Image(filename=path) as img:
+        if orientation == 'left':
+            rotation = left
+        else:
+            rotation = right
+        if inverse:
+            rotation *= 2
+        logging.debug("Rotating image \'{0}\' by {1} degrees"
+                      .format(path, rotation))
+        img.rotate(rotation)
+        img.save(filename=path)
 
 
 class AutoRotatePlugin(HookPlugin):
@@ -22,41 +52,19 @@ class AutoRotatePlugin(HookPlugin):
     def __init__(self, config):
         self.config = config['postprocess']
 
-    def rotate_image(self, path, left, right, inverse=False):
-        logging.debug("Rotating image {0}".format(path))
-        # Read the JPEG comment that contains the orientation of the image
-        with open(path, 'rb') as fp:
-            fp.seek(-12, 2)
-            data = fp.read()
-            orientation = data[data.find('\xfe')+1:].lower()
-            logging.debug(orientation)
-        if orientation not in ('left', 'right'):
-            logging.warn("Cannot determine rotation for image {0}!"
-                         .format(path))
-            return
-        logging.debug("Orientation for \"{0}\" is {1}"
-                      .format(path, orientation))
-
-        with wand.image.Image(filename=path) as img:
-            if orientation == 'left':
-                rotation = left
-            else:
-                rotation = right
-            if inverse:
-                rotation *= 2
-            logging.debug("Rotating image \'{0}\' by {1} degrees"
-                          .format(path, rotation))
-            img.rotate(rotation)
-            img.save(filename=path)
-
     def process(self, path):
-        logging.info("Rotating images")
         img_dir = os.path.join(path, 'raw')
-        num_jobs = self.config['jobs'].get(int)
-        run_multicore(self.rotate_image, [[os.path.join(img_dir, x)]
-                                          for x in os.listdir(img_dir)],
-                      {'inverse': (self.config['autorotate']['rotate_inverse']
-                                   .get(bool)),
-                       'left': self.config['autorotate']['left'].get(int),
-                       'right': self.config['autorotate']['right'].get(int)},
-                      num_procs=num_jobs)
+        logging.info("Rotating images in {0}".format(img_dir))
+        #num_jobs = self.config['jobs'].get(int)
+        #logging.debug("Using {0} cores".format(num_jobs))
+        logging.debug("Spawning the processes...")
+        with futures.ProcessPoolExecutor() as executor:
+            for img in os.listdir(img_dir):
+                executor.submit(
+                    rotate_image,
+                    os.path.join(img_dir, img),
+                    inverse=(self.config['autorotate']['rotate_inverse']
+                             .get(bool)),
+                    left=self.config['autorotate']['left'].get(int),
+                    right=self.config['autorotate']['right'].get(int),
+                )

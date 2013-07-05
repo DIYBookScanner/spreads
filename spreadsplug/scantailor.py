@@ -11,7 +11,7 @@ import tempfile
 from xml.etree.cElementTree import ElementTree as ET
 
 from spreads.plugin import HookPlugin
-from spreads.util import find_in_path, run_multicore, SpreadsException
+from spreads.util import find_in_path, SpreadsException
 
 
 class ScanTailorPlugin(HookPlugin):
@@ -79,14 +79,18 @@ class ScanTailorPlugin(HookPlugin):
         return splitfiles
 
     def _generate_output(self, projectfile, out_dir):
-        num_procs = self.config['jobs'].get(int)
+        logging.debug("Generating output...")
         temp_dir = tempfile.mkdtemp(prefix="spreads.")
-        split_config = self._split_configuration(projectfile, temp_dir,
-                                                 num_procs)
-        run_multicore(subprocess.call,
-                      [[['scantailor-cli', '--start-filter=6', x, out_dir]]
-                       for x in split_config],
-                      num_procs=num_procs)
+        split_config = self._split_configuration(projectfile, temp_dir)
+        logging.debug("Launching those subprocesses!")
+        processes = [subprocess.Popen(['scantailor-cli', '--start-filter=6',
+                                       x, out_dir])
+                     for x in split_config]
+        while processes:
+            for p in processes[:]:
+                if p.poll() is not None:
+                    p.stdout.close()
+                    processes.remove(p)
         shutil.rmtree(temp_dir)
 
     def process(self, path):

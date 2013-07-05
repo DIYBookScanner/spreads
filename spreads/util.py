@@ -28,7 +28,6 @@ import abc
 import itertools
 import os
 import sys
-from multiprocessing import Process, Queue, cpu_count
 
 
 class SpreadsException(Exception):
@@ -71,79 +70,6 @@ def find_in_path(name):
     return name in itertools.chain(*tuple(os.listdir(x)
                                    for x in os.environ.get('PATH').split(':')
                                    if os.path.exists(x)))
-
-
-def run_parallel(tasks):
-    """ Run tasks at the same time (i.e. no upper bound on the number of
-        parallel processes!).
-
-    :param tasks: Tasks to be performed
-    :type tasks:  list with dict members:
-                  {'func': function,
-                  'args': None or list,
-                  'kwargs': None or dict,
-                  }
-
-
-    """
-    procs = []
-    for task in tasks:
-        if not 'args' in task:
-            task['args'] = []
-        if not 'kwargs' in task:
-            task['kwargs'] = {}
-        func, m_args, m_kwargs = task['func'], task['args'], task['kwargs']
-        proc = Process(target=func, args=m_args, kwargs=m_kwargs)
-        proc.start()
-        procs.append(proc)
-    for proc in procs:
-        proc.join()
-
-
-def run_multicore(task, m_args=[], m_kwargs={}, num_procs=None):
-    """ Run function for set of arguments and distribute the work among a
-        number of worker processes.
-
-    :param task:      The task to be performed
-    :type task:       function
-    :param m_args:    One or multiple sets of arguments to be passed
-    :type m_args:     list, list of lists
-    :param m_kwargs:  One or multiple sets of keyword arguments to be passed
-    :type m_kwargs:   dict, list of dicts
-
-    """
-    class Worker(Process):
-        def __init__(self, task, queue):
-            super(Worker, self).__init__()
-            self.task = task
-            self.queue = queue
-
-        def run(self):
-            for params in iter(self.queue.get, None):
-                self.task(*params[0], **params[1])
-
-    if not num_procs:
-        num_procs = cpu_count()
-
-    # If args or kwargs is neither None or a list, we assume that this argument
-    # is to be applied every time.
-    if not m_args or not isinstance(m_args, list):
-        m_args = list(itertools.repeat(m_args, len(m_kwargs)))
-    if not m_kwargs or not isinstance(m_kwargs, list):
-        m_kwargs = list(itertools.repeat(m_kwargs, len(m_args)))
-
-    running = []
-    queue = Queue()
-    for i in xrange(num_procs):
-        w = Worker(task, queue)
-        running.append(w)
-        w.start()
-    for params in zip(m_args, m_kwargs):
-        queue.put(params)
-    for i in xrange(num_procs):
-        queue.put(None)
-    for worker in running:
-        worker.join()
 
 
 class _instancemethodwrapper(object):
@@ -189,5 +115,3 @@ class abstractclassmethod(_classmethod):
     def __init__(self, func):
         func = abc.abstractmethod(func)
         super(abstractclassmethod,self).__init__(func)
-
-
