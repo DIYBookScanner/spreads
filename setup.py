@@ -21,6 +21,7 @@ setup(
         "PyYAML >= 3.10",
         "Wand >= 0.3.1",
         "stevedore >= 0.9.1",
+        "futures >= 2.1.4",
     ],
     entry_points={
         'spreadsplug.devices': [
