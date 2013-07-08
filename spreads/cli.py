@@ -27,9 +27,11 @@ from __future__ import division, unicode_literals
 
 import argparse
 import logging
+import os
 import sys
 import time
 
+import spreads.confit as confit
 from clint.textui import puts, colored
 
 import spreads.workflow as workflow
@@ -232,6 +234,10 @@ pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),
 
 def main():
     args = parser.parse_args()
+    cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
+    if not os.path.exists(cfg_path):
+        logging.info("Dumping default configuration to {0}".format(cfg_path))
+        config.dump(filename=cfg_path)
     config.set_args(args)
     loglevel = config['loglevel'].as_choice({
         'none':     logging.NOTSET,
