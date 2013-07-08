@@ -91,7 +91,6 @@ class ScanTailorPlugin(HookPlugin):
         while processes:
             for p in processes[:]:
                 if p.poll() is not None:
-                    p.stdout.close()
                     processes.remove(p)
         shutil.rmtree(temp_dir)
 
