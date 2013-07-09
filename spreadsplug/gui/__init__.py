@@ -1,9 +1,13 @@
+import logging
+
 from PySide import QtGui
 
 import spreads
 from spreads.plugin import HookPlugin
 import gui
 import gui_rc
+
+logger = logging.getLogger('spreadsplug.gui')
 
 
 class GuiCommand(HookPlugin):
@@ -15,6 +19,7 @@ class GuiCommand(HookPlugin):
 
 
 def wizard(args):
+    logger.debug("Starting GUI")
     app = QtGui.QApplication([])
     wizard = gui.SpreadsWizard(spreads.config)
     wizard.show()

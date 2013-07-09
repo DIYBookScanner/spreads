@@ -26,17 +26,20 @@ class TestPlugin(object):
     def test_get_devices(self):
         device_a = Mock()
         device_a.plugin.match = Mock(return_value=True)
+        device_a.plugin.__name__ = "Mock"
         device_b = Mock()
         device_b.plugin.match = Mock(return_value=False)
-        plugin.usb.core.find = Mock(return_value=[0])
+        device_b.plugin.__name__ = "Mock"
+        usb_mock = Mock()
+        plugin.usb.core.find = Mock(return_value=[usb_mock])
         dm = Mock()
         dm.map = lambda x, y: [x(z, y) for z in [device_a, device_b]]
         plugin.get_devicemanager = Mock(return_value=dm)
         ret = plugin.get_devices()
         assert ret == [device_a.plugin()]
-        assert call(spreads.config, 0) in device_a.plugin.call_args_list
-        assert device_a.plugin.match.call_args_list == [call(0)]
-        assert device_b.plugin.match.call_args_list == [call(0)]
+        assert call(spreads.config, usb_mock) in device_a.plugin.call_args_list
+        assert device_a.plugin.match.call_args_list == [call(usb_mock)]
+        assert device_b.plugin.match.call_args_list == [call(usb_mock)]
 
     @raises(DeviceException)
     def test_no_devices(self):

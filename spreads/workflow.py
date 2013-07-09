@@ -33,52 +33,71 @@ from concurrent.futures import ThreadPoolExecutor
 from spreads import config
 from spreads.plugin import get_pluginmanager
 
+logger = logging.getLogger('spreads.workflow')
+
 
 def prepare_capture(devices):
+    logger.debug("Preparing capture.")
     with ThreadPoolExecutor(len(devices)) as executor:
+        logger.debug("Preparing capture in devices")
         for dev in devices:
             executor.submit(dev.prepare_capture)
     for ext in get_pluginmanager():
+        logger.debug("Running prepare_capture hooks")
         ext.obj.prepare_capture(devices)
 
 
 def capture(devices):
+    logger.info("Triggering capture.")
     with ThreadPoolExecutor(len(devices)) as executor:
+        logger.debug("Sending capture command to devices")
         for dev in devices:
             executor.submit(dev.capture)
     for ext in get_pluginmanager():
+        logger.debug("Running capture hooks")
         ext.obj.capture(devices)
 
 
 def finish_capture(devices):
+    logger.debug("Running finish_capture hooks")
     for ext in get_pluginmanager():
         ext.obj.finish_capture(devices)
 
 
 def download(devices, path):
-    logging.info("Downloading images from devices to {0}.".format(path))
     keep = config['download']['keep'].get(bool)
+    logger.info("Downloading images from devices to {0}, files will "
+                "{1} remain on the devices."
+                .format(path, ("not" if not keep else "")))
     if not os.path.exists(path):
+        logger.debug("Creating project directory")
         os.mkdir(path)
     out_paths = [os.path.join(path, x.orientation) for x in devices]
+    if out_paths:
+        logger.debug("Creating camera directories")
     for subpath in out_paths:
         if not os.path.exists(subpath):
             os.mkdir(subpath)
     with ThreadPoolExecutor(len(devices)) as executor:
+        logger.debug("Starting download process")
         for dev in devices:
             executor.submit(dev.download_files,
                             os.path.join(path, dev.orientation))
+    logger.debug("Running download hooks")
     for ext in get_pluginmanager():
         ext.obj.download(devices, path)
     if not keep:
-        logging.info("Deleting images from devices")
+        logger.info("Deleting images from devices")
         with ThreadPoolExecutor(len(devices)) as executor:
+            logger.debug("Starting delete process")
             for dev in devices:
                 executor.submit(dev.delete_files)
+        logger.debug("Running delete hooks")
         for ext in get_pluginmanager():
             ext.obj.delete(devices)
 
 
 def process(path):
+    logger.debug("Running process hooks")
     for ext in get_pluginmanager():
         ext.obj.process(path)

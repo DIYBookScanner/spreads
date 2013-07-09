@@ -14,6 +14,8 @@ from xml.etree.cElementTree import ElementTree as ET
 from spreads.plugin import HookPlugin
 from spreads.util import find_in_path, SpreadsException
 
+logger = logging.getLogger('spreadsplug.scantailor')
+
 
 class ScanTailorPlugin(HookPlugin):
     @classmethod
@@ -30,7 +32,7 @@ class ScanTailorPlugin(HookPlugin):
     def _generate_configuration(self, projectfile, img_dir, out_dir):
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
-        logging.info("Generating ScanTailor configuration")
+        logger.info("Generating ScanTailor configuration")
         filterconf = [self.config['scantailor'][x].get(bool)
                       for x in ('rotate', 'split_pages', 'deskew', 'content',
                                 'auto_margins')]
@@ -48,7 +50,7 @@ class ScanTailorPlugin(HookPlugin):
                           '--dpi={0}'.format(self.config['dpi']
                                              .get(int)),
                           '-o={0}'.format(projectfile), img_dir, out_dir]
-        logging.debug(" ".join(generation_cmd))
+        logger.debug(" ".join(generation_cmd))
         subprocess.call(generation_cmd)
 
     def _split_configuration(self, projectfile, temp_dir):
@@ -81,10 +83,10 @@ class ScanTailorPlugin(HookPlugin):
         return splitfiles
 
     def _generate_output(self, projectfile, out_dir):
-        logging.debug("Generating output...")
+        logger.debug("Generating output...")
         temp_dir = tempfile.mkdtemp(prefix="spreads.")
         split_config = self._split_configuration(projectfile, temp_dir)
-        logging.debug("Launching those subprocesses!")
+        logger.debug("Launching those subprocesses!")
         processes = [subprocess.Popen(['scantailor-cli', '--start-filter=6',
                                        x, out_dir])
                      for x in split_config]
@@ -112,7 +114,7 @@ class ScanTailorPlugin(HookPlugin):
         if not os.path.exists(projectfile):
             self._generate_configuration(projectfile, img_dir, out_dir)
         if not autopilot:
-            logging.info("Opening ScanTailor GUI for manual adjustment")
+            logger.info("Opening ScanTailor GUI for manual adjustment")
             subprocess.call(['scantailor', projectfile])
-        logging.info("Generating output images from ScanTailor configuration.")
+        logger.info("Generating output images from ScanTailor configuration.")
         self._generate_output(projectfile, out_dir)

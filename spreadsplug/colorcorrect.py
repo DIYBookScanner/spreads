@@ -8,12 +8,14 @@ from concurrent import futures
 
 from spreads.plugin import HookPlugin
 
+logger = logging.getLogger('spreadsplug.colorcorrect')
+
 
 def correct_colors(img_path, factors):
-    logging.debug("Correcting color of \"{0}\"".format(img_path))
+    logger.debug("Correcting color of \"{0}\"".format(img_path))
     for channel, factor in zip(('red', 'green', 'blue'), factors):
-        logging.debug("Correcting {0} channel by {1}"
-                      .format(channel, factor))
+        logger.debug("Correcting {0} channel by {1}"
+                     .format(channel, factor))
         with wand.image.Image(filename=img_path) as img:
             wand.api.libmagick.MagickEvaluateImageChannel(
                 img.wand, wand.image.CHANNELS[channel],
@@ -28,7 +30,7 @@ class ColorCorrectionPlugin(HookPlugin):
 
     def process(self, path):
         path = os.path.join(path, 'raw')
-        logging.debug("Starting color correction...")
+        logger.debug("Starting color correction...")
         # Get the gray card's RGB values from configuration
         true_colors = (float(self.config['true_red'].get(int)),
                        float(self.config['true_green'].get(int)),

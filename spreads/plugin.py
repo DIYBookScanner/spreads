@@ -22,6 +22,7 @@
 from __future__ import division, unicode_literals
 
 import abc
+import logging
 
 import usb
 from stevedore.extension import ExtensionManager
@@ -32,6 +33,7 @@ import spreads
 from spreads.util import (abstractclassmethod, find_in_path, SpreadsException,
                           DeviceException)
 
+logger = logging.getLogger("spreads.plugin")
 
 
 class SpreadsPlugin(object):
@@ -232,6 +234,7 @@ class HookPlugin(SpreadsPlugin):
 
 # Load drivers for all supported devices
 def get_devicemanager():
+    logger.debug("Creating device manager")
     return ExtensionManager(namespace='spreadsplug.devices')
 
 # Poor man's memoization...
@@ -240,6 +243,7 @@ def get_pluginmanager():
     global _pluginmanager
     if _pluginmanager:
         return _pluginmanager
+    logger.debug("Creating plugin manager")
     _pluginmanager = NamedExtensionManager(
         namespace='spreadsplug.hooks',
         names=spreads.config['plugins'].as_str_seq(),
@@ -257,12 +261,21 @@ def get_devices():
     """
     def match(extension, device):
         try:
+            devname = usb.util.get_string(device, 256, 2)
+        except:
+            devname = "{0}:{1}".format(device.bus, device.address)
+        logger.debug("Trying to match device \"{0}\" with plugin {1}"
+                      .format(devname, extension.plugin.__name__))
+        try:
             match = extension.plugin.match(device)
         # Ignore devices that don't implement `match`
         except TypeError:
+            logger.debug("Plugin did not implement match method!")
             return
         if match:
+            logger.debug("Plugin matched device!")
             return extension.plugin
+    logger.debug("Detecting support for attached devices")
     devices = []
     candidates = usb.core.find(find_all=True)
     devicemanager = get_devicemanager()

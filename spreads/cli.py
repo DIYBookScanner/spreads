@@ -234,13 +234,14 @@ def setup_parser():
 
 
 def main():
-    parser = setup_parser()
-    args = parser.parse_args()
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
     if not os.path.exists(cfg_path):
-        logging.info("Dumping default configuration to {0}".format(cfg_path))
         config.dump(filename=cfg_path)
+
+    parser = setup_parser()
+    args = parser.parse_args()
     config.set_args(args)
+
     loglevel = config['loglevel'].as_choice({
         'none':     logging.NOTSET,
         'info':     logging.INFO,
@@ -251,5 +252,14 @@ def main():
     })
     if args.verbose:
         loglevel = logging.DEBUG
-    logging.basicConfig(level=loglevel)
+
+    # Set up logger
+    logger = logging.getLogger()
+    if logger.handlers:
+        for handler in logger.handlers:
+            logger.removeHandler(handler)
+    logging.basicConfig(format='%(created)s [%(name)s:%(levelname)s] '
+                               '%(message)s',
+                        level=loglevel)
+
     args.func(args)

@@ -5,6 +5,8 @@ import shutil
 
 from spreads.plugin import HookPlugin
 
+logger = logging.getLogger('spreadsplug.colorcorrect')
+
 
 class CombinePlugin(HookPlugin):
     def download(self, cameras, path):
@@ -19,10 +21,10 @@ class CombinePlugin(HookPlugin):
                        for x in sorted(os.listdir(right_dir))]
         # Write the orientation as a JPEG comment to the end of the file
         if len(left_pages) != len(right_pages):
-            logging.warn("The left and right camera produced an inequal"
-                         " amount of images!")
+            logger.warn("The left and right camera produced an inequal"
+                        " amount of images!")
         combined_pages = reduce(operator.add, zip(left_pages, right_pages))
-        logging.info("Combining images.")
+        logger.info("Combining images.")
         for idx, fname in enumerate(combined_pages):
             fext = os.path.splitext(os.path.split(fname)[1])[1]
             target_file = os.path.join(target_dir, "{0:04d}{1}"

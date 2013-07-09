@@ -7,6 +7,8 @@ from concurrent import futures
 
 from spreads.plugin import HookPlugin
 
+logger = logging.getLogger('spreadsplug.colorcorrect')
+
 
 class TesseractPlugin(HookPlugin):
     @classmethod
@@ -20,7 +22,7 @@ class TesseractPlugin(HookPlugin):
         self.config = config['postprocess']
 
     def process(self, path):
-        logging.info("Performing OCR")
+        logger.info("Performing OCR")
         img_dir = os.path.join(path, 'done')
         with futures.ProcessPoolExecutor() as executor:
             for img in os.listdir(img_dir):

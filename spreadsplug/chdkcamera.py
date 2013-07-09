@@ -20,6 +20,7 @@ class PTPDevice(object):
     STATUS_MSG = 2
 
     def __init__(self, usbdevice):
+        self.logger = logging.getLogger('spreadsplug.chdkcamera.PTPDevice')
         self._device = pyptpchdk.PTPDevice(usbdevice.bus, usbdevice.address)
         self._orientation = None
 
@@ -42,7 +43,7 @@ class PTPDevice(object):
         # Wrap the script in return if the script doesn't return by itself
         if get_result and not "return" in script:
             script = "return({0})".format(script)
-        logging.debug("Executing script: \"{0}\"".format(script))
+        self.logger.debug("Executing script: \"{0}\"".format(script))
         script_id = self._device.chdkExecLua(script)
         script_status = None
         if not wait:
@@ -63,7 +64,7 @@ class PTPDevice(object):
             if msg[2] == 0:
                 continue
             if msg[2] != script_id:
-                logging.warn("Script IDs did not match. Expected \"{0}\","
+                self.logger.warn("Script IDs did not match. Expected \"{0}\","
                              " got \"{1}\", ignoring".format(script_id, msg[2])
                              )
                 continue
@@ -84,11 +85,11 @@ class PTPDevice(object):
                 file:close()
                 return content
                 """)[0].lower()
-            logging.debug("Orientation is: \"{0}\"".format(orientation))
+            self.logger.debug("Orientation is: \"{0}\"".format(orientation))
             self._orientation = orientation
             return orientation
         except DeviceException as e:
-            logging.warn("Could not get orientation, reason: {0}"
+            self.logger.warn("Could not get orientation, reason: {0}"
                          .format(e.message))
             return None
 
@@ -108,7 +109,7 @@ class PTPDevice(object):
         return file_list
 
     def download_image(self, camera_path, local_path):
-        logging.debug("Downloading \"{0}\"".format(local_path))
+        self.logger.debug("Downloading \"{0}\"".format(local_path))
         self._device.chdkDownload(camera_path, local_path)
         # TODO: Don't just append the comment, but write it to a proper
         #       location within the JPEG structure, so all applications
@@ -277,13 +278,15 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
         80: 373,
     }
 
+    def __init__(self, config):
+        super(CanonA2200CameraDevice, self).__init__(config)
+        self.logger = logging.getLogger(
+            'spreadsplug.chdkcamera.CanonA2200CameraDevice')
+
     @classmethod
     def match(cls, device):
         matches = (hex(device.idVendor) == "0x4a9"
                    and hex(device.idProduct) == "0x322a")
-        logging.debug("Trying to match %s,%s: %s" % (hex(device.idVendor),
-                                                     hex(device.idProduct),
-                                                     matches))
         return matches
 
     def _set_zoom(self, level):
@@ -303,7 +306,7 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
         zoom = None
         while zoom != level:
             zoom = self._get_zoom()
-            logging.debug("Zoom for {0}: {1}".format(self.orientation, zoom))
+            self.logger.debug("Zoom for {0}: {1}".format(self.orientation, zoom))
             if zoom > level:
                 self._device.execute_lua('click("zoom_out")')
             elif zoom < level:
