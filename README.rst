@@ -2,6 +2,9 @@
 
 .. image:: https://secure.travis-ci.org/jbaiter/spreads.png
    :target: http://travis-ci.org/jbaiter/spreads 
+   
+.. image:: https://coveralls.io/repos/jbaiter/spreads/badge.png?branch=master
+   :target: https://coveralls.io/r/jbaiter/spreads?branch=master
 
 *spreads* is a tool that aims to streamline your book scanning workflow.
 It takes care of every step: Setting up your capturing devices, handling
@@ -9,8 +12,8 @@ the capturing process, downloading the images to your machine,
 post-processing them and finally assembling a variety of output formats.
 
 Along the way you can always fine-tune the auto-generated results either
-by supplying arguments beforehand, or by inspecting the output and
-applying your modifications.
+by supplying arguments or changing the configuration beforehand, or by
+inspecting the output and applying your modifications.
 
 *spreads* is meant to be fully customizable. This means, `adding support
 for new devices`_ is made as painless as possible. You can also
@@ -28,20 +31,6 @@ Quickstart
 to a digitized version in one single workflow with minimal user input::
 
     $ spread wizard ~/my_scanning_project
-
-*spreads* is a tool that aims to streamline your book scanning workflow.
-It takes care of every step: Setting up your capturing devices, handling
-the shooting process, downloading the images to your machine,
-post-processing them and finally assembling a variety of output formats.
-
-Along the way you can always fine-tune the auto-generated results either
-by supplying arguments beforehand, or by inspecting the output and
-applying your modifications.
-
-*spreads* is meant to be fully customizable. This means, adding support for
-plugins is made as painless as possible.  Support for plugins that can
-either hook into the various commands or add new ones is on the agenda,
-stay tuned!
 
 
 Features
