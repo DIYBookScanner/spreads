@@ -22,9 +22,6 @@
 from __future__ import division, unicode_literals
 
 import abc
-import logging
-import re
-import subprocess
 
 import usb
 from stevedore.extension import ExtensionManager
@@ -240,14 +237,16 @@ def get_devicemanager():
 # Poor man's memoization...
 _pluginmanager = None
 def get_pluginmanager():
+    global _pluginmanager
     if _pluginmanager:
         return _pluginmanager
-    return NamedExtensionManager(
+    _pluginmanager = NamedExtensionManager(
         namespace='spreadsplug.hooks',
         names=spreads.config['plugins'].as_str_seq(),
         invoke_on_load=True,
         invoke_args=[spreads.config],
         name_order=True)
+    return _pluginmanager
 
 
 def get_devices():

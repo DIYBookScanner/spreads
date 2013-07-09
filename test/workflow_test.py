@@ -1,19 +1,7 @@
-import os
-from itertools import chain, repeat
-
-from nose.tools import raises
 from mock import call, MagicMock as Mock, patch
 
 import spreads
 import spreads.workflow as flow
-from spreads.util import SpreadsException, DeviceException
-
-# NOTE: As spreads is really just a thin wrapper around external tools and
-# dependencies, these tests rely on Mocks **a lot**, to a degree that one might
-# actually question their value, at least from the perspective of ensuring
-# continuous integration. I think they do fine as black box unit tests for the
-# various workflow commands, though we could use a lot more of them, especially
-# for the plugins.
 
 
 class TestCapture(object):
@@ -31,24 +19,24 @@ class TestCapture(object):
         flow.prepare_capture(self.cams)
         for cam in self.cams:
             assert cam.prepare_capture.call_count == 1
-        for plugin in self.plugins:
-            assert plugin.obj.prepare_capture.call_count == 1
-            assert plugin.obj.prepare_capture.call_args_list == (
+        for plug in self.plugins:
+            assert plug.obj.prepare_capture.call_count == 1
+            assert plug.obj.prepare_capture.call_args_list == (
                 [call(self.cams)])
 
     def test_capture(self):
         flow.capture(self.cams)
         for cam in self.cams:
             assert cam.capture.call_count == 1
-        for plugin in self.plugins:
-            assert plugin.obj.capture.call_count == 1
-            assert plugin.obj.capture.call_args_list == [call(self.cams)]
+        for plug in self.plugins:
+            assert plug.obj.capture.call_count == 1
+            assert plug.obj.capture.call_args_list == [call(self.cams)]
 
     def test_finish_capture(self):
         flow.finish_capture(self.cams)
-        for plugin in self.plugins:
-            assert plugin.obj.finish_capture.call_count == 1
-            assert plugin.obj.finish_capture.call_args_list == (
+        for plug in self.plugins:
+            assert plug.obj.finish_capture.call_count == 1
+            assert plug.obj.finish_capture.call_args_list == (
                 [call(self.cams)])
     #@raises(DeviceException)
     #def test_capture_nocams(self):
@@ -94,20 +82,24 @@ class TestDownload(object):
             assert cam.download_files.call_args_list == [call('/tmp/foo/{0}'
                 .format(cam.orientation.lower()))]
             assert cam.delete_files.call_count == 1
-        for plugin in self.plugins:
-            assert plugin.obj.download.call_count == 1
-            assert plugin.obj.download.call_args_list == [call(
+        for plug in self.plugins:
+            assert plug.obj.download.call_count == 1
+            assert plug.obj.download.call_args_list == [call(
                 self.cams, '/tmp/foo')]
-            assert plugin.obj.delete.call_count == 1
-            assert plugin.obj.delete.call_args_list == [call(self.cams)]
+            assert plug.obj.delete.call_count == 1
+            assert plug.obj.delete.call_args_list == [call(self.cams)]
+
 
 class TestProcess(object):
     def setUp(self):
+        spreads.config.clear()
+        spreads.config.read(user=False)
+        spreads.config['plugins'] = []
         self.plugins = [Mock(), Mock()]
         flow.get_pluginmanager = Mock(return_value=self.plugins)
 
     def test_process(self):
         flow.process('/tmp/foo')
-        for plugin in self.plugins:
-            assert plugin.obj.process.call_count == 1
-            assert plugin.obj.process.call_args_list == [call('/tmp/foo')]
+        for plug in self.plugins:
+            assert plug.obj.process.call_count == 1
+            assert plug.obj.process.call_args_list == [call('/tmp/foo')]

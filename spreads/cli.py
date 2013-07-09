@@ -92,7 +92,7 @@ def capture(args=None, devices=[]):
                                   " pre-configured devices! ({0} were"
                                   " found)".format(len(devices)))
         puts(colored.green("Found {0} devices!".format(len(devices))))
-        if not any(bool(x.orientation) for x in devices):
+        if any(not x.orientation for x in devices):
             raise DeviceException("At least one of the devices has not been"
                                   " properly configured, please re-run the"
                                   " program with the \'configure\' option!")
@@ -127,7 +127,7 @@ def download(args=None, path=None):
     if args.path:
         path = args.path
     devices = get_devices()
-    status_str = "Downloading {0}images from devices"
+    status_str = "Downloading {0} images from devices"
     if config['download']['keep'].get(bool):
         status_str = status_str.format("and deleting ")
     else:
@@ -151,7 +151,7 @@ def wizard(args):
     getch()
     puts(colored.green("Detecting devices."))
     devices = get_devices()
-    if not any(bool(x.orientation) for x in devices):
+    if any(not x.orientation for x in devices):
         puts(colored.yellow("Devices not yet configured!"))
         puts(colored.blue("Please turn both devices off."
                           " Press any key when ready."))
@@ -177,62 +177,64 @@ def wizard(args):
     puts(colored.green("======================="))
     postprocess(path=path)
 
+def setup_parser():
+    pluginmanager = get_pluginmanager()
+    parser = argparse.ArgumentParser(
+        description="Scanning Tool for  DIY Book Scanner")
+    subparsers = parser.add_subparsers()
 
-pluginmanager = get_pluginmanager()
-parser = argparse.ArgumentParser(
-    description="Scanning Tool for  DIY Book Scanner")
-subparsers = parser.add_subparsers()
+    parser.add_argument(
+        '--verbose', '-v', dest="verbose", action="store_true")
 
-parser.add_argument(
-    '--verbose', '-v', dest="verbose", action="store_true")
+    config_parser = subparsers.add_parser(
+        'configure', help="Perform initial configuration of the devices.")
+    config_parser.set_defaults(func=configure)
 
-config_parser = subparsers.add_parser(
-    'configure', help="Perform initial configuration of the devices.")
-config_parser.set_defaults(func=configure)
+    capture_parser = subparsers.add_parser(
+        'capture', help="Start the capturing workflow")
+    capture_parser.set_defaults(func=capture)
+    # Add arguments from plugins
+    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                      'capture', capture_parser)
 
-capture_parser = subparsers.add_parser(
-    'capture', help="Start the capturing workflow")
-capture_parser.set_defaults(func=capture)
-# Add arguments from plugins
-pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                  'capture', capture_parser)
+    download_parser = subparsers.add_parser(
+        'download', help="Download scanned images.")
+    download_parser.add_argument(
+        "path", help="Path where scanned images are to be stored")
+    download_parser.add_argument(
+        "--keep", "-k", dest="keep", action="store_true",
+        help="Keep files on devices after download")
+    download_parser.set_defaults(func=download)
+    # Add arguments from plugins
+    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                      'download', download_parser)
 
-download_parser = subparsers.add_parser(
-    'download', help="Download scanned images.")
-download_parser.add_argument(
-    "path", help="Path where scanned images are to be stored")
-download_parser.add_argument(
-    "--keep", "-k", dest="keep", action="store_true",
-    help="Keep files on devices after download")
-download_parser.set_defaults(func=download)
-# Add arguments from plugins
-pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                  'download', download_parser)
+    postprocess_parser = subparsers.add_parser(
+        'postprocess',
+        help="Postprocess scanned images.")
+    postprocess_parser.add_argument(
+        "path", help="Path where scanned images are stored")
+    postprocess_parser.add_argument(
+        "--jobs", "-j", dest="jobs", type=int, default=None,
+        metavar="<int>", help="Number of concurrent processes")
+    postprocess_parser.set_defaults(func=postprocess)
+    # Add arguments from plugins
+    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                      'postprocess', postprocess_parser)
 
-postprocess_parser = subparsers.add_parser(
-    'postprocess',
-    help="Postprocess scanned images.")
-postprocess_parser.add_argument(
-    "path", help="Path where scanned images are stored")
-postprocess_parser.add_argument(
-    "--jobs", "-j", dest="jobs", type=int, default=None,
-    metavar="<int>", help="Number of concurrent processes")
-postprocess_parser.set_defaults(func=postprocess)
-# Add arguments from plugins
-pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                  'postprocess', postprocess_parser)
+    wizard_parser = subparsers.add_parser(
+        'wizard', help="Interactive mode")
+    wizard_parser.add_argument(
+        "path", help="Path where scanned images are to be stored")
+    wizard_parser.set_defaults(func=wizard)
 
-wizard_parser = subparsers.add_parser(
-    'wizard', help="Interactive mode")
-wizard_parser.add_argument(
-    "path", help="Path where scanned images are to be stored")
-wizard_parser.set_defaults(func=wizard)
-
-pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),
-                  subparsers)
+    pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),
+                      subparsers)
+    return parser
 
 
 def main():
+    parser = setup_parser()
     args = parser.parse_args()
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
     if not os.path.exists(cfg_path):
