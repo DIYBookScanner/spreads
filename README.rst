@@ -2,9 +2,19 @@
 
 .. image:: https://secure.travis-ci.org/jbaiter/spreads.png
    :target: http://travis-ci.org/jbaiter/spreads 
+   :alt: Build status
    
 .. image:: https://coveralls.io/repos/jbaiter/spreads/badge.png?branch=master
    :target: https://coveralls.io/r/jbaiter/spreads?branch=master
+   :alt: Coverage status
+
+.. image:: https://pypip.in/v/spreads/badge.png
+    :target: https://crate.io/packages/spreads/
+    :alt: Latest PyPI version
+
+.. image:: https://pypip.in/d/spreads/badge.png
+    :target: https://crate.io/packages/spreads/
+    :alt: Number of PyPI downloads
 
 *spreads* is a tool that aims to streamline your book scanning workflow.
 It takes care of every step: Setting up your capturing devices, handling
