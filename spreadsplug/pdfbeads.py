@@ -13,14 +13,15 @@ logger = logging.getLogger('spreadsplug.pdfbeads')
 
 
 class PDFBeadsPlugin(HookPlugin):
-    def process(self, path):
+    def output(self, path):
         if not find_in_path('pdfbeads'):
             raise SpreadsException("Could not find executable `pdfbeads` in"
                                    " $PATH. Please install the appropriate"
                                    " package(s)!")
         logger.info("Assembling PDF.")
         img_dir = os.path.join(path, 'done')
-        pdf_file = os.path.join(path, "{0}.pdf".format(os.path.basename(path)))
+        pdf_file = os.path.join(path, 'out',
+                                "{0}.pdf".format(os.path.basename(path)))
         img_files = [x
                      for x in sorted(os.listdir(img_dir))
                      if os.path.splitext(x)[1].lower() == '.tif']

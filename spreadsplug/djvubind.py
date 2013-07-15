@@ -13,14 +13,14 @@ logger = logging.getLogger('spreadsplug.djvubind')
 
 
 class DjvuBindPlugin(HookPlugin):
-    def process(self, path):
+    def output(self, path):
         if not find_in_path('djvubind'):
             raise SpreadsException("Could not find executable `djvubind` in"
                                    " $PATH. Please install the appropriate"
                                    " package(s)!")
         logger.info("Assembling DJVU.")
         img_dir = os.path.join(path, 'done')
-        djvu_file = os.path.join(path,
+        djvu_file = os.path.join(path, 'out',
                                  "{0}.djvu".format(os.path.basename(path)))
         cmd = ["djvubind", img_dir]
         if self.config['ocr'].get(unicode) == 'none':

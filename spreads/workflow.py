@@ -99,5 +99,19 @@ def download(devices, path):
 
 def process(path):
     logger.debug("Running process hooks")
+    proc_path = os.path.join(path, 'done')
+    # Remove processed files from a previous run
+    if os.path.exists(proc_path):
+        shutil.rmtree(proc_path)
+    # Copy raw images to *done* directory
+    shutil.copytree(os.path.join(path, 'raw'), proc_path)
     for ext in get_pluginmanager():
         ext.obj.process(path)
+
+def output(path):
+    logger.debug("Running output hooks")
+    out_path = os.path.join(path, 'out')
+    if not os.path.exists(out_path):
+        os.mkdir(out_path)
+    for ext in get_pluginmanager():
+        ext.obj.output(path)

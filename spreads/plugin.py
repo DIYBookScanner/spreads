@@ -225,9 +225,29 @@ class HookPlugin(SpreadsPlugin):
         """ Perform one or more actions that either modify the captured images
             or generate a different output.
 
+        .. note:
+            This method is intended to operate on the *done* subdfolder of
+            the project directory. At the beginning of postprocessing, it
+            will contain copies of the images in *raw*. This is to ensure that
+            a copy of the original, scanned images will always be available
+            for archival purposes.
+
         :param path: The project path
         :type path: unicode
 
+        """
+        pass
+
+    def output(self, path):
+        """ Assemble an output file from the postprocessed images.
+
+        .. note:
+            This method is intended to take its input files from the *done*
+            subfolder of the project path and store its output in the
+            *out* subfolder.
+
+        :param path: The project path
+        :type path: unicode
         """
         pass
 

@@ -46,4 +46,3 @@ implement the ``add_command_parser`` method and add your new class as an
 entry point to the ``spreadsplug.hooks`` namespace. Your plugin class will
 most probably be a very few lines, telling the CLI parser its name, arguments
 and pass a function that will do the main work.
-
