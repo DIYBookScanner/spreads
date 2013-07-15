@@ -20,7 +20,7 @@ def rotate_image(path, left, right, inverse=False):
             .setLevel(logging.ERROR))
     logger.debug("Rotating image {0}".format(path))
     # Read the JPEG comment that contains the orientation of the image
-    img = pexif.fromFile(path)
+    img = pexif.JpegFile.fromFile(path)
     try:
         if img.exif.primary.Orientation == [8]:
             rotation = left

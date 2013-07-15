@@ -113,7 +113,7 @@ class PTPDevice(object):
     def download_image(self, camera_path, local_path):
         self.logger.debug("Downloading \"{0}\"".format(local_path))
         self._device.chdkDownload(camera_path, local_path)
-        img = pexif.fromFile(local_path)
+        img = pexif.JpegFile.fromFile(local_path)
         if self._orientation == 'left':
             exif_orientation = 8  # 90°
         else:
