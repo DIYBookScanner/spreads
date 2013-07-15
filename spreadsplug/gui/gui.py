@@ -1,17 +1,27 @@
+import logging
 import sys
 import time
 
 import PySide
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from PySide import QtCore, QtGui
 sys.modules['PyQt4'] = PySide
-from PIL import Image, ImageQt
+from PIL import Image
 
 import spreads.workflow as workflow
 import spreads.util as util
 from spreads.plugin import get_devices
 
 import gui_rc
+
+
+class TextEditHandler(logging.handler):
+    def __init__(self, textedit):
+        super(TextEditHandler, self).__init__(self)
+        self.textedit = textedit
+
+    def emit(self, record):
+        self.textedit.setText(self.format(record.message) + "\n")
 
 
 class SpreadsWizard(QtGui.QWizard):
@@ -290,6 +300,9 @@ class PostprocessPage(QtGui.QWizardPage):
         self.progressbar.setRange(0, 0)
         self.progressbar.setAlignment(QtCore.Qt.AlignCenter)
         self.logbox = QtGui.QTextEdit()
+        self.log_handler = TextEditHandler(self.logbox)
+        self.log_handler.setLevel(logging.INFO)
+        logging.getLogger().addHandler(self.log_handler)
 
         layout = QtGui.QVBoxLayout()
         layout.addWidget(self.progressbar)
@@ -298,8 +311,6 @@ class PostprocessPage(QtGui.QWizardPage):
 
     def initializePage(self):
         QtCore.QTimer.singleShot(0, self.doPostprocess)
-        # TODO: Update logbox from logging.info:
-        #       Implement a custom StreamHandler that flushes to our LineEdit
 
     def doPostprocess(self):
         with ThreadPoolExecutor(max_workers=1) as executor:
@@ -310,6 +321,10 @@ class PostprocessPage(QtGui.QWizardPage):
                 self.progressbar.setValue(1)
                 time.sleep(0.001)
         self.progressbar.hide()
+
+    def validatePage(self):
+        logging.getLogger().removeHandler(self.log_handler)
+        return True
 
 
 class FinishPage(QtGui.QWizardPage):
