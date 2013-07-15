@@ -5,6 +5,7 @@ from __future__ import division
 import logging
 import os
 
+import pexif
 import wand.image
 from concurrent import futures
 
@@ -19,24 +20,24 @@ def rotate_image(path, left, right, inverse=False):
             .setLevel(logging.ERROR))
     logger.debug("Rotating image {0}".format(path))
     # Read the JPEG comment that contains the orientation of the image
-    with open(path, 'rb') as fp:
-        fp.seek(-12, 2)
-        data = fp.read()
-        orientation = data[data.find('\xfe')+1:].lower()
-        logger.debug(orientation)
-    if orientation not in ('left', 'right'):
+    img = pexif.fromFile(path)
+    try:
+        if img.exif.primary.Orientation == [8]:
+            rotation = left
+        elif img.exif.primary.Orientation == [6]:
+            rotation = right
+        else:
+            raise Exception("Invalid value for orientation: {0}"
+                            .format(img.exif.primary.Orientation))
+    except:
         logger.warn("Cannot determine rotation for image {0}!"
                     .format(path))
         return
+    if inverse:
+                rotation *= 2
     logger.debug("Orientation for \"{0}\" is {1}"
                  .format(path, orientation))
     with wand.image.Image(filename=path) as img:
-        if orientation == 'left':
-            rotation = left
-        else:
-            rotation = right
-        if inverse:
-            rotation *= 2
         logger.debug("Rotating image \'{0}\' by {1} degrees"
                      .format(path, rotation))
         img.rotate(rotation)

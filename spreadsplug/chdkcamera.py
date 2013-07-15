@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 import logging
 import os
 import time
 from fractions import Fraction
 from math import log
 
+import pexif
 import pyptpchdk
 from PIL import Image
 
@@ -111,11 +113,13 @@ class PTPDevice(object):
     def download_image(self, camera_path, local_path):
         self.logger.debug("Downloading \"{0}\"".format(local_path))
         self._device.chdkDownload(camera_path, local_path)
-        # TODO: Don't just append the comment, but write it to a proper
-        #       location within the JPEG structure, so all applications
-        #       can read it.
-        with open(local_path, "a+b") as fp:
-            fp.write("\xff\xfe{0}".format(self._orientation.upper()))
+        img = pexif.fromFile(local_path)
+        if self._orientation == 'left':
+            exif_orientation = 8  # 90°
+        else:
+            exif_orientation = 6  # -90°
+        img.exif.primary.Orientation = [exif_orientation]
+        img.writeFile(local_path)
 
     def delete_image(self, camera_path):
         self.execute_lua("os.remove(\"{0}\")".format(camera_path))
