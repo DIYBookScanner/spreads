@@ -28,7 +28,7 @@ class AutoRotatePlugin(HookPlugin):
         if command == 'postprocess':
             parser.add_argument("--rotate-inverse", "-ri",
                                 dest="rotate_inverse", action="store_true",
-                                help="Rotate by +/- 180° instead of +/- 90°")
+                                help="Rotate by +/- 180 instead of +/- 90")
 
     def __init__(self, config):
         self.config = config['postprocess']
