@@ -15,9 +15,9 @@ from spreads.plugin import get_devices
 import gui_rc
 
 
-class TextEditHandler(logging.handler):
+class TextEditHandler(logging.Handler):
     def __init__(self, textedit):
-        super(TextEditHandler, self).__init__(self)
+        super(TextEditHandler, self).__init__()
         self.textedit = textedit
 
     def emit(self, record):
