@@ -142,6 +142,12 @@ def postprocess(args=None, path=None):
     workflow.process(path)
 
 
+def output(args=None, path=None):
+    if args.path:
+        path = args.path
+    workflow.output(path)
+
+
 def wizard(args):
     # TODO: Think about how we can make this more dynamic, i.e. get list of
     #       options for plugin with a description for each entry
@@ -176,6 +182,11 @@ def wizard(args):
     puts(colored.green("Starting postprocessing"))
     puts(colored.green("======================="))
     postprocess(path=path)
+
+    puts(colored.green("================="))
+    puts(colored.green("Generating output"))
+    puts(colored.green("================="))
+    output(path=path)
 
 def setup_parser():
     pluginmanager = get_pluginmanager()
@@ -221,6 +232,16 @@ def setup_parser():
     # Add arguments from plugins
     pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
                       'postprocess', postprocess_parser)
+
+    output_parser = subparsers.add_parser(
+        'output',
+        help="Generate output files.")
+    output_parser.add_argument(
+        "path", help="Path where scanned and postprocessed images are stored")
+    output_parser.set_defaults(func=output)
+    # Add arguments from plugins
+    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                      'output', output_parser)
 
     wizard_parser = subparsers.add_parser(
         'wizard', help="Interactive mode")

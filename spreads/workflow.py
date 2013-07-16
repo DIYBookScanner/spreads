@@ -27,6 +27,7 @@ from __future__ import division, unicode_literals
 
 import logging
 import os
+import shutil
 
 from concurrent.futures import ThreadPoolExecutor
 
