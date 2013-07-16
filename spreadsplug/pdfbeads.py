@@ -20,7 +20,7 @@ class PDFBeadsPlugin(HookPlugin):
                                    " package(s)!")
         logger.info("Assembling PDF.")
         img_dir = os.path.join(path, 'done')
-        pdf_file = os.path.join(path, 'out',
+        pdf_file = os.path.join('..', 'out',
                                 "{0}.pdf".format(os.path.basename(path)))
         img_files = [x
                      for x in sorted(os.listdir(img_dir))
