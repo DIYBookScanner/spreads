@@ -234,6 +234,7 @@ def setup_parser():
 
 
 def main():
+    config.read()
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
     if not os.path.exists(cfg_path):
         config.dump(filename=cfg_path)
