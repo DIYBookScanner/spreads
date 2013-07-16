@@ -7,7 +7,7 @@ from concurrent import futures
 
 from spreads.plugin import HookPlugin
 
-logger = logging.getLogger('spreadsplug.colorcorrect')
+logger = logging.getLogger('spreadsplug.tesseract')
 
 
 class TesseractPlugin(HookPlugin):
@@ -29,7 +29,7 @@ class TesseractPlugin(HookPlugin):
                 if not img.endswith('tif'):
                     continue
                 executor.submit(
-                    subprocess.check_output,
+                    subprocess.check_call,
                     ["tesseract", os.path.join(img_dir, img),
                      os.path.join(img_dir, os.path.splitext(img)[0]),
                      "-l", "fra", "hocr"],
