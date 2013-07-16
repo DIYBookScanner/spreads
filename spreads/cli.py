@@ -124,7 +124,7 @@ def capture(args=None, devices=[]):
 
 
 def download(args=None, path=None):
-    if args.path:
+    if args and args.path:
         path = args.path
     devices = get_devices()
     status_str = "Downloading {0} images from devices"
@@ -137,13 +137,13 @@ def download(args=None, path=None):
 
 
 def postprocess(args=None, path=None):
-    if args.path:
+    if args and args.path:
         path = args.path
     workflow.process(path)
 
 
 def output(args=None, path=None):
-    if args.path:
+    if args and args.path:
         path = args.path
     workflow.output(path)
 
@@ -255,6 +255,8 @@ def setup_parser():
 
 
 def main():
+    # Set to ERROR so we can see errors during plugin loading.
+    logging.basicConfig(loglevel=logging.ERROR)
     config.read()
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
     if not os.path.exists(cfg_path):
