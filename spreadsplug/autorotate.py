@@ -5,38 +5,16 @@ from __future__ import division
 import logging
 import os
 
-import pexif
 import wand.image
 from concurrent import futures
+from pexif import JpegFile
 
 from spreads.plugin import HookPlugin
 
 logger = logging.getLogger('spreadsplug.autorotate')
 
 
-def rotate_image(path, left, right, inverse=False):
-    # Silence Wand logger
-    (logging.getLogger("wand")
-            .setLevel(logging.ERROR))
-    logger.debug("Rotating image {0}".format(path))
-    # Read the JPEG comment that contains the orientation of the image
-    img = pexif.JpegFile.fromFile(path)
-    try:
-        if img.exif.primary.Orientation == [8]:
-            rotation = left
-        elif img.exif.primary.Orientation == [6]:
-            rotation = right
-        else:
-            raise Exception("Invalid value for orientation: {0}"
-                            .format(img.exif.primary.Orientation))
-    except:
-        logger.warn("Cannot determine rotation for image {0}!"
-                    .format(path))
-        return
-    if inverse:
-                rotation *= 2
-    logger.debug("Orientation for \"{0}\" is {1}"
-                 .format(path, orientation))
+def rotate_image(path, rotation):
     with wand.image.Image(filename=path) as img:
         logger.debug("Rotating image \'{0}\' by {1} degrees"
                      .format(path, rotation))
@@ -62,12 +40,29 @@ class AutoRotatePlugin(HookPlugin):
         #logger.debug("Using {0} cores".format(num_jobs))
         logger.debug("Spawning the processes...")
         with futures.ProcessPoolExecutor() as executor:
-            for img in os.listdir(img_dir):
+            # Silence Wand logger
+            (logging.getLogger("wand")
+                    .setLevel(logging.ERROR))
+            for imgpath in os.listdir(img_dir):
+                img = JpegFile.fromFile(os.path.join(img_dir, imgpath))
+                try:
+                    if img.exif.primary.Orientation == [8]:
+                        rotation = self.config['autorotate']['left'].get(int)
+                    elif img.exif.primary.Orientation == [6]:
+                        rotation = self.config['autorotate']['right'].get(int)
+                    else:
+                        raise Exception("Invalid value for orientation: {0}"
+                                        .format(img.exif.primary.Orientation))
+                except:
+                    logger.warn("Cannot determine rotation for image {0}!"
+                                .format(imgpath))
+                    continue
+                if self.config['autorotate']['rotate_inverse'].get(bool):
+                    rotation *= 2
+                logger.debug("Orientation for \"{0}\" is {1}"
+                            .format(imgpath, rotation))
                 executor.submit(
                     rotate_image,
-                    os.path.join(img_dir, img),
-                    inverse=(self.config['autorotate']['rotate_inverse']
-                             .get(bool)),
-                    left=self.config['autorotate']['left'].get(int),
-                    right=self.config['autorotate']['right'].get(int),
+                    os.path.join(img_dir, imgpath),
+                    rotation = rotation
                 )
