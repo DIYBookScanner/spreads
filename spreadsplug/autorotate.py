@@ -57,9 +57,9 @@ class AutoRotatePlugin(HookPlugin):
                 if self.config['autorotate']['rotate_inverse'].get(bool):
                     rotation *= 2
                 logger.debug("Orientation for \"{0}\" is {1}"
-                            .format(imgpath, rotation))
+                             .format(imgpath, rotation))
                 executor.submit(
                     rotate_image,
                     os.path.join(img_dir, imgpath),
-                    rotation = rotation
+                    rotation=rotation
                 )
