@@ -1,11 +1,8 @@
 import logging
-import sys
 import time
 
-import PySide
 from concurrent.futures import ThreadPoolExecutor
 from PySide import QtCore, QtGui
-sys.modules['PyQt4'] = PySide
 from PIL import Image
 
 import spreads.workflow as workflow
@@ -15,13 +12,35 @@ from spreads.plugin import get_devices
 import gui_rc
 
 
-class TextEditHandler(logging.Handler):
+class LogBoxHandler(logging.Handler):
+    # NOTE: This is neccessary, because a signal has to be an attribute of
+    #       a QObject instance. Multiple inheritance does not work here,
+    #       as both logging.Handler and QObject have an "emit" method
+    class DummyQObject(QtCore.QObject):
+        sig = QtCore.Signal(unicode)
+
     def __init__(self, textedit):
-        super(TextEditHandler, self).__init__()
+        logging.Handler.__init__(self)
+        self._qobj = self.DummyQObject()
+        self.sig = self._qobj.sig
         self.textedit = textedit
 
     def emit(self, record):
-        self.textedit.setText(self.format(record.message) + "\n")
+        self.sig.emit(self.format(record))
+
+
+class LogBoxFormatter(logging.Formatter):
+    LEVELS = {
+        'ERROR': "<strong><font color=\"red\">{0}</font></strong>",
+        'CRITICAL': "<strong><font color=\"orange\">{0}</font></strong>",
+        'WARNING': "<strong><font color=\"orange\">{0}</font></strong>",
+        'INFO': "{0}",
+        'DEBUG': "{0}",
+    }
+
+    def format(self, record):
+        levelname = record.levelname
+        return self.LEVELS[levelname].format(record.message)
 
 
 class SpreadsWizard(QtGui.QWizard):
@@ -32,6 +51,7 @@ class SpreadsWizard(QtGui.QWizard):
         self.addPage(ConfigurePage(config))
         self.addPage(CapturePage(config))
         self.addPage(PostprocessPage(config))
+        self.addPage(OutputPage(config))
         self.addPage(FinishPage(config))
 
         self.setPixmap(QtGui.QWizard.WatermarkPixmap,
@@ -300,9 +320,11 @@ class PostprocessPage(QtGui.QWizardPage):
         self.progressbar.setRange(0, 0)
         self.progressbar.setAlignment(QtCore.Qt.AlignCenter)
         self.logbox = QtGui.QTextEdit()
-        self.log_handler = TextEditHandler(self.logbox)
+        self.log_handler = LogBoxHandler(self.logbox)
         self.log_handler.setLevel(logging.INFO)
+        self.log_handler.setFormatter(LogBoxFormatter())
         logging.getLogger().addHandler(self.log_handler)
+        self.log_handler.sig.connect(self.logbox.append)
 
         layout = QtGui.QVBoxLayout()
         layout.addWidget(self.progressbar)
@@ -315,6 +337,47 @@ class PostprocessPage(QtGui.QWizardPage):
     def doPostprocess(self):
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(workflow.process,
+                                     self.wizard().project_path)
+            while not future.done():
+                QtGui.qApp.processEvents()
+                self.progressbar.setValue(1)
+                time.sleep(0.001)
+            if future.exception():
+                raise future.exception()
+        self.progressbar.hide()
+
+    def validatePage(self):
+        logging.getLogger().removeHandler(self.log_handler)
+        return True
+
+
+class OutputPage(QtGui.QWizardPage):
+    def __init__(self, config, parent=None):
+        super(OutputPage, self).__init__(parent)
+        self.setTitle("Generating output files")
+
+        self.progressbar = QtGui.QProgressBar(self)
+        self.progressbar.setRange(0, 0)
+        self.progressbar.setAlignment(QtCore.Qt.AlignCenter)
+        self.logbox = QtGui.QTextEdit()
+        self.log_handler = LogBoxHandler(self.logbox)
+        self.log_handler.setLevel(logging.INFO)
+        self.log_handler.setFormatter(LogBoxFormatter())
+        logging.getLogger().addHandler(self.log_handler)
+        self.log_handler.sig.connect(self.logbox.append)
+
+        layout = QtGui.QVBoxLayout()
+        layout.addWidget(self.progressbar)
+        layout.addWidget(self.logbox)
+        self.setLayout(layout)
+
+    def initializePage(self):
+        self.logbox.clear()
+        QtCore.QTimer.singleShot(0, self.doGenerateOutput)
+
+    def doGenerateOutput(self):
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(workflow.output,
                                      self.wizard().project_path)
             while not future.done():
                 QtGui.qApp.processEvents()

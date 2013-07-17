@@ -35,14 +35,11 @@ class AutoRotatePlugin(HookPlugin):
 
     def process(self, path):
         img_dir = os.path.join(path, 'raw')
+        # Silence Wand logger
+        (logging.getLogger("wand")
+                .setLevel(logging.ERROR))
         logger.info("Rotating images in {0}".format(img_dir))
-        #num_jobs = self.config['jobs'].get(int)
-        #logger.debug("Using {0} cores".format(num_jobs))
-        logger.debug("Spawning the processes...")
         with futures.ProcessPoolExecutor() as executor:
-            # Silence Wand logger
-            (logging.getLogger("wand")
-                    .setLevel(logging.ERROR))
             for imgpath in os.listdir(img_dir):
                 img = JpegFile.fromFile(os.path.join(img_dir, imgpath))
                 try:

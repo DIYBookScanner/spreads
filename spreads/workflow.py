@@ -99,6 +99,7 @@ def download(devices, path):
 
 
 def process(path):
+    logger.info("Starting postprocessing...")
     logger.debug("Running process hooks")
     proc_path = os.path.join(path, 'done')
     # Remove processed files from a previous run
@@ -108,11 +109,15 @@ def process(path):
     shutil.copytree(os.path.join(path, 'raw'), proc_path)
     for ext in get_pluginmanager():
         ext.obj.process(path)
+    logger.info("Done with postprocessing!")
+
 
 def output(path):
+    logger.info("Generating output files...")
     logger.debug("Running output hooks")
     out_path = os.path.join(path, 'out')
     if not os.path.exists(out_path):
         os.mkdir(out_path)
     for ext in get_pluginmanager():
         ext.obj.output(path)
+    logger.info("Done generating output files!")
