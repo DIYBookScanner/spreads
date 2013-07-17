@@ -11,3 +11,4 @@ stevedore >= 0.9.1
 futures >= 2.1.4
 Pillow >= 2.0.0
 coveralls >= 0.2
+pexif >= 0.13

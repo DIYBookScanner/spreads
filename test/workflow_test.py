@@ -98,7 +98,9 @@ class TestProcess(object):
         self.plugins = [Mock(), Mock()]
         flow.get_pluginmanager = Mock(return_value=self.plugins)
 
-    def test_process(self):
+    @patch('shutil.copytree')
+    def test_process(self, shutil):
+        flow.shutil = shutil
         flow.process('/tmp/foo')
         for plug in self.plugins:
             assert plug.obj.process.call_count == 1
