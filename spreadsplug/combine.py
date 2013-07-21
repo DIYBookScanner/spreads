@@ -5,7 +5,7 @@ import shutil
 
 from spreads.plugin import HookPlugin
 
-logger = logging.getLogger('spreadsplug.colorcorrect')
+logger = logging.getLogger('spreadsplug.combine')
 
 
 class CombinePlugin(HookPlugin):
