@@ -6,6 +6,19 @@ activated by default (except for :ref:`djvubind`). Plugins perform their
 actions at several designated points in the workflow. They can also add options
 and arguments to the command-line switches of each command.
 
+subcommand plugins
+==================
+These plugins add additional commands to the *spread* application. This way,
+plugins can implement additional workflow steps or provide alternative interfaces
+for the application.
+
+gui
+---
+Launches a graphical interface to the workflow. The steps are the same as
+with the :doc:`CLI wizard <tutorial>`, additionally a small thumbnail of every
+captured image is shown during the capture process. Requires an installation
+of the *PySide* packages.
+
 *download* plugins
 ==================
 These provide functionality that is executed after the files have been
@@ -39,13 +52,13 @@ this can be set to +/- 180° by specifying the :option:`rotate-inverse
    depending on their device of origin. With this setting, you can change
    this value to +/- 180 degrees, in case you scanned your book upside down.
 
-.. _plug_scantailor:
-
 colorcorrect
 ------------
 Automatically fixes white balance for your scanned images. To use it, enable
 it in the configuration, set the RGB values for your grey cards and ensure
 that the first two images you take are of your grey cards.
+
+.. _plug_scantailor:
 
 scantailor
 ----------
@@ -61,12 +74,30 @@ the output images will run on all CPU cores in parallel.
    postprocessing. This skips the step where you can manually adjust the
    ScanTailor configuration.
 
+.. _plug_tesseract:
+
+tesseract
+---------
+Perform optical character recognition on the scanned pages, using the
+*tesseract* application, that has to be installed in order for the plugin to
+work. For every recognized page, a HTML document in hOCR format will be written
+to *project-directory/done*. These files can be used by the output plugins
+to include the recognized text.
+
+.. _output_plugs:
+
+*output* plugins
+================
+An extension to the *out* command. Generates one or more output files from
+the scanned and postprocessed images. Writes its output to *project-directory/done*.
+
 .. _plug_pdfbeads:
 
 pdfbeads
 --------
 Generate a PDF file from the scanned and postprocessed images, using the
-*pdfbeads* tool.
+*pdfbeads* tool. If OCR has been performed before, the PDF will include a
+hidden text layer with the recognized text.
 
 .. _djvubind:
 

@@ -70,11 +70,10 @@ postprocess
 
     $ spread postprocess [--jobs <int>] <project-directory>
 
-Start the postprocessing workflog by calling each of the :ref:`postprocessing
+Start the postprocessing workflow by calling each of the :ref:`postprocessing
 plugins <postproc_plugs>` defined in the configuration one after the other (by
-default: :ref:`autorotate <plug_autorotate>`, :ref:`scantailor <plug_scantailor>`,
-:ref:`pdfbeads <plug_pdfbeads>`). All output files will be stored in
-*project-directory*.
+default: :ref:`autorotate <plug_autorotate>`, :ref:`scantailor <plug_scantailor>`).
+The transformed images will be stored in *project-directory/done*.
 
 .. program:: spread-postprocess
 
@@ -83,3 +82,14 @@ default: :ref:`autorotate <plug_autorotate>`, :ref:`scantailor <plug_scantailor>
    Specify how many concurrent processes should be used for rotation and
    ScanTailor. By default, *spreads* will use as many as CPU cores are
    available.
+
+output
+======
+::
+
+    $ spread output <project-directory>
+
+Start the output workflow, calling each of the :ref:`output plugins
+<output_plugs>` defined in the configuration (by
+default: :ref:`pdfbeads <plug_pdfbeads>`). All output files will be stored in
+*project-directory/out*.

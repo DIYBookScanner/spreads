@@ -50,6 +50,7 @@ More Documentation
    plugins
    extending
    api
+   changelog
 
 .. note::
 
