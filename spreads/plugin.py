@@ -285,7 +285,7 @@ def get_devices():
         except:
             devname = "{0}:{1}".format(device.bus, device.address)
         logger.debug("Trying to match device \"{0}\" with plugin {1}"
-                      .format(devname, extension.plugin.__name__))
+                     .format(devname, extension.plugin.__name__))
         try:
             match = extension.plugin.match(device)
         # Ignore devices that don't implement `match`

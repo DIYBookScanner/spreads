@@ -40,9 +40,14 @@ logger = logging.getLogger('spreads.workflow')
 def prepare_capture(devices):
     logger.debug("Preparing capture.")
     with ThreadPoolExecutor(len(devices)) as executor:
+        futures = []
         logger.debug("Preparing capture in devices")
         for dev in devices:
-            executor.submit(dev.prepare_capture)
+            futures.append(executor.submit(dev.prepare_capture))
+    if any(x.exception() for x in futures):
+        exc = next(x for x in futures if x.exception()).exception()
+        logger.error("There was an exception while preparing for capture",
+                     exc_info=sys.exc_info(exc))
     for ext in get_pluginmanager():
         logger.debug("Running prepare_capture hooks")
         ext.obj.prepare_capture(devices)
@@ -51,9 +56,13 @@ def prepare_capture(devices):
 def capture(devices):
     logger.info("Triggering capture.")
     with ThreadPoolExecutor(len(devices)) as executor:
+        futures = []
         logger.debug("Sending capture command to devices")
         for dev in devices:
-            executor.submit(dev.capture)
+            futures.append(executor.submit(dev.capture))
+    if any(x.exception() for x in futures):
+        exc = next(x for x in futures if x.exception()).exception()
+        raise exc
     for ext in get_pluginmanager():
         logger.debug("Running capture hooks")
         ext.obj.capture(devices)
