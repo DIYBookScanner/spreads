@@ -29,7 +29,7 @@ class PTPDevice(object):
     def __del__(self):
         del(self._device)
 
-    def execute_lua(self, script, wait=True, get_result=True):
+    def execute_lua(self, script, wait=True, get_result=False, timeout=256):
         """ Executes a Lua script on the camera.
 
         :param script: The Lua script
@@ -45,34 +45,69 @@ class PTPDevice(object):
         # Wrap the script in return if the script doesn't return by itself
         if get_result and not "return" in script:
             script = "return({0})".format(script)
-        self.logger.debug("Executing script: \"{0}\"".format(script))
-        script_id = self._device.chdkExecLua(script)
-        script_status = None
-        if not wait:
+        retries = 0
+        while retries < 4:
+            self.logger.debug("Executing script: \"{0}\"".format(script))
+            try:
+                script_id = self._device.chdkExecLua(script)
+            except pyptpchdk.PTPError as exc:
+                self.logger.warn("Script raised an error, retrying in 10s...")
+                time.sleep(10)
+                if retries == 3:
+                    raise exc
+                retries += 1
+                continue
+            script_status = None
+            if not wait:
+                return
+            # Wait for the script to complete
+            loops = 0
+            while loops < timeout and script_status not in (1, 2):
+                loops += 1
+                script_status = self._device.chdkScriptStatus(script_id)
+                time.sleep(0.01)
+            if not script_status:
+                self.logger.warn("Script timed out, retrying...")
+                retries += 1
+            else:
+                break
+        if get_result:
+            return self._get_messages(script_id)
+        else:
+            self._flush_messages()
             return
-        # Wait for the script to complete
-        while script_status not in (1, 2):
-            script_status = self._device.chdkScriptStatus(script_id)
-            time.sleep(0.001)
-        retvals = []
-        if not get_result:
-            return
+
+    def _get_messages(self, script_id):
         msg = None
+        retvals = []
         # Get all messages returned by the script
         while not retvals or msg[2] != 0:
+            time.sleep(0.01)
             msg = self._device.chdkReadScriptMessage()
             if msg[1] == 1:
                 raise DeviceException("Lua error: {0}".format(msg[0]))
             if msg[2] == 0:
                 continue
             if msg[2] != script_id:
-                self.logger.warn("Script IDs did not match. Expected \"{0}\","
-                             " got \"{1}\", ignoring".format(script_id, msg[2])
-                             )
+                self.logger.warn(
+                    "Script IDs did not match. Expected \"{0}\","
+                    " got \"{1}\", ignoring".format(script_id, msg[2])
+                )
+                self.logger.debug("Message (type {0}) was: {1}"
+                                  .format(msg[1], msg[0]))
                 continue
+            self.logger.debug("Camera returned: {0}".format(msg[0]))
             retvals.append(msg[0])
+        # NOTE: Just to be safe...
+        time.sleep(0.25)
         # Return a tuple containing all of the messages
         return tuple(retvals)
+
+    def _flush_messages(self):
+        msg = (None, None, None)
+        while msg[2] != 0:
+            time.sleep(0.01)
+            msg = self._device.chdkReadScriptMessage()
 
     def get_orientation(self):
         # NOTE: CHDK doesn't seem to be able to write the EXIF owner to the
@@ -285,10 +320,10 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
         80: 373,
     }
 
-    def __init__(self, config):
-        super(CanonA2200CameraDevice, self).__init__(config)
+    def __init__(self, config, device):
+        super(CanonA2200CameraDevice, self).__init__(config, device)
         self.logger = logging.getLogger(
-            'spreadsplug.chdkcamera.CanonA2200CameraDevice')
+            'CanonA2200CameraDevice[{0}]'.format(self.orientation))
 
     @classmethod
     def match(cls, device):
