@@ -330,6 +330,7 @@ class PostprocessPage(QtGui.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
+        self.logbox.clear()
         QtCore.QTimer.singleShot(0, self.doPostprocess)
 
     def doPostprocess(self):
