@@ -28,6 +28,8 @@ from __future__ import division, unicode_literals
 import logging
 import os
 import shutil
+import sys
+import time
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -96,6 +98,8 @@ def download(devices, path):
     logger.debug("Running download hooks")
     for ext in get_pluginmanager():
         ext.obj.download(devices, path)
+    # NOTE: Just to be safe...
+    time.sleep(5)
     if not keep:
         logger.info("Deleting images from devices")
         with ThreadPoolExecutor(len(devices)) as executor:

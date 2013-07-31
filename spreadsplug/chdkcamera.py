@@ -123,6 +123,7 @@ class PTPDevice(object):
 
     def delete_image(self, camera_path):
         self.execute_lua("os.remove(\"{0}\")".format(camera_path))
+        time.sleep(0.5)
 
     def download_all_images(self, path):
         for fpath in self.get_image_list():
@@ -315,7 +316,7 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
                 self._device.execute_lua('click("zoom_out")')
             elif zoom < level:
                 self._device.execute_lua('click("zoom_in")')
-            time.sleep(0.5)
+            time.sleep(1)
 
     def _set_sensitivity(self, value=80):
         """ Set the camera's ISO value.
