@@ -141,15 +141,21 @@ class PTPDevice(object):
         self._orientation = orientation
 
     def get_image_list(self):
-        img_path = self.execute_lua("get_image_dir()")[0]
+        # FIXME: If there are more than ~200 images on the camera, it will
+        #        run out of memory while returning the list of files.
+        #        We would be better off if we split longer filelists across
+        #        multiple transactions, see what chdkptp does for an example.
+        img_path = self.execute_lua("get_image_dir()", get_result=True)[0]
         file_list = [os.path.join(img_path, x.split("\t")[1])
                      for x in (self.execute_lua("os.listdir(\"{0}\")"
-                               .format(img_path))[0].split("\n")[:-1])]
+                               .format(img_path), get_result=True)[0]
+                               .split("\n")[:-1])]
         return file_list
 
     def download_image(self, camera_path, local_path):
         self.logger.debug("Downloading \"{0}\"".format(local_path))
         self._device.chdkDownload(camera_path, local_path)
+        self.logger.debug("Download complete")
         img = pexif.JpegFile.fromFile(local_path)
         if self._orientation == 'left':
             exif_orientation = 8  # 90°
@@ -330,6 +336,41 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
         matches = (hex(device.idVendor) == "0x4a9"
                    and hex(device.idProduct) == "0x322a")
         return matches
+
+    def _get_image_list(self):
+        # NOTE:
+        #   We use this workaround, as the A2200 doesn't have enough memory
+        #   to deal with directory listings containing more than ~250
+        #   items.
+        #   We make use of the fact that the firmware numbers images
+        #   consecutively: By obtaining the name of the first and the
+        #   name of the last image, we can safely determine the rest
+        #   of the filenames without getting the whole directory listing.
+        img_path = self._device.execute_lua("get_image_dir()",
+                                            get_result=True)[0]
+        first_file = self._device.execute_lua('os.listdir("{0}")[1]'
+                                              .format(img_path),
+                                              get_result=True)[0]
+        if not first_file:
+            raise StopIteration
+        first_num = int(first_file[4:-4])
+        last_num = self._device.execute_lua("get_exp_count()",
+                                            get_result=True)[0]
+        for num in xrange(first_num, last_num+1):
+            fname = "IMG_{0}.JPG".format(num)
+            yield os.path.join(img_path, fname)
+
+    def download_files(self, path):
+        for campath in self._get_image_list():
+            local_path = os.path.join(path, os.path.basename(campath))
+            self._device.download_image(campath, local_path)
+
+    def delete_files(self):
+        for campath in self._get_image_list():
+            self._device.delete_image(campath)
+
+    def list_files(self):
+        return list(self._get_image_list())
 
     def _set_zoom(self, level):
         """ Set zoom level.
