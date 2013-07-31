@@ -22,9 +22,9 @@ class PTPDevice(object):
     STATUS_MSG = 2
 
     def __init__(self, usbdevice):
-        self.logger = logging.getLogger('spreadsplug.chdkcamera.PTPDevice')
-        self._device = pyptpchdk.PTPDevice(usbdevice.bus, usbdevice.address)
         self._orientation = None
+        self.logger = logging.getLogger('PTPDevice')
+        self._device = pyptpchdk.PTPDevice(usbdevice.bus, usbdevice.address)
 
     def __del__(self):
         del(self._device)
@@ -86,8 +86,10 @@ class PTPDevice(object):
                 content=file:read()
                 file:close()
                 return content
-                """)[0].lower()
+                """, get_result=True)[0].lower()
             self.logger.debug("Orientation is: \"{0}\"".format(orientation))
+            self.logger = logging.getLogger('PTPDevice[{0}]'
+                                            .format(orientation))
             self._orientation = orientation
             return orientation
         except DeviceException as e:
