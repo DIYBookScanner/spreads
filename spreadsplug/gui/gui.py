@@ -279,7 +279,6 @@ class CapturePage(QtGui.QWizardPage):
         if self.shot_count is None:
             self.shot_count = 0
         workflow.capture(self.wizard().selected_devices)
-        self.update_preview()
         self.shot_count += 2
         self.status.setText("Shot {0} pages in {1:.0f} minutes "
                             "({2:.0f} pages/hour)".format(
@@ -297,7 +296,6 @@ class CapturePage(QtGui.QWizardPage):
                                  QtGui.QImage.Format_ARGB32).rgbSwapped()
             return dev.orientation, image
 
-        # TODO: Auto-refreh at 5fps
         # TODO: Don't go via PIL, find a way to use RGB data directly
         with ThreadPoolExecutor(max_workers=2) as executor:
             futures = executor.map(get_preview,
