@@ -217,9 +217,13 @@ class CHDKCameraDevice(DevicePlugin):
         :type device:   `usb.core.Device <http://github.com/walac/pyusb>`_
 
         """
-        self.config = config['device']
         self._device = PTPDevice(device)
         self.orientation = self._device.get_orientation()
+        self._sensitivity = config['device']['sensitivity'].get(int)
+        self._shutter_speed = (float(Fraction(config['device']['shutter_speed']
+                                              .get(unicode))))
+        self._zoom_level = config['device']['zoom_level'].get(int)
+        self._dpi = config['device']['dpi'].get(int)
 
     def set_orientation(self, orientation):
         """ Set the device orientation.
@@ -243,24 +247,24 @@ class CHDKCameraDevice(DevicePlugin):
     def prepare_capture(self):
         self._set_record_mode()
         time.sleep(0.25)
-        self._set_zoom(self.config['zoom_level'].get(int))
-        self._set_sensitivity(self.config['sensitivity'].get(int))
+        self._set_zoom(self._zoom_level)
         self._disable_flash()
         self._disable_ndfilter()
+        self._set_sensitivity(self._sensitivity)
+        self._set_shutter_speed(self._shutter_speed)
+        self._lock_focus()
+        time.sleep(3)
 
     def capture(self):
         """ Shoot a picture. """
-        # Set ISO
-        self._set_sensitivity(self.config['sensitivity'].get(int))
-        # Set shutter speed (has to be set for every shot)
-        # Calculate TV96 value from shutter_speed
-        shutter_float = (float(Fraction(self.config['shutter_speed']
-                         .get(unicode))))
-        tv96_value = -96*log(shutter_float)/log(2)
-        # Round to nearest multiple of 32
-        tv96_value = int(32*round(tv96_value/32))
-        self._device.execute_lua("set_tv96_direct({0})".format(tv96_value))
-        self._device.execute_lua("shoot()", get_result=False)
+        self._set_sensitivity(self._sensitivity)
+        time.sleep(0.5)
+        self._set_shutter_speed(self._shutter_speed)
+        time.sleep(0.5)
+        self._device.execute_lua("shoot()")
+        # NOTE: This is a safety measure, as CHDK tends to crash if we don't
+        #       wait.
+        time.sleep(3)
 
     def _set_record_mode(self):
         """ Put the camera in record mode. """
@@ -272,7 +276,7 @@ class CHDKCameraDevice(DevicePlugin):
         :returns: int -- the current zoom level
 
         """
-        return self._device.execute_lua("get_zoom()")[0]
+        return self._device.execute_lua("get_zoom()", get_result=True)[0]
 
     def _set_zoom(self, level):
         """ Set zoom level.
@@ -281,7 +285,8 @@ class CHDKCameraDevice(DevicePlugin):
         :type level:  int
 
         """
-        available_levels = self._device.execute_lua("get_zoom_steps()")[0]
+        available_levels = self._device.execute_lua("get_zoom_steps()",
+                                                    get_result=True)[0]
         if not level in available_levels:
             raise DeviceException("Level outside of supported range!")
         self._device.execute_lua('set_zoom({0})'.format(level))
@@ -299,9 +304,25 @@ class CHDKCameraDevice(DevicePlugin):
         """
         self._device.execute_lua("set_iso_mode({0})".format(value))
 
+    def _set_shutter_speed(self, value=448):
+        # Calculate TV96 value from shutter_speed
+        tv96_value = -96*log(value)/log(2)
+        # Round to nearest multiple of 32
+        tv96_value = int(32*round(tv96_value/32))
+        self._device.execute_lua("set_tv96_direct({0})".format(tv96_value))
+
     def _disable_ndfilter(self):
         """ Disable the camera's ND Filter. """
         self._device.execute_lua("set_nd_filter(2)")
+
+    def _lock_focus(self):
+        """ Acquire auto focus and lock it. """
+        self._device.execute_lua("set_aflock(0)")
+        self._device.execute_lua("press('shoot_half')")
+        time.sleep(0.8)
+        self._device.execute_lua("release('shoot_half')")
+        time.sleep(0.5)
+        self._device.execute_lua("set_aflock(1)")
 
     def _play_sound(self, sound_num):
         """ Plays one of the following sounds:
@@ -409,7 +430,7 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
         :type iso-value:  int
 
         """
-        iso_value = self.config['sensitivity'].get(int)
+        iso_value = self._sensitivity
         try:
             sv96_value = CanonA2200CameraDevice.ISO_TO_APEX[iso_value]
         except KeyError:
