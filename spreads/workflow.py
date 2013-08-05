@@ -92,9 +92,14 @@ def download(devices, path):
             os.mkdir(subpath)
     with ThreadPoolExecutor(len(devices)) as executor:
         logger.debug("Starting download process")
+        futures = []
         for dev in devices:
-            executor.submit(dev.download_files,
-                            os.path.join(path, dev.orientation))
+            futures.append(executor.submit(dev.download_files,
+                                           os.path.join(path, dev.orientation))
+            )
+        if any(x.exception() for x in futures):
+            exc = next(x for x in futures if x.exception()).exception()
+            raise exc
     logger.debug("Running download hooks")
     for ext in get_pluginmanager():
         ext.obj.download(devices, path)
