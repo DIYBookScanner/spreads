@@ -8,6 +8,7 @@ from math import log
 import pexif
 import pyptpchdk
 from PIL import Image
+from pyptpchdk import PTPError
 
 from spreads.plugin import DevicePlugin
 from spreads.util import DeviceException
@@ -50,10 +51,12 @@ class PTPDevice(object):
             self.logger.debug("Executing script: \"{0}\"".format(script))
             try:
                 script_id = self._device.chdkExecLua(script)
-            except pyptpchdk.PTPError as exc:
-                self.logger.warn("Script raised an error, retrying in 10s...")
-                time.sleep(10)
-                if retries == 3:
+            except Exception as exc:
+                self.logger.warn("Script raised an error, retrying in 15s...")
+                time.sleep(15)
+                if retries == 5:
+                    self.logger.error("Script still raises an error after 5"
+                                      " tries, giving up.")
                     raise exc
                 retries += 1
                 continue
@@ -64,7 +67,10 @@ class PTPDevice(object):
             loops = 0
             while loops < timeout and script_status not in (1, 2):
                 loops += 1
-                script_status = self._device.chdkScriptStatus(script_id)
+                try:
+                    script_status = self._device.chdkScriptStatus(script_id)
+                except PTPError:
+                    pass
                 time.sleep(0.01)
             if not script_status:
                 self.logger.warn("Script timed out, retrying...")
@@ -83,7 +89,11 @@ class PTPDevice(object):
         # Get all messages returned by the script
         while not retvals or msg[2] != 0:
             time.sleep(0.01)
-            msg = self._device.chdkReadScriptMessage()
+            try:
+                msg = self._device.chdkReadScriptMessage()
+            except PTPError:
+                self.logger.warn("Couldn't read message, retrying...")
+                continue
             if msg[1] == 1:
                 raise DeviceException("Lua error: {0}".format(msg[0]))
             if msg[2] == 0:
@@ -107,7 +117,10 @@ class PTPDevice(object):
         msg = (None, None, None)
         while msg[2] != 0:
             time.sleep(0.01)
-            msg = self._device.chdkReadScriptMessage()
+            try:
+                msg = self._device.chdkReadScriptMessage()
+            except PTPError:
+                self.logger.warn("Couldn't read message, ignoring...")
 
     def get_orientation(self):
         # NOTE: CHDK doesn't seem to be able to write the EXIF owner to the
@@ -369,26 +382,45 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
         #   of the filenames without getting the whole directory listing.
         img_path = self._device.execute_lua("get_image_dir()",
                                             get_result=True)[0]
-        first_file = self._device.execute_lua('os.listdir("{0}")[1]'
+        first_file = self._device.execute_lua('flist = os.listdir("{0}")\n'
+                                              'table.sort(flist)\n'
+                                              'return flist[1]'
                                               .format(img_path),
-                                              get_result=True)[0]
+                                                      get_result=True)[0]
         if not first_file:
+            self.logger.warn("Could not get name of first file!")
             raise StopIteration
         first_num = int(first_file[4:-4])
-        last_num = self._device.execute_lua("get_exp_count()",
-                                            get_result=True)[0]
+        #last_num = self._device.execute_lua("get_exp_count()",
+        #                                    get_result=True)[0]
+        num_files = self._device.execute_lua("table.getn(os.listdir('{0}'))"
+                                             .format(img_path), get_result=True
+                                             )[0]
+        last_file = self._device.execute_lua('flist = os.listdir("{0}")\n'
+                                             'table.sort(flist)\n'
+                                             'return flist[{1}]'
+                                             .format(img_path, num_files),
+                                                     get_result=True)[0]
+        last_num = int(last_file[4:-4])
         for num in xrange(first_num, last_num+1):
             fname = "IMG_{0}.JPG".format(num)
             yield os.path.join(img_path, fname)
 
     def download_files(self, path):
         for campath in self._get_image_list():
+            print campath
             local_path = os.path.join(path, os.path.basename(campath))
-            self._device.download_image(campath, local_path)
+            try:
+                self._device.download_image(campath, local_path)
+            except:
+                continue
 
     def delete_files(self):
         for campath in self._get_image_list():
-            self._device.delete_image(campath)
+            try:
+                self._device.delete_image(campath)
+            except:
+                continue
 
     def list_files(self):
         return list(self._get_image_list())
