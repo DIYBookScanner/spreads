@@ -18,8 +18,17 @@ def rotate_image(path, rotation):
     with wand.image.Image(filename=path) as img:
         logger.debug("Rotating image \'{0}\' by {1} degrees"
                      .format(path, rotation))
-        img.rotate(rotation)
-        img.save(filename=path)
+        if img.height > img.width:
+            logger.info("Image already rotated, skipping...")
+        else:
+            img.rotate(rotation)
+            img.save(filename=path)
+    # Update EXIF orientation
+    img = JpegFile.fromFile(path)
+    if not img.exif.primary.Orientation == [1]:
+        logger.debug("Updating EXIF information for image '{0}'".format(path))
+        img.exif.primary.Orientation = [1]
+        img.writeFile(path)
 
 
 class AutoRotatePlugin(HookPlugin):
@@ -46,7 +55,11 @@ class AutoRotatePlugin(HookPlugin):
                     if img.exif.primary.Orientation == [8]:
                         rotation = self.config['autorotate']['left'].get(int)
                     elif img.exif.primary.Orientation == [6]:
-                        rotation = self.config['autorotate']['right'].get(int)
+                        rotation = (self.config['autorotate']
+                                    ['right'].get(int))
+                    elif img.exif.primary.Orientation == [1]:
+                        # Already rotated, so we skip it
+                        continue
                     else:
                         raise Exception("Invalid value for orientation: {0}"
                                         .format(img.exif.primary.Orientation))
