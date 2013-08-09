@@ -115,12 +115,16 @@ class PTPDevice(object):
 
     def _flush_messages(self):
         msg = (None, None, None)
+        tries = 0
         while msg[2] != 0:
             time.sleep(0.01)
             try:
                 msg = self._device.chdkReadScriptMessage()
             except PTPError:
+                if tries > 10:
+                    return
                 self.logger.warn("Couldn't read message, ignoring...")
+                tries += 1
 
     def get_orientation(self):
         # NOTE: CHDK doesn't seem to be able to write the EXIF owner to the
@@ -277,7 +281,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._device.execute_lua("shoot()")
         # NOTE: This is a safety measure, as CHDK tends to crash if we don't
         #       wait.
-        time.sleep(3)
+        time.sleep(0.5)
 
     def _set_record_mode(self):
         """ Put the camera in record mode. """
