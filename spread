@@ -20,31 +20,37 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+from __future__ import print_function
+
 import logging
 import sys
 import traceback
 
-from clint.textui import puts, colored
+import colorama
 
 import spreads.cli
 from spreads.confit import ConfigError
-from spreads.util import SpreadsException, DeviceException
+from spreads.util import DeviceException
 
 if __name__ == '__main__':
+    # Initialize color support
+    colorama.init()
     try:
         spreads.cli.main()
     except Exception as e:
         typ, val, tb = sys.exc_info()
         logging.debug("".join(traceback.format_exception(typ, val, tb)))
         if isinstance(e, DeviceException):
-            puts(colored.red("There is a problem with your device"
-                             " configuration:"))
-            puts(colored.red(e.message))
+            print(colorama.Fore.RED + "There is a problem with your device"
+                                      " configuration:")
+            print(colorama.Fore.RED + e.message)
         elif isinstance(e, ConfigError):
-            puts(colored.red("There is a problem with your configuration"
-                             " file(s):"))
-            puts(colored.red(e.message))
+            print(colorama.Fore.RED +
+                  "There is a problem with your configuration file(s):")
+            print(colorama.Fore.RED + e.message)
         else:
-            puts(colored.red("spreads encountered an error:"))
-            puts(colored.red(
-                "".join(traceback.format_exception(typ, val, tb))))
+            print(colorama.Fore.RED + "spreads encountered an error:")
+            print(colorama.Fore.RED +
+                  "".join(traceback.format_exception(typ, val, tb)))
+    # Deinitialize color support
+    colorama.deinit()

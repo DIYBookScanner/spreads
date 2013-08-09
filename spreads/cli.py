@@ -23,7 +23,7 @@
 spreads CLI code.
 """
 
-from __future__ import division, unicode_literals
+from __future__ import division, unicode_literals, print_function
 
 import argparse
 import logging
@@ -62,9 +62,9 @@ except ImportError:
 
 def configure(args=None):
     for orientation in ('left', 'right'):
-        puts("Please connect and turn on the device labeled \'{0}\'"
-             .format(orientation))
-        puts(colored.blue("Press any key when ready."))
+        print("Please connect and turn on the device labeled \'{0}\'"
+              .format(orientation))
+        print(colorama.Fore.BLUE + "Press any key when ready.")
         _ = getch()
         devs = get_devices()
         if len(devs) > 1:
@@ -73,34 +73,34 @@ def configure(args=None):
         if not devs:
             raise DeviceException("No device found!")
         devs[0].set_orientation(orientation)
-        puts(colored.green("Configured \'{0}\' device.".format(orientation)))
-        puts("Please turn off the device.")
-        puts(colored.blue("Press any key when ready."))
-        _ = getch()
+        print(colorama.Fore.GREEN + "Configured \'{0}\' device.".format(orientation))
+        print("Please turn off the device.")
+        print(colorama.Fore.BLUE + "Press any key when ready.")
+        getch()
 
 
 def capture(args=None, devices=[]):
     if not devices:
-        puts("Starting capture workflow, please connect and turn on the"
-             " devices.")
-        puts(colored.blue("Press any key to continue."))
+        print("Starting capture workflow, please connect and turn on the"
+              " devices.")
+        print(colorama.Fore.BLUE + "Press any key to continue.")
         getch()
-        puts("Detecting devices.")
+        print("Detecting devices.")
         devices = get_devices()
         if len(devices) != 2:
             raise DeviceException("Please connect and turn on two"
                                   " pre-configured devices! ({0} were"
                                   " found)".format(len(devices)))
-        puts(colored.green("Found {0} devices!".format(len(devices))))
+        print(colorama.Fore.GREEN + "Found {0} devices!".format(len(devices)))
         if any(not x.orientation for x in devices):
             raise DeviceException("At least one of the devices has not been"
                                   " properly configured, please re-run the"
                                   " program with the \'configure\' option!")
     # Set up for capturing
-    puts("Setting up devices for capturing.")
+    print("Setting up devices for capturing.")
     workflow.prepare_capture(devices)
     # Start capture loop
-    puts(colored.blue("Press 'b' to capture."))
+    print(colorama.Fore.BLUE + "Press 'b' to capture.")
     shot_count = 0
     start_time = time.time()
     pages_per_hour = 0
@@ -112,13 +112,13 @@ def capture(args=None, devices=[]):
         shot_count += len(devices)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
         status = ("\rShot {0} pages [{1:.0f}/h]"
-                  .format(colored.green(unicode(shot_count)), pages_per_hour))
+                  .format(colorama.Fore.GREEN + unicode(shot_count), pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
     workflow.finish_capture(devices)
     sys.stdout.write("\rShot {0} pages in {1:.1f} minutes, average speed was"
                      " {2:.0f} pages per hour"
-                     .format(colored.green(str(shot_count)),
+                     .format(colorama.Fore.GREEN + str(shot_count),
                              (time.time() - start_time)/60, pages_per_hour))
     sys.stdout.flush()
 
@@ -132,7 +132,7 @@ def download(args=None, path=None):
         status_str = status_str.format("and deleting ")
     else:
         status_str = status_str.format("")
-    puts(colored.green(status_str))
+    print(colorama.Fore.GREEN + status_str)
     workflow.download(devices, path)
 
 
@@ -152,41 +152,46 @@ def wizard(args):
     # TODO: Think about how we can make this more dynamic, i.e. get list of
     #       options for plugin with a description for each entry
     path = args.path
-    puts("Please connect and turn on the devices.")
-    puts(colored.blue("Press any key to continue."))
+    print("Please connect and turn on the devices.")
+    print(colorama.Fore.BLUE + "Press any key to continue.")
     getch()
-    puts(colored.green("Detecting devices."))
+    print(colorama.Fore.GREEN + "Detecting devices.")
     devices = get_devices()
     if any(not x.orientation for x in devices):
-        puts(colored.yellow("Devices not yet configured!"))
-        puts(colored.blue("Please turn both devices off."
-                          " Press any key when ready."))
+        print(colorama.Fore.YELLOW + "Devices not yet configured!")
+        print(colorama.Fore.BLUE + "Please turn both devices off."
+                          " Press any key when ready.")
         while True:
             try:
                 configure()
                 break
             except DeviceException as e:
-                print e
+                print(e)
 
-    puts(colored.green("=========================="))
-    puts(colored.green("Starting capturing process"))
-    puts(colored.green("=========================="))
+    print(colorama.Fore.GREEN +
+          "==========================\n",
+          "Starting capturing process\n",
+          "==========================")
     capture(devices=devices)
 
-    puts(colored.green("========================="))
-    puts(colored.green("Starting download process"))
-    puts(colored.green("========================="))
+    print(colorama.Fore.GREEN +
+          "=========================\n",
+          "Starting download process\n"
+          "=========================")
     download(path=path)
 
-    puts(colored.green("======================="))
-    puts(colored.green("Starting postprocessing"))
-    puts(colored.green("======================="))
+    print(colorama.Fore.GREEN +
+          "=======================\n"
+          "Starting postprocessing\n"
+          "=======================")
     postprocess(path=path)
 
-    puts(colored.green("================="))
-    puts(colored.green("Generating output"))
-    puts(colored.green("================="))
+    print(colorama.Fore.GREEN +
+          "=================\n",
+          "Generating output\n"
+          "=================")
     output(path=path)
+
 
 def setup_parser():
     pluginmanager = get_pluginmanager()
@@ -255,6 +260,8 @@ def setup_parser():
 
 
 def main():
+    # Initialize color support
+    colorama.init()
     # Set to ERROR so we can see errors during plugin loading.
     logging.basicConfig(loglevel=logging.ERROR)
     config.read()
@@ -287,3 +294,6 @@ def main():
                         level=loglevel)
 
     args.func(args)
+
+    # Deinitialize color support
+    colorama.deinit()
