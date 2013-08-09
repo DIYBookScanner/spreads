@@ -16,14 +16,13 @@ class TesseractPlugin(HookPlugin):
     def add_arguments(cls, command, parser):
         if command == 'postprocess':
             parser.add_argument("--language", "-l",
-                                dest="language", action="store_true",
+                                dest="language", default="eng",
                                 help="OCR language (3-letter language code")
 
-    def __init__(self, config):
-        self.config = config['postprocess']
-
     def process(self, path):
+        ocr_lang = self.config['language'].get(str)
         logger.info("Performing OCR")
+        logger.info("Language is \"{0}\"".format(ocr_lang))
         img_dir = os.path.join(path, 'done')
         with futures.ProcessPoolExecutor() as executor:
             for img in os.listdir(img_dir):
@@ -33,7 +32,7 @@ class TesseractPlugin(HookPlugin):
                     subprocess.check_call,
                     ["tesseract", os.path.join(img_dir, img),
                      os.path.join(img_dir, os.path.splitext(img)[0]),
-                     "-l", "fra", "hocr"],
+                     "-l", ocr_lang, "hocr"],
                     stderr=subprocess.STDOUT
                 )
         # NOTE: This modifies the hOCR files to make them compatible with
