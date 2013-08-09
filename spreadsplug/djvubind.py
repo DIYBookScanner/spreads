@@ -23,7 +23,7 @@ class DjvuBindPlugin(HookPlugin):
         djvu_file = os.path.join(path, 'out',
                                  "{0}.djvu".format(os.path.basename(path)))
         cmd = ["djvubind", img_dir]
-        if self.config['ocr'].get(unicode) == 'none':
+        if self.config['djvubind']['ocr'].get(unicode) == 'none':
             cmd.append("--no-ocr")
         logger.debug("Running " + " ".join(cmd))
         _ = subprocess.check_output(cmd, stderr=subprocess.STDOUT)

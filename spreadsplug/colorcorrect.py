@@ -25,16 +25,17 @@ def correct_colors(img_path, factors):
 
 
 class ColorCorrectionPlugin(HookPlugin):
-    def __init__(self, config):
-        self.config = config['postprocess']['colorcorrect']
-
     def process(self, path):
         path = os.path.join(path, 'raw')
         logger.debug("Starting color correction...")
         # Get the gray card's RGB values from configuration
-        true_colors = (float(self.config['true_red'].get(int)),
-                       float(self.config['true_green'].get(int)),
-                       float(self.config['true_blue'].get(int)))
+        true_colors = (float(self.config['colorcorrect']['true_red']
+                             .get(int)),
+                       float(self.config['colorcorrect']['true_green']
+                             .get(int)),
+                       float(self.config['colorcorrect']['true_blue']
+                             .get(int))
+                       )
         # We assume that the first two images shot were the gray card
         images = sorted([os.path.join(path, x) for x in os.listdir(path)])
         factors_left = map(operator.div, true_colors,

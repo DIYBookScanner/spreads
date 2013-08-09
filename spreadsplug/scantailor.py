@@ -113,7 +113,8 @@ class ScanTailorPlugin(HookPlugin):
         shutil.rmtree(temp_dir)
 
     def process(self, path):
-        autopilot = self.config['scantailor']['autopilot'].get(bool)
+        autopilot = (self.config['scantailor']['autopilot']
+                     .get(bool) or self.config['autopilot'].get(bool))
         if not find_in_path('scantailor-cli'):
             raise SpreadsException("Could not find executable `scantailor-cli`"
                                    " in $PATH. Please install the appropriate"
