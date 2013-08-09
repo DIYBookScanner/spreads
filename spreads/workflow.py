@@ -65,8 +65,8 @@ def capture(devices):
     if any(x.exception() for x in futures):
         exc = next(x for x in futures if x.exception()).exception()
         raise exc
+    logger.debug("Running capture hooks")
     for ext in get_pluginmanager():
-        logger.debug("Running capture hooks")
         ext.obj.capture(devices)
 
 
@@ -119,12 +119,6 @@ def download(devices, path):
 def process(path):
     logger.info("Starting postprocessing...")
     logger.debug("Running process hooks")
-    proc_path = os.path.join(path, 'done')
-    # Remove processed files from a previous run
-    if os.path.exists(proc_path):
-        shutil.rmtree(proc_path)
-    # Copy raw images to *done* directory
-    shutil.copytree(os.path.join(path, 'raw'), proc_path)
     for ext in get_pluginmanager():
         ext.obj.process(path)
     logger.info("Done with postprocessing!")
