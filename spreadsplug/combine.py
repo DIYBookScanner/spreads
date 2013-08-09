@@ -9,6 +9,14 @@ logger = logging.getLogger('spreadsplug.combine')
 
 
 class CombinePlugin(HookPlugin):
+    @classmethod
+    def add_arguments(cls, command, parser):
+        if command == 'download':
+            parser.add_argument("--first-page", "-fp",
+                                dest="first_page", default="left",
+                                help="Set device with first page (left/right)"
+                                " [default: left]")
+
     def download(self, cameras, path):
         left_dir = os.path.join(path, 'left')
         right_dir = os.path.join(path, 'right')
@@ -23,7 +31,11 @@ class CombinePlugin(HookPlugin):
         if len(left_pages) != len(right_pages):
             logger.warn("The left and right camera produced an inequal"
                         " amount of images!")
-        combined_pages = reduce(operator.add, zip(left_pages, right_pages))
+        if (self.config['first_page']
+                and not self.config['first_page'].get(str) == 'left'):
+            combined_pages = reduce(operator.add, zip(right_pages, left_pages))
+        else:
+            combined_pages = reduce(operator.add, zip(left_pages, right_pages))
         logger.info("Combining images.")
         for idx, fname in enumerate(combined_pages):
             fext = os.path.splitext(os.path.split(fname)[1])[1]
