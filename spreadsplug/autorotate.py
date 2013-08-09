@@ -37,10 +37,10 @@ class AutoRotatePlugin(HookPlugin):
         if command == 'postprocess':
             parser.add_argument("--rotate-inverse", "-ri",
                                 dest="rotate_inverse", action="store_true",
-                                help="Rotate by +/- 180 instead of +/- 90")
-
-    def __init__(self, config):
-        self.config = config['postprocess']
+                                default=False,
+                                help="Rotate left pages CCW, right pages CW"
+                                " (use when first page comes from right"
+                                " camera)")
 
     def process(self, path):
         img_dir = os.path.join(path, 'raw')
@@ -50,10 +50,11 @@ class AutoRotatePlugin(HookPlugin):
         logger.info("Rotating images in {0}".format(img_dir))
         with futures.ProcessPoolExecutor() as executor:
             for imgpath in os.listdir(img_dir):
-                img = JpegFile.fromFile(os.path.join(img_dir, imgpath))
                 try:
+                    img = JpegFile.fromFile(os.path.join(img_dir, imgpath))
                     if img.exif.primary.Orientation == [8]:
-                        rotation = self.config['autorotate']['left'].get(int)
+                        rotation = (self.config['autorotate']
+                                    ['left'].get(int))
                     elif img.exif.primary.Orientation == [6]:
                         rotation = (self.config['autorotate']
                                     ['right'].get(int))
@@ -63,12 +64,13 @@ class AutoRotatePlugin(HookPlugin):
                     else:
                         raise Exception("Invalid value for orientation: {0}"
                                         .format(img.exif.primary.Orientation))
-                except:
+                except Exception as exc:
                     logger.warn("Cannot determine rotation for image {0}!"
                                 .format(imgpath))
+                    logger.exception(exc)
                     continue
-                if self.config['autorotate']['rotate_inverse'].get(bool):
-                    rotation *= 2
+                if self.config['rotate_inverse'].get(bool):
+                    rotation *= -1
                 logger.debug("Orientation for \"{0}\" is {1}"
                              .format(imgpath, rotation))
                 executor.submit(
