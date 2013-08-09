@@ -31,13 +31,13 @@ import os
 import sys
 import time
 
+import colorama
 import spreads.confit as confit
-from clint.textui import puts, colored
 
 import spreads.workflow as workflow
 from spreads import config
 from spreads.plugin import get_devices, get_pluginmanager
-from spreads.util import DeviceException
+from spreads.util import DeviceException, ColourStreamHandler
 
 # Kudos to http://stackoverflow.com/a/1394994/487903
 try:
@@ -289,9 +289,11 @@ def main():
     if logger.handlers:
         for handler in logger.handlers:
             logger.removeHandler(handler)
-    logging.basicConfig(format='%(created)s [%(name)s:%(levelname)s] '
-                               '%(message)s',
-                        level=loglevel)
+    handler = ColourStreamHandler()
+    handler.setLevel(loglevel)
+    handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+    logger.addHandler(handler)
+    logger.setLevel(loglevel)
 
     args.func(args)
 

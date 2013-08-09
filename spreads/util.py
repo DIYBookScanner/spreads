@@ -27,7 +27,9 @@ from __future__ import division, unicode_literals
 import abc
 import itertools
 import os
-import sys
+from logging import StreamHandler
+
+from colorama import Fore, Back, Style
 
 
 class SpreadsException(Exception):
@@ -94,3 +96,49 @@ class abstractclassmethod(_classmethod):
     def __init__(self, func):
         func = abc.abstractmethod(func)
         super(abstractclassmethod, self).__init__(func)
+
+
+class ColourStreamHandler(StreamHandler):
+    """ A colorized output SteamHandler
+    Kudos to Leigh MacDonald:
+    http://leigh.cudd.li/article/Cross_Platform_Colorized_Logger_Output_Using_Pythons_logging_Module_And_Colorama
+    """
+
+    # Some basic colour scheme defaults
+    colours = {
+        'DEBUG': Fore.CYAN,
+        'INFO': Fore.GREEN,
+        'WARN': Fore.YELLOW,
+        'WARNING': Fore.YELLOW,
+        'ERROR': Fore.RED,
+        'CRIT': Back.RED + Fore.WHITE,
+        'CRITICAL': Back.RED + Fore.WHITE
+    }
+
+    @property
+    def is_tty(self):
+        """ Check if we are using a "real" TTY. If we are not using a TTY it
+        means that the colour output should be disabled.
+
+        :return: Using a TTY status
+        :rtype: bool
+        """
+        try:
+            return getattr(self.stream, 'isatty', None)()
+        except:
+            return False
+
+    def emit(self, record):
+        try:
+            message = self.format(record)
+            if not self.is_tty:
+                self.stream.write(message)
+            else:
+                self.stream.write(self.colours[record.levelname]
+                                  + message + Style.RESET_ALL)
+            self.stream.write(getattr(self, 'terminator', '\n'))
+            self.flush()
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)
