@@ -8,6 +8,7 @@ class TestAutorotate(object):
     def setUp(self):
         spreads.config.clear()
         spreads.config.read(user=False)
+        spreads.config['rotate_inverse'] = False
 
     def test_add_arguments(self):
         parser = Mock()
@@ -45,12 +46,12 @@ class TestAutorotate(object):
         autorotate.JpegFile.fromFile = Mock(return_value=mock_exif)
         mock_pool = Mock()
         autorotate.futures.ProcessPoolExecutor = Mock(return_value=mock_pool)
-        spreads.config['postprocess']['autorotate']['rotate_inverse'] = True
+        spreads.config['rotate_inverse'] = False
         plug = autorotate.AutoRotatePlugin(spreads.config)
         plug.process('/tmp/foobar')
         assert mock_pool.__enter__().submit.call_args_list == [
             call(autorotate.rotate_image, '/tmp/foobar/raw/foo.jpg',
-                 rotation=180)
+                 rotation=90)
         ]
 
     def test_rotate_image(self):

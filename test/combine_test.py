@@ -8,6 +8,7 @@ class TestCombine(object):
     def setUp(self):
         spreads.config.clear()
         spreads.config.read(user=False)
+        spreads.config['first_page'] = 'left'
         self.plug = combine.CombinePlugin(spreads.config)
 
     @patch('os.path.exists')
