@@ -23,11 +23,12 @@ class ScanTailorPlugin(HookPlugin):
         if command == "postprocess":
             parser.add_argument(
                 "--auto", "-a", dest="autopilot", action="store_true",
+                default=False,
                 help="Don't prompt user to edit ScanTailor configuration")
-
-    def __init__(self, config):
-        self.config = config['postprocess']
-        self.config['dpi'] = config['device']['dpi'].get(int)
+            parser.add_argument(
+                "--page-detection", "-pd", dest="page_detection",
+                action="store_true", default=False,
+                help="Use page for layout instead of content")
 
     def _generate_configuration(self, projectfile, img_dir, out_dir):
         if not os.path.exists(out_dir):
@@ -43,13 +44,28 @@ class ScanTailorPlugin(HookPlugin):
                           '--start-filter={0}'.format(start_filter),
                           '--end-filter={0}'.format(end_filter),
                           '--layout=1.5',
-                          '--margins-top={0}'.format(marginconf[0]),
-                          '--margins-right={0}'.format(marginconf[1]),
-                          '--margins-bottom={0}'.format(marginconf[2]),
-                          '--margins-left={0}'.format(marginconf[3]),
-                          '--dpi={0}'.format(self.config['dpi']
+                          '--dpi={0}'.format(self.config['device']['dpi']
                                              .get(int)),
-                          '-o={0}'.format(projectfile), img_dir, out_dir]
+                          '-o={0}'.format(projectfile)]
+        page_detection = (
+            self.config['scantailor']['detection'] == 'page'
+            or (self.config['page_detection'] and self.config['page_detection']
+                    .get(bool))
+        )
+        if page_detection:
+            generation_cmd.extend([
+                '--enable-page-detection',
+                '--disable-content-detection',
+                '--enable-fine-tuning'
+            ])
+        else:
+            generation_cmd.extend([
+                '--margins-top={0}'.format(marginconf[0]),
+                '--margins-right={0}'.format(marginconf[1]),
+                '--margins-bottom={0}'.format(marginconf[2]),
+                '--margins-left={0}'.format(marginconf[3]),
+            ])
+        generation_cmd.extend([img_dir, out_dir])
         logger.debug(" ".join(generation_cmd))
         subprocess.call(generation_cmd)
 
