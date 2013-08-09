@@ -30,7 +30,9 @@ class CombinePlugin(HookPlugin):
         # Write the orientation as a JPEG comment to the end of the file
         if len(left_pages) != len(right_pages):
             logger.warn("The left and right camera produced an inequal"
-                        " amount of images!")
+                        " amount of images, please fix the problem!")
+            logger.warn("Will not combine images")
+            return
         if (self.config['first_page']
                 and not self.config['first_page'].get(str) == 'left'):
             combined_pages = reduce(operator.add, zip(right_pages, left_pages))
