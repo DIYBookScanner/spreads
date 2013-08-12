@@ -15,7 +15,7 @@ setup(
                 'Scanner',
     long_description=open('README.rst').read(),
     install_requires=[
-        "clint >= 0.3.1",
+        "colorama >= 0.2.5",
         "pyusb >= 1.0.0a3",
         "pyptpchdk >= 0.2.1",
         "PyYAML >= 3.10",
