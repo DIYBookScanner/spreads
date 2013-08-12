@@ -69,6 +69,7 @@ class TestDownload(object):
     @patch('os.mkdir')
     @patch('os.path.exists')
     def test_download(self, exists, mkdir):
+        spreads.config['keep'] = False
         exists.return_value = False
         flow.os.mkdir = mkdir
         flow.os.path.exists = exists
