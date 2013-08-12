@@ -1,13 +1,15 @@
 import logging
 import time
 
+import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from PySide import QtCore, QtGui
 from PIL import Image
 
+import spreads
 import spreads.workflow as workflow
 import spreads.util as util
-from spreads.plugin import get_devices
+from spreads.plugin import get_devices, get_pluginmanager
 
 import gui_rc
 
@@ -72,27 +74,65 @@ class SpreadsWizard(QtGui.QWizard):
 class IntroPage(QtGui.QWizardPage):
     def __init__(self, config, parent=None):
         super(IntroPage, self).__init__(parent)
+        active_plugins = get_pluginmanager().names()
         self.setTitle("Welcome!")
 
         intro_label = QtGui.QLabel(
             "This wizard will guide you through the digitization workflow. "
         )
 
-        dirpick_label = QtGui.QLabel("Please select a project directory.")
         dirpick_layout = QtGui.QHBoxLayout()
         self.line_edit = QtGui.QLineEdit()
         browse_btn = QtGui.QPushButton("Browse")
         dirpick_layout.addWidget(self.line_edit)
         dirpick_layout.addWidget(browse_btn)
-
         browse_btn.clicked.connect(self.show_filepicker)
 
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(intro_label)
-        layout.addSpacing(30)
-        layout.addWidget(dirpick_label)
-        layout.addLayout(dirpick_layout)
-        self.setLayout(layout)
+        form_layout = QtGui.QFormLayout()
+
+        self.keep_box = QtGui.QCheckBox("Keep files on devices")
+        form_layout.addRow(self.keep_box)
+
+        self.even_device = None
+        if 'combine' in active_plugins or 'autorotate' in active_plugins:
+            self.even_device = QtGui.QComboBox()
+            self.even_device.addItem("Left")
+            self.even_device.addItem("Right")
+            self.even_device.setCurrentIndex(0)
+            form_layout.addRow("Device for even pages", self.even_device)
+
+        self.st_auto = None
+        self.st_detection = None
+        if 'scantailor' in active_plugins:
+            self.st_auto = QtGui.QCheckBox("Don't Inspect ScanTailor"
+                                           " configuration")
+            form_layout.addRow(self.st_auto)
+            self.st_detection = QtGui.QComboBox()
+            self.st_detection.addItem("Content")
+            self.st_detection.addItem("Page")
+            self.st_detection.setCurrentIndex(0)
+            form_layout.addRow("ScanTailor layout mode", self.st_detection)
+
+        self.ocr_lang = None
+        if 'tesseract' in active_plugins:
+            langs = (subprocess.check_output(["tesseract", "--list-langs"],
+                                             stderr=subprocess.STDOUT)
+                     .split("\n")[1:-1])
+            self.ocr_lang = QtGui.QComboBox()
+            for lang in langs:
+                self.ocr_lang.addItem(lang)
+            self.ocr_lang.setCurrentIndex(0)
+            form_layout.addRow("OCR language", self.ocr_lang)
+
+        main_layout = QtGui.QVBoxLayout()
+        main_layout.addWidget(intro_label)
+        main_layout.addSpacing(30)
+        main_layout.addWidget(QtGui.QLabel("Please select a project directory."))
+        main_layout.addLayout(dirpick_layout)
+        main_layout.addSpacing(30)
+        main_layout.addLayout(form_layout)
+
+        self.setLayout(main_layout)
 
     def show_filepicker(self):
         dialog = QtGui.QFileDialog()
@@ -109,6 +149,18 @@ class IntroPage(QtGui.QWizardPage):
             msg_box.setIcon(QtGui.QMessageBox.Critical)
             msg_box.exec_()
             return False
+
+        spreads.config['keep'] = self.keep_box.isChecked()
+        if self.even_device and self.even_device.currentText() != 'Left':
+            spreads.config['first_page'] = "right"
+            spreads.config['rotate_inverse'] = True
+        if self.st_auto:
+            spreads.config['autopilot'] = self.st_auto.isChecked()
+        if self.st_detection:
+            spreads.config['scantailor']['detection'] = (
+                self.st_detection.currentText().lower())
+        if self.ocr_lang:
+            spreads.config['language'] = self.ocr_lang.currentText().lower()
         return True
 
 
