@@ -53,7 +53,6 @@ class SpreadsWizard(QtGui.QWizard):
         super(SpreadsWizard, self).__init__(parent)
         self.addPage(IntroPage(config))
         self.addPage(ConnectPage(config))
-        self.addPage(ConfigurePage(config))
         self.addPage(CapturePage(config))
         self.addPage(PostprocessPage(config))
         self.addPage(OutputPage(config))
@@ -245,34 +244,6 @@ class ConnectPage(QtGui.QWizardPage):
             msg_box.setText("No device selected.")
         msg_box.exec_()
         return False
-
-
-class ConfigurePage(QtGui.QWizardPage):
-    # TODO: Meeeeeh, this is a bit more finicky... First, erase the devices,
-    #       then connect one after the other, then connect and register both,
-    #       what a PITA :3
-    def __init__(self, config, parent=None):
-        super(ConfigurePage, self).__init__(parent)
-        self.config = config
-
-    def initializePage(self):
-        self.setTitle("Configure devices")
-        devices = [x for x in self.wizard().selected_devices
-                   if not x.orientation]
-        if len(devices) > 1:
-            orientation = "left"
-        else:
-            orientation = "right"
-        label = QtGui.QLabel("Please connect the {0} device."
-                             .format(orientation))
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(label)
-        self.setLayout(layout)
-
-    def nextId(self):
-        if any([not x.orientation for x in self.wizard().selected_devices]):
-            return super(ConnectPage, self).nextId()-1
-        return super(ConnectPage, self).nextId()
 
 
 class CapturePage(QtGui.QWizardPage):
