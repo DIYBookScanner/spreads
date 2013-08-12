@@ -272,15 +272,24 @@ class CapturePage(QtGui.QWizardPage):
         previewbox.addWidget(self.left_preview)
         previewbox.addWidget(self.right_preview)
 
-        refresh_btn = QtGui.QPushButton("Refresh")
-        refresh_btn.clicked.connect(self.update_preview)
+        self.refresh_btn = QtGui.QPushButton("Refresh")
+        self.refresh_btn.clicked.connect(self.update_preview)
 
-        capture_btn = QtGui.QPushButton("Capture")
-        capture_btn.clicked.connect(self.doCapture)
+        self.capture_btn = QtGui.QPushButton("Capture")
+        self.capture_btn.clicked.connect(self.doCapture)
+
+        self.logbox = QtGui.QTextEdit()
+        self.log_handler = LogBoxHandler(self.logbox)
+        self.log_handler.setLevel(logging.WARNING)
+        self.log_handler.setFormatter(LogBoxFormatter())
+        logging.getLogger().addHandler(self.log_handler)
+        self.log_handler.sig.connect(self.logbox.append)
+
         layout.addWidget(self.status)
-        layout.addWidget(refresh_btn)
+        layout.addWidget(self.refresh_btn)
         layout.addLayout(previewbox)
-        layout.addWidget(capture_btn)
+        layout.addWidget(self.capture_btn)
+        layout.addWidget(self.logbox)
         self.setLayout(layout)
 
     def initializePage(self):
@@ -313,7 +322,16 @@ class CapturePage(QtGui.QWizardPage):
             self.start_time = time.time()
         if self.shot_count is None:
             self.shot_count = 0
-        workflow.capture(self.wizard().selected_devices)
+        self.capture_btn.setEnabled(False)
+        self.refresh_btn.setEnabled(False)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(workflow.capture,
+                                     self.wizard().selected_devices)
+            while future.running():
+                QtGui.qApp.processEvents()
+                time.sleep(0.001)
+        self.capture_btn.setEnabled(True)
+        self.refresh_btn.setEnabled(True)
         self.shot_count += 2
         self.status.setText("Shot {0} pages in {1:.0f} minutes "
                             "({2:.0f} pages/hour)".format(
