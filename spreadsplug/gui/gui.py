@@ -232,9 +232,18 @@ class ConnectPage(QtGui.QWizardPage):
         self.wizard().selected_devices = [self.devices[x.type()-1000]
                                           for x
                                           in self.devicewidget.selectedItems()]
+
+        progress = QtGui.QProgressDialog("Preparing devices...",
+                                         "Cancel", 0, 0, self)
         if len(self.wizard().selected_devices) in (1, 2):
-            print len(self.wizard().selected_devices)
-            workflow.prepare_capture(self.wizard().selected_devices)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(workflow.prepare_capture,
+                                         self.wizard().selected_devices)
+                while future.running():
+                    QtGui.qApp.processEvents()
+                    progress.setValue(1)
+                    time.sleep(0.001)
+            progress.close()
             return True
         msg_box = QtGui.QMessageBox()
         msg_box.setIcon(QtGui.QMessageBox.Critical)
