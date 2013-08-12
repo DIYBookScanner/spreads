@@ -27,7 +27,6 @@ from __future__ import division, unicode_literals
 
 import logging
 import os
-import shutil
 import sys
 import time
 
@@ -77,7 +76,7 @@ def finish_capture(devices):
 
 
 def download(devices, path):
-    keep = config['download']['keep'].get(bool)
+    keep = config['download']['keep'].get(bool) or config['keep'].get(bool)
     logger.info("Downloading images from devices to {0}, files will "
                 "{1} remain on the devices."
                 .format(path, ("not" if not keep else "")))
@@ -96,7 +95,7 @@ def download(devices, path):
         for dev in devices:
             futures.append(executor.submit(dev.download_files,
                                            os.path.join(path, dev.orientation))
-            )
+                           )
         if any(x.exception() for x in futures):
             exc = next(x for x in futures if x.exception()).exception()
             raise exc

@@ -128,7 +128,7 @@ def download(args=None, path=None):
         path = args.path
     devices = get_devices()
     status_str = "Downloading {0} images from devices"
-    if config['download']['keep'].get(bool):
+    if config['download']['keep'].get(bool) or config['keep'].get(bool):
         status_str = status_str.format("and deleting ")
     else:
         status_str = status_str.format("")
