@@ -28,7 +28,10 @@ class LogBoxHandler(logging.Handler):
         self.textedit = textedit
 
     def emit(self, record):
+        # Play a warning sound if something has gone wrong
         self.sig.emit(self.format(record))
+        if record.levelname in ('ERROR', 'CRITICAL', 'WARNING'):
+            QtGui.QApplication.beep()
 
 
 class LogBoxFormatter(logging.Formatter):
