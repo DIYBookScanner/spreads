@@ -52,8 +52,8 @@ class PTPDevice(object):
             try:
                 script_id = self._device.chdkExecLua(script)
             except Exception as exc:
-                self.logger.warn("Script raised an error, retrying in 15s...")
-                time.sleep(15)
+                self.logger.warn("Script raised an error, retrying in 5s...")
+                time.sleep(5)
                 if retries == 5:
                     self.logger.error("Script still raises an error after 5"
                                       " tries, giving up.")
@@ -146,7 +146,7 @@ class PTPDevice(object):
             return orientation
         except DeviceException as e:
             self.logger.warn("Could not get orientation, reason: {0}"
-                         .format(e.message))
+                             .format(e.message))
             return None
 
     def set_orientation(self, orientation):
@@ -275,13 +275,13 @@ class CHDKCameraDevice(DevicePlugin):
     def capture(self):
         """ Shoot a picture. """
         self._set_sensitivity(self._sensitivity)
-        time.sleep(0.5)
+        time.sleep(0.25)
         self._set_shutter_speed(self._shutter_speed)
-        time.sleep(0.5)
+        time.sleep(0.25)
         self._device.execute_lua("shoot()")
         # NOTE: This is a safety measure, as CHDK tends to crash if we don't
         #       wait.
-        time.sleep(0.5)
+        time.sleep(1)
 
     def _set_record_mode(self):
         """ Put the camera in record mode. """
@@ -390,7 +390,7 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
                                               'table.sort(flist)\n'
                                               'return flist[1]'
                                               .format(img_path),
-                                                      get_result=True)[0]
+                                              get_result=True)[0]
         if not first_file:
             self.logger.warn("Could not get name of first file!")
             raise StopIteration
@@ -404,7 +404,7 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
                                              'table.sort(flist)\n'
                                              'return flist[{1}]'
                                              .format(img_path, num_files),
-                                                     get_result=True)[0]
+                                             get_result=True)[0]
         last_num = int(last_file[4:-4])
         for num in xrange(first_num, last_num+1):
             fname = "IMG_{0}.JPG".format(num)
@@ -445,7 +445,8 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
         zoom = None
         while zoom != level:
             zoom = self._get_zoom()
-            self.logger.debug("Zoom for {0}: {1}".format(self.orientation, zoom))
+            self.logger.debug("Zoom for {0}: {1}".format(self.orientation,
+                                                         zoom))
             if zoom > level:
                 self._device.execute_lua('click("zoom_out")')
             elif zoom < level:
