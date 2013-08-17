@@ -86,19 +86,27 @@ def download(devices, path):
     out_paths = [os.path.join(path, x.orientation) for x in devices]
     if out_paths:
         logger.debug("Creating camera directories")
+
+    # Flag for when the images are already present
+    skip_download = False
     for subpath in out_paths:
         if not os.path.exists(subpath):
             os.mkdir(subpath)
-    with ThreadPoolExecutor(len(devices)) as executor:
-        logger.debug("Starting download process")
-        futures = []
-        for dev in devices:
-            futures.append(executor.submit(dev.download_files,
-                                           os.path.join(path, dev.orientation))
-                           )
-        if any(x.exception() for x in futures):
-            exc = next(x for x in futures if x.exception()).exception()
-            raise exc
+        else:
+            logger.info("Images already present, skipping download")
+            skip_download = True
+    if not skip_download:
+        with ThreadPoolExecutor(len(devices)) as executor:
+            logger.debug("Starting download process")
+            futures = []
+            for dev in devices:
+                futures.append(executor.submit(
+                    dev.download_files,
+                    os.path.join(path, dev.orientation))
+                )
+            if any(x.exception() for x in futures):
+                exc = next(x for x in futures if x.exception()).exception()
+                raise exc
     logger.debug("Running download hooks")
     for ext in get_pluginmanager():
         ext.obj.download(devices, path)
