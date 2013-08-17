@@ -49,8 +49,8 @@ class ScanTailorPlugin(HookPlugin):
                           '-o={0}'.format(projectfile)]
         page_detection = (
             self.config['scantailor']['detection'] == 'page'
-            or (self.config['page_detection'] and self.config['page_detection']
-                    .get(bool))
+            or ('page_detection' in self.config.keys()
+                and self.config['page_detection'].get(bool))
         )
         if page_detection:
             generation_cmd.extend([
