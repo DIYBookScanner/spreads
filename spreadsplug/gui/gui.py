@@ -97,7 +97,8 @@ class IntroPage(QtGui.QWizardPage):
         form_layout.addRow(self.keep_box)
 
         self.even_device = None
-        if 'combine' in active_plugins or 'autorotate' in active_plugins:
+        if ('combine' in self.wizard().active_plugins
+                or 'autorotate' in self.wizard().active_plugins):
             self.even_device = QtGui.QComboBox()
             self.even_device.addItem("Left")
             self.even_device.addItem("Right")
@@ -106,7 +107,7 @@ class IntroPage(QtGui.QWizardPage):
 
         self.st_auto = None
         self.st_detection = None
-        if 'scantailor' in active_plugins:
+        if 'scantailor' in self.wizard().active_plugins:
             self.st_auto = QtGui.QCheckBox("Don't Inspect ScanTailor"
                                            " configuration")
             form_layout.addRow(self.st_auto)
@@ -117,7 +118,7 @@ class IntroPage(QtGui.QWizardPage):
             form_layout.addRow("ScanTailor layout mode", self.st_detection)
 
         self.ocr_lang = None
-        if 'tesseract' in active_plugins:
+        if 'tesseract' in self.wizard().active_plugins:
             langs = (subprocess.check_output(["tesseract", "--list-langs"],
                                              stderr=subprocess.STDOUT)
                      .split("\n")[1:-1])
@@ -130,7 +131,9 @@ class IntroPage(QtGui.QWizardPage):
         main_layout = QtGui.QVBoxLayout()
         main_layout.addWidget(intro_label)
         main_layout.addSpacing(30)
-        main_layout.addWidget(QtGui.QLabel("Please select a project directory."))
+        main_layout.addWidget(
+            QtGui.QLabel("Please select a project directory.")
+        )
         main_layout.addLayout(dirpick_layout)
         main_layout.addSpacing(30)
         main_layout.addLayout(form_layout)
@@ -160,10 +163,11 @@ class IntroPage(QtGui.QWizardPage):
         if self.st_auto:
             spreads.config['autopilot'] = self.st_auto.isChecked()
         if self.st_detection:
-            spreads.config['scantailor']['detection'] = (
-                self.st_detection.currentText().lower())
+            spreads.config['page_detection'] = (
+                self.st_detection.currentText().lower() == 'page')
         if self.ocr_lang:
-            spreads.config['language'] = self.ocr_lang.currentText().lower()
+            spreads.config['language'] = str(self.ocr_lang.currentText()
+                                             .lower())
         return True
 
 
