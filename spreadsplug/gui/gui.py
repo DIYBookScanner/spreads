@@ -76,9 +76,8 @@ class SpreadsWizard(QtGui.QWizard):
 
 
 class IntroPage(QtGui.QWizardPage):
-    def __init__(self, config, parent=None):
-        super(IntroPage, self).__init__(parent)
-        active_plugins = get_pluginmanager().names()
+    def initializePage(self):
+        self.wizard().active_plugins = get_pluginmanager().names()
         self.setTitle("Welcome!")
 
         intro_label = QtGui.QLabel(
@@ -169,8 +168,7 @@ class IntroPage(QtGui.QWizardPage):
 
 
 class ConnectPage(QtGui.QWizardPage):
-    def __init__(self, config, parent=None):
-        super(ConnectPage, self).__init__(parent)
+    def initializePage(self):
         # TODO: Show an activity indicator while get_devices() is running,
         #       use QtGui.QProgressDialog, with .setRange(0,0) for
         #       indeterminate time
@@ -190,26 +188,25 @@ class ConnectPage(QtGui.QWizardPage):
         layout.addWidget(self.devicewidget)
         layout.addWidget(refresh_btn)
         self.setLayout(layout)
-
-    def initializePage(self):
         self.update_devices()
 
     def update_devices(self):
-        self.progress = QtGui.QProgressDialog("Detecting devices...",
-                                              "Cancel", 0, 0, self)
+        progress = QtGui.QProgressDialog("Detecting devices...",
+                                         "Cancel", 0, 0, self)
+        progress.show()
         self.devicewidget.clear()
         self.label.setText("Detecting devices...")
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(get_devices)
             while not future.done():
                 QtGui.qApp.processEvents()
-                self.progress.setValue(1)
+                progress.setValue(1)
                 time.sleep(0.001)
             try:
                 devices = future.result()
             except util.DeviceException:
                 devices = []
-        self.progress.close()
+        progress.close()
         if not devices:
             self.label.setText("<font color=red>No devices found!</font>")
         else:
@@ -221,23 +218,15 @@ class ConnectPage(QtGui.QWizardPage):
                                       self.devicewidget, type=idx))
             self.devices.append(device)
 
-    def nextId(self):
-        try:
-            if any([not x.orientation
-                    for x in self.wizard().selected_devices]):
-                return super(ConnectPage, self).nextId()
-        except AttributeError:
-            pass
-        return super(ConnectPage, self).nextId()+1
-
     def validatePage(self):
         self.wizard().selected_devices = [self.devices[x.type()-1000]
                                           for x
                                           in self.devicewidget.selectedItems()]
 
-        progress = QtGui.QProgressDialog("Preparing devices...",
-                                         "Cancel", 0, 0, self)
         if len(self.wizard().selected_devices) in (1, 2):
+            progress = QtGui.QProgressDialog("Preparing devices...",
+                                             "Cancel", 0, 0, self)
+            progress.show()
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(workflow.prepare_capture,
                                          self.wizard().selected_devices)
@@ -258,8 +247,7 @@ class ConnectPage(QtGui.QWizardPage):
 
 
 class CapturePage(QtGui.QWizardPage):
-    def __init__(self, config, parent=None):
-        super(CapturePage, self).__init__(parent)
+    def initializePage(self):
         self.setTitle("Capturing from devices")
         self.start_time = None
         self.shot_count = None
@@ -279,6 +267,7 @@ class CapturePage(QtGui.QWizardPage):
 
         self.capture_btn = QtGui.QPushButton("Capture")
         self.capture_btn.clicked.connect(self.doCapture)
+        self.capture_btn.setFocus()
 
         self.logbox = QtGui.QTextEdit()
         self.log_handler = LogBoxHandler(self.logbox)
@@ -293,26 +282,11 @@ class CapturePage(QtGui.QWizardPage):
         layout.addWidget(self.capture_btn)
         layout.addWidget(self.logbox)
         self.setLayout(layout)
-
-    def initializePage(self):
         time.sleep(0.5)
         self.update_preview()
 
     def validatePage(self):
         workflow.finish_capture(self.wizard().selected_devices)
-        #TODO: Display a real progress bar here, update it according to the
-        #      combined number of files in raw or its subfolders
-        progress = QtGui.QProgressDialog("Downloading files...",
-                                         "Cancel", 0, 0, self)
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(workflow.download,
-                                     self.wizard().selected_devices,
-                                     self.wizard().project_path)
-            while future.running():
-                QtGui.qApp.processEvents()
-                progress.setValue(1)
-                time.sleep(0.001)
-        progress.close()
         return True
 
     def keyPressEvent(self, event):
@@ -334,6 +308,7 @@ class CapturePage(QtGui.QWizardPage):
                 time.sleep(0.001)
         self.capture_btn.setEnabled(True)
         self.refresh_btn.setEnabled(True)
+        self.capture_btn.setFocus()
         self.shot_count += 2
         self.status.setText("Shot {0} pages in {1:.0f} minutes "
                             "({2:.0f} pages/hour)".format(
@@ -420,6 +395,22 @@ class DownloadPage(QtGui.QWizardPage):
 
 class PostprocessPage(QtGui.QWizardPage):
     def initializePage(self):
+        self.setTitle("Postprocessing")
+
+        self.progressbar = QtGui.QProgressBar(self)
+        self.progressbar.setRange(0, 0)
+        self.progressbar.setAlignment(QtCore.Qt.AlignCenter)
+        self.logbox = QtGui.QTextEdit()
+        self.log_handler = LogBoxHandler(self.logbox)
+        self.log_handler.setLevel(logging.INFO)
+        self.log_handler.setFormatter(LogBoxFormatter())
+        logging.getLogger().addHandler(self.log_handler)
+        self.log_handler.sig.connect(self.logbox.append)
+
+        layout = QtGui.QVBoxLayout()
+        layout.addWidget(self.progressbar)
+        layout.addWidget(self.logbox)
+        self.setLayout(layout)
         self.logbox.clear()
         QtCore.QTimer.singleShot(0, self.doPostprocess)
 
@@ -430,7 +421,7 @@ class PostprocessPage(QtGui.QWizardPage):
             while not future.done():
                 QtGui.qApp.processEvents()
                 self.progressbar.setValue(1)
-                time.sleep(0.001)
+                time.sleep(0.01)
             if future.exception():
                 raise future.exception()
         self.progressbar.hide()
@@ -441,8 +432,7 @@ class PostprocessPage(QtGui.QWizardPage):
 
 
 class OutputPage(QtGui.QWizardPage):
-    def __init__(self, config, parent=None):
-        super(OutputPage, self).__init__(parent)
+    def initializePage(self):
         self.setTitle("Generating output files")
 
         self.progressbar = QtGui.QProgressBar(self)
@@ -459,8 +449,6 @@ class OutputPage(QtGui.QWizardPage):
         layout.addWidget(self.progressbar)
         layout.addWidget(self.logbox)
         self.setLayout(layout)
-
-    def initializePage(self):
         self.logbox.clear()
         QtCore.QTimer.singleShot(0, self.doGenerateOutput)
 
@@ -480,8 +468,7 @@ class OutputPage(QtGui.QWizardPage):
 
 
 class FinishPage(QtGui.QWizardPage):
-    def __init__(self, config, parent=None):
-        super(FinishPage, self).__init__(parent)
+    def initializePage(self):
         self.setFinalPage(True)
         self.setTitle("Done!")
         # TODO: Offer option to view project folder on exit
