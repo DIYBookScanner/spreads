@@ -49,6 +49,7 @@ More Documentation
    commands
    plugins
    extending
+   faq
    api
    changelog
 
