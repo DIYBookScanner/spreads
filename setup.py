@@ -22,6 +22,8 @@ setup(
         "Wand >= 0.3.1",
         "stevedore >= 0.9.1",
         "futures >= 2.1.4",
+        "pexif >= 0.13",
+        "Pillow >= 2.0.0",
     ],
     entry_points={
         'spreadsplug.devices': [
