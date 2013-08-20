@@ -14,6 +14,11 @@ from xml.etree.cElementTree import ElementTree as ET
 from spreads.plugin import HookPlugin
 from spreads.util import find_in_path, SpreadsException
 
+if not find_in_path('scantailor-cli'):
+    raise SpreadsException("Could not find executable `scantailor-cli`"
+                            " in $PATH. Please install the appropriate"
+                            " package(s)!")
+
 logger = logging.getLogger('spreadsplug.scantailor')
 
 
@@ -115,10 +120,6 @@ class ScanTailorPlugin(HookPlugin):
     def process(self, path):
         autopilot = (self.config['scantailor']['autopilot']
                      .get(bool) or self.config['autopilot'].get(bool))
-        if not find_in_path('scantailor-cli'):
-            raise SpreadsException("Could not find executable `scantailor-cli`"
-                                   " in $PATH. Please install the appropriate"
-                                   " package(s)!")
         if not autopilot and not find_in_path('scantailor'):
             raise SpreadsException("Could not find executable `scantailor` in"
                                    " $PATH. Please install the appropriate"

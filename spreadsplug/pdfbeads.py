@@ -9,15 +9,16 @@ import subprocess
 from spreads.plugin import HookPlugin
 from spreads.util import SpreadsException, find_in_path
 
+if not find_in_path('pdfbeads'):
+    raise SpreadsException("Could not find executable `pdfbeads` in"
+                            " $PATH. Please install the appropriate"
+                            " package(s)!")
+
 logger = logging.getLogger('spreadsplug.pdfbeads')
 
 
 class PDFBeadsPlugin(HookPlugin):
     def output(self, path):
-        if not find_in_path('pdfbeads'):
-            raise SpreadsException("Could not find executable `pdfbeads` in"
-                                   " $PATH. Please install the appropriate"
-                                   " package(s)!")
         logger.info("Assembling PDF.")
         img_dir = os.path.join(path, 'done')
         pdf_file = os.path.join('..', 'out',

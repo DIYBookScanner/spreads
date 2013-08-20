@@ -7,6 +7,12 @@ import xml.etree.cElementTree as ET
 from concurrent import futures
 
 from spreads.plugin import HookPlugin
+from spreads.util import find_in_path
+
+if not find_in_path('tesseract'):
+    raise SpreadsException("Could not find executable `tesseract`"
+                           " in $PATH. Please install the appropriate"
+                           " package(s)!")
 
 logger = logging.getLogger('spreadsplug.tesseract')
 
