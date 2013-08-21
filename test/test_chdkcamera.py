@@ -7,6 +7,8 @@ from pyptpchdk import PTPError
 import spreads
 import spreadsplug.chdkcamera as chdkcamera
 
+spreads.util.find_in_path = Mock(return_value=True)
+
 
 class TestPTPDevice(object):
     def setUp(self):

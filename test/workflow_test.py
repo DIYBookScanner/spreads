@@ -3,6 +3,8 @@ from mock import call, MagicMock as Mock, patch
 import spreads
 import spreads.workflow as flow
 
+spreads.util.find_in_path = Mock(return_value=True)
+
 
 class TestCapture(object):
     def setUp(self):

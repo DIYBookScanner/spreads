@@ -7,6 +7,8 @@ import spreads
 import spreads.cli as cli
 from spreads.util import DeviceException
 
+spreads.util.find_in_path = Mock(return_value=True)
+
 
 class TestCLI(object):
     def setUp(self):

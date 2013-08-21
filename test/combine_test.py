@@ -3,6 +3,8 @@ from mock import call, patch, MagicMock as Mock
 import spreads
 import spreadsplug.combine as combine
 
+spreads.util.find_in_path = Mock(return_value=True)
+
 
 class TestCombine(object):
     def setUp(self):
