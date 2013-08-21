@@ -47,18 +47,19 @@ class PTPDevice(object):
         if get_result and not "return" in script:
             script = "return({0})".format(script)
         retries = 0
-        while retries < 4:
+        while True:
+            if retries >= 3:
+                raise DeviceException("An error occured while executing"
+                                      " \"{0}\"".format(script))
             self.logger.debug("Executing script: \"{0}\"".format(script))
             try:
                 script_id = self._device.chdkExecLua(script)
-            except Exception as exc:
-                self.logger.warn("Script raised an error, retrying in 5s...")
-                time.sleep(5)
-                if retries == 5:
-                    self.logger.error("Script still raises an error after 5"
-                                      " tries, giving up.")
-                    raise exc
+            except Exception:
+                self.logger.warn("Script raised an error.")
+                self.logger.debug("Details:", exc_info=True)
+                self.logger.warn("Retrying in 5s...")
                 retries += 1
+                time.sleep(5)
                 continue
             script_status = None
             if not wait:
@@ -117,6 +118,7 @@ class PTPDevice(object):
         msg = (None, None, None)
         tries = 0
         while msg[2] != 0:
+            tries += 1
             time.sleep(0.01)
             try:
                 msg = self._device.chdkReadScriptMessage()
@@ -124,7 +126,6 @@ class PTPDevice(object):
                 if tries > 10:
                     return
                 self.logger.warn("Couldn't read message, ignoring...")
-                tries += 1
 
     def get_orientation(self):
         # NOTE: CHDK doesn't seem to be able to write the EXIF owner to the
@@ -158,10 +159,6 @@ class PTPDevice(object):
         self._orientation = orientation
 
     def get_image_list(self):
-        # FIXME: If there are more than ~200 images on the camera, it will
-        #        run out of memory while returning the list of files.
-        #        We would be better off if we split longer filelists across
-        #        multiple transactions, see what chdkptp does for an example.
         img_path = self.execute_lua("get_image_dir()", get_result=True)[0]
         file_list = [os.path.join(img_path, x.split("\t")[1])
                      for x in (self.execute_lua("os.listdir(\"{0}\")"
