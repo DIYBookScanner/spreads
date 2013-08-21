@@ -41,5 +41,5 @@ setup(
             'gui        = spreadsplug.gui:GuiCommand',
         ],
     },
-
+    test_suite='nose.collector',
 )

@@ -14,6 +14,7 @@ class TestCapture(object):
         self.cams[0].orientation = 'right'
         self.plugins = [Mock(), Mock()]
         flow.get_pluginmanager = Mock(return_value=self.plugins)
+        flow.time = Mock()
 
     def test_prepare_capture(self):
         flow.prepare_capture(self.cams)

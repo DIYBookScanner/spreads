@@ -56,6 +56,8 @@ class TestAutorotate(object):
 
     def test_rotate_image(self):
         mock_img = Mock()
+        mock_img.__enter__().height = 200
+        mock_img.__enter__().width = 800
         autorotate.wand.image.Image = Mock(return_value=mock_img)
         autorotate.rotate_image('foo.jpg', 90)
         assert mock_img.__enter__().rotate.call_args_list == [call(90)]
