@@ -16,7 +16,7 @@ class TestWizard(object):
         spreads.config.clear()
         spreads.config.read(user=False)
         spreads.config['plugins'] = (spreads.config['plugins'].get()
-                                     + [u'tesseract'])
+                                     + [u'tesseract', u'gui'])
         # TODO: Cams ought to be 'left' and 'right'!
         self.cams = [Mock(), Mock()]
         gui.get_devices = Mock(return_value=self.cams)
@@ -32,6 +32,7 @@ class TestWizard(object):
 
     def test_intro_page(self):
          page = self.wizard.page(0)
+         page.initializePage()
          page.line_edit.setText('/tmp/foobar')
          assert page.validatePage()
          assert self.wizard.project_path == '/tmp/foobar'
