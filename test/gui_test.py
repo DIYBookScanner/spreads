@@ -16,7 +16,7 @@ class TestWizard(object):
         spreads.config.clear()
         spreads.config.read(user=False)
         spreads.config['plugins'] = (spreads.config['plugins'].get()
-                                     + [u'tesseract', u'gui'])
+                                     + [u'tesseract'])
         # TODO: Cams ought to be 'left' and 'right'!
         self.cams = [Mock(), Mock()]
         gui.get_devices = Mock(return_value=self.cams)
@@ -31,17 +31,17 @@ class TestWizard(object):
         gui.QtGui.QPixmap =QPixmap
 
     def test_intro_page(self):
-         page = self.wizard.page(0)
-         page.initializePage()
-         page.line_edit.setText('/tmp/foobar')
-         assert page.validatePage()
-         assert self.wizard.project_path == '/tmp/foobar'
-         assert not spreads.config['keep'].get(bool)
-         #assert spreads.config['first_page'].get(unicode) == "left"
-         #assert not spreads.config['rotate_inverse'].get(bool)
-         #assert not spreads.config['autopilot'].get(bool)
-         assert not spreads.config['page_detection'].get(bool)
-         #assert spreads.config['language'].get(str) == 'eng'
+        page = self.wizard.page(0)
+        page.initializePage()
+        page.line_edit.setText('/tmp/foobar')
+        assert page.validatePage()
+        assert self.wizard.project_path == '/tmp/foobar'
+        assert not spreads.config['keep'].get(bool)
+        #assert spreads.config['first_page'].get(unicode) == "left"
+        #assert not spreads.config['rotate_inverse'].get(bool)
+        #assert not spreads.config['autopilot'].get(bool)
+        assert not spreads.config['page_detection'].get(bool)
+        #assert spreads.config['language'].get(str) == 'eng'
 
         # TODO: Check option boxes
         # TODO: Select path
@@ -50,6 +50,7 @@ class TestWizard(object):
 
     def test_intro_page_nopath(self):
         page = self.wizard.page(0)
+        page.initializePage()
         assert not page.validatePage()
 
     def test_connect_page(self):
