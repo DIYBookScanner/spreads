@@ -11,6 +11,7 @@ class TestPlugin(object):
         spreads.config.clear()
         spreads.config.read(user=False)
         spreads.config['plugins'] = []
+        reload(plugin)
 
     def test_pluginmanager(self):
         plugin.NamedExtensionManager = Mock()
