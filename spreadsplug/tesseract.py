@@ -7,7 +7,7 @@ import xml.etree.cElementTree as ET
 from concurrent import futures
 
 from spreads.plugin import HookPlugin
-from spreads.util import find_in_path
+from spreads.util import find_in_path, SpreadsException
 
 if not find_in_path('tesseract'):
     raise SpreadsException("Could not find executable `tesseract`"
@@ -23,7 +23,8 @@ class TesseractPlugin(HookPlugin):
         if command == 'postprocess':
             parser.add_argument("--language", "-l",
                                 dest="language", default="eng",
-                                help="OCR language (3-letter language code")
+                                help="OCR language (3-letter language code)"
+                                     " [default: eng]")
 
     def process(self, path):
         ocr_lang = self.config['language'].get(str)
