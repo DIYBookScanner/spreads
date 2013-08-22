@@ -18,8 +18,9 @@ applying your modifications.
 
 *spreads* is meant to be fully customizable. This means, :ref:`adding support
 for new devices <add_devices>` is made as painless as possible. You can also
-hook into any of the *spread* commands by imlementing one of the available
-:ref:`plugin classes <extend_commands>`
+hook into any of the *spread* commands by implementing one of the available
+:ref:`workflow hooks <extend_commands>` in a plugin, and you can even add
+completely new commands and/or user interfaces, if you want to.
 
 
 Quickstart
@@ -32,6 +33,11 @@ Quickstart
 to a digitized version in one single workflow with minimal user input::
 
     $ spread wizard ~/my_scanning_project
+
+If you are more comfortable working with a GUI, a graphical version of the
+wizard is included as well::
+
+    $ spread gui
 
 Refer to the :doc:`Command-Line Reference <commands>` if you want to explore
 further commands and options.

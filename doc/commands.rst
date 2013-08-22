@@ -36,7 +36,7 @@ capture
 =======
 ::
 
-    $ spread capture [OPTIONS]
+    $ spread capture
 
 This command will start a capturing workflow. As usual, you will be asked
 to connect and turn on your devices. The application will then set them up,
@@ -50,7 +50,7 @@ download
 ========
 ::
 
-    $ spread download <project-directory
+    $ spread download [OPTIONS] <project-directory
 
 This will tell spreads to download all images from your devices to the folder
 *project-directory*. Images from both devices will automatically be assembled
@@ -63,6 +63,7 @@ from the devices.
 
    Do not remove the images from the devices, once the download has been
    completed.
+
 
 postprocess
 ===========

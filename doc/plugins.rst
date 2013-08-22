@@ -15,9 +15,10 @@ for the application.
 gui
 ---
 Launches a graphical interface to the workflow. The steps are the same as
-with the :doc:`CLI wizard <tutorial>`, additionally a small thumbnail of every
+with the :ref:`CLI wizard <cli_tutorial>`, additionally a small thumbnail of every
 captured image is shown during the capture process. Requires an installation
-of the *PySide* packages.
+of the *PySide* packages. Refer to the :ref:`GUI tutorial <gui_tutorial>`
+for more information.
 
 *download* plugins
 ==================
@@ -28,7 +29,14 @@ the images while preserving all of the metadata, but not to scale them).
 
 combine
 -------
-Combines images from the left and right images to a single folder.
+Combines images from the left and right devices to a single folder.
+
+.. option:: --first-page FIRST_PAGE, -fp FIRST_PAGE
+
+   Only active when the ``combine`` plugin is active (it is enabled by default).
+   Select which devices has the first page (default: left). Use this when
+   you have changed your setup (e.g. switched to paperback scanning mode
+   on the DIY BookScanner).
 
 .. _postproc_plugs:
 
@@ -49,8 +57,9 @@ this can be set to +/- 180° by specifying the :option:`rotate-inverse
 .. option:: --rotate-inverse, -ri
 
    By default, *spreads* will rotate your images either by +/- 90 degrees,
-   depending on their device of origin. With this setting, you can change
-   this value to +/- 180 degrees, in case you scanned your book upside down.
+   depending on their device of origin. With this setting, you can switch
+   these values, in case you scanned your book upside down. Often used in
+   combination with the ``--first-page`` switch of the ``download`` command.
 
 colorcorrect
 ------------
@@ -74,6 +83,12 @@ the output images will run on all CPU cores in parallel.
    postprocessing. This skips the step where you can manually adjust the
    ScanTailor configuration.
 
+.. option:: --page-detection, -pd
+
+   By default, ScanTailor will use content boundaries to determine what to
+   include in its output. With this option, you can tell it to use the page
+   boundaries instead.
+
 .. _plug_tesseract:
 
 tesseract
@@ -83,6 +98,12 @@ Perform optical character recognition on the scanned pages, using the
 work. For every recognized page, a HTML document in hOCR format will be written
 to *project-directory/done*. These files can be used by the output plugins
 to include the recognized text.
+
+.. option:: --language LANGUAGE, -l LANGUAGE
+
+   Tell tesseract which language to use for OCR. You can get a list of all
+   installed languages on your system by running ``tesseract --list-langs``.
+   The default is 'eng' (English).
 
 .. _output_plugs:
 

@@ -9,8 +9,9 @@ Changelog
 * pdfbeads plugin can include recognized text in a hidden layer if OCR has
   been performed beforehand.
 * Use EXIF tags to persist orientation information instead of JPEG comments.
-* Better logging
+* Better logging with colorized output
 * Simplified multithreading/multiprocessing code
+* CHDK driver is a lot more stable now
 
 0.2 (2013/06/30)
 ----------------
