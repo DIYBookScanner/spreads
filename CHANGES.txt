@@ -1,5 +1,15 @@
-0.3 (in development)
-    - Plugins can add completely new subcommands
+0.3 (2013/08/23)
+    - Plugins can add completely new subcommands.
+    - GUI plugin that provides a graphical workflow wizard.
+    - Tesseract plugin that can perform OCR on captured images.
+    - pdfbeads plugin can include recognized text in a hidden layer if OCR has
+      been performed beforehand.
+    - Use EXIF tags to persist orientation information instead of JPEG
+      comments.
+    - Better logging with colorized output
+    - Simplified multithreading/multiprocessing code
+    - CHDK driver is a lot more stable now
+
 0.2 (2013/06/30)
     - New plugin system based on Doug Hellmann's `stevedore` package,
       allows packages to extend spreads without being included in the core
