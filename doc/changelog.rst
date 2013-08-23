@@ -1,8 +1,8 @@
 Changelog
 =========
 
-0.3 (in development)
---------------------
+0.3 (2013/08/23)
+----------------
 * Plugins can add completely new subcommands.
 * GUI plugin that provides a graphical workflow wizard.
 * Tesseract plugin that can perform OCR on captured images.
