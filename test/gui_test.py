@@ -5,6 +5,7 @@ from mock import MagicMock as Mock
 import spreads
 import spreadsplug.gui.gui as gui
 
+
 class TestWizard(object):
     def setUp(self):
         try:
@@ -23,12 +24,20 @@ class TestWizard(object):
         # Mock out message boxes
         gui.QtGui.QMessageBox = Mock()
         gui.QtGui.QMessageBox.exec_.return_value = True
+        # Mock out plugin_manager
+        mock_pm = Mock()
+        mock_pm.names.return_value = ["gui", "scantailor", "combine",
+                                      "tesseract", "autorotate",
+                                      "pdfbeads"]
+        # Mock out subprocess for tesseract language list
+        gui.subprocess.check_output = Mock(
+                return_value="List of available languages (6):\neng\n")
         self.wizard = gui.SpreadsWizard(spreads.config)
         self.wizard.show()
 
     def tearDown(self):
         gui.QtGui.QImage = QImage
-        gui.QtGui.QPixmap =QPixmap
+        gui.QtGui.QPixmap = QPixmap
 
     def test_intro_page(self):
         page = self.wizard.page(0)
@@ -68,7 +77,7 @@ class TestWizard(object):
     def test_capture_page(self):
         self.wizard.selected_devices = self.cams
         gui.QtGui.QImage = Mock()
-        gui.QtGui.QPixmap.fromImage = Mock(return_value = QPixmap())
+        gui.QtGui.QPixmap.fromImage = Mock(return_value=QPixmap())
         page = self.wizard.page(2)
         page.initializePage()
         # TODO: Test capture triggering, logbox updates, etc
