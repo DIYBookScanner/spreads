@@ -23,7 +23,7 @@ Installation
 First, ensure that you have all the dependencies installed::
 
     $ sudo apt-get install python2.7 python2.7-dev python-virtualenv libusb-dev\
-      libjpeg-dev libtiff-dev libqt4-core rubygems ruby-rmagick
+      libjpeg-dev libtiff-dev libqt4-core rubygems ruby-rmagick libmagickwand-dev
     $ wget <scantailor-deb-url>
     $ sudo dpkg -i <scantailor-deb>
     $ sudo gem install pdfbeads
