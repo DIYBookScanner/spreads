@@ -14,14 +14,14 @@ class TestPlugin(object):
         reload(plugin)
 
     def test_pluginmanager(self):
-        plugin.NamedExtensionManager = Mock()
+        plugin.SpreadsNamedExtensionManager = Mock()
         pm = plugin.get_pluginmanager()
-        assert plugin.NamedExtensionManager.call_count == 1
-        assert plugin.NamedExtensionManager.call_args_list == ([call(
+        assert plugin.SpreadsNamedExtensionManager.call_count == 1
+        assert plugin.SpreadsNamedExtensionManager.call_args_list == ([call(
             invoke_on_load=True, namespace=u'spreadsplug.hooks', names=[],
             name_order=True, invoke_args=[spreads.config])])
         pm_new = plugin.get_pluginmanager()
-        assert plugin.NamedExtensionManager.call_count == 1
+        assert plugin.SpreadsNamedExtensionManager.call_count == 1
         assert pm is pm_new
 
     def test_get_devices(self):
