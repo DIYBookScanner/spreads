@@ -5,7 +5,7 @@ from nose.tools import assert_raises
 from pyptpchdk import PTPError
 
 import spreads
-import spreadsplug.chdkcamera as chdkcamera
+import spreadsplug.dev.chdkcamera as chdkcamera
 
 spreads.util.find_in_path = Mock(return_value=True)
 

@@ -21,15 +21,12 @@
 
 from __future__ import division, unicode_literals
 
-import logging
 import os
-import subprocess
-import sys
 
 
 # Auto-import all camera drivers
-for module in os.listdir(os.path.dirname(__file__)):
+for module in os.listdir(os.path.join(os.path.dirname(__file__), 'dev')):
     if module == '__init__.py' or module[-3:] != '.py':
         continue
-    __import__(module[:-3], locals(), globals())
+    __import__("spreadsplug.dev." + module[:-3], locals(), globals())
 del module
