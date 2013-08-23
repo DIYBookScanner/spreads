@@ -55,8 +55,8 @@ if __name__ == '__main__':
         print(colorama.Fore.RED +
               "You are missing a dependency for one of your enabled plugins:")
         print(colorama.Fore.RED + e.message)
-
     except Exception as e:
+        typ, val, tb = sys.exc_info()
         print(colorama.Fore.RED + "spreads encountered an error:")
         print(colorama.Fore.RED +
               "".join(traceback.format_exception(typ, val, tb)))
