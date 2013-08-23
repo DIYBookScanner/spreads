@@ -25,6 +25,7 @@ import abc
 import logging
 
 import usb
+import stevedore
 from stevedore.extension import ExtensionManager
 from stevedore.named import NamedExtensionManager
 
@@ -34,6 +35,27 @@ from spreads.util import (abstractclassmethod, find_in_path, SpreadsException,
                           DeviceException)
 
 logger = logging.getLogger("spreads.plugin")
+
+
+class SpreadsNamedExtensionManager(NamedExtensionManager):
+    """ Custom extension manager for spreads.
+
+    stevedore's NamedExtensionmanger does not give us the Exception that caused
+    a plugin to fail at initialization. This derived class throws the original
+    exception instead of logging it.
+    """
+    def _load_plugins(self, invoke_on_load, invoke_args, invoke_kwds):
+        extensions = []
+        for ep in self._find_entry_points(self.namespace):
+            stevedore.LOG.debug('found extension %r', ep)
+            ext = self._load_one_plugin(ep,
+                                        invoke_on_load,
+                                        invoke_args,
+                                        invoke_kwds,
+                                        )
+            if ext:
+                extensions.append(ext)
+        return extensions
 
 
 class SpreadsPlugin(object):
@@ -264,7 +286,7 @@ def get_pluginmanager():
     if _pluginmanager:
         return _pluginmanager
     logger.debug("Creating plugin manager")
-    _pluginmanager = NamedExtensionManager(
+    _pluginmanager = SpreadsNamedExtensionManager(
         namespace='spreadsplug.hooks',
         names=spreads.config['plugins'].as_str_seq(),
         invoke_on_load=True,

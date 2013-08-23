@@ -12,12 +12,12 @@ import tempfile
 from xml.etree.cElementTree import ElementTree as ET
 
 from spreads.plugin import HookPlugin
-from spreads.util import find_in_path, SpreadsException
+from spreads.util import find_in_path, MissingDependencyException
 
 if not find_in_path('scantailor-cli'):
-    raise SpreadsException("Could not find executable `scantailor-cli`"
-                            " in $PATH. Please install the appropriate"
-                            " package(s)!")
+    raise MissingDependencyException("Could not find executable"
+                                     " `scantailor-cli` in $PATH. Please"
+                                     " install the appropriate package(s)!")
 
 logger = logging.getLogger('spreadsplug.scantailor')
 
@@ -121,9 +121,10 @@ class ScanTailorPlugin(HookPlugin):
         autopilot = (self.config['scantailor']['autopilot']
                      .get(bool) or self.config['autopilot'].get(bool))
         if not autopilot and not find_in_path('scantailor'):
-            raise SpreadsException("Could not find executable `scantailor` in"
-                                   " $PATH. Please install the appropriate"
-                                   " package(s)!")
+            raise MissingDependencyException(
+                "Could not find executable `scantailor` in"
+                " $PATH. Please install the appropriate"
+                " package(s)!")
         projectfile = os.path.join(path, "{0}.ScanTailor".format(
             os.path.basename(path)))
         img_dir = os.path.join(path, 'raw')

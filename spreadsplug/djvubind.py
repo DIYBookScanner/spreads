@@ -7,12 +7,12 @@ import os
 import subprocess
 
 from spreads.plugin import HookPlugin
-from spreads.util import SpreadsException, find_in_path
+from spreads.util import MissingDependencyException, find_in_path
 
 if not find_in_path('djvubind'):
-    raise SpreadsException("Could not find executable `djvubind` in"
-                            " $PATH. Please install the appropriate"
-                            " package(s)!")
+    raise MissingDependencyException("Could not find executable `djvubind` in"
+                                     " $PATH. Please install the appropriate"
+                                     " package(s)!")
 
 logger = logging.getLogger('spreadsplug.djvubind')
 

@@ -30,27 +30,35 @@ import colorama
 
 import spreads.cli
 from spreads.confit import ConfigError
-from spreads.util import DeviceException
+from spreads.util import DeviceException, MissingDependencyException
 
 if __name__ == '__main__':
     # Initialize color support
     colorama.init()
     try:
         spreads.cli.main()
-    except Exception as e:
+    except DeviceException as e:
         typ, val, tb = sys.exc_info()
         logging.debug("".join(traceback.format_exception(typ, val, tb)))
-        if isinstance(e, DeviceException):
-            print(colorama.Fore.RED + "There is a problem with your device"
-                                      " configuration:")
-            print(colorama.Fore.RED + e.message)
-        elif isinstance(e, ConfigError):
-            print(colorama.Fore.RED +
-                  "There is a problem with your configuration file(s):")
-            print(colorama.Fore.RED + e.message)
-        else:
-            print(colorama.Fore.RED + "spreads encountered an error:")
-            print(colorama.Fore.RED +
-                  "".join(traceback.format_exception(typ, val, tb)))
+        print(colorama.Fore.RED + "There is a problem with your device"
+                                  " configuration:")
+        print(colorama.Fore.RED + e.message)
+    except ConfigError as e:
+        typ, val, tb = sys.exc_info()
+        logging.debug("".join(traceback.format_exception(typ, val, tb)))
+        print(colorama.Fore.RED +
+              "There is a problem with your configuration file(s):")
+        print(colorama.Fore.RED + e.message)
+    except MissingDependencyException as e:
+        typ, val, tb = sys.exc_info()
+        logging.debug("".join(traceback.format_exception(typ, val, tb)))
+        print(colorama.Fore.RED +
+              "You are missing a dependency for one of your enabled plugins:")
+        print(colorama.Fore.RED + e.message)
+
+    except Exception as e:
+        print(colorama.Fore.RED + "spreads encountered an error:")
+        print(colorama.Fore.RED +
+              "".join(traceback.format_exception(typ, val, tb)))
     # Deinitialize color support
     colorama.deinit()

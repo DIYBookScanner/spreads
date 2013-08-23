@@ -40,6 +40,10 @@ class DeviceException(SpreadsException):
     pass
 
 
+class MissingDependencyException(SpreadsException):
+    pass
+
+
 def find_in_path(name):
     """ Find executable in $PATH.
 
