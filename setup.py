@@ -1,9 +1,9 @@
 #!/usr/bin/env python2.7
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='spreads',
-    version='0.2',
+    version='0.3',
     author='Johannes Baiter',
     author_email='johannes.baiter@gmail.com',
     packages=['spreads', 'spreadsplug'],
