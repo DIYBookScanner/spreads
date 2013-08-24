@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='spreads',
-    version='0.3.1',
+    version='0.3.2',
     author='Johannes Baiter',
     author_email='johannes.baiter@gmail.com',
     packages=['spreads', 'spreadsplug', 'spreadsplug.dev'],

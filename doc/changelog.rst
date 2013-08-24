@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.3.2 (2013/08/24)
+------------------
+* Fixes a critical bug in the devices drivers
+
+0.3.1 (2013/08/23)
+------------------
+* Fixes a bug that prevented spreads to be installed
+
 0.3 (2013/08/23)
 ----------------
 * Plugins can add completely new subcommands.

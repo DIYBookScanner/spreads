@@ -1,3 +1,9 @@
+0.3.2 (2013/08/24)
+    - fixes a problem with the devices drivers
+
+0.3.1 (2013/08/23)
+    - fixes a problem that prevented spreads to be installed
+
 0.3 (2013/08/23)
     - Plugins can add completely new subcommands.
     - GUI plugin that provides a graphical workflow wizard.
