@@ -304,7 +304,7 @@ class CHDKCameraDevice(DevicePlugin):
         """
         available_levels = self._device.execute_lua("get_zoom_steps()",
                                                     get_result=True)[0]
-        if not level in available_levels:
+        if level > available_levels:
             raise DeviceException("Level outside of supported range!")
         self._device.execute_lua('set_zoom({0})'.format(level))
 
