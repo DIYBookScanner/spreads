@@ -232,7 +232,10 @@ class CHDKCameraDevice(DevicePlugin):
 
         """
         self._device = PTPDevice(device)
-        self.orientation = self._device.get_orientation()
+        try:
+            self.orientation = self._device.get_orientation()
+        except PTPError:
+            self.orientation = None
         self._sensitivity = config['device']['sensitivity'].get(int)
         self._shutter_speed = (float(Fraction(config['device']['shutter_speed']
                                               .get(unicode))))
@@ -363,8 +366,11 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
 
     def __init__(self, config, device):
         super(CanonA2200CameraDevice, self).__init__(config, device)
-        self.logger = logging.getLogger(
-            'CanonA2200CameraDevice[{0}]'.format(self.orientation))
+        if self.orientation is not None:
+            self.logger = logging.getLogger(
+                'CanonA2200CameraDevice[{0}]'.format(self.orientation))
+        else:
+            self.logger = logging.getLogger('CanonA2200CameraDevice')
 
     @classmethod
     def match(cls, device):
