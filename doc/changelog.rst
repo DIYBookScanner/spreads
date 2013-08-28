@@ -1,5 +1,8 @@
 Changelog
 =========
+0.3.3 (2013/08/28)
+------------------
+* Fix typo in device manager that prevent drivers from being loaded
 
 0.3.2 (2013/08/24)
 ------------------

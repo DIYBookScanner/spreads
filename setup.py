@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='spreads',
-    version='0.3.2',
+    version='0.3.3',
     author='Johannes Baiter',
     author_email='johannes.baiter@gmail.com',
     packages=['spreads', 'spreadsplug', 'spreadsplug.dev'],
@@ -11,8 +11,7 @@ setup(
     scripts=['spread', ],
     url='http://github.com/jbaiter/spreads',
     license='MIT',
-    description='Tool to facilitate book digitization with the DIY Book '
-                'Scanner',
+    description='Book digitization workflow assistant',,
     long_description=open('README.rst').read(),
     install_requires=[
         "colorama >= 0.2.5",
