@@ -277,7 +277,7 @@ class HookPlugin(SpreadsPlugin):
 # Load drivers for all supported devices
 def get_devicemanager():
     logger.debug("Creating device manager")
-    return ExtensionManager(namespace='spreadsplug.devices.dev')
+    return ExtensionManager(namespace='spreadsplug.devices')
 
 # Poor man's memoization...
 _pluginmanager = None
