@@ -47,8 +47,7 @@ def prepare_capture(devices):
             futures.append(executor.submit(dev.prepare_capture))
     if any(x.exception() for x in futures):
         exc = next(x for x in futures if x.exception()).exception()
-        logger.error("There was an exception while preparing for capture",
-                     exc_info=sys.exc_info(exc))
+        raise exc
     for ext in get_pluginmanager():
         logger.debug("Running prepare_capture hooks")
         ext.obj.prepare_capture(devices)
