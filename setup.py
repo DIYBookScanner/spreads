@@ -11,7 +11,7 @@ setup(
     scripts=['spread', ],
     url='http://github.com/jbaiter/spreads',
     license='MIT',
-    description='Book digitization workflow assistant',,
+    description='Book digitization workflow assistant',
     long_description=open('README.rst').read(),
     install_requires=[
         "colorama >= 0.2.5",
