@@ -65,7 +65,7 @@ def configure(args=None):
         print("Please connect and turn on the device labeled \'{0}\'"
               .format(orientation))
         print(colorama.Fore.BLUE + "Press any key when ready.")
-        _ = getch()
+        getch()
         devs = get_devices()
         if len(devs) > 1:
             raise DeviceException("Please ensure that only one device is"
@@ -73,7 +73,8 @@ def configure(args=None):
         if not devs:
             raise DeviceException("No device found!")
         devs[0].set_orientation(orientation)
-        print(colorama.Fore.GREEN + "Configured \'{0}\' device.".format(orientation))
+        print(colorama.Fore.GREEN + "Configured \'{0}\' device."
+                                    .format(orientation))
         print("Please turn off the device.")
         print(colorama.Fore.BLUE + "Press any key when ready.")
         getch()
@@ -112,7 +113,8 @@ def capture(args=None, devices=[]):
         shot_count += len(devices)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
         status = ("\rShot {0} pages [{1:.0f}/h]"
-                  .format(colorama.Fore.GREEN + unicode(shot_count), pages_per_hour))
+                  .format(colorama.Fore.GREEN + unicode(shot_count),
+                          pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
     workflow.finish_capture(devices)
@@ -160,7 +162,7 @@ def wizard(args):
     if any(not x.orientation for x in devices):
         print(colorama.Fore.YELLOW + "Devices not yet configured!")
         print(colorama.Fore.BLUE + "Please turn both devices off."
-                          " Press any key when ready.")
+                                   " Press any key when ready.")
         while True:
             try:
                 configure()
