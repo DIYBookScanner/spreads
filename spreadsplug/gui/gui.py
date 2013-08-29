@@ -50,10 +50,12 @@ class LogBoxFormatter(logging.Formatter):
 
 
 class SpreadsWizard(QtGui.QWizard):
-    def __init__(self, config, parent=None):
+    def __init__(self, config, devices, parent=None):
         super(SpreadsWizard, self).__init__(parent)
+
+        self.devices = devices
+
         self.addPage(IntroPage())
-        self.addPage(ConnectPage())
         self.addPage(CapturePage())
         self.addPage(DownloadPage())
         self.addPage(PostprocessPage())
@@ -169,85 +171,6 @@ class IntroPage(QtGui.QWizardPage):
             spreads.config['language'] = str(self.ocr_lang.currentText()
                                              .lower())
         return True
-
-
-class ConnectPage(QtGui.QWizardPage):
-    def initializePage(self):
-        # TODO: Show an activity indicator while get_devices() is running,
-        #       use QtGui.QProgressDialog, with .setRange(0,0) for
-        #       indeterminate time
-
-        self.setTitle("Connect")
-
-        self.label = QtGui.QLabel("Detecting devices...")
-        self.devicewidget = QtGui.QListWidget()
-        self.devicewidget.setSelectionMode(QtGui.QAbstractItemView
-                                           .MultiSelection)
-
-        refresh_btn = QtGui.QPushButton("Refresh")
-        refresh_btn.clicked.connect(self.update_devices)
-
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.devicewidget)
-        layout.addWidget(refresh_btn)
-        self.setLayout(layout)
-        self.update_devices()
-
-    def update_devices(self):
-        progress = QtGui.QProgressDialog("Detecting devices...",
-                                         "Cancel", 0, 0, self)
-        progress.show()
-        self.devicewidget.clear()
-        self.label.setText("Detecting devices...")
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(get_devices)
-            while not future.done():
-                QtGui.qApp.processEvents()
-                progress.setValue(1)
-                time.sleep(0.001)
-            try:
-                devices = future.result()
-            except util.DeviceException:
-                devices = []
-        progress.close()
-        if not devices:
-            self.label.setText("<font color=red>No devices found!</font>")
-        else:
-            self.label.setText("Please select one or more devices:")
-        self.devices = []
-        for idx, device in enumerate(devices, 1000):
-            self.devicewidget.setCurrentItem(
-                QtGui.QListWidgetItem(device.__class__.__name__,
-                                      self.devicewidget, type=idx))
-            self.devices.append(device)
-
-    def validatePage(self):
-        self.wizard().selected_devices = [self.devices[x.type()-1000]
-                                          for x
-                                          in self.devicewidget.selectedItems()]
-
-        if len(self.wizard().selected_devices) in (1, 2):
-            progress = QtGui.QProgressDialog("Preparing devices...",
-                                             "Cancel", 0, 0, self)
-            progress.show()
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(workflow.prepare_capture,
-                                         self.wizard().selected_devices)
-                while future.running():
-                    QtGui.qApp.processEvents()
-                    progress.setValue(1)
-                    time.sleep(0.001)
-            progress.close()
-            return True
-        msg_box = QtGui.QMessageBox()
-        msg_box.setIcon(QtGui.QMessageBox.Critical)
-        if len(self.wizard().selected_devices) > 2:
-            msg_box.setText("Please don't select more than two devices!")
-        elif not self.wizard().selected_devices:
-            msg_box.setText("No device selected.")
-        msg_box.exec_()
-        return False
 
 
 class CapturePage(QtGui.QWizardPage):

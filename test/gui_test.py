@@ -32,7 +32,7 @@ class TestWizard(object):
         # Mock out subprocess for tesseract language list
         gui.subprocess.check_output = Mock(
                 return_value="List of available languages (6):\neng\n")
-        self.wizard = gui.SpreadsWizard(spreads.config)
+        self.wizard = gui.SpreadsWizard(spreads.config, self.cams)
         self.wizard.show()
 
     def tearDown(self):
@@ -62,14 +62,6 @@ class TestWizard(object):
         page.initializePage()
         assert not page.validatePage()
 
-    def test_connect_page(self):
-        page = self.wizard.page(1)
-        page.initializePage()
-        assert page.validatePage()
-        assert self.wizard.selected_devices == self.cams
-        for cam in self.cams:
-            assert cam.prepare_capture.call_count == 1
-
     def test_connect_page_nocams(self):
         # TODO: Write me!
         pass
@@ -78,29 +70,22 @@ class TestWizard(object):
         self.wizard.selected_devices = self.cams
         gui.QtGui.QImage = Mock()
         gui.QtGui.QPixmap.fromImage = Mock(return_value=QPixmap())
-        page = self.wizard.page(2)
+        page = self.wizard.page(1)
         page.initializePage()
         # TODO: Test capture triggering, logbox updates, etc
         assert page.validatePage()
 
     def test_download_page(self):
         self.wizard.selected_devices = self.cams
+        page = self.wizard.page(2)
+        page.initializePage()
+        # TODO: See that logbox works, donwload is executed, warning is
+        #       emitted on combine failure
+        assert page.validatePage()
+
+    def test_postprocess_page(self):
         page = self.wizard.page(3)
         page.initializePage()
-        # TODO: See that logbox works, donwload is executed, warning is
-        #       emitted on combine failure
-        assert page.validatePage()
-
-    def test_postprocess_page(self):
-        page = self.wizard.page(4)
-        page.initializePage()
         # TODO: See that logbox works, postprocess is executed, warning is
-        #       emitted on combine failure
-        assert page.validatePage()
-
-    def test_postprocess_page(self):
-        page = self.wizard.page(4)
-        page.initializePage()
-        # TODO: See that logbox works, donwload is executed, warning is
         #       emitted on combine failure
         assert page.validatePage()

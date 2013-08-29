@@ -80,23 +80,18 @@ def configure(args=None):
         getch()
 
 
-def capture(args=None, devices=[]):
+def capture(args=None, devices=None):
     if not devices:
-        print("Starting capture workflow, please connect and turn on the"
-              " devices.")
-        print(colorama.Fore.BLUE + "Press any key to continue.")
-        getch()
-        print("Detecting devices.")
         devices = get_devices()
-        if len(devices) != 2:
-            raise DeviceException("Please connect and turn on two"
-                                  " pre-configured devices! ({0} were"
-                                  " found)".format(len(devices)))
-        print(colorama.Fore.GREEN + "Found {0} devices!".format(len(devices)))
-        if any(not x.orientation for x in devices):
-            raise DeviceException("At least one of the devices has not been"
-                                  " properly configured, please re-run the"
-                                  " program with the \'configure\' option!")
+    if len(devices) != 2:
+        raise DeviceException("Please connect and turn on two"
+                              " pre-configured devices! ({0} were"
+                              " found)".format(len(devices)))
+    print(colorama.Fore.GREEN + "Found {0} devices!".format(len(devices)))
+    if any(not x.orientation for x in devices):
+        raise DeviceException("At least one of the devices has not been"
+                              " properly configured, please re-run the"
+                              " program with the \'configure\' option!")
     # Set up for capturing
     print("Setting up devices for capturing.")
     workflow.prepare_capture(devices)
@@ -125,10 +120,11 @@ def capture(args=None, devices=[]):
     sys.stdout.flush()
 
 
-def download(args=None, path=None):
+def download(args=None, path=None, devices=None):
     if args and args.path:
         path = args.path
-    devices = get_devices()
+    if not devices:
+        devices = get_devices()
     status_str = "Downloading {0} images from devices"
     if config['download']['keep'].get(bool) or config['keep'].get(bool):
         status_str = status_str.format("and deleting ")
@@ -150,15 +146,12 @@ def output(args=None, path=None):
     workflow.output(path)
 
 
-def wizard(args):
+def wizard(args, devices=None):
     # TODO: Think about how we can make this more dynamic, i.e. get list of
     #       options for plugin with a description for each entry
     path = args.path
-    print("Please connect and turn on the devices.")
-    print(colorama.Fore.BLUE + "Press any key to continue.")
-    getch()
-    print(colorama.Fore.GREEN + "Detecting devices.")
-    devices = get_devices()
+    if not devices:
+        devices = get_devices()
     if any(not x.orientation for x in devices):
         print(colorama.Fore.YELLOW + "Devices not yet configured!")
         print(colorama.Fore.BLUE + "Please turn both devices off."
@@ -196,12 +189,19 @@ def wizard(args):
 
 
 def setup_parser():
-    pluginmanager = get_pluginmanager()
-    parser = argparse.ArgumentParser(
-        description="Scanning Tool for  DIY Book Scanner")
-    subparsers = parser.add_subparsers()
+    def _add_device_arguments(name, parser):
+        try:
+            for dev in get_devices():
+                dev.add_arguments(name, parser)
+        except:
+            return
 
-    parser.add_argument(
+    pluginmanager = get_pluginmanager()
+    rootparser = argparse.ArgumentParser(
+        description="Scanning Tool for  DIY Book Scanner")
+    subparsers = rootparser.add_subparsers()
+
+    rootparser.add_argument(
         '--verbose', '-v', dest="verbose", action="store_true")
 
     wizard_parser = subparsers.add_parser(
@@ -218,10 +218,10 @@ def setup_parser():
         'capture', help="Start the capturing workflow")
     capture_parser.set_defaults(func=capture)
     # Add arguments from plugins
-    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                      'capture', capture_parser)
-    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                      'capture', wizard_parser)
+    for parser in (capture_parser, wizard_parser):
+        pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                          'capture', parser)
+        _add_device_arguments('capture', parser)
 
     download_parser = subparsers.add_parser(
         'download', help="Download scanned images.")
@@ -233,10 +233,10 @@ def setup_parser():
             help="Keep files on devices after download")
     download_parser.set_defaults(func=download)
     # Add arguments from plugins
-    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                      'download', download_parser)
-    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                      'download', wizard_parser)
+    for parser in (download_parser, wizard_parser):
+        pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                          'download', parser)
+        _add_device_arguments('download', parser)
 
     postprocess_parser = subparsers.add_parser(
         'postprocess',
@@ -248,10 +248,9 @@ def setup_parser():
         metavar="<int>", help="Number of concurrent processes")
     postprocess_parser.set_defaults(func=postprocess)
     # Add arguments from plugins
-    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                      'postprocess', postprocess_parser)
-    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                      'postprocess', wizard_parser)
+    for parser in (download_parser, wizard_parser):
+        pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                          'postprocess', parser)
 
     output_parser = subparsers.add_parser(
         'output',
@@ -260,14 +259,13 @@ def setup_parser():
         "path", help="Path where scanned and postprocessed images are stored")
     output_parser.set_defaults(func=output)
     # Add arguments from plugins
-    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                      'output', output_parser)
-    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                      'output', wizard_parser)
+    for parser in (download_parser, wizard_parser):
+        pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                          'output', parser)
 
     pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),
                       subparsers)
-    return parser
+    return rootparser
 
 
 def main():

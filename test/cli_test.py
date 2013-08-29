@@ -19,6 +19,8 @@ class TestCLI(object):
         cli.get_pluginmanager = Mock(return_value=self.plugins)
         cli.workflow = Mock()
         self.devices = [Mock(), Mock()]
+        self.devices[0].orientation = 'right'
+        self.devices[1].orientation = 'left'
 
     def test_configure(self):
         cli.getch = Mock(return_value=' ')
@@ -50,7 +52,7 @@ class TestCLI(object):
         cli.capture()
         assert cli.getch.call_count == 4
         assert cli.workflow.prepare_capture.call_count == 1
-        assert cli.workflow.capture.call_count == 2
+        assert cli.workflow.capture.call_count == 3
         assert cli.workflow.finish_capture.call_count == 1
         #TODO: stats correct?
 
@@ -85,23 +87,11 @@ class TestCLI(object):
     def test_wizard(self):
         args = Mock()
         args.path = '/tmp/foo'
-        self.devices[0].orientation = None
         cli.getch = Mock(side_effect=chain(repeat('b', 10), 'c',
                                            repeat('b', 10)))
-        cli.get_devices = Mock(return_value=self.devices)
-        cli.configure = Mock(side_effect=(DeviceException('boom'),
-                                          True))
+        cli.get_devices = Mock(side_effect=self.devices)
         spreads.config['keep'] = False
-#        cli.capture = Mock()
-#        cli.download = Mock()
-#        cli.postprocess = Mock()
-        cli.wizard(args)
-        assert cli.getch.call_count == 11
-        assert cli.get_devices.call_count == 2
-        assert cli.configure.call_count == 2
-#        assert cli.capture.call_args == call(devices=self.devices)
-#        assert cli.download.call_args == call(path='/tmp/foo')
-#        assert cli.postprocess.call_args == call(path='/tmp/foo')
+        cli.wizard(args, self.devices)
 
     def test_parser(self):
         cli.get_pluginmanager = Mock()
