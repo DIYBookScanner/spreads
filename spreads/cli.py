@@ -202,6 +202,12 @@ def setup_parser():
     parser.add_argument(
         '--verbose', '-v', dest="verbose", action="store_true")
 
+    wizard_parser = subparsers.add_parser(
+        'wizard', help="Interactive mode")
+    wizard_parser.add_argument(
+        "path", help="Path where scanned images are to be stored")
+    wizard_parser.set_defaults(func=wizard)
+
     config_parser = subparsers.add_parser(
         'configure', help="Perform initial configuration of the devices.")
     config_parser.set_defaults(func=configure)
@@ -212,18 +218,23 @@ def setup_parser():
     # Add arguments from plugins
     pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
                       'capture', capture_parser)
+    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                      'capture', wizard_parser)
 
     download_parser = subparsers.add_parser(
         'download', help="Download scanned images.")
     download_parser.add_argument(
         "path", help="Path where scanned images are to be stored")
-    download_parser.add_argument(
-        "--keep", "-k", dest="keep", action="store_true",
-        help="Keep files on devices after download")
+    for subparser in (download_parser, wizard_parser):
+        subparser.add_argument(
+            "--keep", "-k", dest="keep", action="store_true",
+            help="Keep files on devices after download")
     download_parser.set_defaults(func=download)
     # Add arguments from plugins
     pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
                       'download', download_parser)
+    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                      'download', wizard_parser)
 
     postprocess_parser = subparsers.add_parser(
         'postprocess',
@@ -237,6 +248,8 @@ def setup_parser():
     # Add arguments from plugins
     pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
                       'postprocess', postprocess_parser)
+    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                      'postprocess', wizard_parser)
 
     output_parser = subparsers.add_parser(
         'output',
@@ -247,12 +260,8 @@ def setup_parser():
     # Add arguments from plugins
     pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
                       'output', output_parser)
-
-    wizard_parser = subparsers.add_parser(
-        'wizard', help="Interactive mode")
-    wizard_parser.add_argument(
-        "path", help="Path where scanned images are to be stored")
-    wizard_parser.set_defaults(func=wizard)
+    pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
+                      'output', wizard_parser)
 
     pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),
                       subparsers)
