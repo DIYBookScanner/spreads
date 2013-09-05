@@ -106,8 +106,13 @@ GUI Wizard
 Enabling the GUI
 ----------------
 To enable the GUI wizard, first make sure that you have an up-to date version
-of PySide installed on your machine. Then, just add ``gui`` to the ``plugins``
-list in your configuration file (``~/.config/spreads/config.yaml`` on Linux).
+of PySide installed on your machine and linked to your virtual environemtn::
+
+    $ sudo apt-get install python-pyside
+    $ ln -s /usr/lib/python2.7/dist-packages/PySide ~/.spreads/lib/python2.7/site-packages/PySide
+
+Then, just add ``gui`` to the ``plugins`` list in your configuration file
+(``~/.config/spreads/config.yaml`` on Linux).
 
 Usage
 -----
