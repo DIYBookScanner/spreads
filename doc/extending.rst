@@ -17,7 +17,7 @@ can support a whole range of devices with a single :class:`DevicePlugin
 <spreads.plugin.DevicePlugin>` implementation, if you know a set of
 attributes that apply to all of them.
 
-.. _plugin for CHDK-based cameras: https://github.com/jbaiter/spreads/blob/master/spreadsplug/chdkcamera.py
+.. _plugin for CHDK-based cameras: https://github.com/jbaiter/spreads/blob/master/spreadsplug/dev/chdkcamera.py
 .. _relevant part of spreads' setup.py: https://github.com/jbaiter/spreads/blob/master/setup.py
 
 .. _extend_commands:
