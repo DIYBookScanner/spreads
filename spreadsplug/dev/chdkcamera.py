@@ -228,7 +228,7 @@ class CHDKCameraDevice(DevicePlugin):
         #       it is also a CHDK compatible device.
         cfg = device.get_active_configuration()[(0, 0)]
         matches = (hex(cfg.bInterfaceClass) == "0x6"
-                   and hex(device.bInterfaceSubClass) == "0x1")
+                   and hex(cfg.bInterfaceSubClass) == "0x1")
         return matches
 
     def __init__(self, config, device):
