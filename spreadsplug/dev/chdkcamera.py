@@ -426,10 +426,7 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
     def download_files(self, path):
         for campath in self._get_image_list():
             local_path = os.path.join(path, os.path.basename(campath))
-            try:
-                self._device.download_image(campath, local_path)
-            except:
-                continue
+            self._device.download_image(campath, local_path)
 
     def delete_files(self):
         for campath in self._get_image_list():
