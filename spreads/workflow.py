@@ -103,9 +103,9 @@ def download(devices, path):
                     dev.download_files,
                     os.path.join(path, dev.orientation))
                 )
-            if any(x.exception() for x in futures):
-                exc = next(x for x in futures if x.exception()).exception()
-                raise exc
+        if any(x.exception() for x in futures):
+            exc = next(x for x in futures if x.exception()).exception()
+            raise exc
     logger.debug("Running download hooks")
     for ext in get_pluginmanager():
         ext.obj.download(devices, path)

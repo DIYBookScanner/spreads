@@ -1,4 +1,5 @@
 from mock import call, MagicMock as Mock, patch
+from nose.tools import raises
 
 import spreads
 import spreads.workflow as flow
@@ -71,6 +72,18 @@ class TestDownload(object):
 
     @patch('os.mkdir')
     @patch('os.path.exists')
+    @raises(Exception)
+    def test_download_with_error(self, exists, mkdir):
+        spreads.config['keep'] = False
+        exists.return_value = False
+        flow.os.mkdir = mkdir
+        flow.os.path.exists = exists
+        self.cams[0].download_files.side_effect = Exception
+        flow.download(devices=self.cams, path='/tmp/foo')
+        #assert False
+
+    @patch('os.mkdir')
+    @patch('os.path.exists')
     def test_download(self, exists, mkdir):
         spreads.config['keep'] = False
         exists.return_value = False
@@ -92,6 +105,7 @@ class TestDownload(object):
                 self.cams, '/tmp/foo')]
             assert plug.obj.delete.call_count == 1
             assert plug.obj.delete.call_args_list == [call(self.cams)]
+
 
 
 class TestProcess(object):
