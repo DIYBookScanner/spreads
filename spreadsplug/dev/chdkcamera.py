@@ -226,10 +226,11 @@ class CHDKCameraDevice(DevicePlugin):
     def match(cls, device):
         # TODO: This matches all PTP devices, we will have to ensure that
         #       it is also a CHDK compatible device.
-        cfg = device.get_active_configuration()[(0, 0)]
-        matches = (hex(cfg.bInterfaceClass) == "0x6"
-                   and hex(cfg.bInterfaceSubClass) == "0x1")
-        return matches
+        #cfg = device.get_active_configuration()[(0, 0)]
+        #matches = (hex(cfg.bInterfaceClass) == "0x6"
+        #           and hex(cfg.bInterfaceSubClass) == "0x1")
+        #return matches
+        return False
 
     def __init__(self, config, device):
         """ Set connection information and try to obtain orientation.
