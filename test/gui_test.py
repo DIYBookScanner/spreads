@@ -1,6 +1,8 @@
+import time
+
 import PySide.QtTest as QtTest
 from PySide.QtGui import QPixmap, QImage, QApplication
-from mock import MagicMock as Mock
+from mock import patch, MagicMock as Mock
 
 import spreads
 import spreadsplug.gui.gui as gui
@@ -75,10 +77,19 @@ class TestWizard(object):
         # TODO: Test capture triggering, logbox updates, etc
         assert page.validatePage()
 
-    def test_download_page(self):
+    @patch('os.listdir')
+    def test_download_page(self, listdir):
+        #spreads.config['keep'] = False
+        #spreads.config['parallel_download'] = True
+        listdir.return_value = True
         self.wizard.selected_devices = self.cams
+        self.wizard.project_path = '/tmp/foo'
+        gui.workflow = Mock()
+        gui.workflow.download.side_effect = lambda x, y: time.sleep(1)
+        gui.os.listdir = listdir
         page = self.wizard.page(2)
         page.initializePage()
+        page.doDownload()
         # TODO: See that logbox works, donwload is executed, warning is
         #       emitted on combine failure
         assert page.validatePage()

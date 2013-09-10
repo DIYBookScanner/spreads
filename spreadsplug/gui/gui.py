@@ -296,7 +296,7 @@ class DownloadPage(QtGui.QWizardPage):
                                      self.wizard().project_path)
             while future.running():
                 QtGui.qApp.processEvents()
-                self.progressbar.setValue(1)
+                self.progressbar.setValue(0)
                 time.sleep(0.001)
             if future.exception():
                 raise future.exception()
@@ -347,7 +347,7 @@ class PostprocessPage(QtGui.QWizardPage):
                                      self.wizard().project_path)
             while not future.done():
                 QtGui.qApp.processEvents()
-                self.progressbar.setValue(1)
+                self.progressbar.setValue(0)
                 time.sleep(0.01)
             if future.exception():
                 raise future.exception()
@@ -385,7 +385,7 @@ class OutputPage(QtGui.QWizardPage):
                                      self.wizard().project_path)
             while not future.done():
                 QtGui.qApp.processEvents()
-                self.progressbar.setValue(1)
+                self.progressbar.setValue(0)
                 time.sleep(0.001)
         self.progressbar.hide()
 
