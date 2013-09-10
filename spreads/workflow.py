@@ -55,7 +55,11 @@ def prepare_capture(devices):
 
 def capture(devices):
     logger.info("Triggering capture.")
-    with ThreadPoolExecutor(len(devices)) as executor:
+    if config['parallel_capture'].get(bool):
+        num_devices = len(devices)
+    else:
+        num_devices = 1
+    with ThreadPoolExecutor(num_devices) as executor:
         futures = []
         logger.debug("Sending capture command to devices")
         for dev in devices:
@@ -76,6 +80,10 @@ def finish_capture(devices):
 
 def download(devices, path):
     keep = config['download']['keep'].get(bool) or config['keep'].get(bool)
+    if config['parallel_download'].get(bool):
+        num_devices = len(devices)
+    else:
+        num_devices = 1
     logger.info("Downloading images from devices to {0}, files will "
                 "{1} remain on the devices."
                 .format(path, ("not" if not keep else "")))
@@ -95,7 +103,7 @@ def download(devices, path):
             logger.info("Images already present, skipping download")
             skip_download = True
     if not skip_download:
-        with ThreadPoolExecutor(len(devices)) as executor:
+        with ThreadPoolExecutor(num_devices) as executor:
             logger.debug("Starting download process")
             futures = []
             for dev in devices:
@@ -113,7 +121,7 @@ def download(devices, path):
     time.sleep(5)
     if not keep:
         logger.info("Deleting images from devices")
-        with ThreadPoolExecutor(len(devices)) as executor:
+        with ThreadPoolExecutor(num_devices) as executor:
             logger.debug("Starting delete process")
             for dev in devices:
                 executor.submit(dev.delete_files)

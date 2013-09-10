@@ -219,6 +219,9 @@ def setup_parser():
     capture_parser.set_defaults(func=capture)
     # Add arguments from plugins
     for parser in (capture_parser, wizard_parser):
+        parser.add_argument("--no-parallel-capture", dest="parallel_capture",
+            action="store_false", default=True,
+            help="Do not trigger capture on multiple devices at once.")
         pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
                           'capture', parser)
         _add_device_arguments('capture', parser)
@@ -228,6 +231,9 @@ def setup_parser():
     download_parser.add_argument(
         "path", help="Path where scanned images are to be stored")
     for subparser in (download_parser, wizard_parser):
+        subparser.add_argument("--no-parallel-download",
+            dest="parallel_download", action="store_false", default=True,
+            help="Do not download from multiple devices at once.")
         subparser.add_argument(
             "--keep", "-k", dest="keep", action="store_true",
             help="Keep files on devices after download")
