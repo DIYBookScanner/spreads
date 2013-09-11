@@ -254,7 +254,7 @@ def setup_parser():
         metavar="<int>", help="Number of concurrent processes")
     postprocess_parser.set_defaults(func=postprocess)
     # Add arguments from plugins
-    for parser in (download_parser, wizard_parser):
+    for parser in (postprocess_parser, wizard_parser):
         pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
                           'postprocess', parser)
 
