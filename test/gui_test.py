@@ -21,8 +21,6 @@ class TestWizard(object):
         spreads.config.read(user=False)
         spreads.config['plugins'] = (spreads.config['plugins'].get()
                                      + [u'tesseract'])
-        print spreads.config['plugins']
-        print "Setting up plugin configuration"
         plugin.setup_plugin_config()
 
         # TODO: Cams ought to be 'left' and 'right'!

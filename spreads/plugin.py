@@ -68,7 +68,6 @@ class SpreadsNamedExtensionManager(NamedExtensionManager):
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            print "Creating new pluginmanager"
             cls._instance = (super(SpreadsNamedExtensionManager, cls)
                              .__new__(cls, *args, **kwargs))
         return cls._instance
@@ -379,10 +378,7 @@ def get_devices():
 
 
 def setup_plugin_config():
-    print "Loading pluginmanager"
     pluginmanager = get_pluginmanager()
-    print "Available plugins:"
-    print pluginmanager.names()
     for ext in pluginmanager:
         logger.debug("Obtaining configuration template for plugin \"{0}\""
                      .format(ext.name))
