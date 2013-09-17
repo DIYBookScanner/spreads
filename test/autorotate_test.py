@@ -1,17 +1,19 @@
 from mock import call, patch, MagicMock as Mock
 
 import spreads
+import spreads.plugin as plugin
 import spreads.util
 spreads.util.find_in_path = Mock(return_value=True)
 import spreadsplug.autorotate as autorotate
 
 
-
 class TestAutorotate(object):
     def setUp(self):
+        reload(plugin)
         spreads.config.clear()
         spreads.config.read(user=False)
         spreads.config['rotate_inverse'] = False
+        plugin.setup_plugin_config()
 
     def test_add_arguments(self):
         parser = Mock()

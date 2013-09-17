@@ -37,6 +37,26 @@ from spreads.util import (abstractclassmethod, find_in_path, SpreadsException,
 logger = logging.getLogger("spreads.plugin")
 
 
+class PluginOption(object):
+    """ A configuration option.
+
+    :attr value:      The default value for the option or a list of available
+                      options if :attr selectable: is True
+    :type value:      object (or list/tuple when :attr selectable: is True)
+    :attr docstring:  A string explaining the configuration option
+    :type docstring:  unicode
+    :attr selectable: Make the PluginOption a selectable, i.e. value contains
+                      a list or tuple of acceptable values for this option,
+                      with the first member being the default selection.
+    :type selectable: bool
+    """
+
+    def __init__(self, value, docstring=None, selectable=False):
+        self.value = value
+        self.docstring = docstring
+        self.selectable = selectable
+
+
 class SpreadsNamedExtensionManager(NamedExtensionManager):
     """ Custom extension manager for spreads.
 
@@ -44,6 +64,15 @@ class SpreadsNamedExtensionManager(NamedExtensionManager):
     a plugin to fail at initialization. This derived class throws the original
     exception instead of logging it.
     """
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            print "Creating new pluginmanager"
+            cls._instance = (super(SpreadsNamedExtensionManager, cls)
+                             .__new__(cls, *args, **kwargs))
+        return cls._instance
+
     def _load_plugins(self, invoke_on_load, invoke_args, invoke_kwds):
         extensions = []
         for ep in self._find_entry_points(self.namespace):
@@ -73,6 +102,28 @@ class SpreadsPlugin(object):
         :param parser: The parser that can be modified
         :type parser: argparse.ArgumentParser
 
+        """
+        pass
+
+    @classmethod
+    def configuration_template(cls):
+        """ Allows a plugin to define its configuration keys.
+
+        The returned dictionary has to be flat (i.e. no nested dicts)
+        and contain a PluginOption object for each key.
+
+        Example:
+          {
+           'a_setting': PluginOption(value='default_value'),
+           'another_setting': PluginOption(value=[1, 2, 3],
+                                           docstring="A list of things"),
+           # In this case, 'full-fat' would be the default value
+           'milk': PluginOption(value=('full-fat', 'skim'),
+                                docstring="Type of milk",
+                                selectable=True),
+          }
+
+        :return: dict with unicode: (value, docstring, selection)
         """
         pass
 
@@ -221,7 +272,7 @@ class HookPlugin(SpreadsPlugin):
 
     def download(self, devices, path):
         """ Perform some action after download from devices has finished.
-            
+
             Retains all of the original information (i.e: rotation,
             metadata annotations).
 
@@ -279,20 +330,16 @@ def get_devicemanager():
     logger.debug("Creating device manager")
     return ExtensionManager(namespace='spreadsplug.devices')
 
-# Poor man's memoization...
-_pluginmanager = None
+
 def get_pluginmanager():
-    global _pluginmanager
-    if _pluginmanager:
-        return _pluginmanager
     logger.debug("Creating plugin manager")
-    _pluginmanager = SpreadsNamedExtensionManager(
+    pluginmanager = SpreadsNamedExtensionManager(
         namespace='spreadsplug.hooks',
         names=spreads.config['plugins'].as_str_seq(),
         invoke_on_load=True,
         invoke_args=[spreads.config],
         name_order=True)
-    return _pluginmanager
+    return pluginmanager
 
 
 def get_devices():
@@ -329,3 +376,26 @@ def get_devices():
         if matches:
             devices.append(matches[0](spreads.config, device))
     return devices
+
+
+def setup_plugin_config():
+    print "Loading pluginmanager"
+    pluginmanager = get_pluginmanager()
+    print "Available plugins:"
+    print pluginmanager.names()
+    for ext in pluginmanager:
+        logger.debug("Obtaining configuration template for plugin \"{0}\""
+                     .format(ext.name))
+        tmpl = ext.plugin.configuration_template()
+        if not tmpl:
+            continue
+        # Check if we already have a configuration entry for this plugin
+        if not ext.name in spreads.config.keys():
+            logging.info("Adding configuration for plugin {0}"
+                         .format(ext.name))
+            # Add default values
+            for key, option in tmpl.items():
+                if option.selectable:
+                    spreads.config[ext.name][key] = option.value[0]
+                else:
+                    spreads.config[ext.name][key] = option.value

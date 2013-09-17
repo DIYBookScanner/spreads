@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 from xml.etree.cElementTree import ElementTree as ET
 
-from spreads.plugin import HookPlugin
+from spreads.plugin import HookPlugin, PluginOption
 from spreads.util import find_in_path, MissingDependencyException
 
 if not find_in_path('scantailor-cli'):
@@ -41,6 +41,21 @@ class ScanTailorPlugin(HookPlugin):
                     action="store_true", default=False,
                     help="Use page for layout instead of content")
 
+    @classmethod
+    def configuration_template(cls):
+        conf = {'autopilot': PluginOption(value=False),
+                'rotate': PluginOption(value=False),
+                'split_pages': PluginOption(value=True),
+                'deskew': PluginOption(value=True),
+                'content': PluginOption(value=True),
+                'auto_margins': PluginOption(value=True),
+                'detection': PluginOption(value=('content', 'page'),
+                                          docstring="Content detection mode",
+                                          selectable=True),
+                'margins': PluginOption([2.5, 2.5, 2.5, 2.5])
+                }
+        return conf
+
     def _generate_configuration(self, projectfile, img_dir, out_dir):
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
@@ -55,7 +70,10 @@ class ScanTailorPlugin(HookPlugin):
                           '--start-filter={0}'.format(start_filter),
                           '--end-filter={0}'.format(end_filter),
                           '--layout=1.5',
-                          '--dpi={0}'.format(self.config['device']['dpi']
+                          # FIXME: This is hardcoded for the chdk driver
+                          #        at the moment, find a way to make this
+                          #        generic
+                          '--dpi={0}'.format(self.config['chdkcamera']['dpi']
                                             .get(int)),
                           '-o={0}'.format(projectfile)]
         page_detection = (

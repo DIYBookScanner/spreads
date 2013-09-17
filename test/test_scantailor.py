@@ -4,9 +4,12 @@ from mock import MagicMock as Mock, patch
 
 import spreads
 import spreadsplug.scantailor as scantailor
+import spreads.plugin as plugin
+
 
 class TestScanTailor(object):
     def setUp(self):
+        reload(plugin)
         spreads.config.clear()
         spreads.config.read(user=False)
         with patch('subprocess.check_output') as mock_co:
@@ -16,6 +19,9 @@ class TestScanTailor(object):
             )
             reload(scantailor)
         self.stplug = scantailor.ScanTailorPlugin(spreads.config)
+
+    def tearDown(self):
+        plugin.SpreadsNamedExtensionManager._instance = None
 
     def test_generate_configuration(self):
         scantailor.subprocess.call = Mock()
@@ -45,7 +51,6 @@ class TestScanTailor(object):
         scantailor.subprocess.Popen = Mock()
         self.stplug._split_configuration = Mock()
         self.stplug._generate_output('/tmp/foo.st', '/tmp')
-
 
     def test_process(self):
         scantailor.subprocess.call = Mock()

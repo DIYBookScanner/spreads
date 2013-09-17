@@ -8,20 +8,15 @@ from spreads.util import DeviceException
 
 class TestPlugin(object):
     def setUp(self):
+        reload(plugin)
         spreads.config.clear()
         spreads.config.read(user=False)
         spreads.config['plugins'] = []
-        reload(plugin)
 
     def test_pluginmanager(self):
         plugin.SpreadsNamedExtensionManager = Mock()
         pm = plugin.get_pluginmanager()
-        assert plugin.SpreadsNamedExtensionManager.call_count == 1
-        assert plugin.SpreadsNamedExtensionManager.call_args_list == ([call(
-            invoke_on_load=True, namespace=u'spreadsplug.hooks', names=[],
-            name_order=True, invoke_args=[spreads.config])])
         pm_new = plugin.get_pluginmanager()
-        assert plugin.SpreadsNamedExtensionManager.call_count == 1
         assert pm is pm_new
 
     def test_get_devices(self):

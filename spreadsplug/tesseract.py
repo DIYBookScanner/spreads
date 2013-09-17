@@ -6,13 +6,17 @@ import xml.etree.cElementTree as ET
 
 from concurrent import futures
 
-from spreads.plugin import HookPlugin
+from spreads.plugin import HookPlugin, PluginOption
 from spreads.util import find_in_path, MissingDependencyException
 
 if not find_in_path('tesseract'):
     raise MissingDependencyException("Could not find executable `tesseract`"
                                      " in $PATH. Please install the"
                                      " appropriate package(s)!")
+
+AVAILABLE_LANGS = (subprocess.check_output(["tesseract", "--list-langs"],
+                                           stderr=subprocess.STDOUT)
+                   .split("\n")[1:-1])
 
 logger = logging.getLogger('spreadsplug.tesseract')
 
@@ -24,10 +28,21 @@ class TesseractPlugin(HookPlugin):
             parser.add_argument("--language", "-l",
                                 dest="language", default="eng",
                                 help="OCR language (3-letter language code)"
-                                     " [default: eng]")
+                                     " [default: {0}]"
+                                     .format(AVAILABLE_LANGS[0]))
+
+    @classmethod
+    def configuration_template(cls):
+        conf = {'language': PluginOption(value=AVAILABLE_LANGS,
+                                         docstring="OCR language",
+                                         selectable=True),
+                }
+        return conf
 
     def process(self, path):
-        ocr_lang = self.config['language'].get(str)
+        ocr_lang = (self.config['language'].get(str)
+                    if 'language' in self.config.keys()
+                    else self.config['tesseract']['language'].get(str))
         logger.info("Performing OCR")
         logger.info("Language is \"{0}\"".format(ocr_lang))
         img_dir = os.path.join(path, 'done')

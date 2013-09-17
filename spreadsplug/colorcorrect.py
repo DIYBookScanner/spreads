@@ -6,7 +6,7 @@ import wand.api
 import wand.image
 from concurrent import futures
 
-from spreads.plugin import HookPlugin
+from spreads.plugin import HookPlugin, PluginOption
 
 logger = logging.getLogger('spreadsplug.colorcorrect')
 
@@ -25,6 +25,17 @@ def correct_colors(img_path, factors):
 
 
 class ColorCorrectionPlugin(HookPlugin):
+    @classmethod
+    def configuration_template(cls):
+        conf = {'true_red': PluginOption(119, "Actual red value for gray"
+                                              "card"),
+                'true_blue': PluginOption(119, "Actual blue value for gray"
+                                               "card"),
+                'true_green': PluginOption(119, "Actual green value for gray"
+                                                "card"),
+                }
+        return conf
+
     def process(self, path):
         path = os.path.join(path, 'raw')
         logger.debug("Starting color correction...")

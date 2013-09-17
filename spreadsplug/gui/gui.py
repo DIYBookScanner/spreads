@@ -2,17 +2,17 @@ import logging
 import os
 import time
 
-import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from PySide import QtCore, QtGui
 from PIL import Image
 
 import spreads
 import spreads.workflow as workflow
-import spreads.util as util
-from spreads.plugin import get_devices, get_pluginmanager
+from spreads.plugin import get_pluginmanager
 
 import gui_rc
+
+logger = logging.getLogger('spreadsplug.gui')
 
 
 class LogBoxHandler(logging.Handler):
@@ -79,7 +79,8 @@ class SpreadsWizard(QtGui.QWizard):
 
 class IntroPage(QtGui.QWizardPage):
     def initializePage(self):
-        self.wizard().active_plugins = get_pluginmanager().names()
+        self.pluginmanager = get_pluginmanager()
+        self.wizard().active_plugins = self.pluginmanager.names()
         self.setTitle("Welcome!")
 
         intro_label = QtGui.QLabel(
@@ -98,6 +99,8 @@ class IntroPage(QtGui.QWizardPage):
         self.keep_box = QtGui.QCheckBox("Keep files on devices")
         form_layout.addRow(self.keep_box)
 
+        # NOTE: Ugly workaround to allow for easier odd/even switch
+        # TODO: Find a cleaner way to do this
         self.even_device = None
         if ('combine' in self.wizard().active_plugins
                 or 'autorotate' in self.wizard().active_plugins):
@@ -107,28 +110,20 @@ class IntroPage(QtGui.QWizardPage):
             self.even_device.setCurrentIndex(0)
             form_layout.addRow("Device for even pages", self.even_device)
 
-        self.st_auto = None
-        self.st_detection = None
-        if 'scantailor' in self.wizard().active_plugins:
-            self.st_auto = QtGui.QCheckBox("Don't Inspect ScanTailor"
-                                           " configuration")
-            form_layout.addRow(self.st_auto)
-            self.st_detection = QtGui.QComboBox()
-            self.st_detection.addItem("Content")
-            self.st_detection.addItem("Page")
-            self.st_detection.setCurrentIndex(0)
-            form_layout.addRow("ScanTailor layout mode", self.st_detection)
-
-        self.ocr_lang = None
-        if 'tesseract' in self.wizard().active_plugins:
-            langs = (subprocess.check_output(["tesseract", "--list-langs"],
-                                             stderr=subprocess.STDOUT)
-                     .split("\n")[1:-1])
-            self.ocr_lang = QtGui.QComboBox()
-            for lang in langs:
-                self.ocr_lang.addItem(lang)
-            self.ocr_lang.setCurrentIndex(0)
-            form_layout.addRow("OCR language", self.ocr_lang)
+        # Add configuration widgets from plugins
+        self.plugin_widgets = {}
+        for ext in self.pluginmanager:
+            tmpl = ext.plugin.configuration_template()
+            if not tmpl:
+                continue
+            widgets = self._get_plugin_config_widgets(tmpl)
+            self.plugin_widgets[ext.name] = widgets
+            for label, widget in widgets.values():
+                # We don't need a label for QCheckBoxes
+                if isinstance(widget, QtGui.QCheckBox):
+                    form_layout.addRow(widget)
+                else:
+                    form_layout.addRow(label, widget)
 
         main_layout = QtGui.QVBoxLayout()
         main_layout.addWidget(intro_label)
@@ -141,6 +136,41 @@ class IntroPage(QtGui.QWizardPage):
         main_layout.addLayout(form_layout)
 
         self.setLayout(main_layout)
+
+    def _get_plugin_config_widgets(self, tmpl):
+        widgets = {}
+        for key, option in tmpl.items():
+            label = (option.docstring
+                     if not option.docstring is None else key.title())
+            # Do we need a dropdown?
+            if (option.selectable and
+                    any(isinstance(option.value, x) for x in (list, tuple))):
+                widget = QtGui.QComboBox()
+                for each in option.value:
+                    widget.addItem(each)
+                widget.setCurrentIndex(0)
+            # Do we need a checkbox?
+            elif isinstance(option.value, bool):
+                widget = QtGui.QCheckBox(label)
+                widget.setCheckState(QtCore.Qt.Checked
+                                     if option.value
+                                     else QtCore.Qt.Unchecked)
+            elif any(isinstance(option.value, x) for x in (list, tuple)):
+                # NOTE: We skip options with sequences for a value for now,
+                #       as I'm not sure yet how this is best displayed to
+                #       the user...
+                # TODO: Find a way to display this nicely to the user
+                continue
+            # Seems like we need another value...
+            else:
+                widget = QtGui.QLineEdit()
+                widget.setText(str(option.value))
+                if isinstance(option.value, int):
+                    widget.setValidator(QtGui.QIntValidator())
+                elif isinstance(option.value, float):
+                    widget.setValidator(QtGui.QDoubleValidator())
+            widgets[key] = (label, widget)
+        return widgets
 
     def show_filepicker(self):
         dialog = QtGui.QFileDialog()
@@ -162,15 +192,38 @@ class IntroPage(QtGui.QWizardPage):
         if self.even_device and self.even_device.currentText() != 'Left':
             spreads.config['first_page'] = "right"
             spreads.config['rotate_inverse'] = True
-        if self.st_auto:
-            spreads.config['autopilot'] = self.st_auto.isChecked()
-        if self.st_detection:
-            spreads.config['page_detection'] = (
-                self.st_detection.currentText().lower() == 'page')
-        if self.ocr_lang:
-            spreads.config['language'] = str(self.ocr_lang.currentText()
-                                             .lower())
+
+        self._update_config_from_plugin_widgets()
         return True
+
+    def _update_config_from_plugin_widgets(self):
+        for ext in self.pluginmanager:
+            if not ext.name in self.plugin_widgets:
+                continue
+            logger.debug("Updating config from widgets for plugin {0}"
+                         .format(ext.name))
+            for key in self.plugin_widgets[ext.name]:
+                logger.debug("Trying to set key \"{0}\"".format(key))
+                label, widget = self.plugin_widgets[ext.name][key]
+                if isinstance(widget, QtGui.QComboBox):
+                    idx = widget.currentIndex()
+                    values = ext.plugin.configuration_template()[key].value
+                    logger.debug("Setting to \"{0}\"".format(values[idx]))
+                    spreads.config[ext.name][key] = values[idx]
+                elif isinstance(widget, QtGui.QCheckBox):
+                    checked = widget.isChecked()
+                    logger.debug("Setting to \"{0}\"".format(checked))
+                    spreads.config[ext.name][key] = checked
+                else:
+                    content = spreads.config[ext.name][key] = widget.text()
+                    logger.debug("Setting to \"{0}\"".format(content))
+                    if isinstance(widget.validator(), QtGui.QIntValidator):
+                        spreads.config[ext.name][key] = int(content)
+                    elif isinstance(widget.validator(),
+                                    QtGui.QDoubleValidator):
+                        spreads.config[ext.name][key] = float(content)
+                    else:
+                        spreads.config[ext.name][key] = unicode(content)
 
 
 class CapturePage(QtGui.QWizardPage):

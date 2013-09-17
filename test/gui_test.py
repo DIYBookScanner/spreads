@@ -5,6 +5,7 @@ from PySide.QtGui import QPixmap, QImage, QApplication
 from mock import patch, MagicMock as Mock
 
 import spreads
+import spreads.plugin as plugin
 import spreadsplug.gui.gui as gui
 
 
@@ -20,20 +21,16 @@ class TestWizard(object):
         spreads.config.read(user=False)
         spreads.config['plugins'] = (spreads.config['plugins'].get()
                                      + [u'tesseract'])
+        print spreads.config['plugins']
+        print "Setting up plugin configuration"
+        plugin.setup_plugin_config()
+
         # TODO: Cams ought to be 'left' and 'right'!
         self.cams = [Mock(), Mock()]
         gui.get_devices = Mock(return_value=self.cams)
         # Mock out message boxes
         gui.QtGui.QMessageBox = Mock()
         gui.QtGui.QMessageBox.exec_.return_value = True
-        # Mock out plugin_manager
-        mock_pm = Mock()
-        mock_pm.names.return_value = ["gui", "scantailor", "combine",
-                                      "tesseract", "autorotate",
-                                      "pdfbeads"]
-        # Mock out subprocess for tesseract language list
-        gui.subprocess.check_output = Mock(
-                return_value="List of available languages (6):\neng\n")
         self.wizard = gui.SpreadsWizard(spreads.config, self.cams)
         self.wizard.show()
 
@@ -51,7 +48,8 @@ class TestWizard(object):
         #assert spreads.config['first_page'].get(unicode) == "left"
         #assert not spreads.config['rotate_inverse'].get(bool)
         #assert not spreads.config['autopilot'].get(bool)
-        assert not spreads.config['page_detection'].get(bool)
+        assert (spreads.config['scantailor']['detection'].get(unicode)
+                == u"content")
         #assert spreads.config['language'].get(str) == 'eng'
 
         # TODO: Check option boxes

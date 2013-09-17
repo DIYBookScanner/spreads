@@ -9,7 +9,7 @@ import wand.image
 from concurrent import futures
 from pexif import JpegFile
 
-from spreads.plugin import HookPlugin
+from spreads.plugin import HookPlugin, PluginOption
 
 logger = logging.getLogger('spreadsplug.autorotate')
 
@@ -41,6 +41,13 @@ class AutoRotatePlugin(HookPlugin):
                                 help="Rotate left pages CCW, right pages CW"
                                 " (use when first page comes from right"
                                 " camera)")
+
+    @classmethod
+    def configuration_template(cls):
+        conf = {'left': PluginOption(-90, "Rotation applied to left pages"),
+                'right': PluginOption(90, "Rotation applied to right pages"),
+                }
+        return conf
 
     def process(self, path):
         img_dir = os.path.join(path, 'raw')

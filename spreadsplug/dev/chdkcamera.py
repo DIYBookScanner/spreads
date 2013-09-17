@@ -10,7 +10,7 @@ import pyptpchdk
 from PIL import Image
 from pyptpchdk import PTPError
 
-from spreads.plugin import DevicePlugin
+from spreads.plugin import DevicePlugin, PluginOption
 from spreads.util import DeviceException
 
 
@@ -223,6 +223,15 @@ class CHDKCameraDevice(DevicePlugin):
             help="Zoom level")
 
     @classmethod
+    def configuration_template(cls):
+        conf = {'sensitivity': PluginOption(80, "The ISO sensitivity value"),
+                'shutter_speed': PluginOption("1/25", "The shutter speed as a"
+                                                      "fraction"),
+                'zoom_level': PluginOption(3, "The default zoom level"),
+                }
+        return conf
+
+    @classmethod
     def match(cls, device):
         # TODO: This matches all PTP devices, we will have to ensure that
         #       it is also a CHDK compatible device.
@@ -246,11 +255,12 @@ class CHDKCameraDevice(DevicePlugin):
             self.orientation = self._device.get_orientation()
         except PTPError:
             self.orientation = None
-        self._sensitivity = config['device']['sensitivity'].get(int)
-        self._shutter_speed = (float(Fraction(config['device']['shutter_speed']
-                                              .get(unicode))))
-        self._zoom_level = config['device']['zoom_level'].get(int)
-        self._dpi = config['device']['dpi'].get(int)
+        self._sensitivity = config['chdkcamera']['sensitivity'].get(int)
+        self._shutter_speed = (
+            float(Fraction(config['chdkcamera']['shutter_speed']
+                           .get(unicode))))
+        self._zoom_level = config['chdkcamera']['zoom_level'].get(int)
+        self._dpi = config['chdkcamera']['dpi'].get(int)
 
     def set_orientation(self, orientation):
         """ Set the device orientation.

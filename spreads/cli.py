@@ -36,7 +36,7 @@ import spreads.confit as confit
 
 import spreads.workflow as workflow
 from spreads import config
-from spreads.plugin import get_devices, get_pluginmanager
+from spreads.plugin import get_devices, get_pluginmanager, setup_plugin_config
 from spreads.util import DeviceException, ColourStreamHandler
 
 # Kudos to http://stackoverflow.com/a/1394994/487903
@@ -280,6 +280,7 @@ def main():
     # Set to ERROR so we can see errors during plugin loading.
     logging.basicConfig(loglevel=logging.ERROR)
     config.read()
+    setup_plugin_config()
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
     if not os.path.exists(cfg_path):
         config.dump(filename=cfg_path)
