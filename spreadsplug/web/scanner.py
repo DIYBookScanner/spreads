@@ -9,17 +9,17 @@ from spreads import plugin, workflow
 
 scan_api = Blueprint('scan_api', __name__)
 
-g.devices = plugin.get_devices()
-g.devices_locked = False
-g.devices_prepared = False
-g.current_step = None
-g.time_first_capture = None
-g.number_captures = 0
+devices = plugin.get_devices()
+devices_locked = False
+devices_prepared = False
+current_step = None
+time_first_capture = None
+number_captures = 0
 
 
 @contextmanager
 def lock_devices():
-    g.devices_locked = True
+    devices_locked = True
     yield
     g.devices_locked = False
 
@@ -33,48 +33,49 @@ def get_log():
 
 @scan_api.route('/')
 def get_status():
-    status = { 'current_step': g.current_step,
-               'devices_locked': g.devices_locked,
-               'devices_prepared': g.devices_prepared,
-               'time_first_capture': g.time_first_capture,
-               'number_captures': g.number_captures,
-             }
+    status = {'current_step': current_step,
+              'devices_locked': devices_locked,
+              'devices_prepared': devices_prepared,
+              'time_first_capture': time_first_capture,
+              'number_captures': number_captures,
+              }
     return jsonify(status=status)
 
 
 @scan_api.route('/prepare', methods=['POST'])
 def prepare_capture():
-    if g.devices_prepared:
-        raise NotImplementedError
-    if g.devices_locked:
-        abort(423)
+    if devices_prepared:
+        return
+    if devices_locked:
+        abort(HTTP_STATUS_CODES['Locked'])
     # TODO: Get configuration from request
-    g.current_step = 'prepare'
+    current_step = 'prepare'
     with lock_devices():
-        workflow.prepare_capture(devices=g.devices)
+        workflow.prepare_capture(devices=devices)
 
 
 @scan_api.route('/capture', methods=['GET'])
 def capture():
-    if not g.devices_prepared:
-        raise NotImplementedError
-    if g.devices_locked:
-        abort(423)
-    if not g.current_step == 'capture':
-        g.current_step = 'capture'
-        g.time_first_capture = time.time()
+    if not devices_prepared:
+        return make_response("The devices are not yet prepared.",
+                             HTTP_STATUS_CODES['Precondition Required'])
+    if devices_locked:
+        abort(HTTP_STATUS_CODES['Locked'])
+    if not current_step == 'capture':
+        current_step = 'capture'
+        time_first_capture = time.time()
     with lock_devices():
-        workflow.capture(devices=g.devices)
+        workflow.capture(devices=devices)
 
 
 @scan_api.route('/download/<name>', methods=['POST'])
 def start_download(name):
-    if g.devices_locked:
-        abort(423)
+    if devices_locked:
+        abort(HTTP_STATUS_CODES['Locked'])
     # TODO: Get parameters from request (keep, inverse order)
     # TODO: Find a way to make this asynchronous in a proper way
     with lock_devices():
-        workflow.download(devices=g.devices,
+        workflow.download(devices=devices,
                           path=spreads.config['project_path'])
 
 
