@@ -7,7 +7,8 @@ from mock import patch, MagicMock as Mock
 import spreads
 import spreads.plugin as plugin
 import spreadsplug.gui.gui as gui
-import spreadsplug.tesseract as tess
+with patch('subprocess.check_output'):
+    import spreadsplug.tesseract as tess
 
 
 class TestWizard(object):
@@ -24,9 +25,7 @@ class TestWizard(object):
                                      + [u'tesseract'])
         plugin.setup_plugin_config()
 
-        # Mock out subprocess for tesseract language list
-        tess.subprocess.check_output = Mock(
-            return_value="List of available languages (6):\neng\n")
+        tess.AVAILABLE_LANGS = ["en"]
         # TODO: Cams ought to be 'left' and 'right'!
         self.cams = [Mock(), Mock()]
         gui.get_devices = Mock(return_value=self.cams)
