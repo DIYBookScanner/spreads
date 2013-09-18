@@ -22,6 +22,7 @@
 from __future__ import division, unicode_literals
 
 import abc
+import itertools
 import logging
 
 import usb
@@ -31,8 +32,7 @@ from stevedore.named import NamedExtensionManager
 
 
 import spreads
-from spreads.util import (abstractclassmethod, find_in_path, SpreadsException,
-                          DeviceException)
+from spreads.util import abstractclassmethod, DeviceException
 
 logger = logging.getLogger("spreads.plugin")
 
@@ -341,45 +341,54 @@ def get_pluginmanager():
     return pluginmanager
 
 
+def _match_device(extension, device):
+    try:
+        devname = usb.util.get_string(device, 256, 2)
+    except:
+        devname = "{0}:{1}".format(device.bus, device.address)
+    logger.debug("Trying to match device \"{0}\" with plugin {1}"
+                 .format(devname, extension.plugin.__name__))
+    try:
+        match = extension.plugin.match(device)
+    # Ignore devices that don't implement `match`
+    except TypeError:
+        logger.debug("Plugin did not implement match method!")
+        return
+    if match:
+        logger.debug("Plugin matched device!")
+        return extension, device
+
+
+def _get_device_extension_matches():
+    logger.debug("Detecting support for attached devices")
+    candidates = usb.core.find(find_all=True)
+    devicemanager = get_devicemanager()
+    for device in candidates:
+        matches = filter(None, devicemanager.map(_match_device, device))
+        # FIXME: Make this more robust: What if, for instance, two plugins
+        #        are found for a device, one of which inherits from the other?
+        if matches:
+            yield matches[0]
+
+
 def get_devices():
     """ Detect all attached devices and select a fitting driver.
 
     :returns:  list(DevicePlugin) -- All supported devices that were detected
 
     """
-    def match(extension, device):
-        try:
-            devname = usb.util.get_string(device, 256, 2)
-        except:
-            devname = "{0}:{1}".format(device.bus, device.address)
-        logger.debug("Trying to match device \"{0}\" with plugin {1}"
-                     .format(devname, extension.plugin.__name__))
-        try:
-            match = extension.plugin.match(device)
-        # Ignore devices that don't implement `match`
-        except TypeError:
-            logger.debug("Plugin did not implement match method!")
-            return
-        if match:
-            logger.debug("Plugin matched device!")
-            return extension.plugin
-    logger.debug("Detecting support for attached devices")
     devices = []
-    candidates = usb.core.find(find_all=True)
-    devicemanager = get_devicemanager()
-    for device in candidates:
-        matches = filter(None, devicemanager.map(match, device))
-
-        # FIXME: Make this more robust: What if, for instance, two plugins
-        #        are found for a device, one of which inherits from the other?
-        if matches:
-            devices.append(matches[0](spreads.config, device))
+    for ext, device in _get_device_extension_matches():
+        devices.append(ext.plugin(spreads.config, device))
+    if not devices:
+        raise DeviceException("Could not find any compatible devices!")
     return devices
 
 
 def setup_plugin_config():
     pluginmanager = get_pluginmanager()
-    for ext in pluginmanager:
+    device_extensions = (x[0] for x in _get_device_extension_matches())
+    for ext in itertools.chain(pluginmanager, device_extensions):
         logger.debug("Obtaining configuration template for plugin \"{0}\""
                      .format(ext.name))
         tmpl = ext.plugin.configuration_template()
