@@ -2,7 +2,10 @@ import os
 import time
 from contextlib import contextmanager
 
-from flask import Blueprint, g, abort, jsonify
+from flask import Blueprint, g, abort, jsonify, make_response, request
+from werkzeug.http import HTTP_STATUS_CODES
+HTTP_STATUS_CODES = {value: key
+                     for key, value in HTTP_STATUS_CODES.iteritems()}
 
 import spreads
 from spreads import plugin, workflow
@@ -21,12 +24,19 @@ number_captures = 0
 def lock_devices():
     devices_locked = True
     yield
-    g.devices_locked = False
+    devices_locked = False
+
+
+def _set_configuration(config):
+    raise NotImplementedError
+
+def _get_configuration():
+    raise NotImplementedError
 
 
 @scan_api.route('/messages')
 def get_log():
-    # TODO: Use message flashing functions for this
+    # TODO: Use message flashing functions for this?
     # TODO: Return last 100 >=INFO logging messages
     raise NotImplementedError
 
@@ -40,6 +50,46 @@ def get_status():
               'number_captures': number_captures,
               }
     return jsonify(status=status)
+
+
+@scan_api.route('/configuration', methods=['GET', 'POST'])
+def configuration():
+    if request.method == 'POST':
+        _set_configuration(request.get_json())
+    else:
+        return jsonify(configuration=_get_configuration())
+
+
+@scan_api.route('/configuration/template', methods=['GET'])
+def get_configuration_template():
+    out_dict = {
+        'general': {
+            'dpi': plugin.PluginOption(300, "Device resolution", False)},
+    }
+    # NOTE: This one is wicked... The goal is to find all extensions that
+    #       implement one of the steps relevant to this component.
+    #       To do so, we compare the code objects for the appropriate
+    #       hook method with the same method in the HookPlugin base class.
+    #       If the two are not the same, we can (somewhat) safely assume
+    #       that the extension implements this hook and is thus relevant
+    #       to us.
+    #       Yes, this is not ideal and is due to our somewhat sloppy
+    #       plugin interface. That's why...
+    # TODO: Refactor plugin interface to make this less painful
+    relevant_extensions = (
+        ext
+        for ext in plugin.get_pluginmanager()
+        for step in ('prepare_capture', 'capture', 'finish_capture',
+                     'download', 'delete')
+        if not (getattr(ext.plugin, step).func_code is
+                getattr(plugin.HookPlugin, step).func_code)
+    )
+    for ext in relevant_extensions:
+        tmpl = ext.plugin.configuration_template()
+        if not tmpl:
+            continue
+        out_dict[ext.name] = tmpl
+    return jsonify(template=out_dict)
 
 
 @scan_api.route('/prepare', methods=['POST'])
