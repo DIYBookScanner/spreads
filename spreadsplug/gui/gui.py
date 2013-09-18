@@ -86,6 +86,7 @@ class IntroPage(QtGui.QWizardPage):
         intro_label = QtGui.QLabel(
             "This wizard will guide you through the digitization workflow. "
         )
+        intro_label.setWordWrap(True)
 
         dirpick_layout = QtGui.QHBoxLayout()
         self.line_edit = QtGui.QLineEdit()
@@ -94,10 +95,15 @@ class IntroPage(QtGui.QWizardPage):
         dirpick_layout.addWidget(browse_btn)
         browse_btn.clicked.connect(self.show_filepicker)
 
-        form_layout = QtGui.QFormLayout()
-
+        self.stack_widget = QtGui.QStackedWidget()
+        page_combobox = QtGui.QComboBox()
+        page_combobox.activated.connect(self.stack_widget.setCurrentIndex)
+        #QtCore.QObject.connect(page_combobox, SIGNAL("activated(int)"),
+        #        self.stack_widget, SLOT("setCurrentIndex(int)"))
+        general_page = QtGui.QGroupBox()
+        layout = QtGui.QFormLayout()
         self.keep_box = QtGui.QCheckBox("Keep files on devices")
-        form_layout.addRow(self.keep_box)
+        layout.addRow(self.keep_box)
 
         # NOTE: Ugly workaround to allow for easier odd/even switch
         # TODO: Find a cleaner way to do this
@@ -108,7 +114,10 @@ class IntroPage(QtGui.QWizardPage):
             self.even_device.addItem("Left")
             self.even_device.addItem("Right")
             self.even_device.setCurrentIndex(0)
-            form_layout.addRow("Device for even pages", self.even_device)
+            layout.addRow("Device for even pages", self.even_device)
+        general_page.setLayout(layout)
+        self.stack_widget.addWidget(general_page)
+        page_combobox.addItem("General")
 
         # Add configuration widgets from plugins
         self.plugin_widgets = {}
@@ -116,14 +125,19 @@ class IntroPage(QtGui.QWizardPage):
             tmpl = ext.plugin.configuration_template()
             if not tmpl:
                 continue
+            page = QtGui.QGroupBox()
+            layout = QtGui.QFormLayout()
             widgets = self._get_plugin_config_widgets(tmpl)
             self.plugin_widgets[ext.name] = widgets
             for label, widget in widgets.values():
                 # We don't need a label for QCheckBoxes
                 if isinstance(widget, QtGui.QCheckBox):
-                    form_layout.addRow(widget)
+                    layout.addRow(widget)
                 else:
-                    form_layout.addRow(label, widget)
+                    layout.addRow(label, widget)
+            page.setLayout(layout)
+            self.stack_widget.addWidget(page)
+            page_combobox.addItem(ext.name.title())
 
         main_layout = QtGui.QVBoxLayout()
         main_layout.addWidget(intro_label)
@@ -133,13 +147,16 @@ class IntroPage(QtGui.QWizardPage):
         )
         main_layout.addLayout(dirpick_layout)
         main_layout.addSpacing(30)
-        main_layout.addLayout(form_layout)
+        main_layout.addWidget(page_combobox)
+        main_layout.addWidget(self.stack_widget)
+        main_layout.setSizeConstraint(QtGui.QLayout.SetNoConstraint)
 
         self.setLayout(main_layout)
+        self.adjustSize()
 
-    def _get_plugin_config_widgets(self, tmpl):
+    def _get_plugin_config_widgets(self, plugin_tmpl):
         widgets = {}
-        for key, option in tmpl.items():
+        for key, option in plugin_tmpl.items():
             label = (option.docstring
                      if not option.docstring is None else key.title())
             # Do we need a dropdown?
@@ -162,13 +179,19 @@ class IntroPage(QtGui.QWizardPage):
                 # TODO: Find a way to display this nicely to the user
                 continue
             # Seems like we need another value...
+            elif isinstance(option.value, int):
+                widget = QtGui.QSpinBox()
+                widget.setMaximum(1024)
+                widget.setMinimum(-1024)
+                widget.setValue(option.value)
+            elif isinstance(option.value, float):
+                widget = QtGui.QDoubleSpinBox()
+                widget.setMaximum(1024.0)
+                widget.setMinimum(-1024.0)
+                widget.setValue(option.value)
             else:
                 widget = QtGui.QLineEdit()
-                widget.setText(str(option.value))
-                if isinstance(option.value, int):
-                    widget.setValidator(QtGui.QIntValidator())
-                elif isinstance(option.value, float):
-                    widget.setValidator(QtGui.QDoubleValidator())
+                widget.setText(option.value)
             widgets[key] = (label, widget)
         return widgets
 
@@ -214,16 +237,13 @@ class IntroPage(QtGui.QWizardPage):
                     checked = widget.isChecked()
                     logger.debug("Setting to \"{0}\"".format(checked))
                     spreads.config[ext.name][key] = checked
+                elif any(isinstance(widget, x)
+                         for x in (QtGui.QSpinBox, QtGui.QDoubleSpinBox)):
+                    spreads.config[ext.name][key] = widget.value()
                 else:
                     content = spreads.config[ext.name][key] = widget.text()
                     logger.debug("Setting to \"{0}\"".format(content))
-                    if isinstance(widget.validator(), QtGui.QIntValidator):
-                        spreads.config[ext.name][key] = int(content)
-                    elif isinstance(widget.validator(),
-                                    QtGui.QDoubleValidator):
-                        spreads.config[ext.name][key] = float(content)
-                    else:
-                        spreads.config[ext.name][key] = unicode(content)
+                    spreads.config[ext.name][key] = unicode(content)
 
 
 class CapturePage(QtGui.QWizardPage):
