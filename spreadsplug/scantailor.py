@@ -43,12 +43,17 @@ class ScanTailorPlugin(HookPlugin):
 
     @classmethod
     def configuration_template(cls):
-        conf = {'autopilot': PluginOption(value=False),
-                'rotate': PluginOption(value=False),
-                'split_pages': PluginOption(value=True),
-                'deskew': PluginOption(value=True),
-                'content': PluginOption(value=True),
-                'auto_margins': PluginOption(value=True),
+        conf = {'autopilot': PluginOption(value=False,
+                                          docstring="Skip manual correction"),
+                'rotate': PluginOption(value=False, docstring="Rotate pages"),
+                'split_pages': PluginOption(value=True,
+                                            docstring="Split pages"),
+                'deskew': PluginOption(value=True, docstring="Deskew pages"),
+                'content': PluginOption(value=True,
+                                        docstring="Detect page content"),
+                'auto_margins': PluginOption(value=True,
+                                             docstring="Automatically detect"
+                                                       " margins"),
                 'detection': PluginOption(value=('content', 'page'),
                                           docstring="Content detection mode",
                                           selectable=True),
