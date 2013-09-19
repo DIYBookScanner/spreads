@@ -3,7 +3,7 @@ import logging
 from flask import Flask, send_file
 
 from spreads.plugin import HookPlugin
-from spreadsplug.web.scanner import scan_api
+from spreadsplug.web.scanapi import scan_api
 
 logger = logging.getLogger('spreadsplug.web')
 app = Flask('spreadsplug.web', static_url_path='', static_folder='')
