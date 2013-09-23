@@ -34,6 +34,11 @@ def get_configuration_template(hooks):
         out_dict['general']['dpi'] = {'value': 300,
                                       'docstring': "Device resolution",
                                       'selectable': False}
+        out_dict['general']['first_page'] = {
+            'value': ["left", "right"],
+            'docstring': "Device for even pages",
+            'selectable': True
+        }
     if 'download' in hooks:
         out_dict['download'] = {
             'keep': {'value': False,
