@@ -1,7 +1,7 @@
 'use strict';
 
-angular.module('spreads', []).
-    config(['$routeProvider', function($routeProvider) {
+angular.module('spreads', [])
+    .config(['$routeProvider', function($routeProvider) {
         $routeProvider.
             when('/setup', {templateUrl: 'partials/setup.html', controller: SetupCtrl}).
             when('/scan', {templateUrl: 'partials/scan.html', controller: ScanCtrl}).
