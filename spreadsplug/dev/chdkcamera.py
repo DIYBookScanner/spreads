@@ -211,23 +211,12 @@ class CHDKCameraDevice(DevicePlugin):
 
     """
     @classmethod
-    def add_arguments(cls, command, parser):
-        parser.add_argument(
-            '--sensitivity', '-S', dest="sensitivity", type=int,
-            metavar="<int>", help="ISO sensitivity")
-        parser.add_argument(
-            "--shutter-speed", '-s', dest="shutter_speed", type=unicode,
-            metavar="<int/float/str>", help="Shutter speed")
-        parser.add_argument(
-            "--zoom-level", "-z", dest="zoom_level", type=int, metavar="<int>",
-            help="Zoom level")
-
-    @classmethod
     def configuration_template(cls):
         conf = {'sensitivity': PluginOption(80, "The ISO sensitivity value"),
                 'shutter_speed': PluginOption("1/25", "The shutter speed as a"
                                                       "fraction"),
                 'zoom_level': PluginOption(3, "The default zoom level"),
+                'dpi': PluginOption(300, "The capturing resolution"),
                 }
         return conf
 

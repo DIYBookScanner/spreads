@@ -90,20 +90,6 @@ class SpreadsPlugin(object):
     """ Plugin base class.
 
     """
-
-    @classmethod
-    def add_arguments(cls, command, parser):
-        """ Allows a plugin to register new arguments with the command-line
-            parser.
-
-        :param command: The command to be modified
-        :type command: unicode
-        :param parser: The parser that can be modified
-        :type parser: argparse.ArgumentParser
-
-        """
-        pass
-
     @classmethod
     def configuration_template(cls):
         """ Allows a plugin to define its configuration keys.
@@ -404,3 +390,32 @@ def setup_plugin_config():
                     spreads.config[ext.name][key] = option.value[0]
                 else:
                     spreads.config[ext.name][key] = option.value
+
+
+def get_relevant_extensions(hooks):
+    """ Find all extensions that implement certain hooks.
+
+    :param hooks:   A list of hook method names
+    :type hooks:    list(unicode)
+    :return:        A generator that yields relevant extensions
+    :rtype:         generator(Extension)
+
+    """
+    # NOTE: This one is wicked... The goal is to find all extensions that
+    #       implement one of the specified hooks.
+    #       To do so, we compare the code objects for the appropriate
+    #       hook method with the same method in the HookPlugin base class.
+    #       If the two are not the same, we can (somewhat) safely assume
+    #       that the extension implements this hook and is thus relevant
+    #       to us.
+    #       Yes, this is not ideal and is due to our somewhat sloppy
+    #       plugin interface. That's why...
+    # TODO: Refactor plugin interface to make this less painful
+    for ext in get_pluginmanager():
+        relevant = any(
+            getattr(ext.plugin, hook).func_code is not
+            getattr(HookPlugin, hook).func_code
+            for hook in hooks
+        )
+        if relevant:
+            yield ext

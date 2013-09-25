@@ -3,7 +3,7 @@ import operator
 import os
 import shutil
 
-from spreads.plugin import HookPlugin
+from spreads.plugin import HookPlugin, PluginOption
 
 logger = logging.getLogger('spreadsplug.combine')
 
@@ -16,6 +16,15 @@ class CombinePlugin(HookPlugin):
                                 dest="first_page", default="left",
                                 help="Set device with first page (left/right)"
                                 " [default: left]")
+
+    @classmethod
+    def configuration_template(cls):
+        conf = {'first_page': PluginOption(value=["left", "right"],
+                                           docstring="Set device for even "
+                                                     "pages",
+                                           selectable=True),
+                }
+        return conf
 
     def download(self, cameras, path):
         left_dir = os.path.join(path, 'left')
@@ -33,8 +42,10 @@ class CombinePlugin(HookPlugin):
                         " amount of images, please fix the problem!")
             logger.warn("Will not combine images")
             return
-        if (self.config['first_page']
-                and not self.config['first_page'].get(str) == 'left'):
+        first_page = (self.config['first_page'].get(str)
+                      if 'first_page' in self.config.keys()
+                      else self.config['combine']['first_page'].get(str))
+        if first_page == "right":
             combined_pages = reduce(operator.add, zip(right_pages, left_pages))
         else:
             combined_pages = reduce(operator.add, zip(left_pages, right_pages))

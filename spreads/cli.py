@@ -26,6 +26,7 @@ spreads CLI code.
 from __future__ import division, unicode_literals, print_function
 
 import argparse
+import itertools
 import logging
 import os
 import sys
@@ -36,7 +37,8 @@ import spreads.confit as confit
 
 import spreads.workflow as workflow
 from spreads import config
-from spreads.plugin import get_devices, get_pluginmanager, setup_plugin_config
+from spreads.plugin import (get_devices, get_pluginmanager,
+                            setup_plugin_config, get_relevant_extensions)
 from spreads.util import DeviceException, ColourStreamHandler
 
 # Kudos to http://stackoverflow.com/a/1394994/487903
@@ -189,12 +191,64 @@ def wizard(args, devices=None):
 
 
 def setup_parser():
+    def _add_argument_from_option(key, option, parser):
+        flag = "--{0}".format(key)
+        default = (option.value
+                   if not option.selectable
+                   else option.value[0])
+        kwargs = {'help': ("{0} [default: {1}]"
+                           .format(option.docstring, default)),
+                  'dest': key}
+        if isinstance(option.value, basestring):
+            kwargs['type'] = unicode
+            kwargs['metavar'] = "<str>"
+        elif isinstance(option.value, bool):
+            kwargs['help'] = option.docstring
+            if option.value:
+                flag = "--no-{0}".format(key)
+                kwargs['help'] = ("Disable {0}"
+                                  .format(option.docstring.lower()))
+            kwargs['action'] = "store_false"
+            kwargs['dest'] = key
+        elif isinstance(option.value, float):
+            kwargs['type'] = float
+            kwargs['metavar'] = "<float>"
+        elif isinstance(option.value, int):
+            kwargs['type'] = int
+            kwargs['metavar'] = "<int>"
+        elif option.selectable:
+            kwargs['type'] = type(option.value[0])
+            kwargs['metavar'] = "<{0}>".format("/".join(option.value))
+            kwargs['choices'] = option.value
+        else:
+            raise TypeError("Unsupported option type")
+        parser.add_argument(flag, **kwargs)
+
     def _add_device_arguments(name, parser):
-        try:
-            for dev in get_devices():
-                dev.add_arguments(name, parser)
-        except:
-            return
+        for dev in get_devices():
+            tmpl = dev.configuration_template()
+            if not tmpl:
+                continue
+            for key, option in tmpl.iteritems():
+                try:
+                    _add_argument_from_option(key, option, parser)
+                except:
+                    continue
+
+    def _add_plugin_arguments(hooks, parser):
+        plugins = itertools.chain(
+            get_devices(),
+            (ext.plugin for ext in get_relevant_extensions(hooks))
+        )
+        for plug in plugins:
+            tmpl = plug.configuration_template()
+            if not tmpl:
+                continue
+            for key, option in tmpl.iteritems():
+                try:
+                    _add_argument_from_option(key, option, parser)
+                except:
+                    continue
 
     pluginmanager = get_pluginmanager()
     rootparser = argparse.ArgumentParser(
@@ -222,8 +276,8 @@ def setup_parser():
         parser.add_argument("--no-parallel-capture", dest="parallel_capture",
             action="store_false", default=True,
             help="Do not trigger capture on multiple devices at once.")
-        pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                          'capture', parser)
+        _add_plugin_arguments(['prepare_capture', 'capture', 'finish_capture'],
+                              parser)
         _add_device_arguments('capture', parser)
 
     download_parser = subparsers.add_parser(
@@ -240,8 +294,7 @@ def setup_parser():
     download_parser.set_defaults(func=download)
     # Add arguments from plugins
     for parser in (download_parser, wizard_parser):
-        pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                          'download', parser)
+        _add_plugin_arguments(['download'], parser)
         _add_device_arguments('download', parser)
 
     postprocess_parser = subparsers.add_parser(
@@ -255,8 +308,7 @@ def setup_parser():
     postprocess_parser.set_defaults(func=postprocess)
     # Add arguments from plugins
     for parser in (postprocess_parser, wizard_parser):
-        pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                          'postprocess', parser)
+        _add_plugin_arguments(['process'], parser)
 
     output_parser = subparsers.add_parser(
         'output',
@@ -266,8 +318,7 @@ def setup_parser():
     output_parser.set_defaults(func=output)
     # Add arguments from plugins
     for parser in (download_parser, wizard_parser):
-        pluginmanager.map(lambda x, y, z: x.plugin.add_arguments(y, z),
-                          'output', parser)
+        _add_plugin_arguments(['output'], parser)
 
     pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),
                       subparsers)

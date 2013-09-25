@@ -29,19 +29,6 @@ class ScanTailorPlugin(HookPlugin):
                               .splitlines()[7]))
 
     @classmethod
-    def add_arguments(cls, command, parser):
-        if command == "postprocess":
-            parser.add_argument(
-                "--auto", "-a", dest="autopilot", action="store_true",
-                default=False,
-                help="Don't prompt user to edit ScanTailor configuration")
-            if cls._enhanced:
-                parser.add_argument(
-                    "--page-detection", "-pd", dest="page_detection",
-                    action="store_true", default=False,
-                    help="Use page for layout instead of content")
-
-    @classmethod
     def configuration_template(cls):
         conf = {'autopilot': PluginOption(value=False,
                                           docstring="Skip manual correction"),
