@@ -1,7 +1,6 @@
 # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
 loglevel: warning
 plugins: [combine, autorotate, scantailor, pdfbeads]
-dpi: 300
 
 # Options for 'capture' step
 capture:

@@ -58,15 +58,16 @@ class ScanTailorPlugin(HookPlugin):
         start_filter = filterconf.index(True)+1
         end_filter = len(filterconf) - list(reversed(filterconf)).index(True)+1
         marginconf = self.config['scantailor']['margins'].as_str_seq()
+        try:
+            # FIXME: Find a way to make this work across all device drivers
+            dpi = self.config['chdkcamera']['dpi'].get(int)
+        except:
+            dpi = 300
         generation_cmd = ['scantailor-cli',
                           '--start-filter={0}'.format(start_filter),
                           '--end-filter={0}'.format(end_filter),
                           '--layout=1.5',
-                          # FIXME: This is hardcoded for the chdk driver
-                          #        at the moment, find a way to make this
-                          #        generic
-                          '--dpi={0}'.format(self.config['chdkcamera']['dpi']
-                                            .get(int)),
+                          '--dpi={0}'.format(dpi),
                           '-o={0}'.format(projectfile)]
         page_detection = (
             self.config['scantailor']['detection'] == 'page'
