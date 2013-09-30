@@ -1,4 +1,5 @@
-'use strict';
+/* global angular, console */
+'use(strict)';
 
 angular.module('spreads').service('StatusService', function() {
     // TODO: Obtain values from API
@@ -11,23 +12,18 @@ angular.module('spreads').service('StatusService', function() {
 
 angular.module('spreads').service('ConfigService', function($http) {
     var config = this;
-    $http.get('/api/configuration/template').success(function(data) {
+    console.debug('Getting values from server');
+    $http.get('/api/configuration').success(function(data) {
         for (var sectionKey in data) {
             if (data.hasOwnProperty(sectionKey)) {
-                var template = data[sectionKey];
+                var section = data[sectionKey];
                 config[sectionKey] = {};
-                for (var key in template) {
-                    if (template.hasOwnProperty(key)) {
-                        var option = template[key];
-                        if (typeof(option.value) === "object") {
-                            config[sectionKey][key] = option.value[0];
-                        } else {
-                            config[sectionKey][key] = option.value;
-                        }
+                for (var key in section) {
+                    if (section.hasOwnProperty(key)) {
+                        config[sectionKey][key] = section[key];
                     }
                 }
             }
         }
     });
 });
-

@@ -2,7 +2,7 @@ import logging
 
 from flask import Flask, send_file
 
-from spreads.plugin import HookPlugin
+from spreads.plugin import HookPlugin, PluginOption
 from spreadsplug.web.scanapi import scan_api
 
 logger = logging.getLogger('spreadsplug.web')
@@ -15,6 +15,13 @@ class WebCommands(HookPlugin):
         scanparser = rootparser.add_parser(
             'web-scanner', help="Start the scanning station server")
         scanparser.set_defaults(func=run_scan_mode)
+
+    @classmethod
+    def configuration_template(cls):
+        return {'path': PluginOption(value=u"~/scans",
+                                     docstring="Directory for project folders",
+                                     selectable=False),
+                }
 
 
 def run_scan_mode(args):

@@ -1,12 +1,13 @@
 /* jshint unused: false */
+/* global console: true */
 'use(strict)';
 
 function ConfigCtrl($scope, $http, ConfigService) {
     $scope.configuration = ConfigService;
     $scope.submit = function() {
-        // ConfigService.submit()
-        console.debug("Sending configuration to server");
-    }
+        console.debug('Sending configuration to server');
+        $http.put('/api/configuration', ConfigService);
+    };
 }
 
 function StatusCtrl($scope, StatusService) {
@@ -23,8 +24,10 @@ function SetupCtrl($scope, StatusService, $log, $location) {
     StatusService.stepNum = 1;
 
     $scope.next = function() {
-        console.debug("Sending configuration to server");
-        // ConfigService.submit()
+        // TODO: Throw error when project name is empty
+        console.debug('Project name is ' + $scope.projectName);
+        StatusService.projectName = $scope.projectName;
+        $scope.submit();
         $location.path('/scan');
     };
 }

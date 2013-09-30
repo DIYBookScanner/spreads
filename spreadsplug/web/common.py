@@ -1,6 +1,8 @@
 import itertools
 import logging
 
+from flask import jsonify
+
 from spreads import plugin
 
 
@@ -29,16 +31,7 @@ def get_relevant_extensions(hooks):
 
 
 def get_configuration_template(hooks):
-    out_dict = {'general': {}}
-    if 'capture' in hooks:
-        out_dict['general']['dpi'] = {'value': 300,
-                                      'docstring': "Device resolution",
-                                      'selectable': False}
-        out_dict['general']['first_page'] = {
-            'value': ["left", "right"],
-            'docstring': "Device for even pages",
-            'selectable': True
-        }
+    out_dict = {}
     if 'download' in hooks:
         out_dict['download'] = {
             'keep': {'value': False,
@@ -57,3 +50,9 @@ def get_configuration_template(hooks):
                                   'selectable': v.selectable}
                               for k, v in tmpl.iteritems()}
     return out_dict
+
+
+def make_json_error(msg, code):
+    response = jsonify(message=msg)
+    response.status_code = code
+    return response
