@@ -42,7 +42,6 @@ class TestPlugin(object):
         assert device_a.plugin.match.call_args_list == [call(usb_mock)]
         assert device_b.plugin.match.call_args_list == [call(usb_mock)]
 
-    @raises(DeviceException)
     def test_no_devices(self):
         device_a = Mock()
         device_a.plugin.match = Mock(return_value=True)
@@ -52,4 +51,4 @@ class TestPlugin(object):
         dm = Mock()
         dm.map = lambda x, y: [x(z, y) for z in [device_a, device_b]]
         plugin.get_devicemanager = Mock(return_value=dm)
-        plugin.get_devices()
+        assert plugin.get_devices() == []

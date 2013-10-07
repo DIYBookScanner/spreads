@@ -328,6 +328,4 @@ def get_devices():
         #        are found for a device, one of which inherits from the other?
         if matches:
             devices.append(matches[0](spreads.config, device))
-    if not devices:
-        raise DeviceException("Could not find any compatible devices!")
     return devices

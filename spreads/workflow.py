@@ -40,6 +40,8 @@ logger = logging.getLogger('spreads.workflow')
 
 def prepare_capture(devices):
     logger.debug("Preparing capture.")
+    if not devices:
+        raise DeviceException("Could not find any compatible devices!")
     with ThreadPoolExecutor(len(devices)) as executor:
         futures = []
         logger.debug("Preparing capture in devices")
@@ -55,6 +57,8 @@ def prepare_capture(devices):
 
 def capture(devices):
     logger.info("Triggering capture.")
+    if not devices:
+        raise DeviceException("Could not find any compatible devices!")
     if config['parallel_capture'].get(bool):
         num_devices = len(devices)
     else:
@@ -74,11 +78,15 @@ def capture(devices):
 
 def finish_capture(devices):
     logger.debug("Running finish_capture hooks")
+    if not devices:
+        raise DeviceException("Could not find any compatible devices!")
     for ext in get_pluginmanager():
         ext.obj.finish_capture(devices)
 
 
 def download(devices, path):
+    if not devices:
+        raise DeviceException("Could not find any compatible devices!")
     keep = config['download']['keep'].get(bool) or config['keep'].get(bool)
     if config['parallel_download'].get(bool):
         num_devices = len(devices)
