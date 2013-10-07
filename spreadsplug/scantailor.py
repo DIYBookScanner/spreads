@@ -6,6 +6,7 @@ import logging
 import math
 import multiprocessing
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -23,6 +24,10 @@ logger = logging.getLogger('spreadsplug.scantailor')
 
 
 class ScanTailorPlugin(HookPlugin):
+    _enhanced = bool(re.match(r".*<images\|directory\|->.*",
+                              subprocess.check_output('scantailor-cli')
+                              .splitlines()[7]))
+
     @classmethod
     def add_arguments(cls, command, parser):
         if command == "postprocess":
@@ -30,10 +35,11 @@ class ScanTailorPlugin(HookPlugin):
                 "--auto", "-a", dest="autopilot", action="store_true",
                 default=False,
                 help="Don't prompt user to edit ScanTailor configuration")
-            parser.add_argument(
-                "--page-detection", "-pd", dest="page_detection",
-                action="store_true", default=False,
-                help="Use page for layout instead of content")
+            if cls._enhanced:
+                parser.add_argument(
+                    "--page-detection", "-pd", dest="page_detection",
+                    action="store_true", default=False,
+                    help="Use page for layout instead of content")
 
     def _generate_configuration(self, projectfile, img_dir, out_dir):
         if not os.path.exists(out_dir):
@@ -50,14 +56,14 @@ class ScanTailorPlugin(HookPlugin):
                           '--end-filter={0}'.format(end_filter),
                           '--layout=1.5',
                           '--dpi={0}'.format(self.config['device']['dpi']
-                                             .get(int)),
+                                            .get(int)),
                           '-o={0}'.format(projectfile)]
         page_detection = (
             self.config['scantailor']['detection'] == 'page'
             or ('page_detection' in self.config.keys()
                 and self.config['page_detection'].get(bool))
         )
-        if page_detection:
+        if self._enhanced and page_detection:
             generation_cmd.extend([
                 '--enable-page-detection',
                 '--disable-content-detection',
@@ -70,7 +76,12 @@ class ScanTailorPlugin(HookPlugin):
                 '--margins-bottom={0}'.format(marginconf[2]),
                 '--margins-left={0}'.format(marginconf[3]),
             ])
-        generation_cmd.extend([img_dir, out_dir])
+        if self._enhanced:
+            generation_cmd.append(img_dir)
+        else:
+            generation_cmd.extend([os.path.join(img_dir, x)
+                                   for x in os.listdir(img_dir)])
+        generation_cmd.append(out_dir)
         logger.debug(" ".join(generation_cmd))
         subprocess.call(generation_cmd)
 
