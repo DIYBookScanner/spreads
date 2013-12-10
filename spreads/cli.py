@@ -190,8 +190,9 @@ def setup_parser():
                 flag = "--no-{0}".format(key)
                 kwargs['help'] = ("Disable {0}"
                                   .format(option.docstring.lower()))
-            kwargs['action'] = "store_false"
-            kwargs['dest'] = key
+                kwargs['action'] = "store_false"
+            else:
+                kwargs['action'] = "store_true"
         elif isinstance(option.value, float):
             kwargs['type'] = float
             kwargs['metavar'] = "<float>"
