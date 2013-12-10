@@ -1,20 +1,167 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
+import re
+import subprocess
+import tempfile
 import time
 from fractions import Fraction
+from itertools import chain
 from math import log
 
 import pexif
-import pyptpchdk
 from PIL import Image
-from pyptpchdk import PTPError
+
+try:
+    import pyptpchdk
+    from pyptpchdk import PTPError
+except ImportError:
+    logging.info("Could not load pyptpchdk library")
 
 from spreads.plugin import DevicePlugin, PluginOption
 from spreads.util import DeviceException
 
 
-class PTPDevice(object):
+class CHDKPTPException(Exception):
+    pass
+
+
+class ChdkPtpDevice(object):
+    """ Small wrapper class around the chdkptp Lua command-line tool.
+    """
+
+    _cli_flags = None
+    _orientation = None
+    _chdk_buildnum = None
+    _can_remote = False
+    _zoom_steps = 0
+
+    def __init__(self, chdkptp_path, usbdevice, orientation):
+        self._chdkptp_path = chdkptp_path
+        self._cli_flags = []
+        self._cli_flags.append("-c-d={0:03} -b={1:03}".format(
+                               usbdevice.address, usbdevice.bus))
+        self._orientation = orientation
+        try:
+            self._run("rec")
+        except CHDKPTPException:
+                # TODO: Log, already seems to be in rec mode
+            pass
+        self._chdk_buildnum = (
+            self.execute_lua("get_buildinfo()",
+                            get_result=True)["build_revision"]
+        )
+        # PTP remote shooting is available starting from SVN r2927
+        self._can_remote = self._chdk_buildnum >= 2927
+        self._zoom_steps = self.execute_lua("get_zoom_steps()",
+                                            get_result=True)
+
+    def _run(self, *commands):
+        cmd_args = chain((os.path.join(self._chdkptp_path, "chdkptp"),),
+                         self._cli_flags,
+                         ("-e{0}".format(cmd) for cmd in commands))
+        env = {'LUA_PATH': os.path.join(self._chdkptp_path, "lua/?.lua")}
+        output = (subprocess.check_output(cmd_args, env=env,
+                                          stderr=subprocess.STDOUT)
+                  .splitlines())
+        # Filter out connected message
+        output = [x for x in output if not x.startswith('connected:')]
+        # Check for possible CHDKPTP errors
+        if any('ERROR' in x for x in output):
+            raise CHDKPTPException("\n".join(output))
+        return output
+
+    def execute_lua(self, script, wait=True, get_result=False, timeout=256):
+        if get_result and not "return" in script:
+            script = "return({0})".format(script)
+        cmd = "luar" if wait else "lua"
+        # TODO: Error handling
+        output = self._run("{0} {1}".format(cmd, script))
+        if not get_result:
+            return
+        output = [x for x in output if x.find(":return:")][0]
+        return self._parse_lua_output(output)
+
+    def _parse_table(self, data):
+        values = dict(re.findall(r'([\w_]+?)=(\d+|".*?"),', data[6:]))
+        for k, v in values.iteritems():
+            if v.startswith('"') and v.endswith('"'):
+                values[k] = v.strip('"')  # String
+            else:
+                values[k] = int(v)  # Integer
+        return values
+
+    def _parse_lua_output(self, output):
+        ret_val = re.match(r'^\d+:return:(.*)', output).group(1)
+        if ret_val.startswith('table:'):
+            return self._parse_table(ret_val)  # Table
+        elif ret_val.startswith("'"):
+            return ret_val.strip("'")  # String
+        else:
+            return int(ret_val)  # Integer
+
+    def get_image_list(self):
+        img_path = self.execute_lua("get_image_dir()", get_result=True)
+        file_list = [os.path.join(img_path, x)
+                     for x in self._run("ls {0}".format(img_path))]
+        return file_list
+
+    def download_image(self, camera_path, local_path):
+        self._run("download {0} {1}".format(camera_path, local_path))
+
+    def delete_image(self, camera_path):
+        self._run("delete {0}".format(camera_path))
+
+    def download_all_images(self, path):
+        self._run("mdownload -fmatch=%.JPG$ DCIM {0}".format(path))
+
+    def delete_all_images(self):
+        self._run("rm -nodirs -fmatch=%.JPG$ DCIM")
+
+    def set_zoom(self, level):
+        if level >= self._zoom_steps:
+            raise Exception("Zoom level {0} exceeds the camera's range!"
+                            " (max: {1})".format(level, self._zoom_steps-1))
+        zoom = self.execute_lua("get_zoom()", get_result=True)
+        while zoom != level:
+            if zoom > level:
+                self.execute_lua('click("zoom_out")')
+                zoom -= 1
+            elif zoom < level:
+                self.execute_lua('click("zoom_in")')
+                zoom += 1
+            time.sleep(1)
+
+    def get_preview_image(self, viewport=True, ui_overlay=False):
+        fpath = tempfile.mkstemp()[1]
+        cmd = "dumpframes -count=1"
+        if not viewport:
+            cmd += " -novp"
+        if not ui_overlay:
+            cmd += " -nobm -nopal"
+        self._run("{0} {1}".format(cmd, fpath))
+        with open(fpath, 'rb') as fp:
+            data = fp.read()
+        os.remove(fpath)
+        return data
+
+    def capture(self, path, sensitivity=80, shutter_speed="1/25", raw=False,
+                zoom=3):
+        # shoot       Shoot image to SDCard
+        # remoteshoot Shoot images to local path
+        # TODO: Set zoom
+        if self._can_remote:
+            cmd = ("remoteshoot -tv={0} -isomode={1} {2} {3}"
+                   .format(shutter_speed, sensitivity, "-dng" if raw else "",
+                           path)
+                   )
+        else:
+            cmd = ("shoot -tv={0} -isomode={1} -dng={2} -rm -dl {3}"
+                   .format(shutter_speed, sensitivity, int(raw), path))
+        self._run(cmd)
+
+
+class PyPtpChdkDevice(object):
     """ Small wrapper class around pyptpchdk for easier access to PTP
         functions.
 
@@ -239,7 +386,10 @@ class CHDKCameraDevice(DevicePlugin):
         :type device:   `usb.core.Device <http://github.com/walac/pyusb>`_
 
         """
-        self._device = PTPDevice(device)
+        if not config['device']['chdk_path']:
+            self._device = PyPtpChdkDevice(device)
+        else:
+            self._device = ChdkPtpDevice(device)
         try:
             self.orientation = self._device.get_orientation()
         except PTPError:
