@@ -1,13 +1,10 @@
 # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
 loglevel: warning
 plugins: [combine, autorotate, scantailor, pdfbeads]
+driver: chdkcamera
+
 
 # Options for 'capture' step
 capture:
     # Keys that trigger a capture. Put the space bar inside double ticks.
     capture_keys: [" " , b]
-
-# Options for 'download' step
-download:
-    # keep files on devices after downloading
-    keep: no

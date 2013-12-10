@@ -37,7 +37,7 @@ import spreads.confit as confit
 
 import spreads.workflow as workflow
 from spreads import config
-from spreads.plugin import (get_devices, get_pluginmanager,
+from spreads.plugin import (get_devices, get_driver, get_pluginmanager,
                             setup_plugin_config, get_relevant_extensions)
 from spreads.util import DeviceException, ColourStreamHandler
 
@@ -82,9 +82,11 @@ def configure(args=None):
         getch()
 
 
-def capture(args=None, devices=None):
+def capture(args=None, devices=None, path=None):
     if not devices:
         devices = get_devices()
+    if args and args.path:
+        path = args.path
     if len(devices) != 2:
         raise DeviceException("Please connect and turn on two"
                               " pre-configured devices! ({0} were"
@@ -96,7 +98,7 @@ def capture(args=None, devices=None):
                               " program with the \'configure\' option!")
     # Set up for capturing
     print("Setting up devices for capturing.")
-    workflow.prepare_capture(devices)
+    workflow.prepare_capture(devices, path)
     # Start capture loop
     print(colorama.Fore.BLUE + "Press 'b' to capture.")
     shot_count = 0
@@ -106,7 +108,7 @@ def capture(args=None, devices=None):
     while True:
         if not getch().lower() in capture_keys:
             break
-        workflow.capture(devices)
+        workflow.capture(devices, path)
         shot_count += len(devices)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
         status = ("\rShot {0} pages [{1:.0f}/h]"
@@ -114,26 +116,12 @@ def capture(args=None, devices=None):
                           pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
-    workflow.finish_capture(devices)
+    workflow.finish_capture(devices, path)
     sys.stdout.write("\rShot {0} pages in {1:.1f} minutes, average speed was"
                      " {2:.0f} pages per hour"
                      .format(colorama.Fore.GREEN + str(shot_count),
                              (time.time() - start_time)/60, pages_per_hour))
     sys.stdout.flush()
-
-
-def download(args=None, path=None, devices=None):
-    if args and args.path:
-        path = args.path
-    if not devices:
-        devices = get_devices()
-    status_str = "Downloading {0} images from devices"
-    if config['download']['keep'].get(bool) or config['keep'].get(bool):
-        status_str = status_str.format("and deleting ")
-    else:
-        status_str = status_str.format("")
-    print(colorama.Fore.GREEN + status_str)
-    workflow.download(devices, path)
 
 
 def postprocess(args=None, path=None):
@@ -169,13 +157,7 @@ def wizard(args, devices=None):
           "==========================\n",
           "Starting capturing process\n",
           "==========================")
-    capture(devices=devices)
-
-    print(colorama.Fore.GREEN +
-          "=========================\n",
-          "Starting download process\n"
-          "=========================")
-    download(path=path)
+    capture(devices=devices, path=path)
 
     print(colorama.Fore.GREEN +
           "=======================\n"
@@ -225,19 +207,18 @@ def setup_parser():
         parser.add_argument(flag, **kwargs)
 
     def _add_device_arguments(name, parser):
-        for dev in get_devices():
-            tmpl = dev.configuration_template()
-            if not tmpl:
-                continue
-            for key, option in tmpl.iteritems():
-                try:
-                    _add_argument_from_option(key, option, parser)
-                except:
-                    continue
+        tmpl = get_driver().driver.configuration_template()
+        if not tmpl:
+            return
+        for key, option in tmpl.iteritems():
+            try:
+                _add_argument_from_option(key, option, parser)
+            except:
+                return
 
     def _add_plugin_arguments(hooks, parser):
         plugins = itertools.chain(
-            get_devices(),
+            (get_driver().driver, ),
             (ext.plugin for ext in get_relevant_extensions(hooks))
         )
         for plug in plugins:
@@ -270,6 +251,8 @@ def setup_parser():
 
     capture_parser = subparsers.add_parser(
         'capture', help="Start the capturing workflow")
+    capture_parser.add_argument(
+        "path", help="Path where scanned images are stored")
     capture_parser.set_defaults(func=capture)
     # Add arguments from plugins
     for parser in (capture_parser, wizard_parser):
@@ -279,23 +262,6 @@ def setup_parser():
         _add_plugin_arguments(['prepare_capture', 'capture', 'finish_capture'],
                               parser)
         _add_device_arguments('capture', parser)
-
-    download_parser = subparsers.add_parser(
-        'download', help="Download scanned images.")
-    download_parser.add_argument(
-        "path", help="Path where scanned images are to be stored")
-    for subparser in (download_parser, wizard_parser):
-        subparser.add_argument("--no-parallel-download",
-            dest="parallel_download", action="store_false", default=True,
-            help="Do not download from multiple devices at once.")
-        subparser.add_argument(
-            "--keep", "-k", dest="keep", action="store_true",
-            help="Keep files on devices after download")
-    download_parser.set_defaults(func=download)
-    # Add arguments from plugins
-    for parser in (download_parser, wizard_parser):
-        _add_plugin_arguments(['download'], parser)
-        _add_device_arguments('download', parser)
 
     postprocess_parser = subparsers.add_parser(
         'postprocess',
@@ -317,7 +283,7 @@ def setup_parser():
         "path", help="Path where scanned and postprocessed images are stored")
     output_parser.set_defaults(func=output)
     # Add arguments from plugins
-    for parser in (download_parser, wizard_parser):
+    for parser in (output_parser, wizard_parser):
         _add_plugin_arguments(['output'], parser)
 
     pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),

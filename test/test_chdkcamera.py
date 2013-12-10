@@ -18,7 +18,7 @@ class TestPTPDevice(object):
         chdkcamera.time = Mock()
         usbmock = Mock()
         usbmock.bus, usbmock.address = 1, 2
-        self.dev = chdkcamera.PTPDevice(usbmock)
+        self.dev = chdkcamera.PyPtpChdkDevice(usbmock)
 
     def test_execute_lua(self):
         self.dev._flush_messages = Mock()

@@ -57,7 +57,6 @@ class SpreadsWizard(QtGui.QWizard):
 
         self.addPage(IntroPage())
         self.addPage(CapturePage())
-        self.addPage(DownloadPage())
         self.addPage(PostprocessPage())
         self.addPage(OutputPage())
         self.addPage(FinishPage())
@@ -217,6 +216,8 @@ class IntroPage(QtGui.QWizardPage):
             spreads.config['rotate_inverse'] = True
 
         self._update_config_from_plugin_widgets()
+        workflow.prepare_capture(self.wizard().devices,
+                                 self.wizard().project_path)
         return True
 
     def _update_config_from_plugin_widgets(self):
@@ -286,7 +287,8 @@ class CapturePage(QtGui.QWizardPage):
         self.update_preview()
 
     def validatePage(self):
-        workflow.finish_capture(self.wizard().selected_devices)
+        workflow.finish_capture(self.wizard().devices,
+                                self.wizard().project_path)
         return True
 
     def keyPressEvent(self, event):
@@ -302,7 +304,8 @@ class CapturePage(QtGui.QWizardPage):
         self.refresh_btn.setEnabled(False)
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(workflow.capture,
-                                     self.wizard().selected_devices)
+                                     self.wizard().devices,
+                                     self.wizard().project_path)
             while future.running():
                 QtGui.qApp.processEvents()
                 time.sleep(0.001)
@@ -329,7 +332,7 @@ class CapturePage(QtGui.QWizardPage):
         # TODO: Don't go via PIL, find a way to use RGB data directly
         with ThreadPoolExecutor(max_workers=2) as executor:
             futures = executor.map(get_preview,
-                                   self.wizard().selected_devices)
+                                   self.wizard().devices)
             previews = tuple(futures)
         for orientation, image in previews:
             pixmap = QtGui.QPixmap.fromImage(image)
@@ -337,60 +340,6 @@ class CapturePage(QtGui.QWizardPage):
                 self.left_preview.setPixmap(pixmap)
             else:
                 self.right_preview.setPixmap(pixmap)
-
-
-class DownloadPage(QtGui.QWizardPage):
-    def initializePage(self):
-        self.setTitle("Downloading")
-
-        #TODO: Display a real progress bar here, update it according to the
-        #      combined number of files in raw or its subfolders
-        self.progressbar = QtGui.QProgressBar(self)
-        self.progressbar.setRange(0, 0)
-        self.progressbar.setAlignment(QtCore.Qt.AlignCenter)
-        self.logbox = QtGui.QTextEdit()
-        self.log_handler = LogBoxHandler(self.logbox)
-        self.log_handler.setLevel(logging.INFO)
-        self.log_handler.setFormatter(LogBoxFormatter())
-        logging.getLogger().addHandler(self.log_handler)
-        self.log_handler.sig.connect(self.logbox.append)
-
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(self.progressbar)
-        layout.addWidget(self.logbox)
-        self.setLayout(layout)
-        self.logbox.clear()
-        QtCore.QTimer.singleShot(0, self.doDownload)
-
-    def doDownload(self):
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(workflow.download,
-                                     self.wizard().selected_devices,
-                                     self.wizard().project_path)
-            while future.running():
-                QtGui.qApp.processEvents()
-                self.progressbar.setValue(0)
-                time.sleep(0.001)
-            if future.exception():
-                raise future.exception()
-        self.progressbar.hide()
-        if ('combine' in self.wizard().active_plugins and not
-                os.listdir(os.path.join(self.wizard().project_path, 'raw'))):
-            msg_box = QtGui.QMessageBox()
-            msg_box.setText("It seems that combining the images has failed."
-                            "Please fix the issue manually and retry.")
-            # TODO: Add a 'combine' button to retry combining.
-            msg_box.setIcon(QtGui.QMessageBox.Critical)
-            self.combine_btn = msg_box.addButton("Combine",
-                                                 QtGui.QMessageBox.ApplyRole)
-            self.combine_btn.clicked.connect(get_pluginmanager()['combine']
-                                             .download(self.wizard()
-                                             .project_path))
-            msg_box.exec_()
-
-    def validatePage(self):
-        logging.getLogger().removeHandler(self.log_handler)
-        return True
 
 
 class PostprocessPage(QtGui.QWizardPage):

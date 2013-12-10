@@ -27,7 +27,7 @@ import logging
 
 import usb
 import stevedore
-from stevedore.extension import ExtensionManager
+from stevedore.driver import DriverManager
 from stevedore.named import NamedExtensionManager
 
 
@@ -164,44 +164,18 @@ class DevicePlugin(SpreadsPlugin):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def list_files(self):
-        """ List all files on the device.
-
-        :return: list() - The files on the device
-
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def download_files(self, local_path):
-        """ Download all files from the device.
-
-        :param local_path:  The destination path for the downloaded files
-        :type local_path:   unicode
-
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def delete_files(self):
-        """ Delete all files from the device.
-
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def prepare_capture(self):
+    def prepare_capture(self, path):
         """ Prepare device for scanning.
 
             What this means exactly is up to the implementation and the type,
             of device, usually it involves things like switching into record
-            mode and applying all relevant settings.
+            mode, path and applying all relevant settings.
 
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def capture(self):
+    def capture(self, path):
         """ Capture a single image with the device.
 
         """
@@ -228,53 +202,35 @@ class HookPlugin(SpreadsPlugin):
         """
         pass
 
-    def prepare_capture(self, devices):
+    def prepare_capture(self, devices, path):
         """ Perform some action before capturing begins.
 
         :param devices: The devices used for capturing
         :type devices: list(DevicePlugin)
-
-        """
-        pass
-
-    def capture(self, devices):
-        """ Perform some action after each successful capture.
-
-        :param devices: The devices used for capturing
-        :type devices: list(DevicePlugin)
-
-        """
-        pass
-
-    def finish_capture(self, devices):
-        """ Perform some action after capturing has finished.
-
-        :param devices: The devices used for capturing
-        :type devices: list(DevicePlugin)
-
-        """
-        pass
-
-    def download(self, devices, path):
-        """ Perform some action after download from devices has finished.
-
-            Retains all of the original information (i.e: rotation,
-            metadata annotations).
-
-        :param devices: The devices that were downloaded from.
-        :type devices: list(DevicePlugin)
-        :param path: The destination directory for the downloads
+        :param path: The project path
         :type path: unicode
 
         """
         pass
 
-    def delete(self, devices):
-        """ Perform some action after images have been deleted from the
-            devices.
+    def capture(self, devices, path):
+        """ Perform some action after each successful capture.
 
-        :param devices: The devices that were downloaded from.
+        :param devices: The devices used for capturing
         :type devices: list(DevicePlugin)
+        :param path: The project path
+        :type path: unicode
+
+        """
+        pass
+
+    def finish_capture(self, devices, path):
+        """ Perform some action after capturing has finished.
+
+        :param devices: The devices used for capturing
+        :type devices: list(DevicePlugin)
+        :param path: The project path
+        :type path: unicode
 
         """
         pass
@@ -310,12 +266,6 @@ class HookPlugin(SpreadsPlugin):
         pass
 
 
-# Load drivers for all supported devices
-def get_devicemanager():
-    logger.debug("Creating device manager")
-    return ExtensionManager(namespace='spreadsplug.devices')
-
-
 def get_pluginmanager():
     logger.debug("Creating plugin manager")
     pluginmanager = SpreadsNamedExtensionManager(
@@ -327,45 +277,21 @@ def get_pluginmanager():
     return pluginmanager
 
 
-def _match_device(extension, device):
-    try:
-        devname = usb.util.get_string(device, 256, 2)
-    except:
-        devname = "{0}:{1}".format(device.bus, device.address)
-    logger.debug("Trying to match device \"{0}\" with plugin {1}"
-                 .format(devname, extension.plugin.__name__))
-    try:
-        match = extension.plugin.match(device)
-    # Ignore devices that don't implement `match`
-    except TypeError:
-        logger.debug("Plugin did not implement match method!")
-        return
-    if match:
-        logger.debug("Plugin matched device!")
-        return extension, device
-
-
-def _get_device_extension_matches():
-    logger.debug("Detecting support for attached devices")
-    candidates = usb.core.find(find_all=True)
-    devicemanager = get_devicemanager()
-    for device in candidates:
-        matches = filter(None, devicemanager.map(_match_device, device))
-        # FIXME: Make this more robust: What if, for instance, two plugins
-        #        are found for a device, one of which inherits from the other?
-        if matches:
-            yield matches[0]
+def get_driver():
+    driver_name = spreads.config["driver"].get(unicode)
+    return DriverManager(namespace="spreadsplug.devices",
+                         name=driver_name)
 
 
 def get_devices():
-    """ Detect all attached devices and select a fitting driver.
-
-    :returns:  list(DevicePlugin) -- All supported devices that were detected
-
+    """ Initialize configured devices.
     """
-    devices = []
-    for ext, device in _get_device_extension_matches():
-        devices.append(ext.plugin(spreads.config, device))
+    driver = get_driver()
+    driver_class = driver.driver
+    logger.debug("Finding devices for driver \"{0}\"".format(driver.name))
+    usb_devices = filter(lambda dev: driver_class.match(dev),
+                         usb.core.find(find_all=True))
+    devices = [driver_class(spreads.config, dev) for dev in usb_devices]
     if not devices:
         raise DeviceException("Could not find any compatible devices!")
     return devices
@@ -373,12 +299,14 @@ def get_devices():
 
 def setup_plugin_config():
     pluginmanager = get_pluginmanager()
-    device_extensions = (x[0] for x in _get_device_extension_matches())
-    for ext in itertools.chain(pluginmanager, device_extensions):
+    driver_name = spreads.config["driver"].get(unicode)
+    driver = DriverManager(namespace="spreadsplug.devices",
+                           name=driver_name)
+    for ext in itertools.chain(pluginmanager, driver):
         logger.debug("Obtaining configuration template for plugin \"{0}\""
                      .format(ext.name))
         tmpl = ext.plugin.configuration_template()
-        if ext in device_extensions:
+        if ext is driver:
             section = 'device'
         else:
             section = ext.name

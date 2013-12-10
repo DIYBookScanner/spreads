@@ -42,15 +42,16 @@ class ChdkPtpDevice(object):
         self._cli_flags.append("-c-d={0:03} -b={1:03}".format(
                                usbdevice.address, usbdevice.bus))
         self._orientation = orientation
+        self.logger = logging.getLogger('ChdkPtpDevice[{0}]'
+                                        .format(orientation))
         try:
             self._run("rec")
         except CHDKPTPException:
                 # TODO: Log, already seems to be in rec mode
             pass
-        self._chdk_buildnum = (
-            self.execute_lua("get_buildinfo()",
-                            get_result=True)["build_revision"]
-        )
+        self._chdk_buildnum = (self.execute_lua("get_buildinfo()",
+                                                get_result=True)
+                               ["build_revision"])
         # PTP remote shooting is available starting from SVN r2927
         self._can_remote = self._chdk_buildnum >= 2927
         self._zoom_steps = self.execute_lua("get_zoom_steps()",
@@ -61,6 +62,8 @@ class ChdkPtpDevice(object):
                          self._cli_flags,
                          ("-e{0}".format(cmd) for cmd in commands))
         env = {'LUA_PATH': os.path.join(self._chdkptp_path, "lua/?.lua")}
+        self.logger.debug("Calling chdkptp with arguments: {0}"
+                          .format(cmd_args))
         output = (subprocess.check_output(cmd_args, env=env,
                                           stderr=subprocess.STDOUT)
                   .splitlines())
@@ -75,7 +78,6 @@ class ChdkPtpDevice(object):
         if get_result and not "return" in script:
             script = "return({0})".format(script)
         cmd = "luar" if wait else "lua"
-        # TODO: Error handling
         output = self._run("{0} {1}".format(cmd, script))
         if not get_result:
             return
@@ -420,7 +422,7 @@ class CHDKCameraDevice(DevicePlugin):
     def list_files(self):
         return self._device.get_image_list()
 
-    def prepare_capture(self):
+    def prepare_capture(self, path):
         self._set_record_mode()
         time.sleep(0.25)
         self._set_zoom(self._zoom_level)
@@ -431,7 +433,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._lock_focus()
         time.sleep(3)
 
-    def capture(self):
+    def capture(self, path):
         """ Shoot a picture. """
         self._set_sensitivity(self._sensitivity)
         time.sleep(0.25)

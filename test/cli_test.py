@@ -69,15 +69,6 @@ class TestCLI(object):
         cli.get_devices = Mock(return_value=self.devices)
         cli.capture()
 
-    def test_download(self):
-        args = Mock()
-        args.path = '/tmp/foo'
-        spreads.config['keep'] = False
-        cli.get_devices = Mock(return_value=self.devices)
-        cli.download(args=args)
-        assert cli.workflow.download.call_args == call(self.devices,
-                                                       '/tmp/foo')
-
     def test_postprocess(self):
         args = Mock()
         args.path = '/tmp/foo'

@@ -27,18 +27,16 @@ from __future__ import division, unicode_literals
 
 import logging
 import os
-import sys
-import time
 
 from concurrent.futures import ThreadPoolExecutor
 
 from spreads import config
-from spreads.plugin import get_pluginmanager
+from spreads.plugin import get_pluginmanager, DeviceException
 
 logger = logging.getLogger('spreads.workflow')
 
 
-def prepare_capture(devices):
+def prepare_capture(devices, path):
     logger.debug("Preparing capture.")
     if not devices:
         raise DeviceException("Could not find any compatible devices!")
@@ -46,16 +44,16 @@ def prepare_capture(devices):
         futures = []
         logger.debug("Preparing capture in devices")
         for dev in devices:
-            futures.append(executor.submit(dev.prepare_capture))
+            futures.append(executor.submit(dev.prepare_capture, path))
     if any(x.exception() for x in futures):
         exc = next(x for x in futures if x.exception()).exception()
         raise exc
     for ext in get_pluginmanager():
         logger.debug("Running prepare_capture hooks")
-        ext.obj.prepare_capture(devices)
+        ext.obj.prepare_capture(devices, path)
 
 
-def capture(devices):
+def capture(devices, path):
     logger.info("Triggering capture.")
     if not devices:
         raise DeviceException("Could not find any compatible devices!")
@@ -67,75 +65,21 @@ def capture(devices):
         futures = []
         logger.debug("Sending capture command to devices")
         for dev in devices:
-            futures.append(executor.submit(dev.capture))
+            futures.append(executor.submit(dev.capture, path))
     if any(x.exception() for x in futures):
         exc = next(x for x in futures if x.exception()).exception()
         raise exc
     logger.debug("Running capture hooks")
     for ext in get_pluginmanager():
-        ext.obj.capture(devices)
+        ext.obj.capture(devices, path)
 
 
-def finish_capture(devices):
+def finish_capture(devices, path):
     logger.debug("Running finish_capture hooks")
     if not devices:
         raise DeviceException("Could not find any compatible devices!")
     for ext in get_pluginmanager():
-        ext.obj.finish_capture(devices)
-
-
-def download(devices, path):
-    if not devices:
-        raise DeviceException("Could not find any compatible devices!")
-    keep = config['download']['keep'].get(bool) or config['keep'].get(bool)
-    if config['parallel_download'].get(bool):
-        num_devices = len(devices)
-    else:
-        num_devices = 1
-    logger.info("Downloading images from devices to {0}, files will "
-                "{1} remain on the devices."
-                .format(path, ("not" if not keep else "")))
-    if not os.path.exists(path):
-        logger.debug("Creating project directory")
-        os.mkdir(path)
-    out_paths = [os.path.join(path, x.orientation) for x in devices]
-    if out_paths:
-        logger.debug("Creating camera directories")
-
-    # Flag for when the images are already present
-    skip_download = False
-    for subpath in out_paths:
-        if not os.path.exists(subpath):
-            os.mkdir(subpath)
-        else:
-            logger.info("Images already present, skipping download")
-            skip_download = True
-    if not skip_download:
-        with ThreadPoolExecutor(num_devices) as executor:
-            logger.debug("Starting download process")
-            futures = []
-            for dev in devices:
-                futures.append(executor.submit(
-                    dev.download_files,
-                    os.path.join(path, dev.orientation))
-                )
-        if any(x.exception() for x in futures):
-            exc = next(x for x in futures if x.exception()).exception()
-            raise exc
-    logger.debug("Running download hooks")
-    for ext in get_pluginmanager():
-        ext.obj.download(devices, path)
-    # NOTE: Just to be safe...
-    time.sleep(5)
-    if not keep:
-        logger.info("Deleting images from devices")
-        with ThreadPoolExecutor(num_devices) as executor:
-            logger.debug("Starting delete process")
-            for dev in devices:
-                executor.submit(dev.delete_files)
-        logger.debug("Running delete hooks")
-        for ext in get_pluginmanager():
-            ext.obj.delete(devices)
+        ext.obj.finish_capture(devices, path)
 
 
 def process(path):

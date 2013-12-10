@@ -20,22 +20,17 @@ class TestPlugin(object):
         assert pm is pm_new
 
     def test_get_devices(self):
-        device_a = Mock()
-        device_a.plugin.match = Mock(return_value=True)
-        device_a.plugin.__name__ = "Mock"
-        device_b = Mock()
-        device_b.plugin.match = Mock(return_value=False)
-        device_b.plugin.__name__ = "Mock"
+        device = Mock()
+        device.match = Mock(return_value=True)
+        device.__name__ = "Mock"
         usb_mock = Mock()
+        extension_mock = Mock()
         plugin.usb.core.find = Mock(return_value=[usb_mock])
-        dm = Mock()
-        dm.map = lambda x, y: [x(z, y) for z in [device_a, device_b]]
-        plugin.get_devicemanager = Mock(return_value=dm)
-        ret = plugin.get_devices()
-        assert ret == [device_a.plugin()]
-        assert call(spreads.config, usb_mock) in device_a.plugin.call_args_list
-        assert device_a.plugin.match.call_args_list == [call(usb_mock)]
-        assert device_b.plugin.match.call_args_list == [call(usb_mock)]
+        plugin.DriverManager = Mock(return_value=extension_mock)
+        extension_mock.driver = device
+        plugin.get_devices()
+        assert call(spreads.config, usb_mock) in device.call_args_list
+        assert device.match.call_args_list == [call(usb_mock)]
 
     @raises(DeviceException)
     def test_no_devices(self):
