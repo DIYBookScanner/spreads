@@ -4,19 +4,9 @@ import os
 import re
 import subprocess
 import tempfile
-import time
 from fractions import Fraction
 from itertools import chain
-from math import log
 
-import pexif
-from PIL import Image
-
-try:
-    import pyptpchdk
-    from pyptpchdk import PTPError
-except ImportError:
-    logging.info("Could not load pyptpchdk library")
 
 from spreads.plugin import DevicePlugin, PluginOption
 from spreads.util import DeviceException
@@ -26,12 +16,13 @@ class CHDKPTPException(Exception):
     pass
 
 
-class ChdkPtpDevice(object):
-    """ Small wrapper class around the chdkptp Lua command-line tool.
+class CHDKCameraDevice(DevicePlugin):
+    """ Plugin for digital cameras running the CHDK firmware.
+
     """
 
     features = {
-      'preview': True,
+        'preview': True,
     }
 
     _cli_flags = None
@@ -40,31 +31,119 @@ class ChdkPtpDevice(object):
     _can_remote = False
     _zoom_steps = 0
 
-    def __init__(self, chdkptp_path, usbdevice, orientation):
-        self._chdkptp_path = chdkptp_path
+    @classmethod
+    def configuration_template(cls):
+        conf = {'sensitivity': PluginOption(80, "The ISO sensitivity value"),
+                'shutter_speed': PluginOption(u"1/25", "The shutter speed as a"
+                                                      "fraction"),
+                'zoom_level': PluginOption(3, "The default zoom level"),
+                'dpi': PluginOption(300, "The capturing resolution"),
+                'shoot_raw': PluginOption(False, "Shoot in RAW format (DNG)"),
+                'chdkptp_path': PluginOption(u"/usr/local/lib/chdkptp",
+                                          "Path to CHDKPTP binary/libraries"),
+                }
+        return conf
+
+    @classmethod
+    def match(cls, device):
+        # TODO: This matches all PTP devices, we will have to ensure that
+        #       it is also a CHDK compatible device.
+        #cfg = device.get_active_configuration()[(0, 0)]
+        #matches = (hex(cfg.bInterfaceClass) == "0x6"
+        #           and hex(cfg.bInterfaceSubClass) == "0x1")
+        #return matches
+        return False
+
+    def __init__(self, config, device):
+        """ Set connection information and try to obtain orientation.
+
+        :param config:  spreads configuration
+        :type config:   spreads.confit.ConfigView
+        :param device:  USB device to use for the object
+        :type device:   `usb.core.Device <http://github.com/walac/pyusb>`_
+
+        """
+        self.logger = logging.getLogger('ChdkCamera')
+        self._chdkptp_path = config["chdkptp_path"].get(unicode)
+        self._sensitivity = config["sensitivity"].get(int)
+        self._shutter_speed = float(Fraction(config["shutter_speed"]
+                                    .get(unicode)))
+        self._zoom_level = config['zoom_level'].get(int)
+        self._dpi = config['dpi'].get(int)
+        self._shoot_raw = config['shoot_raw'].get(bool)
+
         self._cli_flags = []
         self._cli_flags.append("-c-d={0:03} -b={1:03}".format(
-                               usbdevice.address, usbdevice.bus))
-        self._orientation = orientation
-        self.logger = logging.getLogger('ChdkPtpDevice[{0}]'
-                                        .format(orientation))
-        try:
-            self._run("rec")
-        except CHDKPTPException:
-                # TODO: Log, already seems to be in rec mode
-            pass
-        self._chdk_buildnum = (self.execute_lua("get_buildinfo()",
-                                                get_result=True)
+                               device.address, device.bus))
+        self._chdk_buildnum = (self._execute_lua("get_buildinfo()",
+                                                 get_result=True)
                                ["build_revision"])
         # PTP remote shooting is available starting from SVN r2927
         self._can_remote = self._chdk_buildnum >= 2927
-        self._zoom_steps = self.execute_lua("get_zoom_steps()",
-                                            get_result=True)
+        self._zoom_steps = self._execute_lua("get_zoom_steps()",
+                                             get_result=True)
+        try:
+            self.orientation = self._get_orientation()
+        except ValueError:
+            self.orientation = None
+        self.logger = logging.getLogger('ChdkCamera[{0}]'
+                                        .format(self.orientation))
+
+    def set_orientation(self, orientation):
+        """ Set the device orientation.
+
+        :param orientation: The orientation name
+        :type orientation:  unicode in (u"left", u"right")
+
+        """
+        tmp_handle = tempfile.mkstemp(text=True)
+        os.write(tmp_handle[0], orientation.upper()+"\n")
+        self._run("upload {0} \"OWN.TXT\"".format(tmp_handle[1]))
+        self.orientation = orientation
+
+    def prepare_capture(self, path):
+        # Try to put into record mode
+        if not os.path.exists(path):
+            os.mkdir(path)
+        if not os.path.exists(os.path.join(path, self.orientation)):
+            os.mkdir(os.path.join(path, self.orientation))
+        try:
+            self._run("rec")
+        except CHDKPTPException as e:
+            self.logger.debug(e)
+            self.logger.info("Camera already seems to be in recording mode")
+        #self._set_zoom(self._zoom_level)
+        # Disable flash
+        self._execute_lua("while(get_flash_mode()<2) do click(\"right\") end")
+        # Disable ND filter
+        self._execute_lua("set_nd_filter(2)")
+        #self._lock_focus()
+
+    def get_preview_image(self):
+        fpath = tempfile.mkstemp()[1]
+        cmd = "dumpframes -count=1 -nobm -nopal"
+        self._run("{0} {1}".format(cmd, fpath))
+        with open(fpath, 'rb') as fp:
+            data = fp.read()
+        os.remove(fpath)
+        return data
+
+    def capture(self, path):
+        path = os.path.join(path, self.orientation)
+        if self._can_remote:
+            cmd = ("remoteshoot -tv={0} -isomode={1} {2} {3}"
+                   .format(self._shutter_speed, self._sensitivity,
+                           "-dng" if self._shoot_raw else "", path))
+        else:
+            cmd = ("shoot -tv={0} -isomode={1} -dng={2} -rm -dl {3}"
+                   .format(self._shutter_speed, self._sensitivity,
+                           int(self._shoot_raw), path))
+        self._run(cmd)
 
     def _run(self, *commands):
-        cmd_args = chain((os.path.join(self._chdkptp_path, "chdkptp"),),
-                         self._cli_flags,
-                         ("-e{0}".format(cmd) for cmd in commands))
+        cmd_args = list(chain((os.path.join(self._chdkptp_path, "chdkptp"),),
+                              self._cli_flags,
+                              ("-e{0}".format(cmd) for cmd in commands)))
         env = {'LUA_PATH': os.path.join(self._chdkptp_path, "lua/?.lua")}
         self.logger.debug("Calling chdkptp with arguments: {0}"
                           .format(cmd_args))
@@ -78,7 +157,7 @@ class ChdkPtpDevice(object):
             raise CHDKPTPException("\n".join(output))
         return output
 
-    def execute_lua(self, script, wait=True, get_result=False, timeout=256):
+    def _execute_lua(self, script, wait=True, get_result=False, timeout=256):
         if get_result and not "return" in script:
             script = "return({0})".format(script)
         cmd = "luar" if wait else "lua"
@@ -106,417 +185,24 @@ class ChdkPtpDevice(object):
         else:
             return int(ret_val)  # Integer
 
-    def get_image_list(self):
-        img_path = self.execute_lua("get_image_dir()", get_result=True)
-        file_list = [os.path.join(img_path, x)
-                     for x in self._run("ls {0}".format(img_path))]
-        return file_list
+    def _get_orientation(self):
+        tmp_handle = tempfile.mkstemp(text=True)
+        try:
+            self._run("download \"OWN.TXT\" {0}".format(tmp_handle[1]))
+        except DeviceException:
+            raise ValueError("Could not find OWN.TXT")
+        with open(tmp_handle[1], 'r') as fp:
+            orientation = fp.readline().strip().lower()
+        os.remove(tmp_handle[1])
+        if not orientation:
+            raise ValueError("Could not read OWN.TXT")
+        return orientation
 
-    def download_image(self, camera_path, local_path):
-        self._run("download {0} {1}".format(camera_path, local_path))
-
-    def delete_image(self, camera_path):
-        self._run("delete {0}".format(camera_path))
-
-    def download_all_images(self, path):
-        self._run("mdownload -fmatch=%.JPG$ DCIM {0}".format(path))
-
-    def delete_all_images(self):
-        self._run("rm -nodirs -fmatch=%.JPG$ DCIM")
-
-    def set_zoom(self, level):
+    def _set_zoom(self, level):
         if level >= self._zoom_steps:
             raise Exception("Zoom level {0} exceeds the camera's range!"
                             " (max: {1})".format(level, self._zoom_steps-1))
-        zoom = self.execute_lua("get_zoom()", get_result=True)
-        while zoom != level:
-            if zoom > level:
-                self.execute_lua('click("zoom_out")')
-                zoom -= 1
-            elif zoom < level:
-                self.execute_lua('click("zoom_in")')
-                zoom += 1
-            time.sleep(1)
-
-    def get_preview_image(self, viewport=True, ui_overlay=False):
-        fpath = tempfile.mkstemp()[1]
-        cmd = "dumpframes -count=1"
-        if not viewport:
-            cmd += " -novp"
-        if not ui_overlay:
-            cmd += " -nobm -nopal"
-        self._run("{0} {1}".format(cmd, fpath))
-        with open(fpath, 'rb') as fp:
-            data = fp.read()
-        os.remove(fpath)
-        return data
-
-    def capture(self, path, sensitivity=80, shutter_speed="1/25", raw=False,
-                zoom=3):
-        # shoot       Shoot image to SDCard
-        # remoteshoot Shoot images to local path
-        # TODO: Set zoom
-        if self._can_remote:
-            cmd = ("remoteshoot -tv={0} -isomode={1} {2} {3}"
-                   .format(shutter_speed, sensitivity, "-dng" if raw else "",
-                           path)
-                   )
-        else:
-            cmd = ("shoot -tv={0} -isomode={1} -dng={2} -rm -dl {3}"
-                   .format(shutter_speed, sensitivity, int(raw), path))
-        self._run(cmd)
-
-
-class PyPtpChdkDevice(object):
-    """ Small wrapper class around pyptpchdk for easier access to PTP
-        functions.
-
-    """
-    STATUS_RUN = 1
-    STATUS_MSG = 2
-
-    def __init__(self, usbdevice):
-        self._orientation = None
-        self.logger = logging.getLogger('PTPDevice')
-        self._device = pyptpchdk.PTPDevice(usbdevice.bus, usbdevice.address)
-
-    def __del__(self):
-        del(self._device)
-
-    def execute_lua(self, script, wait=True, get_result=False, timeout=256):
-        """ Executes a Lua script on the camera.
-
-        :param script: The Lua script
-        :type script: str
-        :param wait: Wait for the script to complete
-        :type wait: bool
-        :param get_result: Return the script's return value
-        :type get_result: bool
-        :return: The script's return value (tuple) if get_result was True,
-                 or None
-
-        """
-        # Wrap the script in return if the script doesn't return by itself
-        if get_result and not "return" in script:
-            script = "return({0})".format(script)
-        retries = 0
-        while True:
-            if retries >= 3:
-                raise DeviceException("An error occured while executing"
-                                      " \"{0}\"".format(script))
-            self.logger.debug("Executing script: \"{0}\"".format(script))
-            try:
-                script_id = self._device.chdkExecLua(script)
-            except Exception:
-                self.logger.warn("Script raised an error.")
-                self.logger.debug("Details:", exc_info=True)
-                self.logger.warn("Retrying in 5s...")
-                retries += 1
-                time.sleep(5)
-                continue
-            script_status = None
-            if not wait:
-                return
-            # Wait for the script to complete
-            loops = 0
-            while loops < timeout and script_status not in (1, 2):
-                loops += 1
-                try:
-                    script_status = self._device.chdkScriptStatus(script_id)
-                except PTPError:
-                    pass
-                time.sleep(0.01)
-            if not script_status:
-                self.logger.warn("Script timed out, retrying...")
-                retries += 1
-            else:
-                break
-        if get_result:
-            return self._get_messages(script_id)
-        else:
-            self._flush_messages()
-            return
-
-    def _get_messages(self, script_id):
-        msg = None
-        retvals = []
-        # Get all messages returned by the script
-        while not retvals or msg[2] != 0:
-            time.sleep(0.01)
-            try:
-                msg = self._device.chdkReadScriptMessage()
-            except PTPError:
-                self.logger.warn("Couldn't read message, retrying...")
-                continue
-            if msg[1] == 1:
-                raise DeviceException("Lua error: {0}".format(msg[0]))
-            if msg[2] == 0:
-                continue
-            if msg[2] != script_id:
-                self.logger.warn(
-                    "Script IDs did not match. Expected \"{0}\","
-                    " got \"{1}\", ignoring".format(script_id, msg[2])
-                )
-                self.logger.debug("Message (type {0}) was: {1}"
-                                  .format(msg[1], msg[0]))
-                continue
-            self.logger.debug("Camera returned: {0}".format(msg[0]))
-            retvals.append(msg[0])
-        # NOTE: Just to be safe...
-        time.sleep(0.25)
-        # Return a tuple containing all of the messages
-        return tuple(retvals)
-
-    def _flush_messages(self):
-        msg = (None, None, None)
-        tries = 0
-        while msg[2] != 0:
-            tries += 1
-            time.sleep(0.01)
-            try:
-                msg = self._device.chdkReadScriptMessage()
-            except PTPError:
-                if tries > 10:
-                    return
-                self.logger.warn("Couldn't read message, ignoring...")
-
-    def get_orientation(self):
-        # NOTE: CHDK doesn't seem to be able to write the EXIF owner to the
-        #       camera's internal flash memory, so we have to use this
-        #       workaround.
-        if self._orientation:
-            return self._orientation
-        try:
-            orientation = self.execute_lua("""
-                file=io.open('A/OWN.TXT')
-                content=file:read()
-                file:close()
-                return content
-                """, get_result=True)[0].lower()
-            self.logger.debug("Orientation is: \"{0}\"".format(orientation))
-            self.logger = logging.getLogger('PTPDevice[{0}]'
-                                            .format(orientation))
-            self._orientation = orientation
-            return orientation
-        except DeviceException as e:
-            self.logger.warn("Could not get orientation, reason: {0}"
-                             .format(e.message))
-            return None
-
-    def set_orientation(self, orientation):
-        self.execute_lua("""
-            file=io.open('A/OWN.TXT', 'w')
-            file:write("{0}")
-            file:close()
-        """.format(orientation.upper()), get_result=False)
-        self._orientation = orientation
-
-    def get_image_list(self):
-        img_path = self.execute_lua("get_image_dir()", get_result=True)[0]
-        file_list = [os.path.join(img_path, x.split("\t")[1])
-                     for x in (self.execute_lua("os.listdir(\"{0}\")"
-                               .format(img_path), get_result=True)[0]
-                               .split("\n")[:-1])]
-        return file_list
-
-    def download_image(self, camera_path, local_path):
-        self.logger.debug("Downloading \"{0}\"".format(local_path))
-        self._device.chdkDownload(camera_path, local_path)
-        self.logger.debug("Download complete")
-        img = pexif.JpegFile.fromFile(local_path)
-        if self._orientation == 'left':
-            exif_orientation = 8  # 90°
-        else:
-            exif_orientation = 6  # -90°
-        img.exif.primary.Orientation = [exif_orientation]
-        img.writeFile(local_path)
-
-    def delete_image(self, camera_path):
-        self.execute_lua("os.remove(\"{0}\")".format(camera_path))
-        time.sleep(0.5)
-
-    def download_all_images(self, path):
-        for fpath in self.get_image_list():
-            self.download_image(
-                fpath,
-                os.path.join(path, os.path.basename(fpath)))
-
-    def delete_all_images(self):
-        for fpath in self.get_image_list():
-            self.delete_image(fpath)
-
-    def get_preview_image(self, viewport=True, ui_overlay=False):
-        flags = 0
-        if viewport:
-            flags |= pyptpchdk.LiveViewFlags.VIEWPORT
-        if ui_overlay:
-            flags |= pyptpchdk.LiveViewFlags.BITMAP
-        data = self._device.chdkGetLiveData(flags)
-        img = data['viewport']
-        # FIXME: Use wand for this, once the new version is out that supports
-        #        raw RGB data.
-        return Image.fromstring('RGB', (img['width'], img['height']),
-                                img['data'])
-
-
-class CHDKCameraDevice(DevicePlugin):
-    """ Plugin for digital cameras running the CHDK firmware.
-
-    """
-    @classmethod
-    def configuration_template(cls):
-        conf = {'sensitivity': PluginOption(80, "The ISO sensitivity value"),
-                'shutter_speed': PluginOption("1/25", "The shutter speed as a"
-                                                      "fraction"),
-                'zoom_level': PluginOption(3, "The default zoom level"),
-                'dpi': PluginOption(300, "The capturing resolution"),
-                }
-        return conf
-
-    @classmethod
-    def match(cls, device):
-        # TODO: This matches all PTP devices, we will have to ensure that
-        #       it is also a CHDK compatible device.
-        #cfg = device.get_active_configuration()[(0, 0)]
-        #matches = (hex(cfg.bInterfaceClass) == "0x6"
-        #           and hex(cfg.bInterfaceSubClass) == "0x1")
-        #return matches
-        return False
-
-    def __init__(self, config, device):
-        """ Set connection information and try to obtain orientation.
-
-        :param config:  spreads configuration
-        :type config:   spreads.confit.ConfigView
-        :param device:  USB device to use for the object
-        :type device:   `usb.core.Device <http://github.com/walac/pyusb>`_
-
-        """
-        if not config['device']['chdk_path']:
-            self._device = PyPtpChdkDevice(device)
-        else:
-            self._device = ChdkPtpDevice(device)
-        try:
-            self.orientation = self._device.get_orientation()
-        except PTPError:
-            self.orientation = None
-        self._sensitivity = config['chdkcamera']['sensitivity'].get(int)
-        self._shutter_speed = (
-            float(Fraction(config['chdkcamera']['shutter_speed']
-                           .get(unicode))))
-        self._zoom_level = config['chdkcamera']['zoom_level'].get(int)
-        self._dpi = config['chdkcamera']['dpi'].get(int)
-
-    def set_orientation(self, orientation):
-        """ Set the device orientation.
-
-        :param orientation: The orientation name
-        :type orientation:  unicode in (u"left", u"right")
-
-        """
-        self._device.set_orientation(orientation)
-        self.orientation = orientation
-
-    def delete_files(self):
-        self._device.delete_all_images()
-
-    def download_files(self, path):
-        self._device.download_all_images(path)
-
-    def list_files(self):
-        return self._device.get_image_list()
-
-    def prepare_capture(self, path):
-        self._set_record_mode()
-        time.sleep(0.25)
-        self._set_zoom(self._zoom_level)
-        self._disable_flash()
-        self._disable_ndfilter()
-        self._set_sensitivity(self._sensitivity)
-        self._set_shutter_speed(self._shutter_speed)
-        self._lock_focus()
-        time.sleep(3)
-
-    def capture(self, path):
-        """ Shoot a picture. """
-        self._set_sensitivity(self._sensitivity)
-        time.sleep(0.25)
-        self._set_shutter_speed(self._shutter_speed)
-        time.sleep(0.25)
-        self._device.execute_lua("shoot()")
-        # NOTE: This is a safety measure, as CHDK tends to crash if we don't
-        #       wait.
-        time.sleep(1)
-
-    def _set_record_mode(self):
-        """ Put the camera in record mode. """
-        self._device.execute_lua("switch_mode_usb(1)")
-
-    def _get_zoom(self):
-        """ Get current zoom level.
-
-        :returns: int -- the current zoom level
-
-        """
-        return self._device.execute_lua("get_zoom()", get_result=True)[0]
-
-    def _set_zoom(self, level):
-        """ Set zoom level.
-
-        :param level: The zoom level to be used
-        :type level:  int
-
-        """
-        available_levels = self._device.execute_lua("get_zoom_steps()",
-                                                    get_result=True)[0]
-        if level > available_levels:
-            raise DeviceException("Level outside of supported range!")
-        self._device.execute_lua('set_zoom({0})'.format(level))
-
-    def _disable_flash(self):
-        """ Disable the camera's flash. """
-        self._device.execute_lua("set_prop(16, 2)")
-
-    def _set_sensitivity(self, value=80):
-        """ Set the camera's ISO value.
-
-        :param iso_value: The ISO value in ISO/ASA format
-        :type iso-value:  int
-
-        """
-        self._device.execute_lua("set_iso_mode({0})".format(value))
-
-    def _set_shutter_speed(self, value=448):
-        # Calculate TV96 value from shutter_speed
-        tv96_value = -96*log(value)/log(2)
-        # Round to nearest multiple of 32
-        tv96_value = int(32*round(tv96_value/32))
-        self._device.execute_lua("set_tv96_direct({0})".format(tv96_value))
-
-    def _disable_ndfilter(self):
-        """ Disable the camera's ND Filter. """
-        self._device.execute_lua("set_nd_filter(2)")
-
-    def _lock_focus(self):
-        """ Acquire auto focus and lock it. """
-        self._device.execute_lua("set_aflock(0)")
-        self._device.execute_lua("press('shoot_half')")
-        time.sleep(0.8)
-        self._device.execute_lua("release('shoot_half')")
-        time.sleep(0.5)
-        self._device.execute_lua("set_aflock(1)")
-
-    def _play_sound(self, sound_num):
-        """ Plays one of the following sounds:
-                0 = startup sound
-                1 = shutter sound
-                2 = button press sound
-                3 = selftimer
-                4 = short beep
-                5 = af (auto focus) confirmation
-                6 = error beep
-        """
-        self._device.execute_lua("play_sound({0})".format(sound_num))
+        self._execute_lua("set_zoom({0})".format(level), wait=False)
 
 
 class CanonA2200CameraDevice(CHDKCameraDevice):
@@ -525,11 +211,8 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
         Works around some quirks of that CHDK port.
 
     """
-    ISO_TO_APEX = {
-        80: 373,
-    }
-
     def __init__(self, config, device):
+        print "Instantiating device..."
         super(CanonA2200CameraDevice, self).__init__(config, device)
         if self.orientation is not None:
             self.logger = logging.getLogger(
@@ -543,56 +226,6 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
                    and hex(device.idProduct) == "0x322a")
         return matches
 
-    def _get_image_list(self):
-        # NOTE:
-        #   We use this workaround, as the A2200 doesn't have enough memory
-        #   to deal with directory listings containing more than ~250
-        #   items.
-        #   We make use of the fact that the firmware numbers images
-        #   consecutively: By obtaining the name of the first and the
-        #   name of the last image, we can safely determine the rest
-        #   of the filenames without getting the whole directory listing.
-        img_path = self._device.execute_lua("get_image_dir()",
-                                            get_result=True)[0]
-        first_file = self._device.execute_lua('flist = os.listdir("{0}")\n'
-                                              'table.sort(flist)\n'
-                                              'return flist[1]'
-                                              .format(img_path),
-                                              get_result=True)[0]
-        if not first_file:
-            self.logger.warn("Could not get name of first file!")
-            raise StopIteration
-        first_num = int(first_file[4:-4])
-        #last_num = self._device.execute_lua("get_exp_count()",
-        #                                    get_result=True)[0]
-        num_files = self._device.execute_lua("table.getn(os.listdir('{0}'))"
-                                             .format(img_path), get_result=True
-                                             )[0]
-        last_file = self._device.execute_lua('flist = os.listdir("{0}")\n'
-                                             'table.sort(flist)\n'
-                                             'return flist[{1}]'
-                                             .format(img_path, num_files),
-                                             get_result=True)[0]
-        last_num = int(last_file[4:-4])
-        for num in xrange(first_num, last_num+1):
-            fname = "IMG_{0}.JPG".format(num)
-            yield os.path.join(img_path, fname)
-
-    def download_files(self, path):
-        for campath in self._get_image_list():
-            local_path = os.path.join(path, os.path.basename(campath))
-            self._device.download_image(campath, local_path)
-
-    def delete_files(self):
-        for campath in self._get_image_list():
-            try:
-                self._device.delete_image(campath)
-            except:
-                continue
-
-    def list_files(self):
-        return list(self._get_image_list())
-
     def _set_zoom(self, level):
         """ Set zoom level.
 
@@ -604,36 +237,14 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
         :type level:  int
 
         """
-        if level > 7:
-            raise Exception("Zoom level {0} exceeds the camera's range!"
-                            .format(level))
-        zoom = None
-        while zoom != level:
-            zoom = self._get_zoom()
-            self.logger.debug("Zoom for {0}: {1}".format(self.orientation,
-                                                         zoom))
-            if zoom > level:
-                self._device.execute_lua('click("zoom_out")')
-            elif zoom < level:
-                self._device.execute_lua('click("zoom_in")')
-            time.sleep(1)
-
-    def _set_sensitivity(self, value=80):
-        """ Set the camera's ISO value.
-
-            `set_iso_mode` doesn't seem to work, so we have to use set_sv96.
-            Problem is that I've not yet figured out the conversion formula
-            from ISO to the ASA/APEX value required for this function, which,
-            from what I understand, has to be determined for every camera
-            separately...
-
-        :param iso_value: The ISO value in ISO/ASA format
-        :type iso-value:  int
-
-        """
-        iso_value = self._sensitivity
-        try:
-            sv96_value = CanonA2200CameraDevice.ISO_TO_APEX[iso_value]
-        except KeyError:
-            raise Exception("The desired ISO value is not supported.")
-        self._device.execute_lua("set_sv96({0})".format(sv96_value))
+        if level >= self._zoom_steps:
+            raise DeviceException(
+                "Zoom level {0} exceeds the camera's range!"
+                " (max: {1})".format(level, self._zoom_steps-1))
+        zoom = self._execute_lua("get_zoom()", get_result=True)
+        if zoom < level:
+            self._execute_lua("while(get_zoom()<3) do click(\"zoom_in\") end",
+                              wait=True)
+        elif zoom > level:
+            self._execute_lua("while(get_zoom()>3) do click(\"zoom_out\") end",
+                              wait=True)
