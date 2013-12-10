@@ -8,7 +8,7 @@ from PIL import Image
 
 import spreads
 import spreads.workflow as workflow
-from spreads.plugin import get_pluginmanager
+from spreads.plugin import get_pluginmanager, get_driver
 
 import gui_rc
 
@@ -252,19 +252,21 @@ class CapturePage(QtGui.QWizardPage):
         self.setTitle("Capturing from devices")
         self.start_time = None
         self.shot_count = None
+        device_has_preview = get_driver().driver.features['preview']
 
         layout = QtGui.QVBoxLayout(self)
         self.status = QtGui.QLabel("Press a capture key (default: Space, B)"
                                    " to begin capturing.")
 
-        previewbox = QtGui.QHBoxLayout()
-        self.left_preview = QtGui.QLabel()
-        self.right_preview = QtGui.QLabel()
-        previewbox.addWidget(self.left_preview)
-        previewbox.addWidget(self.right_preview)
-
-        self.refresh_btn = QtGui.QPushButton("Refresh")
-        self.refresh_btn.clicked.connect(self.update_preview)
+        if device_has_preview:
+            previewbox = QtGui.QHBoxLayout()
+            self.left_preview = QtGui.QLabel()
+            self.right_preview = QtGui.QLabel()
+            previewbox.addWidget(self.left_preview)
+            previewbox.addWidget(self.right_preview)
+            layout.addLayout(previewbox)
+            self.refresh_btn = QtGui.QPushButton("Refresh")
+            self.refresh_btn.clicked.connect(self.update_preview)
 
         self.capture_btn = QtGui.QPushButton("Capture")
         self.capture_btn.clicked.connect(self.doCapture)
@@ -278,13 +280,14 @@ class CapturePage(QtGui.QWizardPage):
         self.log_handler.sig.connect(self.logbox.append)
 
         layout.addWidget(self.status)
-        layout.addWidget(self.refresh_btn)
-        layout.addLayout(previewbox)
+        if device_has_preview:
+            layout.addWidget(self.refresh_btn)
         layout.addWidget(self.capture_btn)
         layout.addWidget(self.logbox)
         self.setLayout(layout)
-        time.sleep(0.5)
-        self.update_preview()
+        if device_has_preview:
+            time.sleep(0.5)
+            self.update_preview()
 
     def validatePage(self):
         workflow.finish_capture(self.wizard().devices,
@@ -301,7 +304,8 @@ class CapturePage(QtGui.QWizardPage):
         if self.shot_count is None:
             self.shot_count = 0
         self.capture_btn.setEnabled(False)
-        self.refresh_btn.setEnabled(False)
+        if hasattr(self, 'refresh_btn'):
+            self.refresh_btn.setEnabled(False)
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(workflow.capture,
                                      self.wizard().devices,
@@ -310,7 +314,8 @@ class CapturePage(QtGui.QWizardPage):
                 QtGui.qApp.processEvents()
                 time.sleep(0.001)
         self.capture_btn.setEnabled(True)
-        self.refresh_btn.setEnabled(True)
+        if hasattr(self, 'refresh_btn'):
+            self.refresh_btn.setEnabled(True)
         self.capture_btn.setFocus()
         self.shot_count += 2
         self.status.setText("Shot {0} pages in {1:.0f} minutes "
@@ -322,7 +327,7 @@ class CapturePage(QtGui.QWizardPage):
 
     def update_preview(self):
         def get_preview(dev):
-            img = dev._device.get_preview_image()
+            img = dev.get_preview_image()
             img = img.resize((320, 240), Image.ANTIALIAS).convert('RGBA')
             data = img.tostring('raw')
             image = QtGui.QImage(data, img.size[0], img.size[1],
