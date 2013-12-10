@@ -12,6 +12,12 @@ class TestScanTailor(object):
         reload(plugin)
         spreads.config.clear()
         spreads.config.read(user=False)
+        tmpl = scantailor.ScanTailorPlugin.configuration_template()
+        for key, option in tmpl.items():
+            if option.selectable:
+                spreads.config['scantailor'][key] = option.value[0]
+            else:
+                spreads.config['scantailor'][key] = option.value
         with patch('subprocess.check_output') as mock_co:
             mock_co.return_value = "".join(chain(
                 repeat("\n", 7),
