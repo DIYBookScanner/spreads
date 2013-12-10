@@ -1,7 +1,7 @@
 # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
-loglevel: warning
+loglevel: info
 plugins: [combine, autorotate, scantailor, pdfbeads]
-driver: chdkcamera
+driver: dummy
 
 
 # Options for 'capture' step

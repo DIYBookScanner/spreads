@@ -288,7 +288,7 @@ def get_devices():
     """
     driver = get_driver()
     driver_class = driver.driver
-    logger.debug("Finding devices for driver \"{0}\"".format(driver.name))
+    logger.debug("Finding devices for driver \"{0}\"".format(driver))
     usb_devices = filter(lambda dev: driver_class.match(dev),
                          usb.core.find(find_all=True))
     devices = [driver_class(spreads.config, dev) for dev in usb_devices]
