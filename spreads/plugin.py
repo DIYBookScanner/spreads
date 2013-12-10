@@ -313,22 +313,23 @@ def setup_plugin_config():
         logger.debug("Obtaining configuration template for plugin \"{0}\""
                      .format(ext.name))
         tmpl = ext.plugin.configuration_template()
-        if ext is driver:
+        if ext in driver.extensions:
             section = 'device'
         else:
             section = ext.name
         if not tmpl:
             continue
-        # Check if we already have a configuration entry for this plugin
-        if not ext.name in spreads.config.keys():
-            logging.info("Adding configuration for plugin {0}"
-                         .format(ext.name))
-            # Add default values
-            for key, option in tmpl.items():
-                if option.selectable:
-                    spreads.config[section][key] = option.value[0]
-                else:
-                    spreads.config[section][key] = option.value
+        # Add default values
+        for key, option in tmpl.items():
+            # Check if we already have a configuration entry for this setting
+            if key in spreads.config[section].keys():
+                continue
+            logging.info("Adding setting {0} from  plugin {1}"
+                            .format(key, ext.name))
+            if option.selectable:
+                spreads.config[section][key] = option.value[0]
+            else:
+                spreads.config[section][key] = option.value
 
 
 def get_relevant_extensions(hooks):
