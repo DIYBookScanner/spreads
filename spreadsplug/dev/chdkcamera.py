@@ -30,6 +30,10 @@ class ChdkPtpDevice(object):
     """ Small wrapper class around the chdkptp Lua command-line tool.
     """
 
+    features = {
+      'preview': True,
+    }
+
     _cli_flags = None
     _orientation = None
     _chdk_buildnum = None

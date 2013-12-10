@@ -130,6 +130,13 @@ class DevicePlugin(SpreadsPlugin):
     """
     __metaclass__ = abc.ABCMeta
 
+
+    @abc.abstractproperty
+    def features(self):
+        """ Return device features. """
+        return { 'preview': False, }
+
+
     @abstractclassmethod
     def match(cls, usbdevice):
         """ Match device against USB device information.
