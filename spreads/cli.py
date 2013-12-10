@@ -173,14 +173,14 @@ def wizard(args, devices=None):
 
 
 def setup_parser():
-    def _add_argument_from_option(key, option, parser):
+    def _add_argument_from_option(extname, key, option, parser):
         flag = "--{0}".format(key)
         default = (option.value
                    if not option.selectable
                    else option.value[0])
         kwargs = {'help': ("{0} [default: {1}]"
                            .format(option.docstring, default)),
-                  'dest': key}
+                  'dest': "{0}.{1}".format(extname, key)}
         if isinstance(option.value, basestring):
             kwargs['type'] = unicode
             kwargs['metavar'] = "<str>"
@@ -212,22 +212,19 @@ def setup_parser():
             return
         for key, option in tmpl.iteritems():
             try:
-                _add_argument_from_option(key, option, parser)
+                _add_argument_from_option('device', key, option, parser)
             except:
                 return
 
     def _add_plugin_arguments(hooks, parser):
-        plugins = itertools.chain(
-            (get_driver().driver, ),
-            (ext.plugin for ext in get_relevant_extensions(hooks))
-        )
-        for plug in plugins:
-            tmpl = plug.configuration_template()
+        extensions = get_relevant_extensions(hooks)
+        for ext in extensions:
+            tmpl = ext.plugin.configuration_template()
             if not tmpl:
                 continue
             for key, option in tmpl.iteritems():
                 try:
-                    _add_argument_from_option(key, option, parser)
+                    _add_argument_from_option(ext.name, key, option, parser)
                 except:
                     continue
 
@@ -304,7 +301,15 @@ def main():
 
     parser = setup_parser()
     args = parser.parse_args()
-    config.set_args(args)
+    # Set configuration from parsed arguments
+    for argkey, value in args.__dict__.iteritems():
+        if value is None or argkey == 'func':
+            continue
+        if '.' in argkey:
+            section, key = argkey.split('.')
+            config[section][key] = value
+        else:
+            config[argkey] = value
 
     loglevel = config['loglevel'].as_choice({
         'none':     logging.NOTSET,
