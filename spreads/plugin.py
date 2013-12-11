@@ -30,8 +30,6 @@ import stevedore
 from stevedore.driver import DriverManager
 from stevedore.named import NamedExtensionManager
 
-
-import spreads
 from spreads.util import abstractclassmethod, DeviceException
 
 logger = logging.getLogger("spreads.plugin")
@@ -273,40 +271,40 @@ class HookPlugin(SpreadsPlugin):
         pass
 
 
-def get_pluginmanager():
+def get_pluginmanager(config):
     logger.debug("Creating plugin manager")
     pluginmanager = SpreadsNamedExtensionManager(
         namespace='spreadsplug.hooks',
-        names=spreads.config['plugins'].as_str_seq(),
+        names=config['plugins'].as_str_seq(),
         invoke_on_load=True,
-        invoke_args=[spreads.config],
+        invoke_args=[config],
         name_order=True)
     return pluginmanager
 
 
-def get_driver():
-    driver_name = spreads.config["driver"].get(unicode)
+def get_driver(config):
+    driver_name = config["driver"].get(unicode)
     return DriverManager(namespace="spreadsplug.devices",
                          name=driver_name)
 
 
-def get_devices():
+def get_devices(config):
     """ Initialize configured devices.
     """
-    driver = get_driver()
+    driver = get_driver(config)
     driver_class = driver.driver
     logger.debug("Finding devices for driver \"{0}\"".format(driver))
     usb_devices = filter(lambda dev: driver_class.match(dev),
                          usb.core.find(find_all=True))
-    devices = [driver_class(spreads.config['device'], dev) for dev in usb_devices]
+    devices = [driver_class(config, dev) for dev in usb_devices]
     if not devices:
         raise DeviceException("Could not find any compatible devices!")
     return devices
 
 
-def setup_plugin_config():
-    pluginmanager = get_pluginmanager()
-    driver_name = spreads.config["driver"].get(unicode)
+def setup_plugin_config(config):
+    pluginmanager = get_pluginmanager(config)
+    driver_name = config["driver"].get(unicode)
     driver = DriverManager(namespace="spreadsplug.devices",
                            name=driver_name)
     for ext in itertools.chain(pluginmanager, driver):
@@ -322,17 +320,17 @@ def setup_plugin_config():
         # Add default values
         for key, option in tmpl.items():
             # Check if we already have a configuration entry for this setting
-            if key in spreads.config[section].keys():
+            if key in config[section].keys():
                 continue
             logging.info("Adding setting {0} from  plugin {1}"
-                            .format(key, ext.name))
+                         .format(key, ext.name))
             if option.selectable:
-                spreads.config[section][key] = option.value[0]
+                config[section][key] = option.value[0]
             else:
-                spreads.config[section][key] = option.value
+                config[section][key] = option.value
 
 
-def get_relevant_extensions(hooks):
+def get_relevant_extensions(plugin_manager, hooks):
     """ Find all extensions that implement certain hooks.
 
     :param hooks:   A list of hook method names
@@ -351,7 +349,7 @@ def get_relevant_extensions(hooks):
     #       Yes, this is not ideal and is due to our somewhat sloppy
     #       plugin interface. That's why...
     # TODO: Refactor plugin interface to make this less painful
-    for ext in get_pluginmanager():
+    for ext in plugin_manager:
         relevant = any(
             getattr(ext.plugin, hook).func_code is not
             getattr(HookPlugin, hook).func_code

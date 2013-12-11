@@ -57,6 +57,12 @@ def find_in_path(name):
                                    if os.path.exists(x)))
 
 
+def check_futures_exceptions(futures):
+    if any(x.exception() for x in futures):
+        exc = next(x for x in futures if x.exception()).exception()
+        raise exc
+
+
 class _instancemethodwrapper(object):
     def __init__(self, callable):
         self.callable = callable

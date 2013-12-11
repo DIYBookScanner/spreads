@@ -26,7 +26,6 @@ spreads CLI code.
 from __future__ import division, unicode_literals, print_function
 
 import argparse
-import itertools
 import logging
 import os
 import sys
@@ -35,8 +34,7 @@ import time
 import colorama
 import spreads.confit as confit
 
-import spreads.workflow as workflow
-from spreads import config
+from spreads.workflow import Workflow
 from spreads.plugin import (get_devices, get_driver, get_pluginmanager,
                             setup_plugin_config, get_relevant_extensions)
 from spreads.util import DeviceException, ColourStreamHandler
@@ -62,7 +60,7 @@ except ImportError:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
-def configure(args=None):
+def configure(workflow):
     for orientation in ('left', 'right'):
         print("Please connect and turn on the device labeled \'{0}\'"
               .format(orientation))
@@ -82,41 +80,38 @@ def configure(args=None):
         getch()
 
 
-def capture(args=None, devices=None, path=None):
-    if not devices:
-        devices = get_devices()
-    if args and args.path:
-        path = args.path
-    if len(devices) != 2:
+def capture(workflow):
+    if len(workflow.devices) != 2:
         raise DeviceException("Please connect and turn on two"
                               " pre-configured devices! ({0} were"
-                              " found)".format(len(devices)))
-    print(colorama.Fore.GREEN + "Found {0} devices!".format(len(devices)))
-    if any(not x.orientation for x in devices):
+                              " found)".format(len(workflow.devices)))
+    print(colorama.Fore.GREEN +
+          "Found {0} devices!".format(len(workflow.devices)))
+    if any(not x.orientation for x in workflow.devices):
         raise DeviceException("At least one of the devices has not been"
                               " properly configured, please re-run the"
                               " program with the \'configure\' option!")
     # Set up for capturing
     print("Setting up devices for capturing.")
-    workflow.prepare_capture(devices, path)
+    workflow.prepare_capture()
     # Start capture loop
     print(colorama.Fore.BLUE + "Press 'b' to capture.")
     shot_count = 0
     start_time = time.time()
     pages_per_hour = 0
-    capture_keys = config['capture']['capture_keys'].as_str_seq()
+    capture_keys = workflow.config['capture']['capture_keys'].as_str_seq()
     while True:
         if not getch().lower() in capture_keys:
             break
-        workflow.capture(devices, path)
-        shot_count += len(devices)
+        workflow.capture()
+        shot_count += len(workflow.devices)
         pages_per_hour = (3600/(time.time() - start_time))*shot_count
         status = ("\rShot {0} pages [{1:.0f}/h]"
                   .format(colorama.Fore.GREEN + unicode(shot_count),
                           pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
-    workflow.finish_capture(devices, path)
+    workflow.finish_capture()
     sys.stdout.write("\rShot {0} pages in {1:.1f} minutes, average speed was"
                      " {2:.0f} pages per hour"
                      .format(colorama.Fore.GREEN + str(shot_count),
@@ -124,25 +119,18 @@ def capture(args=None, devices=None, path=None):
     sys.stdout.flush()
 
 
-def postprocess(args=None, path=None):
-    if args and args.path:
-        path = args.path
-    workflow.process(path)
+def postprocess(workflow):
+    workflow.process()
 
 
-def output(args=None, path=None):
-    if args and args.path:
-        path = args.path
-    workflow.output(path)
+def output(workflow):
+    workflow.output()
 
 
-def wizard(args, devices=None):
+def wizard(workflow):
     # TODO: Think about how we can make this more dynamic, i.e. get list of
     #       options for plugin with a description for each entry
-    path = args.path
-    if not devices:
-        devices = get_devices()
-    if any(not x.orientation for x in devices):
+    if any(not x.orientation for x in workflow.devices):
         print(colorama.Fore.YELLOW + "Devices not yet configured!")
         print(colorama.Fore.BLUE + "Please turn both devices off."
                                    " Press any key when ready.")
@@ -157,22 +145,22 @@ def wizard(args, devices=None):
           "==========================\n",
           "Starting capturing process\n",
           "==========================")
-    capture(devices=devices, path=path)
+    capture(workflow)
 
     print(colorama.Fore.GREEN +
           "=======================\n"
           "Starting postprocessing\n"
           "=======================")
-    postprocess(path=path)
+    postprocess(workflow)
 
     print(colorama.Fore.GREEN +
           "=================\n",
           "Generating output\n"
           "=================")
-    output(path=path)
+    output(workflow)
 
 
-def setup_parser():
+def setup_parser(config):
     def _add_argument_from_option(extname, key, option, parser):
         flag = "--{0}".format(key)
         default = (option.value
@@ -208,7 +196,7 @@ def setup_parser():
         parser.add_argument(flag, **kwargs)
 
     def _add_device_arguments(name, parser):
-        tmpl = get_driver().driver.configuration_template()
+        tmpl = get_driver(config).driver.configuration_template()
         if not tmpl:
             return
         for key, option in tmpl.iteritems():
@@ -218,7 +206,7 @@ def setup_parser():
                 return
 
     def _add_plugin_arguments(hooks, parser):
-        extensions = get_relevant_extensions(hooks)
+        extensions = get_relevant_extensions(pluginmanager, hooks)
         for ext in extensions:
             tmpl = ext.plugin.configuration_template()
             if not tmpl:
@@ -229,32 +217,31 @@ def setup_parser():
                 except:
                     continue
 
-    pluginmanager = get_pluginmanager()
+    pluginmanager = get_pluginmanager(config)
     rootparser = argparse.ArgumentParser(
         description="Scanning Tool for  DIY Book Scanner")
     subparsers = rootparser.add_subparsers()
 
     rootparser.add_argument(
         '--verbose', '-v', dest="verbose", action="store_true")
+    rootparser.add_argument(
+        "path", type=unicode, help="Project path")
 
     wizard_parser = subparsers.add_parser(
         'wizard', help="Interactive mode")
-    wizard_parser.add_argument(
-        "path", help="Path where scanned images are to be stored")
-    wizard_parser.set_defaults(func=wizard)
+    wizard_parser.set_defaults(subcommand='wizard')
 
     config_parser = subparsers.add_parser(
         'configure', help="Perform initial configuration of the devices.")
-    config_parser.set_defaults(func=configure)
+    config_parser.set_defaults(subcommand='configure')
 
     capture_parser = subparsers.add_parser(
         'capture', help="Start the capturing workflow")
-    capture_parser.add_argument(
-        "path", help="Path where scanned images are stored")
-    capture_parser.set_defaults(func=capture)
+    capture_parser.set_defaults(subcommand='capture')
     # Add arguments from plugins
     for parser in (capture_parser, wizard_parser):
-        parser.add_argument("--no-parallel-capture", dest="parallel_capture",
+        parser.add_argument(
+            "--no-parallel-capture", dest="parallel_capture",
             action="store_false", default=True,
             help="Do not trigger capture on multiple devices at once.")
         _add_plugin_arguments(['prepare_capture', 'capture', 'finish_capture'],
@@ -265,11 +252,9 @@ def setup_parser():
         'postprocess',
         help="Postprocess scanned images.")
     postprocess_parser.add_argument(
-        "path", help="Path where scanned images are stored")
-    postprocess_parser.add_argument(
         "--jobs", "-j", dest="jobs", type=int, default=None,
         metavar="<int>", help="Number of concurrent processes")
-    postprocess_parser.set_defaults(func=postprocess)
+    postprocess_parser.set_defaults(subcommand='postprocess')
     # Add arguments from plugins
     for parser in (postprocess_parser, wizard_parser):
         _add_plugin_arguments(['process'], parser)
@@ -277,13 +262,12 @@ def setup_parser():
     output_parser = subparsers.add_parser(
         'output',
         help="Generate output files.")
-    output_parser.add_argument(
-        "path", help="Path where scanned and postprocessed images are stored")
-    output_parser.set_defaults(func=output)
+    output_parser.set_defaults(subcommand='output')
     # Add arguments from plugins
     for parser in (output_parser, wizard_parser):
         _add_plugin_arguments(['output'], parser)
 
+    # Add custom subcommands from plugins
     pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),
                       subparsers)
     return rootparser
@@ -294,13 +278,18 @@ def main():
     colorama.init()
     # Set to ERROR so we can see errors during plugin loading.
     logging.basicConfig(loglevel=logging.ERROR)
+
+    # Lazy-load configuration
+    config = confit.LazyConfig('spreads', __name__)
     config.read()
-    setup_plugin_config()
+    setup_plugin_config(config)
+
+    # Write default configuration to file, if it does not exist yet
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
     if not os.path.exists(cfg_path):
         config.dump(filename=cfg_path)
 
-    parser = setup_parser()
+    parser = setup_parser(config)
     args = parser.parse_args()
     # Set configuration from parsed arguments
     for argkey, value in args.__dict__.iteritems():
@@ -334,7 +323,11 @@ def main():
     logger.addHandler(handler)
     logger.setLevel(loglevel)
 
-    args.func(args)
+    # Create workflow object
+    workflow = Workflow(config)
+    # Get subcommand callback by name
+    subcommand = globals()[config["subcommand"].get()]
+    subcommand(workflow)
 
     # Deinitialize color support
     colorama.deinit()

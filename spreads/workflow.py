@@ -20,7 +20,7 @@
 # THE SOFTWARE.
 
 """
-spreads workflow steps.
+spreads workflow object.
 """
 
 from __future__ import division, unicode_literals
@@ -30,72 +30,75 @@ import os
 
 from concurrent.futures import ThreadPoolExecutor
 
-from spreads import config
-from spreads.plugin import get_pluginmanager, DeviceException
-
-logger = logging.getLogger('spreads.workflow')
+from spreads.plugin import get_pluginmanager, get_devices
+from spreads.util import check_futures_exceptions, DeviceException
 
 
-def prepare_capture(devices, path):
-    logger.debug("Preparing capture.")
-    if not devices:
-        raise DeviceException("Could not find any compatible devices!")
-    with ThreadPoolExecutor(len(devices)) as executor:
-        futures = []
-        logger.debug("Preparing capture in devices")
-        for dev in devices:
-            futures.append(executor.submit(dev.prepare_capture, path))
-    if any(x.exception() for x in futures):
-        exc = next(x for x in futures if x.exception()).exception()
-        raise exc
-    for ext in get_pluginmanager():
-        logger.debug("Running prepare_capture hooks")
-        ext.obj.prepare_capture(devices, path)
+class Workflow(object):
+    path = None
+    _devices = None
+    _pluginmanager = None
 
+    def __init__(self, config):
+        self.logger = logging.getLogger('Workflow')
+        self.path = config['path']
+        self.config = config
 
-def capture(devices, path):
-    logger.info("Triggering capture.")
-    if not devices:
-        raise DeviceException("Could not find any compatible devices!")
-    if config['parallel_capture'].get(bool):
-        num_devices = len(devices)
-    else:
-        num_devices = 1
-    with ThreadPoolExecutor(num_devices) as executor:
-        futures = []
-        logger.debug("Sending capture command to devices")
-        for dev in devices:
-            futures.append(executor.submit(dev.capture, path))
-    if any(x.exception() for x in futures):
-        exc = next(x for x in futures if x.exception()).exception()
-        raise exc
-    logger.debug("Running capture hooks")
-    for ext in get_pluginmanager():
-        ext.obj.capture(devices, path)
+    @property
+    def plugins(self):
+        if self._pluginmanager is None:
+            self._pluginmanager = get_pluginmanager(self.config)
+        return [ext.obj for ext in self._pluginmanager]
 
+    @property
+    def devices(self):
+        if self._devices is None:
+            self._devices = get_devices(self.config)
+        if not self._devices:
+            raise DeviceException("Could not find any compatible devices!")
+        return self._devices
 
-def finish_capture(devices, path):
-    logger.debug("Running finish_capture hooks")
-    if not devices:
-        raise DeviceException("Could not find any compatible devices!")
-    for ext in get_pluginmanager():
-        ext.obj.finish_capture(devices, path)
+    def _run_hook(self, hook_name, *args):
+        self.logger.debug("Running '{0}' hooks".format(hook_name))
+        for plugin in self.plugins:
+            getattr(plugin, hook_name)(*args)
 
+    def prepare_capture(self):
+        self.logger.info("Preparing capture.")
+        with ThreadPoolExecutor(len(self.devices)) as executor:
+            futures = []
+            self.logger.debug("Preparing capture in devices")
+            for dev in self.devices:
+                futures.append(executor.submit(dev.prepare_capture, self.path))
+        check_futures_exceptions(futures)
+        self._run_hook('prepare_capture', self.devices, self.path)
 
-def process(path):
-    logger.info("Starting postprocessing...")
-    logger.debug("Running process hooks")
-    for ext in get_pluginmanager():
-        ext.obj.process(path)
-    logger.info("Done with postprocessing!")
+    def capture(self):
+        self.logger.info("Triggering capture.")
+        if self.config['parallel_capture'].get(bool):
+            num_devices = len(self.devices)
+        else:
+            num_devices = 1
+        with ThreadPoolExecutor(num_devices) as executor:
+            futures = []
+            self.logger.debug("Sending capture command to devices")
+            for dev in self.devices:
+                futures.append(executor.submit(dev.capture, self.path))
+        check_futures_exceptions(futures)
+        self._run_hook('capture', self.devices, self.path)
 
+    def finish_capture(self):
+        self._run_hook('finish_capture', self.devices, self.path)
 
-def output(path):
-    logger.info("Generating output files...")
-    logger.debug("Running output hooks")
-    out_path = os.path.join(path, 'out')
-    if not os.path.exists(out_path):
-        os.mkdir(out_path)
-    for ext in get_pluginmanager():
-        ext.obj.output(path)
-    logger.info("Done generating output files!")
+    def process(self):
+        self.logger.info("Starting postprocessing...")
+        self._run_hook('process', self.path)
+        self.logger.info("Done with postprocessing!")
+
+    def output(self):
+        self.logger.info("Generating output files...")
+        out_path = os.path.join(self.path, 'out')
+        if not os.path.exists(out_path):
+            os.mkdir(out_path)
+        self._run_hook('output', self.path)
+        self.logger.info("Done generating output files!")
