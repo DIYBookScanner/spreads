@@ -1,85 +1,90 @@
-from mock import call, MagicMock as Mock, patch
+from mock import call, MagicMock as Mock, patch, DEFAULT
 from nose.tools import raises
 
-import spreads
-import spreads.workflow as flow
+import spreads.confit as confit
+import spreads.util as util
+import spreads.workflow as workflow
 
-spreads.util.find_in_path = Mock(return_value=True)
+util.find_in_path = Mock(return_value=True)
 
 
-class TestCapture(object):
+class TestWorkflow(object):
     def setUp(self):
-        spreads.config.clear()
-        spreads.config.read(user=False)
-        spreads.config['plugins'] = []
-        spreads.config['parallel_capture'] = True
-        self.cams = [Mock(), Mock()]
-        self.cams[0].orientation = 'left'
-        self.cams[0].orientation = 'right'
-        self.plugins = [Mock(), Mock()]
-        flow.get_pluginmanager = Mock(return_value=self.plugins)
-        flow.time = Mock()
+        self.plugins = [Mock() for x in xrange(3)]
+        self.devices = [Mock() for x in xrange(3)]
+        workflow.get_pluginmanager = Mock(return_value=self.plugins)
+        workflow.get_devices = Mock(return_value=self.devices)
+        config = confit.Configuration('test_workflow')
+        config['path'] = u'/tmp/test_workflow'
+        self.workflow = workflow.Workflow(config)
+
+    def test_get_plugins(self):
+        foo = self.workflow.plugins
+        bar = self.workflow.plugins
+        assert workflow.get_pluginmanager.call_count == 1
+        assert foo == bar == [x.obj for x in self.plugins]
+
+    def test_get_devices(self):
+        foo = self.workflow.devices
+        bar = self.workflow.devices
+        assert workflow.get_devices.call_count == 1
+        assert foo == bar == self.devices
+
+    @raises(util.DeviceException)
+    def test_get_devices_no_device(self):
+        workflow.get_devices = Mock(return_value=[])
+        self.workflow.devices
 
     def test_prepare_capture(self):
-        flow.prepare_capture(self.cams, '/tmp/foo')
-        for cam in self.cams:
-            assert cam.prepare_capture.call_count == 1
+        self.workflow.prepare_capture()
+        for dev in self.devices:
+            assert dev.prepare_capture.call_count == 1
+            assert dev.prepare_capture.called_with(call('/tmp/test_workflow'))
         for plug in self.plugins:
             assert plug.obj.prepare_capture.call_count == 1
             assert plug.obj.prepare_capture.call_args_list == (
-                [call(self.cams, '/tmp/foo')])
+                [call(self.devices, '/tmp/test_workflow')])
 
     def test_capture(self):
-        flow.capture(self.cams, '/tmp/foo')
-        for cam in self.cams:
-            assert cam.capture.call_count == 1
+        self.workflow.config['parallel_capture'] = True
+        self.workflow.capture()
+        for dev in self.devices:
+            assert dev.capture.call_count == 1
         for plug in self.plugins:
             assert plug.obj.capture.call_count == 1
-            assert plug.obj.capture.call_args_list == [call(self.cams, '/tmp/foo')]
+            assert (plug.obj.capture.call_args_list ==
+                    [call(self.devices, '/tmp/test_workflow')])
 
     def test_capture_noparallel(self):
-        spreads.config['parallel_capture'] = False
-        flow.capture(self.cams, '/tmp/foo')
+        self.workflow.config['parallel_capture'] = False
+        self.workflow.capture()
         # TODO: Find a way to verify that the cameras were indeed triggered
         #       in sequence and not in parallel
-        for cam in self.cams:
-            assert cam.capture.call_count == 1
+        for dev in self.devices:
+            assert dev.capture.call_count == 1
 
     def test_finish_capture(self):
-        flow.finish_capture(self.cams, '/tmp/foo')
+        self.workflow.finish_capture()
         for plug in self.plugins:
             assert plug.obj.finish_capture.call_count == 1
             assert plug.obj.finish_capture.call_args_list == (
-                [call(self.cams, '/tmp/foo')])
-    #@raises(DeviceException)
-    #def test_capture_nocams(self):
-    #    cmd.getch = Mock(return_value='b')
-    #    cmd.get_devices = Mock(return_value=[])
-    #    cmd.capture(devices=[])
+                [call(self.devices, '/tmp/test_workflow')])
 
-    #@raises(DeviceException)
-    #def test_capture_noorientation(self):
-    #    cams = [Mock(), Mock()]
-    #    for cam in cams:
-    #        cam.orientation = None
-    #    cmd.get_devices = Mock(return_value=cams)
-    #    cmd.getch = Mock(side_effect=[' ', ' '])
-    #    cmd.find_in_path = Mock(return_value=True)
-    #    cmd.capture()
-
-
-class TestProcess(object):
-    def setUp(self):
-        spreads.config.clear()
-        spreads.config.read(user=False)
-        spreads.config['plugins'] = []
-        self.plugins = [Mock(), Mock()]
-        flow.get_pluginmanager = Mock(return_value=self.plugins)
-
-    @patch('shutil.copytree')
-    def test_process(self, shutil):
-        flow.shutil = shutil
-        flow.process('/tmp/foo')
+    def test_process(self):
+        self.workflow.process()
         for plug in self.plugins:
             assert plug.obj.process.call_count == 1
-            assert plug.obj.process.call_args_list == [call('/tmp/foo')]
+            assert (plug.obj.process.call_args_list ==
+                    [call('/tmp/test_workflow')])
+
+    @patch('os.path.exists')
+    @patch('os.mkdir')
+    def test_output(self, exists, mkdir):
+        exists.return_value = False
+        self.workflow.output()
+        for plug in self.plugins:
+            assert plug.obj.output.call_count == 1
+            assert (plug.obj.output.call_args_list ==
+                    [call('/tmp/test_workflow')])
+        assert mkdir.call_count == 1
+        assert call('/tmp/test_workflow/out') in mkdir.call_args_list
