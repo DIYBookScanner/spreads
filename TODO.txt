@@ -1,11 +1,14 @@
 General
 =======
-- Add support for different scanning profiles that can be selected
-  (e.g.: 'illustrations', 'text'), involves enhancing confit to load
-  configuration from arbitrary files.
-- More tests, espescially for included plugins
-- Find a way to re-use CLI arguments in the wizard
-- Add more cli-switches to scantailor plugin (compare to config)
+- Make path argument subcommand-specific again (for plugins that create their
+  own workflow objects)
+- Use 'configure' command to select driver, plugins and write initial
+  configuration
+- Clean up GUI code, it's an unholy mess...
+- Refactor tests, they need work on several levels:
+    * more specific: what should a method *do*/*effects*
+    * less mock objects
+    * better coverage
 
 Plugin ideas
 ============
@@ -13,3 +16,7 @@ Plugin ideas
 - Metadata plugin using OpenLibrary for ISBN-queries and Dublin Core for
   serialization
 - Archive.org upload plugin
+
+Bugs
+====
+- Fix CHDK parallel triggering instability
