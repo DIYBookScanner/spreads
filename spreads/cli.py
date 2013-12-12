@@ -60,26 +60,6 @@ except ImportError:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
-def configure(workflow):
-    for orientation in ('left', 'right'):
-        print("Please connect and turn on the device labeled \'{0}\'"
-              .format(orientation))
-        print(colorama.Fore.BLUE + "Press any key when ready.")
-        getch()
-        devs = get_devices()
-        if len(devs) > 1:
-            raise DeviceException("Please ensure that only one device is"
-                                  " turned on!")
-        if not devs:
-            raise DeviceException("No device found!")
-        devs[0].set_orientation(orientation)
-        print(colorama.Fore.GREEN + "Configured \'{0}\' device."
-                                    .format(orientation))
-        print("Please turn off the device.")
-        print(colorama.Fore.BLUE + "Press any key when ready.")
-        getch()
-
-
 def capture(workflow):
     if len(workflow.devices) != 2:
         raise DeviceException("Please connect and turn on two"
@@ -130,16 +110,6 @@ def output(workflow):
 def wizard(workflow):
     # TODO: Think about how we can make this more dynamic, i.e. get list of
     #       options for plugin with a description for each entry
-    if any(not x.orientation for x in workflow.devices):
-        print(colorama.Fore.YELLOW + "Devices not yet configured!")
-        print(colorama.Fore.BLUE + "Please turn both devices off."
-                                   " Press any key when ready.")
-        while True:
-            try:
-                configure()
-                break
-            except DeviceException as e:
-                print(e)
 
     print(colorama.Fore.GREEN +
           "==========================\n",
@@ -230,10 +200,6 @@ def setup_parser(config):
     wizard_parser = subparsers.add_parser(
         'wizard', help="Interactive mode")
     wizard_parser.set_defaults(subcommand='wizard')
-
-    config_parser = subparsers.add_parser(
-        'configure', help="Perform initial configuration of the devices.")
-    config_parser.set_defaults(subcommand='configure')
 
     capture_parser = subparsers.add_parser(
         'capture', help="Start the capturing workflow")
