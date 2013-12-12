@@ -1,17 +1,17 @@
-from mock import call, patch, MagicMock as Mock
+from mock import patch, MagicMock as Mock
 
-import spreads
+import spreads.confit as confit
+import spreads.util as util
 import spreadsplug.combine as combine
 
-spreads.util.find_in_path = Mock(return_value=True)
+util.find_in_path = Mock(return_value=True)
 
 
 class TestCombine(object):
     def setUp(self):
-        spreads.config.clear()
-        spreads.config.read(user=False)
-        spreads.config['first_page'] = 'left'
-        self.plug = combine.CombinePlugin(spreads.config)
+        config = confit.Configuration('test_combine')
+        config['combine']['first_page'] = 'left'
+        self.plug = combine.CombinePlugin(config)
 
     @patch('os.path.exists')
     @patch('os.mkdir')

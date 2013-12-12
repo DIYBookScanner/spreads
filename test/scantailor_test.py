@@ -2,29 +2,29 @@ from itertools import chain, repeat
 
 from mock import MagicMock as Mock, patch
 
-import spreads
-import spreadsplug.scantailor as scantailor
+import spreads.confit as confit
 import spreads.plugin as plugin
+
+with patch('subprocess.check_output') as mock_co:
+    mock_co.return_value = "".join(chain(
+        repeat("\n", 7),
+        ("scantailor-cli [options] <images|directory|-> <output>",))
+    )
+    import spreadsplug.scantailor as scantailor
 
 
 class TestScanTailor(object):
-    def setUp(self):
-        reload(plugin)
-        spreads.config.clear()
-        spreads.config.read(user=False)
+    @patch('subprocess.check_output')
+    def setUp(self, mock_co):
+        self.config = confit.Configuration('test_scantailor')
+
         tmpl = scantailor.ScanTailorPlugin.configuration_template()
         for key, option in tmpl.items():
             if option.selectable:
-                spreads.config['scantailor'][key] = option.value[0]
+                self.config['scantailor'][key] = option.value[0]
             else:
-                spreads.config['scantailor'][key] = option.value
-        with patch('subprocess.check_output') as mock_co:
-            mock_co.return_value = "".join(chain(
-                repeat("\n", 7),
-                ("scantailor-cli [options] <images|directory|-> <output>",))
-            )
-            reload(scantailor)
-        self.stplug = scantailor.ScanTailorPlugin(spreads.config)
+                self.config['scantailor'][key] = option.value
+        self.stplug = scantailor.ScanTailorPlugin(self.config)
 
     def tearDown(self):
         plugin.SpreadsNamedExtensionManager._instance = None
@@ -62,10 +62,10 @@ class TestScanTailor(object):
         scantailor.subprocess.call = Mock()
         self.stplug._generate_configuration = Mock()
         self.stplug._generate_output = Mock()
-        spreads.config['autopilot'] = True
+        self.stplug.config['autopilot'] = True
         self.stplug.process('/tmp')
         assert scantailor.subprocess.call.call_count == 0
-        spreads.config['autopilot'] = False
+        self.stplug.config['autopilot'] = False
         self.stplug.process('/tmp')
         scantailor.subprocess.call.assert_called_with(
             ['scantailor', '/tmp/tmp.ScanTailor'])

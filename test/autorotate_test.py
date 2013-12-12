@@ -1,6 +1,6 @@
 from mock import call, patch, MagicMock as Mock
 
-import spreads
+import spreads.confit as confit
 import spreads.plugin as plugin
 import spreads.util
 spreads.util.find_in_path = Mock(return_value=True)
@@ -9,11 +9,10 @@ import spreadsplug.autorotate as autorotate
 
 class TestAutorotate(object):
     def setUp(self):
-        reload(plugin)
-        spreads.config.clear()
-        spreads.config.read(user=False)
-        spreads.config['rotate_inverse'] = False
-        plugin.setup_plugin_config()
+        self.config = confit.Configuration('test_autorotate')
+        self.config['autorotate']['rotate_inverse'] = False
+        self.config['autorotate']['left'] = -90
+        self.config['autorotate']['right'] = 90
 
     def test_add_arguments(self):
         parser = Mock()
@@ -31,7 +30,7 @@ class TestAutorotate(object):
         autorotate.JpegFile.fromFile = Mock(side_effect=mock_exifs)
         mock_pool = Mock()
         autorotate.futures.ProcessPoolExecutor = Mock(return_value=mock_pool)
-        plug = autorotate.AutoRotatePlugin(spreads.config)
+        plug = autorotate.AutoRotatePlugin(self.config)
         plug.process('/tmp/foobar')
         assert autorotate.JpegFile.fromFile.call_count == 3
         assert mock_pool.__enter__().submit.call_args_list == [
@@ -51,12 +50,12 @@ class TestAutorotate(object):
         autorotate.JpegFile.fromFile = Mock(return_value=mock_exif)
         mock_pool = Mock()
         autorotate.futures.ProcessPoolExecutor = Mock(return_value=mock_pool)
-        spreads.config['rotate_inverse'] = False
-        plug = autorotate.AutoRotatePlugin(spreads.config)
+        self.config['autorotate']['rotate_inverse'] = True
+        plug = autorotate.AutoRotatePlugin(self.config)
         plug.process('/tmp/foobar')
         assert mock_pool.__enter__().submit.call_args_list == [
             call(autorotate.rotate_image, '/tmp/foobar/raw/foo.jpg',
-                 rotation=90)
+                 rotation=-90)
         ]
 
     def test_rotate_image(self):

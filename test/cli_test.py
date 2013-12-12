@@ -19,6 +19,7 @@ class TestCLI(object):
         self.workflow.devices[0].orientation = 'right'
         self.workflow.devices[1].orientation = 'left'
         self.workflow.config = confit.Configuration('test_cli')
+        cli.Workflow = Mock(return_value=self.workflow)
 
     def test_capture(self):
         self.workflow.config['capture']['capture_keys'] = ["b", " "]
@@ -65,15 +66,20 @@ class TestCLI(object):
         # TODO: Config from args?
         # TODO: Loglevel set correctly?
         # TODO: Correct function executed?
-        cli.confit = Mock()
-        cli.Workflow = Mock(return_value=self.workflow)
-        self.workflow.config["subcommand"] = "test_cmd"
         self.workflow.config["loglevel"] = "info"
+        self.workflow.config["verbose"] = False
         self.workflow.config.dump = Mock()
         cli.confit.LazyConfig = Mock(return_value=self.workflow.config)
         cli.test_cmd = Mock()
         cli.setup_plugin_config = Mock()
-        cli.setup_parser = Mock()
+        mock_parser = Mock()
+        mock_args = Mock()
+        mock_args.verbose = False
+        mock_args.subcommand = Mock()
+        mock_parser.parse_args = Mock(return_value=mock_args)
+        cli.setup_parser = Mock(return_value=mock_parser)
+        cli.set_config_from_args = Mock()
         exists.return_value = False
         cli.os.path.exists = exists
         cli.main()
+        assert mock_args.subcommand.call_count == 1

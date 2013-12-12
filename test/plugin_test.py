@@ -24,7 +24,7 @@ class TestPlugin(object):
         get_driver.return_value = driver
         plugin.get_driver = get_driver
         plugin.get_devices(cfg)
-        assert call(cfg, usb_mock) in driver.driver.call_args_list
+        assert call(cfg["device"], usb_mock) in driver.driver.call_args_list
         assert driver.driver.match.call_args_list == [call(usb_mock)]
 
     @raises(DeviceException)
