@@ -113,11 +113,17 @@ class SpreadsPlugin(object):
     def __init__(self, config):
         """ Initialize the plugin.
 
-        :param config: The global configuration object
+        :param config: The global configuration object, by default only the
+                       section with plugin-specific values gets stored in
+                       the `config` attribute, if the plugin has a `__name__`
+                       attribute.
         :type config: confit.ConfigView
 
         """
-        self.config = config
+        if hasattr(self, '__name__'):
+            self.config = config[self.__name__]
+        else:
+            self.config = config
 
 
 class DevicePlugin(SpreadsPlugin):
@@ -128,12 +134,10 @@ class DevicePlugin(SpreadsPlugin):
     """
     __metaclass__ = abc.ABCMeta
 
-
     @abc.abstractproperty
     def features(self):
         """ Return device features. """
-        return { 'preview': False, }
-
+        return {'preview': False}
 
     @abstractclassmethod
     def match(cls, usbdevice):
@@ -296,7 +300,7 @@ def get_devices(config):
     logger.debug("Finding devices for driver \"{0}\"".format(driver))
     usb_devices = filter(lambda dev: driver_class.match(dev),
                          usb.core.find(find_all=True))
-    devices = [driver_class(config, dev) for dev in usb_devices]
+    devices = [driver_class(config['device'], dev) for dev in usb_devices]
     if not devices:
         raise DeviceException("Could not find any compatible devices!")
     return devices
