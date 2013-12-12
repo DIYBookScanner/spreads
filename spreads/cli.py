@@ -243,6 +243,17 @@ def setup_parser(config):
     return rootparser
 
 
+def set_config_from_args(config, args):
+    for argkey, value in args.__dict__.iteritems():
+        if value is None or argkey == 'subcommand' or argkey.startswith('_'):
+            continue
+        if '.' in argkey:
+            section, key = argkey.split('.')
+            config[section][key] = value
+        else:
+            config[argkey] = value
+
+
 def main():
     # Initialize color support
     colorama.init()
@@ -262,14 +273,7 @@ def main():
     parser = setup_parser(config)
     args = parser.parse_args()
     # Set configuration from parsed arguments
-    for argkey, value in args.__dict__.iteritems():
-        if value is None or argkey == 'subcommand':
-            continue
-        if '.' in argkey:
-            section, key = argkey.split('.')
-            config[section][key] = value
-        else:
-            config[argkey] = value
+    set_config_from_args(config, args)
 
     loglevel = config['loglevel'].as_choice({
         'none':     logging.NOTSET,
@@ -279,7 +283,7 @@ def main():
         'error':    logging.ERROR,
         'critical': logging.CRITICAL,
     })
-    if args.verbose:
+    if config['verbose'].get(bool):
         loglevel = logging.DEBUG
 
     # Set up logger
