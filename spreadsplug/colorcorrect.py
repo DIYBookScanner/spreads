@@ -25,6 +25,8 @@ def correct_colors(img_path, factors):
 
 
 class ColorCorrectionPlugin(HookPlugin):
+    __name__ = 'colorcorrect'
+
     @classmethod
     def configuration_template(cls):
         conf = {'true_red': PluginOption(119, "Actual red value for gray"
@@ -40,11 +42,11 @@ class ColorCorrectionPlugin(HookPlugin):
         path = os.path.join(path, 'raw')
         logger.debug("Starting color correction...")
         # Get the gray card's RGB values from configuration
-        true_colors = (float(self.config['colorcorrect']['true_red']
+        true_colors = (float(self.config['true_red']
                              .get(int)),
-                       float(self.config['colorcorrect']['true_green']
+                       float(self.config['true_green']
                              .get(int)),
-                       float(self.config['colorcorrect']['true_blue']
+                       float(self.config['true_blue']
                              .get(int))
                        )
         # We assume that the first two images shot were the gray card

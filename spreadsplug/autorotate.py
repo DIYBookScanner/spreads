@@ -32,6 +32,8 @@ def rotate_image(path, rotation):
 
 
 class AutoRotatePlugin(HookPlugin):
+    __name__ = 'autorotate'
+
     @classmethod
     def add_arguments(cls, command, parser):
         if command == 'postprocess':
@@ -60,11 +62,9 @@ class AutoRotatePlugin(HookPlugin):
                 try:
                     img = JpegFile.fromFile(os.path.join(img_dir, imgpath))
                     if img.exif.primary.Orientation == [8]:
-                        rotation = (self.config['autorotate']
-                                    ['left'].get(int))
+                        rotation = self.config['left'].get(int)
                     elif img.exif.primary.Orientation == [6]:
-                        rotation = (self.config['autorotate']
-                                    ['right'].get(int))
+                        rotation = self.config['right'].get(int)
                     elif img.exif.primary.Orientation == [1]:
                         # Already rotated, so we skip it
                         continue

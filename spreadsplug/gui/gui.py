@@ -50,10 +50,10 @@ class LogBoxFormatter(logging.Formatter):
 
 
 class SpreadsWizard(QtGui.QWizard):
-    def __init__(self, config, devices, parent=None):
+    def __init__(self, config, parent=None):
         super(SpreadsWizard, self).__init__(parent)
 
-        self.devices = devices
+        self.config = config
 
         self.addPage(IntroPage())
         self.addPage(CapturePage())
@@ -78,7 +78,7 @@ class SpreadsWizard(QtGui.QWizard):
 
 class IntroPage(QtGui.QWizardPage):
     def initializePage(self):
-        self.pluginmanager = get_pluginmanager()
+        self.pluginmanager = get_pluginmanager(self.wizard().config)
         self.wizard().active_plugins = self.pluginmanager.names()
         self.setTitle("Welcome!")
 
@@ -202,25 +202,27 @@ class IntroPage(QtGui.QWizardPage):
         self.line_edit.setText(dialog.selectedFiles()[0])
 
     def validatePage(self):
-        self.wizard().project_path = self.line_edit.text()
-        if not self.wizard().project_path:
+        project_path = self.line_edit.text()
+        if not project_path:
             msg_box = QtGui.QMessageBox()
             msg_box.setText("Please select a project directory.")
             msg_box.setIcon(QtGui.QMessageBox.Critical)
             msg_box.exec_()
             return False
+        self.wizard().config['path'] = project_path
 
-        spreads.config['keep'] = self.keep_box.isChecked()
+        self.wizard().config['keep'] = self.keep_box.isChecked()
         if self.even_device and self.even_device.currentText() != 'Left':
-            spreads.config['first_page'] = "right"
-            spreads.config['rotate_inverse'] = True
+            self.wizard().config['first_page'] = "right"
+            self.wizard().config['rotate_inverse'] = True
 
         self._update_config_from_plugin_widgets()
-        workflow.prepare_capture(self.wizard().devices,
-                                 self.wizard().project_path)
+        self.wizard().workflow = workflow.Workflow(self.wizard().config)
+        self.wizard().workflow.prepare_capture()
         return True
 
     def _update_config_from_plugin_widgets(self):
+        config = self.wizard().config
         for ext in self.pluginmanager:
             if not ext.name in self.plugin_widgets:
                 continue
@@ -233,18 +235,18 @@ class IntroPage(QtGui.QWizardPage):
                     idx = widget.currentIndex()
                     values = ext.plugin.configuration_template()[key].value
                     logger.debug("Setting to \"{0}\"".format(values[idx]))
-                    spreads.config[ext.name][key] = values[idx]
+                    config[ext.name][key] = values[idx]
                 elif isinstance(widget, QtGui.QCheckBox):
                     checked = widget.isChecked()
                     logger.debug("Setting to \"{0}\"".format(checked))
-                    spreads.config[ext.name][key] = checked
+                    config[ext.name][key] = checked
                 elif any(isinstance(widget, x)
                          for x in (QtGui.QSpinBox, QtGui.QDoubleSpinBox)):
-                    spreads.config[ext.name][key] = widget.value()
+                    config[ext.name][key] = widget.value()
                 else:
-                    content = spreads.config[ext.name][key] = widget.text()
+                    content = config[ext.name][key] = widget.text()
                     logger.debug("Setting to \"{0}\"".format(content))
-                    spreads.config[ext.name][key] = unicode(content)
+                    config[ext.name][key] = unicode(content)
 
 
 class CapturePage(QtGui.QWizardPage):
@@ -252,7 +254,8 @@ class CapturePage(QtGui.QWizardPage):
         self.setTitle("Capturing from devices")
         self.start_time = None
         self.shot_count = None
-        device_has_preview = get_driver().driver.features['preview']
+        device_has_preview = (get_driver(self.wizard().config)
+                              .driver.features['preview'])
 
         layout = QtGui.QVBoxLayout(self)
         self.status = QtGui.QLabel("Press a capture key (default: Space, B)"
@@ -290,8 +293,7 @@ class CapturePage(QtGui.QWizardPage):
             self.update_preview()
 
     def validatePage(self):
-        workflow.finish_capture(self.wizard().devices,
-                                self.wizard().project_path)
+        self.wizard().workflow.finish_capture()
         return True
 
     def keyPressEvent(self, event):
@@ -307,9 +309,7 @@ class CapturePage(QtGui.QWizardPage):
         if hasattr(self, 'refresh_btn'):
             self.refresh_btn.setEnabled(False)
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(workflow.capture,
-                                     self.wizard().devices,
-                                     self.wizard().project_path)
+            future = executor.submit(self.wizard().workflow.capture)
             while future.running():
                 QtGui.qApp.processEvents()
                 time.sleep(0.001)
@@ -337,7 +337,7 @@ class CapturePage(QtGui.QWizardPage):
         # TODO: Don't go via PIL, find a way to use RGB data directly
         with ThreadPoolExecutor(max_workers=2) as executor:
             futures = executor.map(get_preview,
-                                   self.wizard().devices)
+                                   self.wizard().workflow.devices)
             previews = tuple(futures)
         for orientation, image in previews:
             pixmap = QtGui.QPixmap.fromImage(image)
@@ -370,8 +370,7 @@ class PostprocessPage(QtGui.QWizardPage):
 
     def doPostprocess(self):
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(workflow.process,
-                                     self.wizard().project_path)
+            future = executor.submit(self.wizard().workflow.process)
             while not future.done():
                 QtGui.qApp.processEvents()
                 self.progressbar.setValue(0)
@@ -408,8 +407,7 @@ class OutputPage(QtGui.QWizardPage):
 
     def doGenerateOutput(self):
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(workflow.output,
-                                     self.wizard().project_path)
+            future = executor.submit(self.wizard().workflow.output)
             while not future.done():
                 QtGui.qApp.processEvents()
                 self.progressbar.setValue(0)

@@ -15,12 +15,15 @@ class GuiCommand(HookPlugin):
     def add_command_parser(cls, rootparser):
         guiparser = rootparser.add_parser(
             'gui', help="Start the GUI wizard")
-        guiparser.set_defaults(func=wizard)
+        guiparser.set_defaults(subcommand=GuiCommand.wizard)
 
-
-def wizard(args):
-    logger.debug("Starting GUI")
-    app = QtGui.QApplication([])
-    wizard = gui.SpreadsWizard(spreads.config, get_devices())
-    wizard.show()
-    app.exec_()
+    @staticmethod
+    def wizard(config):
+        logger.debug("Starting GUI")
+        app = QtGui.QApplication([])
+        # NOTE: This is a bit hackish....
+        #       Since the GUI creates its own workflow object(s), we here only
+        #       pass the configuration and the devices from the CLI workflow
+        wizard = gui.SpreadsWizard(config)
+        wizard.show()
+        app.exec_()

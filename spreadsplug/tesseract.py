@@ -22,6 +22,8 @@ logger = logging.getLogger('spreadsplug.tesseract')
 
 
 class TesseractPlugin(HookPlugin):
+    __name__ = 'tesseract'
+
     @classmethod
     def add_arguments(cls, command, parser):
         if command == 'postprocess':
@@ -40,9 +42,7 @@ class TesseractPlugin(HookPlugin):
         return conf
 
     def process(self, path):
-        ocr_lang = (self.config['language'].get(str)
-                    if 'language' in self.config.keys()
-                    else self.config['tesseract']['language'].get(str))
+        ocr_lang = self.config['language'].get(str)
         logger.info("Performing OCR")
         logger.info("Language is \"{0}\"".format(ocr_lang))
         img_dir = os.path.join(path, 'done')

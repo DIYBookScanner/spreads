@@ -18,6 +18,8 @@ logger = logging.getLogger('spreadsplug.pdfbeads')
 
 
 class PDFBeadsPlugin(HookPlugin):
+    __name__ = 'pdfbeads'
+
     def output(self, path):
         logger.info("Assembling PDF.")
         img_dir = os.path.join(path, 'done')

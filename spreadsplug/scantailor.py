@@ -24,6 +24,8 @@ logger = logging.getLogger('spreadsplug.scantailor')
 
 
 class ScanTailorPlugin(HookPlugin):
+    __name__ = 'scantailor'
+
     _enhanced = bool(re.match(r".*<images\|directory\|->.*",
                               subprocess.check_output('scantailor-cli')
                               .splitlines()[7]))
@@ -52,28 +54,18 @@ class ScanTailorPlugin(HookPlugin):
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
         logger.info("Generating ScanTailor configuration")
-        filterconf = [self.config['scantailor'][x].get(bool)
+        filterconf = [self.config[x].get(bool)
                       for x in ('rotate', 'split_pages', 'deskew', 'content',
                                 'auto_margins')]
         start_filter = filterconf.index(True)+1
         end_filter = len(filterconf) - list(reversed(filterconf)).index(True)+1
-        marginconf = self.config['scantailor']['margins'].as_str_seq()
-        try:
-            # FIXME: Find a way to make this work across all device drivers
-            dpi = self.config['chdkcamera']['dpi'].get(int)
-        except:
-            dpi = 300
+        marginconf = self.config['margins'].as_str_seq()
         generation_cmd = ['scantailor-cli',
                           '--start-filter={0}'.format(start_filter),
                           '--end-filter={0}'.format(end_filter),
                           '--layout=1.5',
-                          '--dpi={0}'.format(dpi),
                           '-o={0}'.format(projectfile)]
-        page_detection = (
-            self.config['scantailor']['detection'] == 'page'
-            or ('page_detection' in self.config.keys()
-                and self.config['page_detection'].get(bool))
-        )
+        page_detection = self.config['detection'].get() == 'page'
         if self._enhanced and page_detection:
             generation_cmd.extend([
                 '--enable-page-detection',
@@ -140,8 +132,7 @@ class ScanTailorPlugin(HookPlugin):
         shutil.rmtree(temp_dir)
 
     def process(self, path):
-        autopilot = (self.config['scantailor']['autopilot']
-                     .get(bool) or self.config['autopilot'].get(bool))
+        autopilot = self.config['autopilot'].get(bool)
         if not autopilot and not find_in_path('scantailor'):
             raise MissingDependencyException(
                 "Could not find executable `scantailor` in"

@@ -9,6 +9,8 @@ logger = logging.getLogger('spreadsplug.combine')
 
 
 class CombinePlugin(HookPlugin):
+    __name__ = 'combine'
+
     @classmethod
     def add_arguments(cls, command, parser):
         if command == 'download':
@@ -42,9 +44,7 @@ class CombinePlugin(HookPlugin):
                         " amount of images, please fix the problem!")
             logger.warn("Will not combine images")
             return
-        first_page = (self.config['first_page'].get(str)
-                      if 'first_page' in self.config.keys()
-                      else self.config['combine']['first_page'].get(str))
+        first_page = self.config['first_page'].get(str)
         if first_page == "right":
             combined_pages = reduce(operator.add, zip(right_pages, left_pages))
         else:
