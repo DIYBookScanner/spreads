@@ -35,7 +35,7 @@ import colorama
 import spreads.confit as confit
 
 from spreads.workflow import Workflow
-from spreads.plugin import (get_devices, get_driver, get_pluginmanager,
+from spreads.plugin import (get_driver, get_pluginmanager,
                             setup_plugin_config, get_relevant_extensions)
 from spreads.util import DeviceException, ColourStreamHandler
 
@@ -60,7 +60,8 @@ except ImportError:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
-def capture(workflow):
+def capture(config):
+    workflow = Workflow(config)
     if len(workflow.devices) != 2:
         raise DeviceException("Please connect and turn on two"
                               " pre-configured devices! ({0} were"
@@ -99,17 +100,20 @@ def capture(workflow):
     sys.stdout.flush()
 
 
-def postprocess(workflow):
+def postprocess(config):
+    workflow = Workflow(config)
     workflow.process()
 
 
-def output(workflow):
+def output(config):
+    workflow = Workflow(config)
     workflow.output()
 
 
-def wizard(workflow):
+def wizard(config):
     # TODO: Think about how we can make this more dynamic, i.e. get list of
     #       options for plugin with a description for each entry
+    workflow = Workflow(config)
 
     print(colorama.Fore.GREEN +
           "==========================\n",
@@ -199,11 +203,11 @@ def setup_parser(config):
 
     wizard_parser = subparsers.add_parser(
         'wizard', help="Interactive mode")
-    wizard_parser.set_defaults(subcommand='wizard')
+    wizard_parser.set_defaults(subcommand=wizard)
 
     capture_parser = subparsers.add_parser(
         'capture', help="Start the capturing workflow")
-    capture_parser.set_defaults(subcommand='capture')
+    capture_parser.set_defaults(subcommand=capture)
     # Add arguments from plugins
     for parser in (capture_parser, wizard_parser):
         parser.add_argument(
@@ -220,7 +224,7 @@ def setup_parser(config):
     postprocess_parser.add_argument(
         "--jobs", "-j", dest="jobs", type=int, default=None,
         metavar="<int>", help="Number of concurrent processes")
-    postprocess_parser.set_defaults(subcommand='postprocess')
+    postprocess_parser.set_defaults(subcommand=postprocess)
     # Add arguments from plugins
     for parser in (postprocess_parser, wizard_parser):
         _add_plugin_arguments(['process'], parser)
@@ -228,7 +232,7 @@ def setup_parser(config):
     output_parser = subparsers.add_parser(
         'output',
         help="Generate output files.")
-    output_parser.set_defaults(subcommand='output')
+    output_parser.set_defaults(subcommand=output)
     # Add arguments from plugins
     for parser in (output_parser, wizard_parser):
         _add_plugin_arguments(['output'], parser)
@@ -259,7 +263,7 @@ def main():
     args = parser.parse_args()
     # Set configuration from parsed arguments
     for argkey, value in args.__dict__.iteritems():
-        if value is None or argkey == 'func':
+        if value is None or argkey == 'subcommand':
             continue
         if '.' in argkey:
             section, key = argkey.split('.')
@@ -289,11 +293,7 @@ def main():
     logger.addHandler(handler)
     logger.setLevel(loglevel)
 
-    # Create workflow object
-    workflow = Workflow(config)
-    # Get subcommand callback by name
-    subcommand = globals()[config["subcommand"].get()]
-    subcommand(workflow)
+    args.subcommand(config)
 
     # Deinitialize color support
     colorama.deinit()
