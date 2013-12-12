@@ -106,7 +106,7 @@ class SpreadsPlugin(object):
                                 selectable=True),
           }
 
-        :return: dict with unicode: (value, docstring, selection)
+        :return: dict with unicode: PluginOption(value, docstring, selection)
         """
         pass
 

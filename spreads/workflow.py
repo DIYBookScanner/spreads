@@ -41,7 +41,7 @@ class Workflow(object):
 
     def __init__(self, config):
         self.logger = logging.getLogger('Workflow')
-        self.path = config['path']
+        self.path = config['path'].get(unicode)
         self.config = config
 
     @property
