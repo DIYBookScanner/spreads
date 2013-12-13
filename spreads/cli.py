@@ -233,7 +233,7 @@ def wizard(config):
 
 def setup_parser(config):
     def _add_argument_from_option(extname, key, option, parser):
-        flag = "--{0}".format(key)
+        flag = "--{0}".format(key.replace('_', '-'))
         default = (option.value
                    if not option.selectable
                    else option.value[0])
@@ -246,7 +246,7 @@ def setup_parser(config):
         elif isinstance(option.value, bool):
             kwargs['help'] = option.docstring
             if option.value:
-                flag = "--no-{0}".format(key)
+                flag = "--no-{0}".format(key.replace('_', '-'))
                 kwargs['help'] = ("Disable {0}"
                                   .format(option.docstring.lower()))
                 kwargs['action'] = "store_false"

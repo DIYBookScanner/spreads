@@ -25,7 +25,7 @@ class TestWizard(object):
         plugin.setup_plugin_config(self.config)
 
         tess.AVAILABLE_LANGS = ["en"]
-        # TODO: Cams ought to be 'left' and 'right'!
+        # TODO: Cams ought to be 'odd' and 'even'!
         self.cams = [Mock(), Mock()]
         workflow.get_devices = Mock(return_value=self.cams)
         # Mock out message boxes

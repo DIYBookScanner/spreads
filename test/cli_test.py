@@ -1,7 +1,6 @@
-from collections import defaultdict
 from itertools import chain, repeat
 
-from mock import call, patch, MagicMock as Mock
+from mock import patch, MagicMock as Mock
 from nose.tools import raises
 
 import spreads
@@ -16,8 +15,8 @@ class TestCLI(object):
     def setUp(self):
         self.workflow = Mock()
         self.workflow.devices = [Mock(), Mock()]
-        self.workflow.devices[0].orientation = 'right'
-        self.workflow.devices[1].orientation = 'left'
+        self.workflow.devices[0].orientation = 'even'
+        self.workflow.devices[1].orientation = 'odd'
         self.workflow.config = confit.Configuration('test_cli')
         cli.Workflow = Mock(return_value=self.workflow)
 

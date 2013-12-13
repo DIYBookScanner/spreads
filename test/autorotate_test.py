@@ -11,8 +11,8 @@ class TestAutorotate(object):
     def setUp(self):
         self.config = confit.Configuration('test_autorotate')
         self.config['autorotate']['rotate_inverse'] = False
-        self.config['autorotate']['left'] = -90
-        self.config['autorotate']['right'] = 90
+        self.config['autorotate']['odd'] = -90
+        self.config['autorotate']['even'] = 90
 
     def test_add_arguments(self):
         parser = Mock()
@@ -21,7 +21,7 @@ class TestAutorotate(object):
 
     @patch('os.listdir')
     def test_process(self, listdir):
-        listdir.return_value = ['left.jpg', 'right.jpg', 'invalid.jpg']
+        listdir.return_value = ['odd.jpg', 'even.jpg', 'invalid.jpg']
         mock_exifs = [Mock(), Mock(), Mock()]
         for item, orient in zip(mock_exifs, (6, 8, -1)):
             item.exif.primary.Orientation = [orient]
@@ -34,9 +34,9 @@ class TestAutorotate(object):
         plug.process('/tmp/foobar')
         assert autorotate.JpegFile.fromFile.call_count == 3
         assert mock_pool.__enter__().submit.call_args_list == [
-            call(autorotate.rotate_image, '/tmp/foobar/raw/left.jpg',
+            call(autorotate.rotate_image, '/tmp/foobar/raw/odd.jpg',
                  rotation=90),
-            call(autorotate.rotate_image, '/tmp/foobar/raw/right.jpg',
+            call(autorotate.rotate_image, '/tmp/foobar/raw/even.jpg',
                  rotation=-90)
         ]
 

@@ -76,9 +76,9 @@ class TestChdkCameraDevice(object):
                    create=True) as mock_open:
             mock_open.return_value = Mock(spec=file)
             fhandle = mock_open.return_value.__enter__.return_value
-            fhandle.readline.return_value = 'LEFT'
+            fhandle.readline.return_value = 'ODD'
             orientation = self.dev._get_orientation()
-        assert orientation == 'left'
+        assert orientation == 'odd'
 
     @raises(ValueError)
     def test_get_orientation_error(self):
@@ -89,8 +89,8 @@ class TestChdkCameraDevice(object):
     @patch('spreadsplug.dev.chdkcamera.os.write')
     def test_set_orientation(self, write):
         self.dev._run = Mock()
-        self.dev.set_orientation('left')
-        assert self.dev.orientation == 'left'
+        self.dev.set_orientation('odd')
+        assert self.dev.orientation == 'odd'
 
     def test_get_preview_image(self):
         self.dev._run = Mock()

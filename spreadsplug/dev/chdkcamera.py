@@ -42,20 +42,18 @@ class CHDKCameraDevice(DevicePlugin):
                 'zoom_level': PluginOption(3, "The default zoom level"),
                 'dpi': PluginOption(300, "The capturing resolution"),
                 'shoot_raw': PluginOption(False, "Shoot in RAW format (DNG)"),
-                'chdkptp_path': PluginOption(u"/usr/local/lib/chdkptp",
-                                          "Path to CHDKPTP binary/libraries"),
+                'chdkptp_path': PluginOption(
+                    u"/usr/local/lib/chdkptp",
+                    "Path to CHDKPTP binary/libraries"),
                 }
         return conf
 
     @classmethod
     def match(cls, device):
-        # TODO: This matches all PTP devices, we will have to ensure that
-        #       it is also a CHDK compatible device.
-        #cfg = device.get_active_configuration()[(0, 0)]
-        #matches = (hex(cfg.bInterfaceClass) == "0x6"
-        #           and hex(cfg.bInterfaceSubClass) == "0x1")
-        #return matches
-        return False
+        cfg = device.get_active_configuration()[(0, 0)]
+        matches = (hex(cfg.bInterfaceClass) == "0x6"
+                   and hex(cfg.bInterfaceSubClass) == "0x1")
+        return matches
 
     def __init__(self, config, device):
         """ Set connection information and try to obtain orientation.
@@ -118,7 +116,7 @@ class CHDKCameraDevice(DevicePlugin):
         except CHDKPTPException as e:
             self.logger.debug(e)
             self.logger.info("Camera already seems to be in recording mode")
-        #self._set_zoom(self._zoom_level)
+        self._set_zoom(self._zoom_level)
         # Disable flash
         self._execute_lua("while(get_flash_mode()<2) do click(\"right\") end")
         # Disable ND filter
@@ -145,6 +143,8 @@ class CHDKCameraDevice(DevicePlugin):
                    .format(self._shutter_speed, self._sensitivity,
                            int(self._shoot_raw), path))
         self._run(cmd)
+        # TODO: If we are in two-device mode, set EXIF orientation with
+        #       'exiftool', according to orientation
 
     def _run(self, *commands):
         cmd_args = list(chain((os.path.join(self._chdkptp_path, "chdkptp"),),
