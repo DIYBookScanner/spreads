@@ -37,7 +37,8 @@ import pkg_resources
 import spreads.confit as confit
 from spreads.workflow import Workflow
 from spreads.plugin import (get_driver, get_devices, get_pluginmanager,
-                            setup_plugin_config, get_relevant_extensions)
+                            setup_plugin_config, get_relevant_extensions,
+                            DeviceFeatures)
 from spreads.util import DeviceException, ColourStreamHandler
 
 # Kudos to http://stackoverflow.com/a/1394994/487903

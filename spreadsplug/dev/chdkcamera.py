@@ -8,7 +8,7 @@ from fractions import Fraction
 from itertools import chain
 
 
-from spreads.plugin import DevicePlugin, PluginOption
+from spreads.plugin import DevicePlugin, PluginOption, DeviceFeatures
 from spreads.util import DeviceException
 
 
@@ -21,9 +21,7 @@ class CHDKCameraDevice(DevicePlugin):
 
     """
 
-    features = {
-        'preview': True,
-    }
+    features = (DeviceFeatures.PREVIEW, DeviceFeatures.TWO_DEVICES)
 
     _cli_flags = None
     _orientation = None

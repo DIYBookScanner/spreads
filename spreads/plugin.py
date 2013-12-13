@@ -126,6 +126,17 @@ class SpreadsPlugin(object):
             self.config = config
 
 
+class DeviceFeatures(object):
+    PREVIEW = 1
+    """ Device can grab a preview picture """
+
+    TWO_DEVICES = 2
+    """ Device class allows the operation of two devices simultaneously
+        (mainly to be used by cameras, where each device is responsible for
+        capturing a single page.
+    """
+
+
 class DevicePlugin(SpreadsPlugin):
     """ Base class for devices.
 
@@ -134,10 +145,10 @@ class DevicePlugin(SpreadsPlugin):
     """
     __metaclass__ = abc.ABCMeta
 
-    @abc.abstractproperty
-    def features(self):
-        """ Return device features. """
-        return {'preview': False}
+    features = ()
+    """ List of :py:class:`DeviceFeatures` constants that designate the
+        features the device offers.
+    """
 
     @abstractclassmethod
     def match(cls, usbdevice):
