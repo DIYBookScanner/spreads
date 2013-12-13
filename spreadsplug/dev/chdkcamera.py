@@ -91,7 +91,7 @@ class CHDKCameraDevice(DevicePlugin):
         """ Set the device orientation.
 
         :param orientation: The orientation name
-        :type orientation:  unicode in (u"left", u"right")
+        :type orientation:  unicode in (u"odd", u"even")
 
         """
         tmp_handle = tempfile.mkstemp(text=True)

@@ -40,14 +40,14 @@ class AutoRotatePlugin(HookPlugin):
             parser.add_argument("--rotate-inverse", "-ri",
                                 dest="rotate_inverse", action="store_true",
                                 default=False,
-                                help="Rotate left pages CCW, right pages CW"
+                                help="Rotate odd pages CCW, even pages CW"
                                 " (use when first page comes from right"
                                 " camera)")
 
     @classmethod
     def configuration_template(cls):
-        conf = {'left': PluginOption(-90, "Rotation applied to left pages"),
-                'right': PluginOption(90, "Rotation applied to right pages"),
+        conf = {'odd': PluginOption(-90, "Rotation applied to odd pages"),
+                'even': PluginOption(90, "Rotation applied to even pages"),
                 }
         return conf
 
@@ -62,9 +62,9 @@ class AutoRotatePlugin(HookPlugin):
                 try:
                     img = JpegFile.fromFile(os.path.join(img_dir, imgpath))
                     if img.exif.primary.Orientation == [8]:
-                        rotation = self.config['left'].get(int)
+                        rotation = self.config['odd'].get(int)
                     elif img.exif.primary.Orientation == [6]:
-                        rotation = self.config['right'].get(int)
+                        rotation = self.config['even'].get(int)
                     elif img.exif.primary.Orientation == [1]:
                         # Already rotated, so we skip it
                         continue

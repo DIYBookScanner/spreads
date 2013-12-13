@@ -1,14 +1,12 @@
 import logging
-import os
 import time
 
 from concurrent.futures import ThreadPoolExecutor
 from PySide import QtCore, QtGui
 from PIL import Image
 
-import spreads
 import spreads.workflow as workflow
-from spreads.plugin import get_pluginmanager, get_driver
+from spreads.plugin import get_pluginmanager, DeviceFeatures
 
 import gui_rc
 
@@ -110,8 +108,8 @@ class IntroPage(QtGui.QWizardPage):
         if ('combine' in self.wizard().active_plugins
                 or 'autorotate' in self.wizard().active_plugins):
             self.even_device = QtGui.QComboBox()
-            self.even_device.addItem("Left")
-            self.even_device.addItem("Right")
+            self.even_device.addItem("Odd")
+            self.even_device.addItem("Even")
             self.even_device.setCurrentIndex(0)
             layout.addRow("Device for even pages", self.even_device)
         general_page.setLayout(layout)
@@ -212,8 +210,8 @@ class IntroPage(QtGui.QWizardPage):
         self.wizard().config['path'] = project_path
 
         self.wizard().config['keep'] = self.keep_box.isChecked()
-        if self.even_device and self.even_device.currentText() != 'Left':
-            self.wizard().config['first_page'] = "right"
+        if self.even_device and self.even_device.currentText() != 'Odd':
+            self.wizard().config['first_page'] = "even"
             self.wizard().config['rotate_inverse'] = True
 
         self._update_config_from_plugin_widgets()
@@ -254,8 +252,8 @@ class CapturePage(QtGui.QWizardPage):
         self.setTitle("Capturing from devices")
         self.start_time = None
         self.shot_count = None
-        device_has_preview = (get_driver(self.wizard().config)
-                              .driver.features['preview'])
+        device_has_preview = (DeviceFeatures.PREVIEW
+                              in self.wizard().workflow.devices[0].features)
 
         layout = QtGui.QVBoxLayout(self)
         self.status = QtGui.QLabel("Press a capture key (default: Space, B)"
@@ -263,10 +261,10 @@ class CapturePage(QtGui.QWizardPage):
 
         if device_has_preview:
             previewbox = QtGui.QHBoxLayout()
-            self.left_preview = QtGui.QLabel()
-            self.right_preview = QtGui.QLabel()
-            previewbox.addWidget(self.left_preview)
-            previewbox.addWidget(self.right_preview)
+            self.odd_preview = QtGui.QLabel()
+            self.even_preview = QtGui.QLabel()
+            previewbox.addWidget(self.odd_preview)
+            previewbox.addWidget(self.even_preview)
             layout.addLayout(previewbox)
             self.refresh_btn = QtGui.QPushButton("Refresh")
             self.refresh_btn.clicked.connect(self.update_preview)
@@ -341,10 +339,10 @@ class CapturePage(QtGui.QWizardPage):
             previews = tuple(futures)
         for orientation, image in previews:
             pixmap = QtGui.QPixmap.fromImage(image)
-            if orientation == 'left':
-                self.left_preview.setPixmap(pixmap)
+            if orientation == 'odd':
+                self.odd_preview.setPixmap(pixmap)
             else:
-                self.right_preview.setPixmap(pixmap)
+                self.even_preview.setPixmap(pixmap)
 
 
 class PostprocessPage(QtGui.QWizardPage):

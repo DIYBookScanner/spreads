@@ -178,7 +178,7 @@ class DevicePlugin(SpreadsPlugin):
         """ Set the device orientation, if applicable.
 
         :param orientation: The orientation name
-        :type orientation:  unicode in (u"left", u"right")
+        :type orientation:  unicode in (u"odd", u"even")
 
         """
         raise NotImplementedError

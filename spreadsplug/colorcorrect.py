@@ -51,18 +51,18 @@ class ColorCorrectionPlugin(HookPlugin):
                        )
         # We assume that the first two images shot were the gray card
         images = sorted([os.path.join(path, x) for x in os.listdir(path)])
-        factors_left = map(operator.div, true_colors,
-                           self._get_color(images[0]))
-        factors_right = map(operator.div, true_colors,
-                            self._get_color(images[1]))
+        factors_odd = map(operator.div, true_colors,
+                          self._get_color(images[0]))
+        factors_even = map(operator.div, true_colors,
+                           self._get_color(images[1]))
 
         with futures.ProcessPoolExecutor() as executor:
             # Don't correct the pictures with the gray cards
             for idx, img in enumerate(images[3:]):
                 if not idx % 2:
-                    factors = factors_left
+                    factors = factors_odd
                 else:
-                    factors = factors_right
+                    factors = factors_even
                 executor.submit(correct_colors, img, factors)
 
     def _get_color(self, img_path):
