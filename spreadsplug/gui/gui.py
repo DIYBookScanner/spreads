@@ -200,9 +200,6 @@ class IntroPage(QtGui.QWizardPage):
         self.wizard().config['path'] = project_path
 
         self.wizard().config['keep'] = self.keep_box.isChecked()
-        if self.even_device and self.even_device.currentText() != 'Odd':
-            self.wizard().config['first_page'] = "even"
-            self.wizard().config['rotate_inverse'] = True
 
         self._update_config_from_plugin_widgets()
         self.wizard().workflow = workflow.Workflow(self.wizard().config)
