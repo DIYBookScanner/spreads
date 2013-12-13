@@ -198,15 +198,17 @@ def setup_parser(config):
 
     rootparser.add_argument(
         '--verbose', '-v', dest="verbose", action="store_true")
-    rootparser.add_argument(
-        "path", type=unicode, help="Project path")
 
     wizard_parser = subparsers.add_parser(
         'wizard', help="Interactive mode")
+    wizard_parser.add_argument(
+        "path", type=unicode, help="Project path")
     wizard_parser.set_defaults(subcommand=wizard)
 
     capture_parser = subparsers.add_parser(
         'capture', help="Start the capturing workflow")
+    capture_parser.add_argument(
+        "path", type=unicode, help="Project path")
     capture_parser.set_defaults(subcommand=capture)
     # Add arguments from plugins
     for parser in (capture_parser, wizard_parser):
@@ -222,6 +224,8 @@ def setup_parser(config):
         'postprocess',
         help="Postprocess scanned images.")
     postprocess_parser.add_argument(
+        "path", type=unicode, help="Project path")
+    postprocess_parser.add_argument(
         "--jobs", "-j", dest="jobs", type=int, default=None,
         metavar="<int>", help="Number of concurrent processes")
     postprocess_parser.set_defaults(subcommand=postprocess)
@@ -232,6 +236,8 @@ def setup_parser(config):
     output_parser = subparsers.add_parser(
         'output',
         help="Generate output files.")
+    output_parser.add_argument(
+        "path", type=unicode, help="Project path")
     output_parser.set_defaults(subcommand=output)
     # Add arguments from plugins
     for parser in (output_parser, wizard_parser):
