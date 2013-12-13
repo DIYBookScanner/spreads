@@ -102,16 +102,6 @@ class IntroPage(QtGui.QWizardPage):
         self.keep_box = QtGui.QCheckBox("Keep files on devices")
         layout.addRow(self.keep_box)
 
-        # NOTE: Ugly workaround to allow for easier odd/even switch
-        # TODO: Find a cleaner way to do this
-        self.even_device = None
-        if ('combine' in self.wizard().active_plugins
-                or 'autorotate' in self.wizard().active_plugins):
-            self.even_device = QtGui.QComboBox()
-            self.even_device.addItem("Odd")
-            self.even_device.addItem("Even")
-            self.even_device.setCurrentIndex(0)
-            layout.addRow("Device for even pages", self.even_device)
         general_page.setLayout(layout)
         self.stack_widget.addWidget(general_page)
         page_combobox.addItem("General")

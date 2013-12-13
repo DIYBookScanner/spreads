@@ -1,9 +1,5 @@
 General
 =======
-- Make path argument subcommand-specific again (for plugins that create their
-  own workflow objects)
-- Use 'configure' command to select driver, plugins and write initial
-  configuration
 - Clean up GUI code, it's an unholy mess...
 - Refactor tests, they need work on several levels:
     * more specific: what should a method *do*/*effects*

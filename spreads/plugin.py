@@ -24,6 +24,7 @@ from __future__ import division, unicode_literals
 import abc
 import itertools
 import logging
+import os
 
 import usb
 import stevedore
@@ -173,6 +174,38 @@ class DevicePlugin(SpreadsPlugin):
         """
         super(DevicePlugin, self).__init__(config['device'])
         self._device = device
+
+    def get_next_filename(self, path, extension):
+        """ Get next filename that a capture should be stored as.
+
+        If the workflow is shooting with two devices, this will select a
+        filename that matches the device's orientation (odd/even).
+
+        :param path:      project base path
+        :type path:       unicode
+        :param extension: file extension to be used
+        :type extension:  str/unicode
+        :return:          absolute path to next filename
+                          (e.g. /tmp/proj/003.jpg)
+        """
+        files = sorted(os.listdir(path))
+        if not files:
+            last_num = -1
+        else:
+            last_num = int(files[-1][:-4])
+
+        can_two_devices = DeviceFeatures.TWO_DEVICES in self.features
+        if not can_two_devices or self.orientation is None:
+            return os.path.join(
+                path, "{03:0}.{1}".format(last_num+1, extension))
+        if self.orientation == 'odd':
+            next_num = last_num+2 if last_num % 2 else last_num+1
+        elif self.orientation == 'even':
+            next_num = last_num+1 if last_num % 2 else last_num+2
+        else:
+            raise DeviceException("Unknown orientation '{0}'"
+                                  .format(self.orientation))
+        return os.path.join(path, "{0:03}.{1}".format(next_num, extension))
 
     def set_orientation(self, orientation):
         """ Set the device orientation, if applicable.

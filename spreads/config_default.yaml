@@ -1,6 +1,6 @@
 # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
 loglevel: warning
-plugins: [combine, autorotate, scantailor, pdfbeads]
+plugins: [autorotate, scantailor, pdfbeads]
 driver: dummy
 
 

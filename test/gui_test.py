@@ -18,7 +18,7 @@ class TestWizard(object):
             #       ignore that here...
             pass
         self.config = confit.Configuration('test_gui')
-        self.config['plugins'] = [u'tesseract', u'combine', u'scantailor']
+        self.config['plugins'] = [u'tesseract', u'scantailor']
         self.config['driver'] = u'dummy'
         self.config['path'] = u'/tmp/foobar'
         self.workflow = workflow.Workflow(self.config)
@@ -76,6 +76,5 @@ class TestWizard(object):
         self.wizard.workflow = self.workflow
         page = self.wizard.page(3)
         page.initializePage()
-        # TODO: See that logbox works, postprocess is executed, warning is
-        #       emitted on combine failure
+        # TODO: See that logbox works, postprocess is executed
         assert page.validatePage()

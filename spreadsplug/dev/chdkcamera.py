@@ -107,10 +107,6 @@ class CHDKCameraDevice(DevicePlugin):
 
     def prepare_capture(self, path):
         # Try to put into record mode
-        if not os.path.exists(path):
-            os.mkdir(path)
-        if not os.path.exists(os.path.join(path, self.orientation)):
-            os.mkdir(os.path.join(path, self.orientation))
         try:
             self._run("rec")
         except CHDKPTPException as e:
@@ -133,15 +129,16 @@ class CHDKCameraDevice(DevicePlugin):
         return data
 
     def capture(self, path):
-        path = os.path.join(path, self.orientation)
+        img_path = self.get_next_filename(
+            path, 'dng' if self._shoot_raw else 'jpg')
         if self._can_remote:
             cmd = ("remoteshoot -tv={0} -isomode={1} {2} {3}"
                    .format(self._shutter_speed, self._sensitivity,
-                           "-dng" if self._shoot_raw else "", path))
+                           "-dng" if self._shoot_raw else "", img_path))
         else:
             cmd = ("shoot -tv={0} -isomode={1} -dng={2} -rm -dl {3}"
                    .format(self._shutter_speed, self._sensitivity,
-                           int(self._shoot_raw), path))
+                           int(self._shoot_raw), img_path))
         self._run(cmd)
         # TODO: If we are in two-device mode, set EXIF orientation with
         #       'exiftool', according to orientation

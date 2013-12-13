@@ -24,10 +24,24 @@ class TestChdkCameraDevice(object):
             else:
                 self.config[key] = option.value
         self.config['chdkptp_path'] = u'/tmp/chdkptp'
+        self.config['two_devices'] = False
         with patch('spreadsplug.dev.chdkcamera.'
                    'CHDKCameraDevice._execute_lua') as lua:
             lua.return_value = {'build_revision': 3000}
             self.dev = chdkcamera.CHDKCameraDevice(self.config, usbmock)
+
+    @patch('spreads.plugin.os.listdir')
+    def test_get_next_filename(self, listdir):
+        listdir.return_value = ['001.JPG', '002.JPG']
+        self.dev.orientation = 'odd'
+        fname = self.dev.get_next_filename('/tmp/proj', 'jpg')
+        assert fname == '/tmp/proj/003.jpg'
+        self.dev.orientation = 'even'
+        fname = self.dev.get_next_filename('/tmp/proj', 'jpg')
+        assert fname == '/tmp/proj/004.jpg'
+        listdir.return_value = []
+        fname = self.dev.get_next_filename('/tmp/proj', 'jpg')
+        assert fname == '/tmp/proj/000.jpg'
 
     def test_init_noremote(self):
         usbmock = Mock()

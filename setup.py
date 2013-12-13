@@ -31,7 +31,6 @@ setup(
             'dummy      = spreadsplug.dev.dummy:DummyDevice',
         ],
         'spreadsplug.hooks': [
-            'combine    = spreadsplug.combine:CombinePlugin',
             'autorotate = spreadsplug.autorotate:AutoRotatePlugin',
             'scantailor = spreadsplug.scantailor:ScanTailorPlugin',
             'pdfbeads   = spreadsplug.pdfbeads:PDFBeadsPlugin',
