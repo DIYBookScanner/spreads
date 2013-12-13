@@ -95,11 +95,11 @@ def _select_plugins(selected_plugins=None):
         pkg_resources.iter_entry_points('spreadsplug.hooks'))
     while True:
         for pos, ext in enumerate(available_plugins, 1):
-            print("  [{0}] {1}: {2}"
+            print("  {0} {1}: {2}"
                   .format('✔' if ext.name in selected_plugins else ' ',
                           pos, ext.name))
         selection = raw_input("Select a plugin (or hit enter to finish): ")
-        if selection == '':
+        if not selection:
             break
         if not selection.isdigit() or int(selection) > len(available_plugins):
             print(colorama.Fore.RED +
@@ -115,6 +115,25 @@ def _select_plugins(selected_plugins=None):
     return selected_plugins
 
 
+def _set_device_orientation(config, orientation):
+    print("Please connect and turn on the device labeled \'{0}\'"
+          .format(orientation))
+    print(colorama.Fore.BLUE + "Press any key when ready.")
+    getch()
+    devs = get_devices(config)
+    if len(devs) > 1:
+        raise DeviceException("Please ensure that only one device is"
+                              " turned on!")
+    if not devs:
+        raise DeviceException("No device found!")
+    devs[0].set_orientation(orientation)
+    print(colorama.Fore.GREEN + "Configured \'{0}\' device."
+                                .format(orientation))
+    print("Please turn off the device.")
+    print(colorama.Fore.BLUE + "Press any key when ready.")
+    getch()
+
+
 def configure(config):
     config["driver"] = _select_driver()
     config["plugins"] = _select_plugins(config["plugins"].get())
@@ -122,25 +141,20 @@ def configure(config):
     print("Writing configuration file to '{0}'".format(cfg_path))
     config.dump(filename=cfg_path)
 
-    print(colorama.Fore.BLUE +
-          "Setting orientation on cameras")
-    for orientation in ('left', 'right'):
-        print("Please connect and turn on the device labeled \'{0}\'"
-              .format(orientation))
-        print(colorama.Fore.BLUE + "Press any key when ready.")
-        getch()
-        devs = get_devices(config)
-        if len(devs) > 1:
-            raise DeviceException("Please ensure that only one device is"
-                                  " turned on!")
-        if not devs:
-            raise DeviceException("No device found!")
-        devs[0].set_orientation(orientation)
-        print(colorama.Fore.GREEN + "Configured \'{0}\' device."
-                                    .format(orientation))
-        print("Please turn off the device.")
-        print(colorama.Fore.BLUE + "Press any key when ready.")
-        getch()
+    driver = get_driver(config["driver"].get()).driver
+
+    # We only need to set the device orientation if the driver supports
+    # shooting with two devices
+    if DeviceFeatures.TWO_DEVICES in driver.features:
+        answer = raw_input(
+            "Do you want to configure the orientation of your devices?\n"
+            "(Required for shooting with two devices) [y/n]: ")
+        answer = True if answer.lower() == 'y' else False
+        if answer:
+            print(colorama.Fore.BLUE +
+                  "Setting orientation on cameras")
+            for orientation in ('odd', 'even'):
+                _set_device_orientation(config, orientation)
 
 
 def capture(config):

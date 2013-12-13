@@ -23,17 +23,22 @@ class CHDKCameraDevice(DevicePlugin):
 
     features = (DeviceFeatures.PREVIEW, DeviceFeatures.TWO_DEVICES)
 
+    orientation = None
     _cli_flags = None
-    _orientation = None
     _chdk_buildnum = None
     _can_remote = False
     _zoom_steps = 0
 
     @classmethod
     def configuration_template(cls):
-        conf = {'sensitivity': PluginOption(80, "The ISO sensitivity value"),
-                'shutter_speed': PluginOption(u"1/25", "The shutter speed as a"
-                                                      "fraction"),
+        conf = {'two_devices': PluginOption(True,
+                                            "Use two cameras for shooting"),
+                'reverse_spreads': PluginOption(
+                    False, "When shooting with two devices, flip the target"
+                    "book spreads (odd<->even)"),
+                'sensitivity': PluginOption(80, "The ISO sensitivity value"),
+                'shutter_speed': PluginOption(
+                    u"1/25", "The shutter speed as a fraction"),
                 'zoom_level': PluginOption(3, "The default zoom level"),
                 'dpi': PluginOption(300, "The capturing resolution"),
                 'shoot_raw': PluginOption(False, "Shoot in RAW format (DNG)"),
@@ -80,10 +85,13 @@ class CHDKCameraDevice(DevicePlugin):
         self._can_remote = self._chdk_buildnum >= 2927
         self._zoom_steps = self._execute_lua("get_zoom_steps()",
                                              get_result=True)
-        try:
-            self.orientation = self._get_orientation()
-        except ValueError:
-            self.orientation = None
+        if config["two_devices"].get(bool):
+            try:
+                self.orientation = self._get_orientation()
+            except ValueError:
+                raise DeviceException("Orientation could not be determined, "
+                                      "please run 'spread configure' to "
+                                      "configure your devices.")
         self.logger = logging.getLogger('ChdkCamera[{0}]'
                                         .format(self.orientation))
 
