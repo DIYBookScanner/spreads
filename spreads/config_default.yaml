@@ -1,5 +1,5 @@
 # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
-loglevel: info
+loglevel: warning
 plugins: [combine, autorotate, scantailor, pdfbeads]
 driver: dummy
 

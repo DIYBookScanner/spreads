@@ -55,6 +55,9 @@ if __name__ == '__main__':
         print(colorama.Fore.RED +
               "You are missing a dependency for one of your enabled plugins:")
         print(colorama.Fore.RED + e.message)
+    except KeyboardInterrupt:
+        colorama.deinit()
+        sys.exit(1)
     except Exception as e:
         typ, val, tb = sys.exc_info()
         print(colorama.Fore.RED + "spreads encountered an error:")

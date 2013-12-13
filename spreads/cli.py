@@ -32,10 +32,11 @@ import sys
 import time
 
 import colorama
-import spreads.confit as confit
+import pkg_resources
 
+import spreads.confit as confit
 from spreads.workflow import Workflow
-from spreads.plugin import (get_driver, get_pluginmanager,
+from spreads.plugin import (get_driver, get_devices, get_pluginmanager,
                             setup_plugin_config, get_relevant_extensions)
 from spreads.util import DeviceException, ColourStreamHandler
 
@@ -58,6 +59,87 @@ except ImportError:
             return sys.stdin.read(1)
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+
+def _select_driver():
+    print(colorama.Fore.BLUE +
+          "Please select a device driver from the following list:" +
+          colorama.Fore.RESET)
+    available_drivers = list(
+        pkg_resources.iter_entry_points('spreadsplug.devices'))
+    for pos, ext in enumerate(available_drivers, 1):
+        print("  [{0}]: {1}".format(pos, ext.name))
+    while True:
+        selection = raw_input("Select a driver: ")
+        if not selection.isdigit() or int(selection) > len(available_drivers):
+            print(colorama.Fore.RED +
+                  "Please select a number in the range of 1 to {0}"
+                  .format(len(available_drivers)) +
+                  colorama.Fore.RESET)
+            continue
+        driver = unicode(available_drivers[int(selection)-1].name)
+        print(colorama.Fore.GREEN +
+              "Selected \"{0}\" as device driver".format(driver) +
+              colorama.Fore.RESET)
+        return driver
+
+
+def _select_plugins(selected_plugins=None):
+    if selected_plugins is None:
+        selected_plugins = []
+    print(colorama.Fore.BLUE +
+          "Please select your desired plugins from the following list:" +
+          colorama.Fore.RESET)
+    available_plugins = list(
+        pkg_resources.iter_entry_points('spreadsplug.hooks'))
+    while True:
+        for pos, ext in enumerate(available_plugins, 1):
+            print("  [{0}] {1}: {2}"
+                  .format('✔' if ext.name in selected_plugins else ' ',
+                          pos, ext.name))
+        selection = raw_input("Select a plugin (or hit enter to finish): ")
+        if selection == '':
+            break
+        if not selection.isdigit() or int(selection) > len(available_plugins):
+            print(colorama.Fore.RED +
+                  "Please select a number in the range of 1 to {0}"
+                  .format(len(available_plugins)) +
+                  colorama.Fore.RESET)
+            continue
+        plugin_name = available_plugins[int(selection)-1].name
+        if plugin_name in selected_plugins:
+            selected_plugins.remove(plugin_name)
+        else:
+            selected_plugins.append(plugin_name)
+    return selected_plugins
+
+
+def configure(config):
+    config["driver"] = _select_driver()
+    config["plugins"] = _select_plugins(config["plugins"].get())
+    cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
+    print("Writing configuration file to '{0}'".format(cfg_path))
+    config.dump(filename=cfg_path)
+
+    print(colorama.Fore.BLUE +
+          "Setting orientation on cameras")
+    for orientation in ('left', 'right'):
+        print("Please connect and turn on the device labeled \'{0}\'"
+              .format(orientation))
+        print(colorama.Fore.BLUE + "Press any key when ready.")
+        getch()
+        devs = get_devices(config)
+        if len(devs) > 1:
+            raise DeviceException("Please ensure that only one device is"
+                                  " turned on!")
+        if not devs:
+            raise DeviceException("No device found!")
+        devs[0].set_orientation(orientation)
+        print(colorama.Fore.GREEN + "Configured \'{0}\' device."
+                                    .format(orientation))
+        print("Please turn off the device.")
+        print(colorama.Fore.BLUE + "Press any key when ready.")
+        getch()
 
 
 def capture(config):
@@ -197,13 +279,17 @@ def setup_parser(config):
     subparsers = rootparser.add_subparsers()
 
     rootparser.add_argument(
-        '--verbose', '-v', dest="verbose", action="store_true")
+        '--verbose', '-v', dest="logging", action="store_const", const="debug")
 
     wizard_parser = subparsers.add_parser(
         'wizard', help="Interactive mode")
     wizard_parser.add_argument(
         "path", type=unicode, help="Project path")
     wizard_parser.set_defaults(subcommand=wizard)
+
+    config_parser = subparsers.add_parser(
+        'configure', help="Perform initial configuration")
+    config_parser.set_defaults(subcommand=configure)
 
     capture_parser = subparsers.add_parser(
         'capture', help="Start the capturing workflow")
@@ -271,11 +357,6 @@ def main():
     config.read()
     setup_plugin_config(config)
 
-    # Write default configuration to file, if it does not exist yet
-    cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
-    if not os.path.exists(cfg_path):
-        config.dump(filename=cfg_path)
-
     parser = setup_parser(config)
     args = parser.parse_args()
     # Set configuration from parsed arguments
@@ -289,8 +370,6 @@ def main():
         'error':    logging.ERROR,
         'critical': logging.CRITICAL,
     })
-    if config['verbose'].get(bool):
-        loglevel = logging.DEBUG
 
     # Set up logger
     logger = logging.getLogger()
