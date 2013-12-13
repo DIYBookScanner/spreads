@@ -15,8 +15,8 @@ class TestCLI(object):
     def setUp(self):
         self.workflow = Mock()
         self.workflow.devices = [Mock(), Mock()]
-        self.workflow.devices[0].orientation = 'even'
-        self.workflow.devices[1].orientation = 'odd'
+        self.workflow.devices[0].target_page = 'even'
+        self.workflow.devices[1].target_page = 'odd'
         self.workflow.config = confit.Configuration('test_cli')
         cli.Workflow = Mock(return_value=self.workflow)
 
@@ -37,8 +37,8 @@ class TestCLI(object):
         cli.capture(self.workflow)
 
     @raises(DeviceException)
-    def test_capture_noorientation(self):
-        self.workflow.devices[0].orientation = None
+    def test_capture_no_target_page(self):
+        self.workflow.devices[0].target_page = None
         cli.getch = Mock(return_value='c')
         cli.capture(self.workflow)
 

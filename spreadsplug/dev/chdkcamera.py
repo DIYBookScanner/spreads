@@ -23,7 +23,7 @@ class CHDKCameraDevice(DevicePlugin):
 
     features = (DeviceFeatures.PREVIEW, DeviceFeatures.TWO_DEVICES)
 
-    orientation = None
+    target_page = None
     _cli_flags = None
     _chdk_buildnum = None
     _can_remote = False
@@ -56,7 +56,7 @@ class CHDKCameraDevice(DevicePlugin):
         return matches
 
     def __init__(self, config, device):
-        """ Set connection information and try to obtain orientation.
+        """ Set connection information and try to obtain target page.
 
         :param config:  spreads configuration
         :type config:   spreads.confit.ConfigView
@@ -85,25 +85,25 @@ class CHDKCameraDevice(DevicePlugin):
                                              get_result=True)
         if config["two_devices"].get(bool):
             try:
-                self.orientation = self._get_orientation()
+                self.target_page = self._get_target_page()
             except ValueError:
-                raise DeviceException("Orientation could not be determined, "
+                raise DeviceException("Target page could not be determined, "
                                       "please run 'spread configure' to "
                                       "configure your devices.")
         self.logger = logging.getLogger('ChdkCamera[{0}]'
-                                        .format(self.orientation))
+                                        .format(self.target_page))
 
-    def set_orientation(self, orientation):
-        """ Set the device orientation.
+    def set_target_page(self, target_page):
+        """ Set the device target page.
 
-        :param orientation: The orientation name
-        :type orientation:  unicode in (u"odd", u"even")
+        :param target_page: The target page name
+        :type target_page:  unicode in (u"odd", u"even")
 
         """
         tmp_handle = tempfile.mkstemp(text=True)
-        os.write(tmp_handle[0], orientation.upper()+"\n")
+        os.write(tmp_handle[0], target_page.upper()+"\n")
         self._run("upload {0} \"OWN.TXT\"".format(tmp_handle[1]))
-        self.orientation = orientation
+        self.target_page = target_page
 
     def prepare_capture(self, path):
         # Try to put into record mode
@@ -141,7 +141,7 @@ class CHDKCameraDevice(DevicePlugin):
                            int(self._shoot_raw), img_path))
         self._run(cmd)
         # TODO: If we are in two-device mode, set EXIF orientation with
-        #       'exiftool', according to orientation
+        #       'exiftool', according to target page
 
     def _run(self, *commands):
         cmd_args = list(chain((os.path.join(self._chdkptp_path, "chdkptp"),),
@@ -188,18 +188,18 @@ class CHDKCameraDevice(DevicePlugin):
         else:
             return int(ret_val)  # Integer
 
-    def _get_orientation(self):
+    def _get_target_page(self):
         tmp_handle = tempfile.mkstemp(text=True)
         try:
             self._run("download \"OWN.TXT\" {0}".format(tmp_handle[1]))
         except DeviceException:
             raise ValueError("Could not find OWN.TXT")
         with open(tmp_handle[1], 'r') as fp:
-            orientation = fp.readline().strip().lower()
+            target_page = fp.readline().strip().lower()
         os.remove(tmp_handle[1])
-        if not orientation:
+        if not target_page:
             raise ValueError("Could not read OWN.TXT")
-        return orientation
+        return target_page
 
     def _set_zoom(self, level):
         if level >= self._zoom_steps:
@@ -217,9 +217,9 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
     def __init__(self, config, device):
         print "Instantiating device..."
         super(CanonA2200CameraDevice, self).__init__(config, device)
-        if self.orientation is not None:
+        if self.target_page is not None:
             self.logger = logging.getLogger(
-                'CanonA2200CameraDevice[{0}]'.format(self.orientation))
+                'CanonA2200CameraDevice[{0}]'.format(self.target_page))
         else:
             self.logger = logging.getLogger('CanonA2200CameraDevice')
 

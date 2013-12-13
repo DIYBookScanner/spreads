@@ -115,9 +115,9 @@ def _select_plugins(selected_plugins=None):
     return selected_plugins
 
 
-def _set_device_orientation(config, orientation):
+def _set_device_target_page(config, target_page):
     print("Please connect and turn on the device labeled \'{0}\'"
-          .format(orientation))
+          .format(target_page))
     print(colorama.Fore.BLUE + "Press any key when ready.")
     getch()
     devs = get_devices(config)
@@ -126,9 +126,9 @@ def _set_device_orientation(config, orientation):
                               " turned on!")
     if not devs:
         raise DeviceException("No device found!")
-    devs[0].set_orientation(orientation)
+    devs[0].set_target_page(target_page)
     print(colorama.Fore.GREEN + "Configured \'{0}\' device."
-                                .format(orientation))
+                                .format(target_page))
     print("Please turn off the device.")
     print(colorama.Fore.BLUE + "Press any key when ready.")
     getch()
@@ -143,18 +143,18 @@ def configure(config):
 
     driver = get_driver(config["driver"].get()).driver
 
-    # We only need to set the device orientation if the driver supports
+    # We only need to set the device target_page if the driver supports
     # shooting with two devices
     if DeviceFeatures.TWO_DEVICES in driver.features:
         answer = raw_input(
-            "Do you want to configure the orientation of your devices?\n"
+            "Do you want to configure the target_page of your devices?\n"
             "(Required for shooting with two devices) [y/n]: ")
         answer = True if answer.lower() == 'y' else False
         if answer:
             print(colorama.Fore.BLUE +
-                  "Setting orientation on cameras")
-            for orientation in ('odd', 'even'):
-                _set_device_orientation(config, orientation)
+                  "Setting target page on cameras")
+            for target_page in ('odd', 'even'):
+                _set_device_target_page(config, target_page)
 
 
 def capture(config):
@@ -165,7 +165,7 @@ def capture(config):
                               " found)".format(len(workflow.devices)))
     print(colorama.Fore.GREEN +
           "Found {0} devices!".format(len(workflow.devices)))
-    if any(not x.orientation for x in workflow.devices):
+    if any(not x.target_page for x in workflow.devices):
         raise DeviceException("At least one of the devices has not been"
                               " properly configured, please re-run the"
                               " program with the \'configure\' option!")

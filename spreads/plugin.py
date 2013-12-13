@@ -179,7 +179,7 @@ class DevicePlugin(SpreadsPlugin):
         """ Get next filename that a capture should be stored as.
 
         If the workflow is shooting with two devices, this will select a
-        filename that matches the device's orientation (odd/even).
+        filename that matches the device's target page (odd/even).
 
         :param path:      project base path
         :type path:       unicode
@@ -195,23 +195,23 @@ class DevicePlugin(SpreadsPlugin):
             last_num = int(files[-1][:-4])
 
         can_two_devices = DeviceFeatures.TWO_DEVICES in self.features
-        if not can_two_devices or self.orientation is None:
+        if not can_two_devices or self.target_page is None:
             return os.path.join(
                 path, "{03:0}.{1}".format(last_num+1, extension))
-        if self.orientation == 'odd':
+        if self.target_page == 'odd':
             next_num = last_num+2 if last_num % 2 else last_num+1
-        elif self.orientation == 'even':
+        elif self.target_page == 'even':
             next_num = last_num+1 if last_num % 2 else last_num+2
         else:
-            raise DeviceException("Unknown orientation '{0}'"
-                                  .format(self.orientation))
+            raise DeviceException("Unknown target page '{0}'"
+                                  .format(self.target_page))
         return os.path.join(path, "{0:03}.{1}".format(next_num, extension))
 
-    def set_orientation(self, orientation):
-        """ Set the device orientation, if applicable.
+    def set_target_page(self, target_page):
+        """ Set the device target page, if applicable.
 
-        :param orientation: The orientation name
-        :type orientation:  unicode in (u"odd", u"even")
+        :param target_page: The target page
+        :type target_page:  unicode in (u"odd", u"even")
 
         """
         raise NotImplementedError

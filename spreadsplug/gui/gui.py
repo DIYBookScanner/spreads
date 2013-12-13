@@ -320,16 +320,16 @@ class CapturePage(QtGui.QWizardPage):
             data = img.tostring('raw')
             image = QtGui.QImage(data, img.size[0], img.size[1],
                                  QtGui.QImage.Format_ARGB32).rgbSwapped()
-            return dev.orientation, image
+            return dev.target_page, image
 
         # TODO: Don't go via PIL, find a way to use RGB data directly
         with ThreadPoolExecutor(max_workers=2) as executor:
             futures = executor.map(get_preview,
                                    self.wizard().workflow.devices)
             previews = tuple(futures)
-        for orientation, image in previews:
+        for target_page, image in previews:
             pixmap = QtGui.QPixmap.fromImage(image)
-            if orientation == 'odd':
+            if target_page == 'odd':
                 self.odd_preview.setPixmap(pixmap)
             else:
                 self.even_preview.setPixmap(pixmap)

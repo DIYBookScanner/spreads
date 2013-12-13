@@ -33,10 +33,10 @@ class TestChdkCameraDevice(object):
     @patch('spreads.plugin.os.listdir')
     def test_get_next_filename(self, listdir):
         listdir.return_value = ['001.JPG', '002.JPG']
-        self.dev.orientation = 'odd'
+        self.dev.target_page = 'odd'
         fname = self.dev.get_next_filename('/tmp/proj', 'jpg')
         assert fname == '/tmp/proj/003.jpg'
-        self.dev.orientation = 'even'
+        self.dev.target_page = 'even'
         fname = self.dev.get_next_filename('/tmp/proj', 'jpg')
         assert fname == '/tmp/proj/004.jpg'
         listdir.return_value = []
@@ -84,27 +84,27 @@ class TestChdkCameraDevice(object):
         assert out == 5
         self.dev._run.assert_called_with("luar return moo")
 
-    def test_get_orientation(self):
+    def test_get_target_page(self):
         self.dev._run = Mock()
         with patch('spreadsplug.dev.chdkcamera.open',
                    create=True) as mock_open:
             mock_open.return_value = Mock(spec=file)
             fhandle = mock_open.return_value.__enter__.return_value
             fhandle.readline.return_value = 'ODD'
-            orientation = self.dev._get_orientation()
-        assert orientation == 'odd'
+            target_page = self.dev._get_target_page()
+        assert target_page == 'odd'
 
     @raises(ValueError)
-    def test_get_orientation_error(self):
+    def test_get_target_page_error(self):
         self.dev._run = Mock()
         self.dev._run.side_effect = [util.DeviceException]
-        self.dev._get_orientation()
+        self.dev._get_target_page()
 
     @patch('spreadsplug.dev.chdkcamera.os.write')
-    def test_set_orientation(self, write):
+    def test_set_target_page(self, write):
         self.dev._run = Mock()
-        self.dev.set_orientation('odd')
-        assert self.dev.orientation == 'odd'
+        self.dev.set_target_page('odd')
+        assert self.dev.target_page == 'odd'
 
     def test_get_preview_image(self):
         self.dev._run = Mock()
