@@ -11,9 +11,7 @@ class TestPlugin(object):
         pass
 
     def test_get_driver(self):
-        cfg = confit.Configuration('test_plugin')
-        cfg["driver"] = u"dummy"
-        assert "dummy" in plugin.get_driver(cfg).names()
+        assert "dummy" in plugin.get_driver("dummy").names()
 
     @patch('spreads.plugin.get_driver')
     def test_get_devices(self, get_driver):

@@ -267,7 +267,8 @@ def setup_parser(config):
         parser.add_argument(flag, **kwargs)
 
     def _add_device_arguments(name, parser):
-        tmpl = get_driver(config).driver.configuration_template()
+        tmpl = get_driver(config["driver"]
+                          .get()).driver.configuration_template()
         if not tmpl:
             return
         for key, option in tmpl.iteritems():

@@ -297,8 +297,7 @@ def get_pluginmanager(config):
     return pluginmanager
 
 
-def get_driver(config):
-    driver_name = config["driver"].get(unicode)
+def get_driver(driver_name):
     return DriverManager(namespace="spreadsplug.devices",
                          name=driver_name)
 
@@ -306,7 +305,7 @@ def get_driver(config):
 def get_devices(config):
     """ Initialize configured devices.
     """
-    driver = get_driver(config)
+    driver = get_driver(config["driver"].get())
     driver_class = driver.driver
     logger.debug("Finding devices for driver \"{0}\"".format(driver))
     usb_devices = filter(lambda dev: driver_class.match(dev),
