@@ -5,6 +5,8 @@ General
     * more specific: what should a method *do*/*effects*
     * less mock objects
     * better coverage
+- Reinstate 'combine' plugin as a custom subcommand that expects 'odd' and
+  'even' directories in project path
 
 Plugin ideas
 ============
@@ -12,7 +14,3 @@ Plugin ideas
 - Metadata plugin using OpenLibrary for ISBN-queries and Dublin Core for
   serialization
 - Archive.org upload plugin
-
-Bugs
-====
-- Fix CHDK parallel triggering instability
