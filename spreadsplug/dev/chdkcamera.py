@@ -99,6 +99,8 @@ class CHDKCameraDevice(DevicePlugin):
         self.target_page = target_page
 
     def prepare_capture(self, path):
+        # Try to go into alt mode to prevent weird behaviour
+        self._execute_lua("enter_alt()")
         # Try to put into record mode
         try:
             self._run("rec")
