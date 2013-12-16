@@ -126,7 +126,10 @@ class Workflow(object):
             futures = []
             self.logger.debug("Sending capture command to devices")
             for dev in self.devices:
-                img_path = self._get_next_filename(extension, dev.target_page)
+                target_page = dev.target_page
+                if self.config["flip_target_page"].get(bool):
+                    target_page = 'odd' if target_page == 'even' else 'even'
+                img_path = self._get_next_filename(extension, target_page)
                 futures.append(executor.submit(dev.capture, img_path))
         check_futures_exceptions(futures)
         self._run_hook('capture', self.devices, self.path)

@@ -12,6 +12,8 @@ class TestWorkflow(object):
     def setUp(self):
         self.plugins = [Mock() for x in xrange(3)]
         self.devices = [Mock() for x in xrange(2)]
+        self.devices[0].target_page = 'odd'
+        self.devices[1].target_page = 'even'
         workflow.get_pluginmanager = Mock(return_value=self.plugins)
         workflow.get_devices = Mock(return_value=self.devices)
         config = confit.Configuration('test_workflow')
@@ -59,9 +61,12 @@ class TestWorkflow(object):
 
     def test_capture(self):
         self.workflow.config['parallel_capture'] = True
+        self.workflow.config['flip_target_page'] = False
         self.workflow.capture()
-        for dev in self.devices:
-            assert dev.capture.call_count == 1
+        self.devices[0].capture.assert_called_with(
+            '/tmp/test_workflow/raw/001.jpg')
+        self.devices[1].capture.assert_called_with(
+            '/tmp/test_workflow/raw/000.jpg')
         for plug in self.plugins:
             assert plug.obj.capture.call_count == 1
             assert (plug.obj.capture.call_args_list ==
@@ -69,11 +74,21 @@ class TestWorkflow(object):
 
     def test_capture_noparallel(self):
         self.workflow.config['parallel_capture'] = False
+        self.workflow.config['flip_target_page'] = False
         self.workflow.capture()
         # TODO: Find a way to verify that the cameras were indeed triggered
         #       in sequence and not in parallel
         for dev in self.devices:
             assert dev.capture.call_count == 1
+
+    def test_capture_flip_target_pages(self):
+        self.workflow.config['parallel_capture'] = False
+        self.workflow.config['flip_target_page'] = True
+        self.workflow.capture()
+        self.devices[0].capture.assert_called_with(
+            '/tmp/test_workflow/raw/000.jpg')
+        self.devices[1].capture.assert_called_with(
+            '/tmp/test_workflow/raw/001.jpg')
 
     def test_finish_capture(self):
         self.workflow.finish_capture()
