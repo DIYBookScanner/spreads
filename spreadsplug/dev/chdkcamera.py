@@ -31,12 +31,7 @@ class CHDKCameraDevice(DevicePlugin):
 
     @classmethod
     def configuration_template(cls):
-        conf = {'two_devices': PluginOption(True,
-                                            "Use two cameras for shooting"),
-                'reverse_spreads': PluginOption(
-                    False, "When shooting with two devices, flip the target"
-                    "book spreads (odd<->even)"),
-                'sensitivity': PluginOption(80, "The ISO sensitivity value"),
+        conf = {'sensitivity': PluginOption(80, "The ISO sensitivity value"),
                 'shutter_speed': PluginOption(
                     u"1/25", "The shutter speed as a fraction"),
                 'zoom_level': PluginOption(3, "The default zoom level"),
@@ -76,6 +71,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._cli_flags = []
         self._cli_flags.append("-c-d={0:03} -b={1:03}".format(
                                device.address, device.bus))
+        self._cli_flags.append("-eset cli_verbose=2")
         self._chdk_buildnum = (self._execute_lua("get_buildinfo()",
                                                  get_result=True)
                                ["build_revision"])
@@ -83,13 +79,10 @@ class CHDKCameraDevice(DevicePlugin):
         self._can_remote = self._chdk_buildnum >= 2927
         self._zoom_steps = self._execute_lua("get_zoom_steps()",
                                              get_result=True)
-        if config["two_devices"].get(bool):
-            try:
-                self.target_page = self._get_target_page()
-            except ValueError:
-                raise DeviceException("Target page could not be determined, "
-                                      "please run 'spread configure' to "
-                                      "configure your devices.")
+        try:
+            self.target_page = self._get_target_page()
+        except:
+            self.target_page = None
         self.logger = logging.getLogger('ChdkCamera[{0}]'
                                         .format(self.target_page))
 
@@ -128,18 +121,21 @@ class CHDKCameraDevice(DevicePlugin):
         os.remove(fpath)
         return data
 
-    def capture(self, path):
-        img_path = self.get_next_filename(
-            path, 'dng' if self._shoot_raw else 'jpg')
+    def capture(self, path, two_device_mode=False):
         if self._can_remote:
             cmd = ("remoteshoot -tv={0} -isomode={1} {2} {3}"
                    .format(self._shutter_speed, self._sensitivity,
-                           "-dng" if self._shoot_raw else "", img_path))
+                           "-dng" if self._shoot_raw else "", path))
         else:
             cmd = ("shoot -tv={0} -isomode={1} -dng={2} -rm -dl {3}"
                    .format(self._shutter_speed, self._sensitivity,
-                           int(self._shoot_raw), img_path))
-        self._run(cmd)
+                           int(self._shoot_raw), path))
+        try:
+            self._run(cmd)
+            return
+        except CHDKPTPException as e:
+            self.logger.warn("Capture command failed.")
+            raise e
         # TODO: If we are in two-device mode, set EXIF orientation with
         #       'exiftool', according to target page
 
@@ -153,6 +149,7 @@ class CHDKCameraDevice(DevicePlugin):
         output = (subprocess.check_output(cmd_args, env=env,
                                           stderr=subprocess.STDOUT)
                   .splitlines())
+        self.logger.debug("Call returned:\n{0}".format(output))
         # Filter out connected message
         output = [x for x in output if not x.startswith('connected:')]
         # Check for possible CHDKPTP errors
