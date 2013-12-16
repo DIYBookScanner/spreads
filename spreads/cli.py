@@ -320,7 +320,8 @@ def setup_parser(config):
             help="Do not trigger capture on multiple devices at once.")
         _add_plugin_arguments(['prepare_capture', 'capture', 'finish_capture'],
                               parser)
-        _add_device_arguments('capture', parser)
+        if 'driver' in config.keys():
+            _add_device_arguments('capture', parser)
 
     postprocess_parser = subparsers.add_parser(
         'postprocess',
@@ -346,8 +347,9 @@ def setup_parser(config):
         _add_plugin_arguments(['output'], parser)
 
     # Add custom subcommands from plugins
-    pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),
-                      subparsers)
+    if config["plugins"].get():
+        pluginmanager.map(lambda x, y: x.plugin.add_command_parser(y),
+                          subparsers)
     return rootparser
 
 

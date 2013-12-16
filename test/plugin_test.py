@@ -16,6 +16,7 @@ class TestPlugin(object):
     @patch('spreads.plugin.get_driver')
     def test_get_devices(self, get_driver):
         cfg = Mock()
+        cfg.keys.return_value = ["driver"]
         driver = Mock()
         usb_mock = Mock()
         plugin.usb.core.find = Mock(return_value=[usb_mock])

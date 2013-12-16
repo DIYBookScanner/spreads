@@ -28,7 +28,7 @@ import traceback
 
 import colorama
 
-import spreads.cli
+import spreads.cli as cli
 from spreads.confit import ConfigError
 from spreads.util import DeviceException, MissingDependencyException
 
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     # Initialize color support
     colorama.init()
     try:
-        spreads.cli.main()
+        cli.main()
     except DeviceException as e:
         typ, val, tb = sys.exc_info()
         logging.debug("".join(traceback.format_exception(typ, val, tb)))

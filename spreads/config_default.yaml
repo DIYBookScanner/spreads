@@ -1,8 +1,6 @@
 # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
 loglevel: warning
-plugins: [autorotate, scantailor, pdfbeads]
-driver: dummy
-
+plugins: []
 
 # Options for 'capture' step
 capture:

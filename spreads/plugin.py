@@ -338,6 +338,10 @@ def get_driver(driver_name):
 def get_devices(config):
     """ Initialize configured devices.
     """
+    if not 'driver' in config.keys():
+        raise DeviceException(
+            "No driver has been configured\n"
+            "Please run `spread configure` to select a driver.")
     driver = get_driver(config["driver"].get())
     driver_class = driver.driver
     logger.debug("Finding devices for driver \"{0}\"".format(driver))
@@ -351,9 +355,10 @@ def get_devices(config):
 
 def setup_plugin_config(config):
     pluginmanager = get_pluginmanager(config)
-    driver_name = config["driver"].get(unicode)
-    driver = DriverManager(namespace="spreadsplug.devices",
-                           name=driver_name)
+    if "driver" in config.keys():
+        driver = get_driver(config["driver"].get(unicode))
+    else:
+        driver = ()
     for ext in itertools.chain(pluginmanager, driver):
         logger.debug("Obtaining configuration template for plugin \"{0}\""
                      .format(ext.name))
