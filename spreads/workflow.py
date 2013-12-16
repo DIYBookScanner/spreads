@@ -63,6 +63,32 @@ class Workflow(object):
         for plugin in self.plugins:
             getattr(plugin, hook_name)(*args)
 
+    def _get_next_filename(self, extension, target_page=None):
+        """ Get next filename that a capture should be stored as.
+
+        If the workflow is shooting with two devices, this will select a
+        filename that matches the device's target page (odd/even).
+
+        :param extension: file extension to be used
+        :type extension:  str/unicode
+        :param target_page: target page of file ('odd/even')
+        :type target_page:  str/unicode/None if not applicable
+        :return:          absolute path to next filename
+                          (e.g. /tmp/proj/003.jpg)
+        """
+        base_path = os.path.join(self.path, 'raw')
+        if not os.path.exists(base_path):
+            os.mkdir(base_path)
+
+        if target_page is None:
+            return os.path.join(
+                base_path, "{03:0}.{1}".format(self._pages_shot, extension))
+
+        next_num = (self._pages_shot+1 if target_page == 'odd'
+                    else self._pages_shot)
+        return os.path.join(base_path,
+                            "{0:03}.{1}".format(next_num, extension))
+
     def prepare_capture(self):
         self.logger.info("Preparing capture.")
         with ThreadPoolExecutor(len(self.devices)) as executor:
@@ -79,13 +105,24 @@ class Workflow(object):
             num_devices = len(self.devices)
         else:
             num_devices = 1
+
+        # TODO: This has to be formalized somewhere, so we can add new file
+        #       formats painlessly
+        can_shoot_raw = "shoot_raw" in self.config["device"].keys()
+        if can_shoot_raw and self.config["device"]["shoot_raw"].get():
+            extension = 'dng'
+        else:
+            extension = 'jpg'
+
         with ThreadPoolExecutor(num_devices) as executor:
             futures = []
             self.logger.debug("Sending capture command to devices")
             for dev in self.devices:
-                futures.append(executor.submit(dev.capture, self.path))
+                img_path = self._get_next_filename(extension, dev.target_page)
+                futures.append(executor.submit(dev.capture, img_path))
         check_futures_exceptions(futures)
         self._run_hook('capture', self.devices, self.path)
+        self._pages_shot += len(self.devices)
 
     def finish_capture(self):
         self._run_hook('finish_capture', self.devices, self.path)
