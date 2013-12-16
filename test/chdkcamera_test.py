@@ -45,7 +45,8 @@ class TestChdkCameraDevice(object):
             "asdf")
         output = self.dev._run('foobar')
         assert output == ["asdf"]
-        assert (call([u'/tmp/chdkptp/chdkptp', '-c-d=002 -b=001', '-efoobar'],
+        assert (call([u'/tmp/chdkptp/chdkptp', '-c-d=002 -b=001',
+                      '-eset cli_verbose=2', '-efoobar'],
                      env={'LUA_PATH': u'/tmp/chdkptp/lua/?.lua'}, stderr=-2)
                 in chdkcamera.subprocess.check_output.call_args_list)
 
