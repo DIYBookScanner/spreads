@@ -76,8 +76,9 @@ class SpreadsWizard(QtGui.QWizard):
 
 class IntroPage(QtGui.QWizardPage):
     def initializePage(self):
-        self.pluginmanager = get_pluginmanager(self.wizard().config)
-        self.wizard().active_plugins = self.pluginmanager.names()
+        wizard = self.wizard()
+        self.pluginmanager = get_pluginmanager(wizard.config)
+        wizard.active_plugins = self.pluginmanager.names()
         self.setTitle("Welcome!")
 
         intro_label = QtGui.QLabel(
@@ -99,8 +100,13 @@ class IntroPage(QtGui.QWizardPage):
         #        self.stack_widget, SLOT("setCurrentIndex(int)"))
         general_page = QtGui.QGroupBox()
         layout = QtGui.QFormLayout()
-        self.keep_box = QtGui.QCheckBox("Keep files on devices")
-        layout.addRow(self.keep_box)
+        self.parallel_box = QtGui.QCheckBox(
+            "Do not trigger capture on multiple\ndevices at once")
+        self.fliptarget_box = QtGui.QCheckBox(
+            "Temporarily switch target pages\n(useful for e.g. East-Asian"
+            "books)")
+        layout.addRow(self.parallel_box)
+        layout.addRow(self.fliptarget_box)
 
         general_page.setLayout(layout)
         self.stack_widget.addWidget(general_page)
@@ -190,6 +196,7 @@ class IntroPage(QtGui.QWizardPage):
         self.line_edit.setText(dialog.selectedFiles()[0])
 
     def validatePage(self):
+        wizard = self.wizard()
         project_path = self.line_edit.text()
         if not project_path:
             msg_box = QtGui.QMessageBox()
@@ -197,13 +204,16 @@ class IntroPage(QtGui.QWizardPage):
             msg_box.setIcon(QtGui.QMessageBox.Critical)
             msg_box.exec_()
             return False
-        self.wizard().config['path'] = project_path
+        wizard.config['path'] = project_path
 
-        self.wizard().config['keep'] = self.keep_box.isChecked()
+        wizard.config['parallel_capture'] = (
+            not self.parallel_box.isChecked())
+        wizard.config['flip_target_pages'] = (
+            self.fliptarget_box.isChecked())
 
         self._update_config_from_plugin_widgets()
-        self.wizard().workflow = workflow.Workflow(self.wizard().config)
-        self.wizard().workflow.prepare_capture()
+        wizard.workflow = workflow.Workflow(wizard.config)
+        wizard.workflow.prepare_capture()
         return True
 
     def _update_config_from_plugin_widgets(self):

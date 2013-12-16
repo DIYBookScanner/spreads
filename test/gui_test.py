@@ -44,7 +44,8 @@ class TestWizard(object):
         page.line_edit.setText('/tmp/foobar')
         assert page.validatePage()
         assert self.wizard.workflow.path == '/tmp/foobar'
-        assert not self.config['keep'].get(bool)
+        assert self.config['parallel_capture'].get(bool)
+        assert not self.config['flip_target_pages'].get(bool)
         #assert spreads.config['first_page'].get(unicode) == "left"
         #assert not spreads.config['rotate_inverse'].get(bool)
         #assert not spreads.config['autopilot'].get(bool)
