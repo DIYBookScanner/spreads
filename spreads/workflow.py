@@ -38,10 +38,13 @@ class Workflow(object):
     path = None
     _devices = None
     _pluginmanager = None
+    _pages_shot = 0
 
     def __init__(self, config):
         self.logger = logging.getLogger('Workflow')
         self.path = config['path'].get(unicode)
+        if not os.path.exists(self.path):
+            os.mkdir(self.path)
         self.config = config
 
     @property
@@ -91,6 +94,11 @@ class Workflow(object):
 
     def prepare_capture(self):
         self.logger.info("Preparing capture.")
+        if any(dev.target_page is None for dev in self.devices):
+            raise DeviceException(
+                "Target page for at least one of the devicescould not be"
+                "determined, please run 'spread configure' to configure your"
+                "your devices.")
         with ThreadPoolExecutor(len(self.devices)) as executor:
             futures = []
             self.logger.debug("Preparing capture in devices")
