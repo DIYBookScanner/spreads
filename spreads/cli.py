@@ -138,6 +138,7 @@ def configure(config):
     config["driver"] = _select_driver()
     config["plugins"] = _select_plugins(config["plugins"].get())
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
+    setup_plugin_config(config)
     print("Writing configuration file to '{0}'".format(cfg_path))
     config.dump(filename=cfg_path)
 
