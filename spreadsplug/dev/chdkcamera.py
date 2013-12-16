@@ -245,8 +245,10 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
                 " (max: {1})".format(level, self._zoom_steps-1))
         zoom = self._execute_lua("get_zoom()", get_result=True)
         if zoom < level:
-            self._execute_lua("while(get_zoom()<3) do click(\"zoom_in\") end",
+            self._execute_lua("while(get_zoom()<{0}) do click(\"zoom_in\") end"
+                              .format(level+1),
                               wait=True)
         elif zoom > level:
-            self._execute_lua("while(get_zoom()>3) do click(\"zoom_out\") end",
+            self._execute_lua("while(get_zoom()>{0}) "
+                              "do click(\"zoom_out\") end".format(level+1),
                               wait=True)
