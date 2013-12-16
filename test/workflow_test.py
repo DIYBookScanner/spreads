@@ -11,7 +11,7 @@ util.find_in_path = Mock(return_value=True)
 class TestWorkflow(object):
     def setUp(self):
         self.plugins = [Mock() for x in xrange(3)]
-        self.devices = [Mock() for x in xrange(3)]
+        self.devices = [Mock() for x in xrange(2)]
         workflow.get_pluginmanager = Mock(return_value=self.plugins)
         workflow.get_devices = Mock(return_value=self.devices)
         config = confit.Configuration('test_workflow')
@@ -34,6 +34,18 @@ class TestWorkflow(object):
     def test_get_devices_no_device(self):
         workflow.get_devices = Mock(return_value=[])
         self.workflow.devices
+
+    @patch('spreads.plugin.os.mkdir')
+    def test_get_next_filename(self, mkdir):
+        fname = self.workflow._get_next_filename('jpg', target_page='odd')
+        assert fname == '/tmp/test_workflow/raw/001.jpg'
+        fname = self.workflow._get_next_filename('jpg', target_page='even')
+        assert fname == '/tmp/test_workflow/raw/000.jpg'
+        self.workflow._pages_shot += 2
+        fname = self.workflow._get_next_filename('jpg', target_page='odd')
+        assert fname == '/tmp/test_workflow/raw/003.jpg'
+        fname = self.workflow._get_next_filename('jpg', target_page='even')
+        assert fname == '/tmp/test_workflow/raw/002.jpg'
 
     def test_prepare_capture(self):
         self.workflow.prepare_capture()

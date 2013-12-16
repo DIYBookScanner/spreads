@@ -30,19 +30,6 @@ class TestChdkCameraDevice(object):
             lua.return_value = {'build_revision': 3000}
             self.dev = chdkcamera.CHDKCameraDevice(self.config, usbmock)
 
-    @patch('spreads.plugin.os.listdir')
-    def test_get_next_filename(self, listdir):
-        listdir.return_value = ['001.JPG', '002.JPG']
-        self.dev.target_page = 'odd'
-        fname = self.dev.get_next_filename('/tmp/proj', 'jpg')
-        assert fname == '/tmp/proj/003.jpg'
-        self.dev.target_page = 'even'
-        fname = self.dev.get_next_filename('/tmp/proj', 'jpg')
-        assert fname == '/tmp/proj/004.jpg'
-        listdir.return_value = []
-        fname = self.dev.get_next_filename('/tmp/proj', 'jpg')
-        assert fname == '/tmp/proj/000.jpg'
-
     def test_init_noremote(self):
         usbmock = Mock()
         usbmock.bus, usbmock.address = 1, 2
