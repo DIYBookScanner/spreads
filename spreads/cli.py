@@ -137,6 +137,9 @@ def _set_device_target_page(config, target_page):
 def configure(config):
     config["driver"] = _select_driver()
     config["plugins"] = _select_plugins(config["plugins"].get())
+
+    setup_plugin_config(config)
+
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
     setup_plugin_config(config)
     print("Writing configuration file to '{0}'".format(cfg_path))
@@ -176,7 +179,6 @@ def capture(config):
     # Start capture loop
     print(colorama.Fore.BLUE + "Press 'b' to capture.")
     shot_count = 0
-    start_time = time.time()
     pages_per_hour = 0
     capture_keys = workflow.config['capture']['capture_keys'].as_str_seq()
     while True:
@@ -184,17 +186,21 @@ def capture(config):
             break
         workflow.capture()
         shot_count += len(workflow.devices)
-        pages_per_hour = (3600/(time.time() - start_time))*shot_count
+        pages_per_hour = (3600/(time.time() -
+                          workflow.capture_start))*shot_count
         status = ("\rShot {0} pages [{1:.0f}/h]"
                   .format(colorama.Fore.GREEN + unicode(shot_count),
                           pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
     workflow.finish_capture()
+    if workflow.capture_start is None:
+        return
     sys.stdout.write("\rShot {0} pages in {1:.1f} minutes, average speed was"
                      " {2:.0f} pages per hour"
                      .format(colorama.Fore.GREEN + str(shot_count),
-                             (time.time() - start_time)/60, pages_per_hour))
+                             (time.time() - workflow.capture_start)/60,
+                             pages_per_hour))
     sys.stdout.flush()
 
 

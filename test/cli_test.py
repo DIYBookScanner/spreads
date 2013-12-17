@@ -1,3 +1,4 @@
+import time
 from itertools import chain, repeat
 
 from mock import patch, MagicMock as Mock
@@ -17,6 +18,7 @@ class TestCLI(object):
         self.workflow.devices = [Mock(), Mock()]
         self.workflow.devices[0].target_page = 'even'
         self.workflow.devices[1].target_page = 'odd'
+        self.workflow.capture_start = time.time()
         self.workflow.config = confit.Configuration('test_cli')
         cli.Workflow = Mock(return_value=self.workflow)
 

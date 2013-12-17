@@ -27,6 +27,7 @@ from __future__ import division, unicode_literals
 
 import logging
 import os
+import time
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -36,12 +37,20 @@ from spreads.util import check_futures_exceptions, DeviceException
 
 class Workflow(object):
     path = None
-    _devices = None
-    _pluginmanager = None
+    step = None
+    step_done = False
+    capture_start = None
     _pages_shot = 0
 
-    def __init__(self, config):
+    _devices = None
+    _pluginmanager = None
+    _images = None
+
+    def __init__(self, config, path=None, step=None, step_done=None):
         self.logger = logging.getLogger('Workflow')
+        self.step = step
+        self.step_done = step_done
+        # TODO: Use 'path' argument for this
         self.path = config['path'].get(unicode)
         if not os.path.exists(self.path):
             os.mkdir(self.path)
@@ -60,6 +69,17 @@ class Workflow(object):
         if not self._devices:
             raise DeviceException("Could not find any compatible devices!")
         return self._devices
+
+    @property
+    def images(self):
+        # Get fresh image list if number of pages has changed
+        if not self._images or len(self._images) < self._pages_shot:
+            self._images = os.listdir(os.path.join(self.path, 'raw'))
+        return self._images
+
+    @property
+    def out_files(self):
+        return os.listdir(os.path.join(self.path, 'out'))
 
     def _run_hook(self, hook_name, *args):
         self.logger.debug("Running '{0}' hooks".format(hook_name))
@@ -108,6 +128,8 @@ class Workflow(object):
         self._run_hook('prepare_capture', self.devices, self.path)
 
     def capture(self):
+        if self.capture_start is None:
+            self.capture_start = time.time()
         self.logger.info("Triggering capture.")
         if self.config['parallel_capture'].get(bool):
             num_devices = len(self.devices)
@@ -127,7 +149,7 @@ class Workflow(object):
             self.logger.debug("Sending capture command to devices")
             for dev in self.devices:
                 target_page = dev.target_page
-                if self.config["flip_target_page"].get(bool):
+                if self.config["flip_target_pages"].get(bool):
                     target_page = 'odd' if target_page == 'even' else 'even'
                 img_path = self._get_next_filename(extension, target_page)
                 futures.append(executor.submit(dev.capture, img_path))
