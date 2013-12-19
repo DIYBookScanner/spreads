@@ -35,19 +35,9 @@ class AutoRotatePlugin(HookPlugin):
     __name__ = 'autorotate'
 
     @classmethod
-    def add_arguments(cls, command, parser):
-        if command == 'postprocess':
-            parser.add_argument("--rotate-inverse", "-ri",
-                                dest="rotate_inverse", action="store_true",
-                                default=False,
-                                help="Rotate odd pages CCW, even pages CW"
-                                " (use when first page comes from right"
-                                " camera)")
-
-    @classmethod
     def configuration_template(cls):
-        conf = {'odd': PluginOption(-90, "Rotation applied to odd pages"),
-                'even': PluginOption(90, "Rotation applied to even pages"),
+        conf = {'rotate_odd': PluginOption(-90, "Rotation applied to odd pages"),
+                'rotate_even': PluginOption(90, "Rotation applied to even pages"),
                 }
         return conf
 
@@ -62,9 +52,9 @@ class AutoRotatePlugin(HookPlugin):
                 try:
                     img = JpegFile.fromFile(os.path.join(img_dir, imgpath))
                     if img.exif.primary.Orientation == [8]:
-                        rotation = self.config['odd'].get(int)
+                        rotation = self.config['rotate_odd'].get(int)
                     elif img.exif.primary.Orientation == [6]:
-                        rotation = self.config['even'].get(int)
+                        rotation = self.config['rotate_even'].get(int)
                     elif img.exif.primary.Orientation == [1]:
                         # Already rotated, so we skip it
                         continue
@@ -76,8 +66,6 @@ class AutoRotatePlugin(HookPlugin):
                                 .format(imgpath))
                     logger.exception(exc)
                     continue
-                if self.config['rotate_inverse'].get(bool):
-                    rotation *= -1
                 logger.debug("Orientation for \"{0}\" is {1}"
                              .format(imgpath, rotation))
                 executor.submit(

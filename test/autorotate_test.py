@@ -10,14 +10,8 @@ import spreadsplug.autorotate as autorotate
 class TestAutorotate(object):
     def setUp(self):
         self.config = confit.Configuration('test_autorotate')
-        self.config['autorotate']['rotate_inverse'] = False
-        self.config['autorotate']['odd'] = -90
-        self.config['autorotate']['even'] = 90
-
-    def test_add_arguments(self):
-        parser = Mock()
-        autorotate.AutoRotatePlugin.add_arguments('postprocess', parser)
-        assert parser.add_argument.call_count == 1
+        self.config['autorotate']['rotate_odd'] = -90
+        self.config['autorotate']['rotate_even'] = 90
 
     @patch('os.listdir')
     def test_process(self, listdir):
@@ -50,7 +44,8 @@ class TestAutorotate(object):
         autorotate.JpegFile.fromFile = Mock(return_value=mock_exif)
         mock_pool = Mock()
         autorotate.futures.ProcessPoolExecutor = Mock(return_value=mock_pool)
-        self.config['autorotate']['rotate_inverse'] = True
+        self.config['autorotate']['rotate_odd'] = 90
+        self.config['autorotate']['rotate_even'] = -90
         plug = autorotate.AutoRotatePlugin(self.config)
         plug.process('/tmp/foobar')
         assert mock_pool.__enter__().submit.call_args_list == [
