@@ -121,6 +121,7 @@ class Workflow(object):
 
     def prepare_capture(self):
         self.logger.info("Preparing capture.")
+        self.step = 'capture'
         if any(dev.target_page is None for dev in self.devices):
             raise DeviceException(
                 "Target page for at least one of the devicescould not be"
@@ -165,17 +166,24 @@ class Workflow(object):
         self._pages_shot += len(self.devices)
 
     def finish_capture(self):
+        self.step_done = True
         self._run_hook('finish_capture', self.devices, self.path)
 
     def process(self):
+        self.step = 'process'
+        self.step_done = False
         self.logger.info("Starting postprocessing...")
         self._run_hook('process', self.path)
         self.logger.info("Done with postprocessing!")
+        self.step_done = True
 
     def output(self):
         self.logger.info("Generating output files...")
+        self.step = 'output'
+        self.step_done = False
         out_path = os.path.join(self.path, 'out')
         if not os.path.exists(out_path):
             os.mkdir(out_path)
         self._run_hook('output', self.path)
         self.logger.info("Done generating output files!")
+        self.step_done = True
