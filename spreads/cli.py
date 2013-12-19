@@ -217,19 +217,19 @@ def wizard(config):
           "==========================\n",
           "Starting capturing process\n",
           "==========================")
-    capture(workflow)
+    capture(workflow.config)
 
     print(colorama.Fore.GREEN +
           "=======================\n"
           "Starting postprocessing\n"
           "=======================")
-    postprocess(workflow)
+    postprocess(workflow.config)
 
     print(colorama.Fore.GREEN +
           "=================\n",
           "Generating output\n"
           "=================")
-    output(workflow)
+    output(workflow.config)
 
 
 def setup_parser(config):
