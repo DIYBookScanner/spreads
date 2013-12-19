@@ -20,24 +20,6 @@ captured image is shown during the capture process. Requires an installation
 of the *PySide* packages. Refer to the :ref:`GUI tutorial <gui_tutorial>`
 for more information.
 
-*download* plugins
-==================
-These provide functionality that is executed after the files have been
-downloaded from the devices. They are only allowed to change the images in
-ways that preserve all of their original data (i.e. they are allowed to rotate
-the images while preserving all of the metadata, but not to scale them).
-
-combine
--------
-Combines images from the left and right devices to a single folder.
-
-.. option:: --first-page FIRST_PAGE, -fp FIRST_PAGE
-
-   Only active when the ``combine`` plugin is active (it is enabled by default).
-   Select which devices has the first page (default: left). Use this when
-   you have changed your setup (e.g. switched to paperback scanning mode
-   on the DIY BookScanner).
-
 .. _postproc_plugs:
 
 *postprocess* plugins
@@ -50,16 +32,19 @@ either modify the captured images or generate a different output.
 autorotate
 ----------
 Automatically rotates the images according to their device of origin. By
-default this means -90° for the left device and 90° for the right device, but
-this can be set to +/- 180° by specifying the :option:`rotate-inverse
-<--rotate-inverse, -ri>` option.
+default this means -90° for odd pages and 90° for even pages, but these can
+be set to arbitrary values by specifying the :option:`rotate-even<--rotate-even>`
+or :option:`rotate-odd<--rotate-odd>` options. You probably want to stick to
+multiples of 90°.
 
-.. option:: --rotate-inverse, -ri
+.. option:: --rotate-even
 
-   By default, *spreads* will rotate your images either by +/- 90 degrees,
-   depending on their device of origin. With this setting, you can switch
-   these values, in case you scanned your book upside down. Often used in
-   combination with the ``--first-page`` switch of the ``download`` command.
+   Change rotation for images from even book pages (default: 90°)
+
+.. option:: --rotate-odd
+
+   See above, only for odd pages (default: -90°)
+
 
 colorcorrect
 ------------

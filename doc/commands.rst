@@ -5,7 +5,7 @@ Command-Line Interface
 
 It takes a *command* as its first argument::
 
-    $ spread COMMAND [ARGS...]
+    $ spread [--verbose] COMMAND [ARGS...]
 
 All of *spreads'* functionality is accesible via the following commands:
 
@@ -24,45 +24,34 @@ configure
 
     $ spread configure
 
-This command sets up your devices for capturing. Currently, this means nothing
-more than assigning each of the devices with a label 'left' or 'right', to
-later help maintain the correct page order and apply the right rotation.
-The UI will ask you to successively connect and turn on each of your devices
-and turn it off again when configuration has succeeded.
-This command only has to be performed once for each set of devices, as the
-label is stored permanently on the devices' internal memory.
+This command lets you select a device driver and a set of plugins to activate.
+It also allows you to set the target pages for your devices, in case you are
+using two devices for capturing.
 
 capture
 =======
 ::
 
-    $ spread capture
+    $ spread capture [OPTIONS] <project-director>
 
-This command will start a capturing workflow. As usual, you will be asked
-to connect and turn on your devices. The application will then set them up,
-e.g. by switching them into record mode, disabling the flash and setting the
-options listed below. You will then enter a loop, where both devices will
-trigger simultaneously when you press the **b** key. Press any other key to
-finish capturing. Consult the documentation of your device for available
+This command will start a capturing workflow. You will be asked to connect and
+turn on your devices. After the application is done setting them up, you will
+enter a loop, where both devices will trigger simultaneously (if not configured
+otherwise, see below) when you press the **b** key. Press any other key to
+finish capturing. Consult the documentation of your device driver for available
 options.
 
-download
-========
-::
+.. program:: spread-capture
 
-    $ spread download [OPTIONS] <project-directory
+.. option:: --no-parallel-capture
 
-This will tell spreads to download all images from your devices to the folder
-*project-directory*. Images from both devices will automatically be assembled
-into a single directory, named **raw**. On success, the images will be removed
-from the devices.
+   When using two devices, do not trigger them simultaneously but one after the
+   other.
 
-.. program:: spread-download
+.. option:: --flip-target-pages
 
-.. option:: --keep, -k
-
-   Do not remove the images from the devices, once the download has been
-   completed.
+   When using two devices, flip the configured target pages, i.e. the camera
+   configured to be *odd* will temporarily be the *even* device and vice versa.
 
 
 postprocess

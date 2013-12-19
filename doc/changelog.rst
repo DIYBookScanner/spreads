@@ -1,5 +1,15 @@
 Changelog
 =========
+0.4 (2013/12/24)
+----------------
+* Windows support
+* Use `chdkptp` utility for controlling cameras with CHDK firmware
+* Remove `download` step, images will be directly streamed to the project
+  directory
+* Device driver and plugins can be selecte interactively via the `configure`
+  subcommand
+* Lots of internal API changes
+
 0.3.3 (2013/08/28)
 ------------------
 * Fix typo in device manager that prevent drivers from being loaded

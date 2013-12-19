@@ -14,9 +14,10 @@ so the dependencies are rather numerous, though you can adapt that, if you
 want.
 
 The described (and recommended) way to install *spreads* is inside of a
-virtualenv, not system-wide, though you can do so as well, if you like.
+`virtualenv`_, not system-wide, though you can do so as well, if you like.
 
 .. _DIYBookScanner: http://diybookscanner.org/forum/viewtopic.php?f=1&t=1192 
+.. _virtualenv: http://docs.python-guide.org/en/latest/dev/virtualenvs/
 
 Installation
 ------------
@@ -25,8 +26,6 @@ First, ensure that you have all the dependencies installed::
     $ sudo apt-get install python2.7 python2.7-dev python-virtualenv libusb-dev\
       libjpeg-dev libtiff-dev libqt4-core rubygems ruby-rmagick libmagickwand-dev\
       libhpricot-ruby scantailor
-    $ wget <scantailor-deb-url>
-    $ sudo dpkg -i <scantailor-deb>
     $ sudo gem install pdfbeads
     $ wget http://djvubind.googlecode.com/files/djvubind_1.2.1.deb
     $ sudo dpkg -i djvubind_1.2.1.deb
@@ -37,53 +36,62 @@ First, ensure that you have all the dependencies installed::
 
 Configuration
 -------------
-Upon startup, *spreads* will write its configuration file to
-`~/.config/spreads/config.yml`. The file is heavily annotated, so you should
-have no problem adjusting it to your needs.
+To perform the initial configuration, launch the `configure` subcommand::
+
+    $ spread configure
+
+.. TODO: Add link to --flip-target-pages
+
+You will be asked to select a device driver (choose **a2200**) and some plugins
+(choose all except **gui**). At the end, you can set the target pages for each
+of your cameras. This is neccesary, as the application has to:
+
+* combine the images from both cameras to a single directory in the right order
+* set the correct rotation for the captured images
+
+To do both of these things automatically, the application needs to know if the
+image is showing an odd or even page. Don't worry, you only have to perform this
+step once, the orientation is stored on the camera's memory card (under
+`A/OWN.TXT`). Should you later wish to briefly flip the target pages, you can
+do so via a command-line flag.
+
+.. note::
+    If you are using a DIYBookScanner, the device for *odd* pages is the
+    camera on the **left**, the one for *even* pages on the **right**.
+
+Once you're done, you can find the configuration file in the `.config/spreads`
+folder in your home directory.
 
 .. seealso:: :doc:`Configuring <configuring>`
 
 
 Workflow
 --------
-To begin, we run *spreads* in the **wizard** mode, which will guide you through
-the whole workflow in one command::
+To begin, we run *spreads* in the **wizard** mode, which will guide us through
+the whole workflow::
 
     $ spread wizard ~/my_book
 
-The application will then ask you to connection both of your cameras in turn to
-configure them for shooting. The reason for this is, that the images from the
-cameras will most likely be have to rotated and combined during postprocessing,
-and by specifying which camera takes care of the left and right side of the
-book spread, this process can be done automatically. Don't worry, you only have
-to perform this step once, the orientation is stored on the camera's memory
-card (under `A/OWN.TXT`). Before you proceed, ensure that the book you want to
-scan is opened on a spread with content on both pages and pressed against the
-platen. This is to ensure that the cameras can get a good lock on the autofocus
-in the next step.
-
-When you are done, the shooting process begins! You will notice that your
-cameras will simultaneously move their lenses and adjust their zoom levels. In
-the background, the cameras will also, among other things, set their
-sensitivity levels and their shutter speeds to the values specified in the
-configuration, as well as set the focus and lock it for the rest of the process.
+Follow the instructions and press your book against the platen, to allow the
+cameras to automatically adjust their focus. This will be the focus that is
+used throughout the capturing process, so make sure that the distance between
+the pages and the cameras does not change significantly after this step!  When
+you are prepared, press a button (or your footpedal) and your cameras will
+simultaneously adjust their zoom levels and set their focus.
 
 Once this is done, the application will ask you to press one of your configured
-*shooting keys* (default: **b** or **space***). If you do so, both cameras will
-take a picture simultaneously and store it to their memory card. We will not
-transfer the images onto the computer until the capturing step has been
-completed, as not to slow down scanning speed. If you're done capturing the
-desired pages of your book, press any other key to stop the capturing loop.
+*shooting keys* (default: **b** or **space**). If you do so, both cameras will
+take a picture simultaneously, which is then transferred to our computer and
+stored under the correct filename in the `raw` subdirectory of our project
+directory. Now scan as many pages as you need, when you're done, press any
+other key to quit the capturing process and continue to the next step.
 
-Now spreads will automatically download all of the images just captured from
-the cameras to the `left` and `right` subdirectories of the project path (in
-this case: `~/my_book/`). Then, it will automatically combine the images into a
-new folder, `raw`, and rotate them according to their camera of origin.  This
-all happens automatically in the background, so you will most likely only see
-your CPU usage spike up for a few seconds (when rotating the images).
+Now spreads will begin with the postprocessing of the captured images. If you
+followed the instructions so far, it will first rotate the images, which,
+depending on your CPU and the number of images might take a minute or two.
 Afterwards, *spreads* will launch a **ScanTailor** process in the background,
 that will generate a configuration file (stored under
-`~/my_book/my_book.ScanTailor`).  When it has finished, it will open the
+`~/my_book/my_book.ScanTailor`). When it has finished, it will open the
 ScanTailor GUI, so you can make your final adjustments to the configuration.
 Save and close your project when you're finished. *spreads* will then split the
 configuration file into as many files as your computer has CPU cores and
@@ -106,7 +114,7 @@ GUI Wizard
 Enabling the GUI
 ----------------
 To enable the GUI wizard, first make sure that you have an up-to date version
-of PySide installed on your machine and linked to your virtual environemtn::
+of PySide installed on your machine and linked to your virtual environment::
 
     $ sudo apt-get install python-pyside
     $ ln -s /usr/lib/python2.7/dist-packages/PySide ~/.spreads/lib/python2.7/site-packages/PySide
@@ -116,6 +124,7 @@ Then, just add ``gui`` to the ``plugins`` list in your configuration file
 
 Usage
 -----
+.. TODO: Update!
 On the first screen, you can adjust various settings for your scan. You have
 to specify a project directory (1) before you can continue. The rest of the
 settings depends on which plugins you have enabled. In the screenshot you can
