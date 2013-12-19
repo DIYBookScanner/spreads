@@ -204,7 +204,6 @@ class IntroPage(QtGui.QWizardPage):
             msg_box.setIcon(QtGui.QMessageBox.Critical)
             msg_box.exec_()
             return False
-        wizard.config['path'] = project_path
 
         wizard.config['parallel_capture'] = (
             not self.parallel_box.isChecked())
@@ -212,7 +211,8 @@ class IntroPage(QtGui.QWizardPage):
             self.fliptarget_box.isChecked())
 
         self._update_config_from_plugin_widgets()
-        wizard.workflow = workflow.Workflow(wizard.config)
+        wizard.workflow = workflow.Workflow(path=project_path,
+                                            config=wizard.config)
         wizard.workflow.prepare_capture()
         return True
 

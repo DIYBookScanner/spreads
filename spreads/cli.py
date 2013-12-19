@@ -162,7 +162,9 @@ def configure(config):
 
 
 def capture(config):
-    workflow = Workflow(config)
+    path = config['path']
+    config['path'].remove()
+    workflow = Workflow(config=config, path=path)
     if len(workflow.devices) != 2:
         raise DeviceException("Please connect and turn on two"
                               " pre-configured devices! ({0} were"
@@ -205,19 +207,25 @@ def capture(config):
 
 
 def postprocess(config):
-    workflow = Workflow(config)
+    path = config['path']
+    config['path'].remove()
+    workflow = Workflow(config=config, path=path)
     workflow.process()
 
 
 def output(config):
-    workflow = Workflow(config)
+    path = config['path']
+    config['path'].remove()
+    workflow = Workflow(config=config, path=path)
     workflow.output()
 
 
 def wizard(config):
     # TODO: Think about how we can make this more dynamic, i.e. get list of
     #       options for plugin with a description for each entry
-    workflow = Workflow(config)
+    path = config['path']
+    config['path'].remove()
+    workflow = Workflow(config=config, path=path)
 
     print(colorama.Fore.GREEN +
           "==========================\n",
@@ -302,7 +310,8 @@ def setup_parser(config):
     subparsers = rootparser.add_subparsers()
 
     rootparser.add_argument(
-        '--verbose', '-v', dest="logging", action="store_const", const="debug")
+        '--verbose', '-v', dest="loglevel", action="store_const",
+        const="debug")
 
     wizard_parser = subparsers.add_parser(
         'wizard', help="Interactive mode")

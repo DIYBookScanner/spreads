@@ -46,12 +46,12 @@ class Workflow(object):
     _pluginmanager = None
     _images = None
 
-    def __init__(self, config, path=None, step=None, step_done=None):
+    def __init__(self, config=None, path=None, step=None, step_done=None):
         self.logger = logging.getLogger('Workflow')
         self.step = step
         self.step_done = step_done
         # TODO: Use 'path' argument for this
-        self.path = config['path'].get(unicode)
+        self.path = path
         if not os.path.exists(self.path):
             os.mkdir(self.path)
         self.config = config
@@ -73,13 +73,20 @@ class Workflow(object):
     @property
     def images(self):
         # Get fresh image list if number of pages has changed
+        raw_path = os.path.join(self.path, 'raw')
+        if not os.path.exists(raw_path):
+            return None
         if not self._images or len(self._images) < self._pages_shot:
             self._images = os.listdir(os.path.join(self.path, 'raw'))
         return self._images
 
     @property
     def out_files(self):
-        return os.listdir(os.path.join(self.path, 'out'))
+        out_path = os.path.join(self.path, 'out')
+        if not os.path.exists(out_path):
+            return None
+        else:
+            return os.path.listdir(out_path)
 
     def _run_hook(self, hook_name, *args):
         self.logger.debug("Running '{0}' hooks".format(hook_name))

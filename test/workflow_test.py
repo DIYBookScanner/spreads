@@ -17,8 +17,8 @@ class TestWorkflow(object):
         workflow.get_pluginmanager = Mock(return_value=self.plugins)
         workflow.get_devices = Mock(return_value=self.devices)
         config = confit.Configuration('test_workflow')
-        config['path'] = u'/tmp/test_workflow'
-        self.workflow = workflow.Workflow(config)
+        self.workflow = workflow.Workflow(config=config,
+                                          path='/tmp/test_workflow')
 
     def test_get_plugins(self):
         foo = self.workflow.plugins

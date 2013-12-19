@@ -20,8 +20,8 @@ class TestWizard(object):
         self.config = confit.Configuration('test_gui')
         self.config['plugins'] = [u'tesseract', u'scantailor']
         self.config['driver'] = u'dummy'
-        self.config['path'] = u'/tmp/foobar'
-        self.workflow = workflow.Workflow(self.config)
+        self.workflow = workflow.Workflow(config=self.config,
+                                          path='/tmp/foobar')
         plugin.setup_plugin_config(self.config)
 
         tess.AVAILABLE_LANGS = ["en"]
