@@ -15,7 +15,13 @@ class WebCommands(HookPlugin):
     def add_command_parser(cls, rootparser):
         scanparser = rootparser.add_parser(
             'web-scanner', help="Start the scanning station server")
-        scanparser.set_defaults(subcommand=cls.run_scanner_mode)
+        scanparser.set_defaults(subcommand=cls.run_scanner)
+        procparser = rootparser.add_parser(
+            'web-processor', help="Start the postprocessing server")
+        procparser.set_defaults(subcommand=cls.run_processor)
+        fullparser = rootparser.add_parser(
+            'web-full', help="Start the full server")
+        fullparser.set_defaults(subcommand=cls.run_full)
 
     @classmethod
     def configuration_template(cls):
@@ -31,12 +37,29 @@ class WebCommands(HookPlugin):
         }
 
     @staticmethod
-    def run_scanner_mode(config):
-        logger.debug("Starting scanning station server")
-        app.config['DEBUG'] = True
-        # TODO: Setup app configuration from config['web']
-        db_path = os.path.expanduser(config['web']['database'].get())
-        project_dir = os.path.expanduser(config['web']['project_dir'].get())
-        app.config['database'] = db_path
-        app.config['base_path'] = project_dir
-        app.run()
+    def run_scanner(config):
+        run_scanner_mode('scanner', config)
+
+    @staticmethod
+    def run_processor(config):
+        run_scanner_mode('processor', config)
+
+    @staticmethod
+    def run_full(config):
+        run_scanner_mode('full', config)
+
+
+def run_scanner_mode(mode, config):
+    logger.debug("Starting scanning station server in \"{0}\" mode"
+                 .format(mode))
+    db_path = os.path.expanduser(config['web']['database'].get())
+    project_dir = os.path.expanduser(config['web']['project_dir'].get())
+    if not os.path.exists(project_dir):
+        os.mkdir(project_dir)
+
+    app.config['DEBUG'] = True
+    app.config['mode'] = mode
+    app.config['database'] = db_path
+    app.config['base_path'] = project_dir
+    app.config['default_config'] = config
+    app.run()
