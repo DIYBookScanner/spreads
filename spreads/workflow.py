@@ -139,10 +139,12 @@ class Workflow(object):
         if self.capture_start is None:
             self.capture_start = time.time()
         self.logger.info("Triggering capture.")
-        if self.config['parallel_capture'].get(bool):
-            num_devices = len(self.devices)
-        else:
-            num_devices = 1
+        parallel_capture = ('parallel_capture' in self.config['device'].keys()
+                            and self.config['device']['parallel_capture'].get()
+                            )
+        num_devices = 1 if not parallel_capture else 2
+        flip_target = ('flip_target_pages' in self.config['device'].keys()
+                       and self.config['device']['flip_target_pages'].get())
 
         # TODO: This has to be formalized somewhere, so we can add new file
         #       formats painlessly
@@ -157,7 +159,7 @@ class Workflow(object):
             self.logger.debug("Sending capture command to devices")
             for dev in self.devices:
                 target_page = dev.target_page
-                if self.config["flip_target_pages"].get(bool):
+                if flip_target:
                     target_page = 'odd' if target_page == 'even' else 'even'
                 img_path = self._get_next_filename(extension, target_page)
                 futures.append(executor.submit(dev.capture, img_path))

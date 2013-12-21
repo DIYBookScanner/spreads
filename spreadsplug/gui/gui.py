@@ -98,19 +98,6 @@ class IntroPage(QtGui.QWizardPage):
         page_combobox.activated.connect(self.stack_widget.setCurrentIndex)
         #QtCore.QObject.connect(page_combobox, SIGNAL("activated(int)"),
         #        self.stack_widget, SLOT("setCurrentIndex(int)"))
-        general_page = QtGui.QGroupBox()
-        layout = QtGui.QFormLayout()
-        self.parallel_box = QtGui.QCheckBox(
-            "Do not trigger capture on multiple\ndevices at once")
-        self.fliptarget_box = QtGui.QCheckBox(
-            "Temporarily switch target pages\n(useful for e.g. East-Asian"
-            "books)")
-        layout.addRow(self.parallel_box)
-        layout.addRow(self.fliptarget_box)
-
-        general_page.setLayout(layout)
-        self.stack_widget.addWidget(general_page)
-        page_combobox.addItem("General")
 
         # Add configuration widgets from plugins
         self.plugin_widgets = {}
@@ -204,11 +191,6 @@ class IntroPage(QtGui.QWizardPage):
             msg_box.setIcon(QtGui.QMessageBox.Critical)
             msg_box.exec_()
             return False
-
-        wizard.config['parallel_capture'] = (
-            not self.parallel_box.isChecked())
-        wizard.config['flip_target_pages'] = (
-            self.fliptarget_box.isChecked())
 
         self._update_config_from_plugin_widgets()
         wizard.workflow = workflow.Workflow(path=project_path,

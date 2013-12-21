@@ -330,15 +330,6 @@ def setup_parser(config):
     capture_parser.set_defaults(subcommand=capture)
     # Add arguments from plugins
     for parser in (capture_parser, wizard_parser):
-        parser.add_argument(
-            "--no-parallel-capture", dest="parallel_capture",
-            action="store_false", default=True,
-            help="Do not trigger capture on multiple devices at once.")
-        parser.add_argument(
-            "--flip-target-pages", dest="flip_target_pages",
-            action="store_true", default=False,
-            help="Temporarily switch target pages"
-                 "(useful for e.g. East-Asian books")
         _add_plugin_arguments(['prepare_capture', 'capture', 'finish_capture'],
                               parser)
         if 'driver' in config.keys():

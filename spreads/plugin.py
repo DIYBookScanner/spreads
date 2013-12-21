@@ -146,10 +146,22 @@ class DevicePlugin(SpreadsPlugin):
     """
     __metaclass__ = abc.ABCMeta
 
+    #: Tuple of :py:class:`DeviceFeatures` constants that designate the
+    #: features the device offers.
     features = ()
-    """ List of :py:class:`DeviceFeatures` constants that designate the
-        features the device offers.
-    """
+
+    @classmethod
+    def configuration_template(cls):
+        if DeviceFeatures.TWO_DEVICES in cls.features:
+            return {
+                "parallel_capture": PluginOption(
+                    value=True,
+                    docstring="Trigger capture on multiple devices at once.",
+                    selectable=False),
+                "flip_target_pages": PluginOption(
+                    value=False, docstring="Temporarily switch target pages"
+                                           "(useful for e.g. East-Asian books")
+            }
 
     @abstractclassmethod
     def match(cls, usbdevice):

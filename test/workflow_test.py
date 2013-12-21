@@ -60,8 +60,8 @@ class TestWorkflow(object):
                 [call(self.devices, '/tmp/test_workflow')])
 
     def test_capture(self):
-        self.workflow.config['parallel_capture'] = True
-        self.workflow.config['flip_target_pages'] = False
+        self.workflow.config['device']['parallel_capture'] = True
+        self.workflow.config['device']['flip_target_pages'] = False
         self.workflow.capture()
         self.devices[0].capture.assert_called_with(
             '/tmp/test_workflow/raw/001.jpg')
@@ -73,8 +73,8 @@ class TestWorkflow(object):
                     [call(self.devices, '/tmp/test_workflow')])
 
     def test_capture_noparallel(self):
-        self.workflow.config['parallel_capture'] = False
-        self.workflow.config['flip_target_pages'] = False
+        self.workflow.config['device']['parallel_capture'] = False
+        self.workflow.config['device']['flip_target_pages'] = False
         self.workflow.capture()
         # TODO: Find a way to verify that the cameras were indeed triggered
         #       in sequence and not in parallel
@@ -82,8 +82,8 @@ class TestWorkflow(object):
             assert dev.capture.call_count == 1
 
     def test_capture_flip_target_pages(self):
-        self.workflow.config['parallel_capture'] = False
-        self.workflow.config['flip_target_pages'] = True
+        self.workflow.config['device']['parallel_capture'] = False
+        self.workflow.config['device']['flip_target_pages'] = True
         self.workflow.capture()
         self.devices[0].capture.assert_called_with(
             '/tmp/test_workflow/raw/000.jpg')

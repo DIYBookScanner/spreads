@@ -31,16 +31,18 @@ class CHDKCameraDevice(DevicePlugin):
 
     @classmethod
     def configuration_template(cls):
-        conf = {'sensitivity': PluginOption(80, "The ISO sensitivity value"),
-                'shutter_speed': PluginOption(
-                    u"1/25", "The shutter speed as a fraction"),
-                'zoom_level': PluginOption(3, "The default zoom level"),
-                'dpi': PluginOption(300, "The capturing resolution"),
-                'shoot_raw': PluginOption(False, "Shoot in RAW format (DNG)"),
-                'chdkptp_path': PluginOption(
-                    u"/usr/local/lib/chdkptp",
-                    "Path to CHDKPTP binary/libraries"),
-                }
+        conf = super(CHDKCameraDevice, cls).configuration_template()
+        conf.update(
+            {'sensitivity': PluginOption(80, "The ISO sensitivity value"),
+             'shutter_speed': PluginOption(
+                 u"1/25", "The shutter speed as a fraction"),
+             'zoom_level': PluginOption(3, "The default zoom level"),
+             'dpi': PluginOption(300, "The capturing resolution"),
+             'shoot_raw': PluginOption(False, "Shoot in RAW format (DNG)"),
+             'chdkptp_path': PluginOption(
+                 u"/usr/local/lib/chdkptp",
+                 "Path to CHDKPTP binary/libraries"),
+             })
         return conf
 
     @classmethod
