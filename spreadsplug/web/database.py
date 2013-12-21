@@ -81,12 +81,15 @@ def get_workflow(workflow_id):
     logger.debug("Workflow was found:\n{0}".format(db_data))
 
     db_workflow = DbWorkflow(*db_data)
-    config = confit.Configuration('spreads')
+
+    # Try to load configuration from database
     if db_workflow.config is not None:
-        config.set(json.loads(db_workflow.config))
+        config = json.loads(db_workflow.config)
+    else:
+        config = None
     workflow = Workflow(
-        config=config,
         path=os.path.join(app.config['base_path'], db_workflow.name),
+        config=config,
         step=db_workflow.step,
         step_done=bool(db_workflow.step_done))
     workflow.capture_start = db_workflow.capture_start
