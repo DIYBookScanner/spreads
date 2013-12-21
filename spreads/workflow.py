@@ -31,6 +31,7 @@ import time
 
 from concurrent.futures import ThreadPoolExecutor
 
+import spreads.confit as confit
 from spreads.plugin import get_pluginmanager, get_devices
 from spreads.util import check_futures_exceptions, DeviceException
 
@@ -46,15 +47,18 @@ class Workflow(object):
     _pluginmanager = None
     _images = None
 
-    def __init__(self, config=None, path=None, step=None, step_done=None):
+    def __init__(self, path, config=None, step=None, step_done=None):
         self.logger = logging.getLogger('Workflow')
         self.step = step
         self.step_done = step_done
-        # TODO: Use 'path' argument for this
         self.path = path
         if not os.path.exists(self.path):
             os.mkdir(self.path)
-        self.config = config
+        # See if supplied `config` is already a valid Configuration object
+        if isinstance(config, confit.Configuration):
+            self.config = config
+        else:
+            self.config = self._load_config(config)
 
     @property
     def plugins(self):
@@ -87,6 +91,18 @@ class Workflow(object):
             return None
         else:
             return os.path.listdir(out_path)
+
+    def _load_config(self, value):
+        # Load default configuration
+        config = confit.Configuration('spreads')
+        if value is None and 'config.yml' in os.listdir(self.path):
+            # Load workflow-specific configuration from file
+            config.set(
+                confit.ConfigSource({}, os.path.join(self.path, 'config.yml')))
+        elif value is not None:
+            # Load configuration from supplied ConfigSource or dictionary
+            config.set(value)
+        return config
 
     def _run_hook(self, hook_name, *args):
         self.logger.debug("Running '{0}' hooks".format(hook_name))
