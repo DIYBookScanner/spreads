@@ -62,10 +62,13 @@ except ImportError:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
+def colorize(text, color):
+    return color + text + colorama.Fore.RESET
+
+
 def _select_driver():
-    print(colorama.Fore.BLUE +
-          "Please select a device driver from the following list:" +
-          colorama.Fore.RESET)
+    print(colorize("Please select a device driver from the following list:",
+                   colorama.Fore.BLUE))
     available_drivers = list(
         pkg_resources.iter_entry_points('spreadsplug.devices'))
     for pos, ext in enumerate(available_drivers, 1):
@@ -73,24 +76,19 @@ def _select_driver():
     while True:
         selection = raw_input("Select a driver: ")
         if not selection.isdigit() or int(selection) > len(available_drivers):
-            print(colorama.Fore.RED +
-                  "Please select a number in the range of 1 to {0}"
-                  .format(len(available_drivers)) +
-                  colorama.Fore.RESET)
+            print(colorize("Please select a number in the range of 1 to {0}"
+                           .format(len(available_drivers)), colorama.Fore.RED))
             continue
         driver = unicode(available_drivers[int(selection)-1].name)
-        print(colorama.Fore.GREEN +
-              "Selected \"{0}\" as device driver".format(driver) +
-              colorama.Fore.RESET)
+        print(colorize("Selected \"{0}\" as device driver".format(driver),
+                       colorama.Fore.GREEN))
         return driver
 
 
 def _select_plugins(selected_plugins=None):
     if selected_plugins is None:
         selected_plugins = []
-    print(colorama.Fore.BLUE +
-          "Please select your desired plugins from the following list:" +
-          colorama.Fore.RESET)
+    print("Please select your desired plugins from the following list:")
     available_plugins = list(
         pkg_resources.iter_entry_points('spreadsplug.hooks'))
     while True:
@@ -102,10 +100,8 @@ def _select_plugins(selected_plugins=None):
         if not selection:
             break
         if not selection.isdigit() or int(selection) > len(available_plugins):
-            print(colorama.Fore.RED +
-                  "Please select a number in the range of 1 to {0}"
-                  .format(len(available_plugins)) +
-                  colorama.Fore.RESET)
+            print(colorize("Please select a number in the range of 1 to {0}"
+                           .format(len(available_plugins)), colorama.Fore.RED))
             continue
         plugin_name = available_plugins[int(selection)-1].name
         if plugin_name in selected_plugins:
@@ -118,7 +114,7 @@ def _select_plugins(selected_plugins=None):
 def _set_device_target_page(config, target_page):
     print("Please connect and turn on the device labeled \'{0}\'"
           .format(target_page))
-    print(colorama.Fore.BLUE + "Press any key when ready.")
+    print("Press any key when ready.")
     getch()
     devs = get_devices(config)
     if len(devs) > 1:
@@ -127,10 +123,10 @@ def _set_device_target_page(config, target_page):
     if not devs:
         raise DeviceException("No device found!")
     devs[0].set_target_page(target_page)
-    print(colorama.Fore.GREEN + "Configured \'{0}\' device."
-                                .format(target_page))
+    print(colorize("Configured \'{0}\' device.".format(target_page),
+                   colorama.Fore.GREEN))
     print("Please turn off the device.")
-    print(colorama.Fore.BLUE + "Press any key when ready.")
+    print("Press any key when ready.")
     getch()
 
 
@@ -155,8 +151,7 @@ def configure(config):
             "(Required for shooting with two devices) [y/n]: ")
         answer = True if answer.lower() == 'y' else False
         if answer:
-            print(colorama.Fore.BLUE +
-                  "Setting target page on cameras")
+            print("Setting target page on cameras")
             for target_page in ('odd', 'even'):
                 _set_device_target_page(config, target_page)
 
@@ -168,8 +163,8 @@ def capture(config):
         raise DeviceException("Please connect and turn on two"
                               " pre-configured devices! ({0} were"
                               " found)".format(len(workflow.devices)))
-    print(colorama.Fore.GREEN +
-          "Found {0} devices!".format(len(workflow.devices)))
+    print(colorize("Found {0} devices!".format(len(workflow.devices)),
+                   colorama.Fore.GREEN))
     if any(not x.target_page for x in workflow.devices):
         raise DeviceException("At least one of the devices has not been"
                               " properly configured, please re-run the"
@@ -178,10 +173,11 @@ def capture(config):
     print("Setting up devices for capturing.")
     workflow.prepare_capture()
     # Start capture loop
-    print(colorama.Fore.BLUE + "Press 'b' to capture.")
     shot_count = 0
     pages_per_hour = 0
     capture_keys = workflow.config['capture']['capture_keys'].as_str_seq()
+    print("({0}) capture | (r) retake last shot | (f) finish "
+          .format("/".join(capture_keys)))
     while True:
         if not getch().lower() in capture_keys:
             break
@@ -189,17 +185,16 @@ def capture(config):
         shot_count += len(workflow.devices)
         pages_per_hour = (3600/(time.time() -
                           workflow.capture_start))*shot_count
-        status = ("\rShot {0} pages [{1:.0f}/h]"
-                  .format(colorama.Fore.GREEN + unicode(shot_count),
-                          pages_per_hour))
+        status = ("\rShot {0: >3} pages [{1: >4.0f}/h] "
+                  .format(unicode(shot_count), pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
     workflow.finish_capture()
     if workflow.capture_start is None:
         return
     sys.stdout.write("\rShot {0} pages in {1:.1f} minutes, average speed was"
-                     " {2:.0f} pages per hour"
-                     .format(colorama.Fore.GREEN + str(shot_count),
+                     " {2:.0f} pages per hour\n"
+                     .format(colorize(str(shot_count), colorama.Fore.GREEN),
                              (time.time() - workflow.capture_start)/60,
                              pages_per_hour))
     sys.stdout.flush()
@@ -223,20 +218,17 @@ def wizard(config):
     path = config['path'].get()
     workflow = Workflow(config=config, path=path)
 
-    print(colorama.Fore.GREEN +
-          "==========================\n",
+    print("==========================\n",
           "Starting capturing process\n",
           "==========================")
     capture(workflow.config)
 
-    print(colorama.Fore.GREEN +
-          "=======================\n"
+    print("=======================\n"
           "Starting postprocessing\n"
           "=======================")
     postprocess(workflow.config)
 
-    print(colorama.Fore.GREEN +
-          "=================\n",
+    print("=================\n",
           "Generating output\n"
           "=================")
     output(workflow.config)
