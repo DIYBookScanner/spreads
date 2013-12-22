@@ -45,7 +45,6 @@ class Workflow(object):
 
     _devices = None
     _pluginmanager = None
-    _images = None
 
     def __init__(self, path, config=None, step=None, step_done=None):
         self.logger = logging.getLogger('Workflow')
@@ -80,9 +79,7 @@ class Workflow(object):
         raw_path = os.path.join(self.path, 'raw')
         if not os.path.exists(raw_path):
             return None
-        if not self._images or len(self._images) < self._pages_shot:
-            self._images = os.listdir(os.path.join(self.path, 'raw'))
-        return self._images
+        return sorted(os.listdir(os.path.join(self.path, 'raw')))
 
     @property
     def out_files(self):
@@ -126,12 +123,16 @@ class Workflow(object):
         if not os.path.exists(base_path):
             os.mkdir(base_path)
 
+        try:
+            last_num = int(self.images[-1][:-4])
+        except IndexError:
+            last_num = -1
+
         if target_page is None:
             return os.path.join(
                 base_path, "{03:0}.{1}".format(self._pages_shot, extension))
 
-        next_num = (self._pages_shot+1 if target_page == 'odd'
-                    else self._pages_shot)
+        next_num = (last_num+2 if target_page == 'odd' else last_num+1)
         return os.path.join(base_path,
                             "{0:03}.{1}".format(next_num, extension))
 
@@ -151,7 +152,7 @@ class Workflow(object):
         check_futures_exceptions(futures)
         self._run_hook('prepare_capture', self.devices, self.path)
 
-    def capture(self):
+    def capture(self, retake=False):
         if self.capture_start is None:
             self.capture_start = time.time()
         self.logger.info("Triggering capture.")
@@ -169,6 +170,11 @@ class Workflow(object):
             extension = 'dng'
         else:
             extension = 'jpg'
+
+        if retake:
+            # Remove last n images, where n == len(self.devices)
+            map(os.remove, (os.path.join(self.path, x)
+                            for x in self.images[-num_devices:]))
 
         with ThreadPoolExecutor(num_devices) as executor:
             futures = []
