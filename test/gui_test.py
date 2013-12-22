@@ -1,3 +1,5 @@
+import unittest
+
 from PySide.QtGui import QPixmap, QImage, QApplication
 from mock import patch, MagicMock as Mock
 
@@ -9,7 +11,7 @@ with patch('subprocess.check_output'):
     import spreadsplug.tesseract as tess
 
 
-class TestWizard(object):
+class TestWizard(unittest.TestCase):
     def setUp(self):
         try:
             self.app = QApplication([])

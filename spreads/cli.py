@@ -162,8 +162,7 @@ def configure(config):
 
 
 def capture(config):
-    path = config['path']
-    config['path'].remove()
+    path = config['path'].get()
     workflow = Workflow(config=config, path=path)
     if len(workflow.devices) != 2:
         raise DeviceException("Please connect and turn on two"
@@ -207,15 +206,13 @@ def capture(config):
 
 
 def postprocess(config):
-    path = config['path']
-    config['path'].remove()
+    path = config['path'].get()
     workflow = Workflow(config=config, path=path)
     workflow.process()
 
 
 def output(config):
-    path = config['path']
-    config['path'].remove()
+    path = config['path'].get()
     workflow = Workflow(config=config, path=path)
     workflow.output()
 
@@ -223,8 +220,7 @@ def output(config):
 def wizard(config):
     # TODO: Think about how we can make this more dynamic, i.e. get list of
     #       options for plugin with a description for each entry
-    path = config['path']
-    config['path'].remove()
+    path = config['path'].get()
     workflow = Workflow(config=config, path=path)
 
     print(colorama.Fore.GREEN +
@@ -377,8 +373,6 @@ def set_config_from_args(config, args):
 
 
 def main():
-    # Initialize color support
-    colorama.init()
     # Set to ERROR so we can see errors during plugin loading.
     logging.basicConfig(loglevel=logging.ERROR)
 
@@ -413,6 +407,3 @@ def main():
     logger.setLevel(loglevel)
 
     args.subcommand(config)
-
-    # Deinitialize color support
-    colorama.deinit()

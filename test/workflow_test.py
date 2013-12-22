@@ -1,5 +1,7 @@
+import unittest
+
+import pytest
 from mock import call, MagicMock as Mock, patch, DEFAULT
-from nose.tools import raises
 
 import spreads.confit as confit
 import spreads.util as util
@@ -8,7 +10,7 @@ import spreads.workflow as workflow
 util.find_in_path = Mock(return_value=True)
 
 
-class TestWorkflow(object):
+class TestWorkflow(unittest.TestCase):
     def setUp(self):
         self.plugins = [Mock() for x in xrange(3)]
         self.devices = [Mock() for x in xrange(2)]
@@ -32,10 +34,10 @@ class TestWorkflow(object):
         assert workflow.get_devices.call_count == 1
         assert foo == bar == self.devices
 
-    @raises(util.DeviceException)
     def test_get_devices_no_device(self):
         workflow.get_devices = Mock(return_value=[])
-        self.workflow.devices
+        with pytest.raises(util.DeviceException) as excinfo:
+            self.workflow.devices
 
     @patch('spreads.plugin.os.mkdir')
     def test_get_next_filename(self, mkdir):

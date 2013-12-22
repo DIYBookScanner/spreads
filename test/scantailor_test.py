@@ -1,3 +1,4 @@
+import unittest
 from itertools import chain, repeat
 
 from mock import MagicMock as Mock, patch
@@ -13,7 +14,7 @@ with patch('subprocess.check_output') as mock_co:
     import spreadsplug.scantailor as scantailor
 
 
-class TestScanTailor(object):
+class TestScanTailor(unittest.TestCase):
     @patch('subprocess.check_output')
     def setUp(self, mock_co):
         self.config = confit.Configuration('test_scantailor')

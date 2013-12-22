@@ -1,7 +1,8 @@
+import unittest
 from itertools import chain, repeat
 
+import pytest
 from mock import MagicMock as Mock, patch, call
-from nose.tools import assert_raises, raises
 from pyptpchdk import PTPError
 
 import spreads.confit as confit
@@ -11,7 +12,7 @@ import spreadsplug.dev.chdkcamera as chdkcamera
 util.find_in_path = Mock(return_value=True)
 
 
-class TestChdkCameraDevice(object):
+class TestChdkCameraDevice(unittest.TestCase):
     def setUp(self):
         chdkcamera.subprocess.check_output = Mock()
         usbmock = Mock()
@@ -82,11 +83,11 @@ class TestChdkCameraDevice(object):
             target_page = self.dev._get_target_page()
         assert target_page == 'odd'
 
-    @raises(ValueError)
     def test_get_target_page_error(self):
         self.dev._run = Mock()
         self.dev._run.side_effect = [util.DeviceException]
-        self.dev._get_target_page()
+        with pytest.raises(ValueError) as excinfo:
+            self.dev._get_target_page()
 
     @patch('spreadsplug.dev.chdkcamera.os.write')
     def test_set_target_page(self, write):

@@ -1,12 +1,14 @@
+import unittest
+
+import pytest
 from mock import call, MagicMock as Mock, patch
-from nose.tools import raises
 
 import spreads.confit as confit
 import spreads.plugin as plugin
 from spreads.util import DeviceException
 
 
-class TestPlugin(object):
+class TestPlugin(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -26,7 +28,6 @@ class TestPlugin(object):
         assert call(cfg["device"], usb_mock) in driver.driver.call_args_list
         assert driver.driver.match.call_args_list == [call(usb_mock)]
 
-    @raises(DeviceException)
     @patch('spreads.plugin.get_driver')
     def test_no_devices(self, get_driver):
         cfg = Mock()
@@ -36,4 +37,5 @@ class TestPlugin(object):
         plugin.usb.core.find = Mock(return_value=[usb_mock])
         get_driver.return_value = driver
         plugin.get_driver = get_driver
-        plugin.get_devices(cfg)
+        with pytest.raises(DeviceException) as excinfo:
+            plugin.get_devices(cfg)

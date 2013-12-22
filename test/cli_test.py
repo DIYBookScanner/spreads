@@ -1,8 +1,9 @@
 import time
+import unittest
 from itertools import chain, repeat
 
+import pytest
 from mock import patch, MagicMock as Mock
-from nose.tools import raises
 
 import spreads
 import spreads.cli as cli
@@ -12,7 +13,7 @@ from spreads.util import DeviceException
 spreads.util.find_in_path = Mock(return_value=True)
 
 
-class TestCLI(object):
+class TestCLI(unittest.TestCase):
     def setUp(self):
         self.workflow = Mock()
         self.workflow.devices = [Mock(), Mock()]
@@ -32,17 +33,17 @@ class TestCLI(object):
         assert self.workflow.finish_capture.call_count == 1
         #TODO: stats correct?
 
-    @raises(DeviceException)
     def test_capture_nodevices(self):
         cli.getch = Mock(return_value=' ')
         self.workflow.devices = []
-        cli.capture(self.workflow)
+        with pytest.raises(DeviceException) as excinfo:
+            cli.capture(self.workflow)
 
-    @raises(DeviceException)
     def test_capture_no_target_page(self):
         self.workflow.devices[0].target_page = None
         cli.getch = Mock(return_value='c')
-        cli.capture(self.workflow)
+        with pytest.raises(DeviceException) as excinfo:
+            cli.capture(self.workflow)
 
     def test_postprocess(self):
         self.workflow.path = '/tmp/foo'
@@ -50,11 +51,11 @@ class TestCLI(object):
         assert self.workflow.process.call_count == 1
 
     def test_wizard(self):
-        self.workflow.path = '/tmp/foo'
+        self.workflow.config['path'] = '/tmp/foo'
         self.workflow.config['capture']['capture_keys'] = ["b", " "]
         cli.getch = Mock(side_effect=chain(repeat('b', 10), 'c',
                                            repeat('b', 10)))
-        cli.wizard(self.workflow)
+        cli.wizard(self.workflow.config)
 
     def test_parser(self):
         cli.get_pluginmanager = Mock()
