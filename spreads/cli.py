@@ -179,9 +179,15 @@ def capture(config):
     print("({0}) capture | (r) retake last shot | (f) finish "
           .format("/".join(capture_keys)))
     while True:
-        if not getch().lower() in capture_keys:
+        retake = False
+        char = getch().lower()
+        if char == 'f':
             break
-        workflow.capture()
+        elif char == 'r':
+            retake = True
+        elif char not in capture_keys:
+            continue
+        workflow.capture(retake=retake)
         shot_count += len(workflow.devices)
         pages_per_hour = (3600/(time.time() -
                           workflow.capture_start))*shot_count
