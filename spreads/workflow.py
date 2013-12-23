@@ -108,14 +108,12 @@ class Workflow(object):
         for plugin in self.plugins:
             getattr(plugin, hook_name)(*args)
 
-    def _get_next_filename(self, extension, target_page=None):
+    def _get_next_filename(self, target_page=None):
         """ Get next filename that a capture should be stored as.
 
         If the workflow is shooting with two devices, this will select a
         filename that matches the device's target page (odd/even).
 
-        :param extension:   file extension to be used
-        :type extension:    str/unicode
         :param target_page: target page of file ('odd/even')
         :type target_page:  str/unicode/None if not applicable
         :return:            absolute path to next filename
@@ -127,16 +125,15 @@ class Workflow(object):
             base_path.mkdir()
 
         try:
-            last_num = int(unicode(self.images[-1])[:-4])
+            last_num = int(self.images[-1].stem)
         except IndexError:
             last_num = -1
 
         if target_page is None:
-            return base_path / "{03:0}.{1}".format(self._pages_shot,
-                                                   extension)
+            return base_path / "{03:0}".format(self._pages_shot)
 
         next_num = (last_num+2 if target_page == 'odd' else last_num+1)
-        return base_path / "{0:03}.{1}".format(next_num, extension)
+        return base_path / "{0:03}".format(next_num)
 
     def prepare_capture(self):
         self.logger.info("Preparing capture.")
@@ -184,7 +181,7 @@ class Workflow(object):
                 target_page = dev.target_page
                 if flip_target:
                     target_page = 'odd' if target_page == 'even' else 'even'
-                img_path = self._get_next_filename(extension, target_page)
+                img_path = self._get_next_filename(target_page)
                 futures.append(executor.submit(dev.capture, img_path))
         check_futures_exceptions(futures)
         self._run_hook('capture', self.devices, self.path)
