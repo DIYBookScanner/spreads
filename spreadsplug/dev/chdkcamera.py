@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 from fractions import Fraction
 from itertools import chain
 
@@ -40,6 +41,7 @@ class CHDKCameraDevice(DevicePlugin):
              'zoom_level': PluginOption(3, "The default zoom level"),
              'dpi': PluginOption(300, "The capturing resolution"),
              'shoot_raw': PluginOption(False, "Shoot in RAW format (DNG)"),
+             'focus_distance': PluginOption('auto', "Set focus distance"),
              'chdkptp_path': PluginOption(
                  u"/usr/local/lib/chdkptp",
                  "Path to CHDKPTP binary/libraries"),
@@ -70,6 +72,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._zoom_level = config['zoom_level'].get(int)
         self._dpi = config['dpi'].get(int)
         self._shoot_raw = config['shoot_raw'].get(bool)
+        self._focus_distance = config['focus_distance'].get()
 
         self._cli_flags = []
         self._cli_flags.append("-c-d={0:03} -b={1:03}".format(
@@ -115,7 +118,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("while(get_flash_mode()<2) do click(\"right\") end")
         # Disable ND filter
         self._execute_lua("set_nd_filter(2)")
-        #self._lock_focus()
+        self._set_focus()
 
     def get_preview_image(self):
         fpath = tempfile.mkstemp()[1]
@@ -208,6 +211,35 @@ class CHDKCameraDevice(DevicePlugin):
             raise Exception("Zoom level {0} exceeds the camera's range!"
                             " (max: {1})".format(level, self._zoom_steps-1))
         self._execute_lua("set_zoom({0})".format(level), wait=False)
+
+    def _acquire_focus(self):
+        """ Acquire auto focus and lock it. """
+        self._execute_lua("enter_alt()")
+        # Try to put into record mode
+        try:
+            self._run("rec")
+        except CHDKPTPException as e:
+            self.logger.debug(e)
+            self.logger.info("Camera already seems to be in recording mode")
+        self._set_zoom(self._zoom_level)
+        self._execute_lua("set_aflock(0)")
+        self._execute_lua("press('shoot_half')")
+        time.sleep(0.8)
+        self._execute_lua("release('shoot_half')")
+        time.sleep(0.5)
+        return self._execute_lua("get_focus()", get_result=True)
+
+    def _set_focus(self):
+        self._execute_lua("set_aflock(0)")
+        if self._focus_distance == 'auto':
+            return
+        self._execute_lua("set_focus({0:.0f})".format(self._focus_distance))
+        time.sleep(0.5)
+        self._execute_lua("press('shoot_half')")
+        time.sleep(0.25)
+        self._execute_lua("release('shoot_half')")
+        time.sleep(0.25)
+        self._execute_lua("set_aflock(1)")
 
 
 class CanonA2200CameraDevice(CHDKCameraDevice):

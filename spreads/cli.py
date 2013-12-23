@@ -135,11 +135,10 @@ def configure(config):
     config["plugins"] = _select_plugins(config["plugins"].get())
 
     setup_plugin_config(config)
+    _setup_processing_pipeline(config)
 
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
     setup_plugin_config(config)
-    print("Writing configuration file to '{0}'".format(cfg_path))
-    config.dump(filename=cfg_path)
 
     driver = get_driver(config["driver"].get()).driver
 
@@ -154,6 +153,22 @@ def configure(config):
             print("Setting target page on cameras")
             for target_page in ('odd', 'even'):
                 _set_device_target_page(config, target_page)
+    # TODO: Only do this for cameras
+    answer = raw_input("Do you want to setup the focus for your cameras? "
+                       "[y/n]: ")
+    answer = True if answer.lower() == 'y' else False
+    if answer:
+        print("Please turn on one of your capture devices.\n"
+              "Press any key to continue")
+        getch()
+        devs = get_devices(config)
+        print("Please put a book with as little whitespace as possible under"
+              " your cameras.\nPress any button to continue")
+        getch()
+        focus = devs[0]._acquire_focus()
+        config['device']['focus_distance'] = focus
+    print("Writing configuration file to '{0}'".format(cfg_path))
+    config.dump(filename=cfg_path)
 
 
 def capture(config):
