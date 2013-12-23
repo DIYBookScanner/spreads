@@ -11,7 +11,13 @@ from itertools import chain
 from spreads.vendor.pathlib import Path
 
 from spreads.plugin import DevicePlugin, PluginOption, DeviceFeatures
-from spreads.util import DeviceException
+from spreads.util import (DeviceException, find_in_path,
+                          MissingDependencyException)
+
+if not find_in_path('exiftool'):
+    raise MissingDependencyException("Could not find executable `exiftool`"
+                                     " in $PATH. Please install the"
+                                     " appropriate package(s)!")
 
 
 class CHDKPTPException(Exception):
@@ -140,12 +146,21 @@ class CHDKCameraDevice(DevicePlugin):
                            int(self._shoot_raw), path))
         try:
             self._run(cmd)
-            return
         except CHDKPTPException as e:
             self.logger.warn("Capture command failed.")
             raise e
-        # TODO: If we are in two-device mode, set EXIF orientation with
-        #       'exiftool', according to target page
+
+        extension = 'dng' if self._shoot_raw else 'jpg'
+        local_path = "{0}.{1}".format(path, extension)
+        # Set EXIF orientation
+        self.logger.debug("Setting EXIF orientation on captured image")
+        if self.target_page == 'odd':
+            exif_orientation = 8  # 90°
+        else:
+            exif_orientation = 6  # -90°
+        subprocess.check_output(
+            ['exiftool', '-Orientation={0}'.format(exif_orientation), '-n',
+             '-overwrite_original', local_path])
 
     def _run(self, *commands):
         cmd_args = list(chain((unicode(self._chdkptp_path / "chdkptp"),),

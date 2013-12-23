@@ -8,6 +8,5 @@ Wand >= 0.3.1
 stevedore >= 0.9.1
 futures >= 2.1.4
 coveralls >= 0.2
-pexif >= 0.13
 pytest >= 2.5.1
 pytest-cov >= 1.6

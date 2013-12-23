@@ -1,14 +1,25 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import subprocess
 
 import wand.image
 from concurrent import futures
-from pexif import JpegFile
 
 from spreads.plugin import HookPlugin, PluginOption
+from spreads.util import find_in_path, MissingDependencyException
 
 logger = logging.getLogger('spreadsplug.autorotate')
+
+if not find_in_path('exiftool'):
+    raise MissingDependencyException("Could not find executable `exiftool`"
+                                     " in $PATH. Please install the"
+                                     " appropriate package(s)!")
+
+
+def _get_exif_orientation(fname):
+    return int(subprocess.check_output(['exiftool', '-Orientation', '-n',
+                                        unicode(fname)]).split(":")[1].strip())
 
 
 def rotate_image(path, rotation):
@@ -21,11 +32,10 @@ def rotate_image(path, rotation):
             img.rotate(rotation)
             img.save(filename=unicode(path))
     # Update EXIF orientation
-    img = JpegFile.fromFile(unicode(path))
-    if not img.exif.primary.Orientation == [1]:
+    if not _get_exif_orientation(path) == 1:
         logger.debug("Updating EXIF information for image '{0}'".format(path))
-        img.exif.primary.Orientation = [1]
-        img.writeFile(unicode(path))
+        subprocess.check_output(['exiftool', '-Orientation=1', '-n',
+                                 '-overwrite_original', unicode(path)])
 
 
 class AutoRotatePlugin(HookPlugin):
@@ -49,17 +59,17 @@ class AutoRotatePlugin(HookPlugin):
         with futures.ProcessPoolExecutor() as executor:
             for imgpath in sorted(img_dir.iterdir()):
                 try:
-                    img = JpegFile.fromFile(unicode(imgpath))
-                    if img.exif.primary.Orientation == [8]:
+                    exif_orientation = _get_exif_orientation(imgpath)
+                    if exif_orientation == 8:
                         rotation = self.config['rotate_odd'].get(int)
-                    elif img.exif.primary.Orientation == [6]:
+                    elif exif_orientation == 6:
                         rotation = self.config['rotate_even'].get(int)
-                    elif img.exif.primary.Orientation == [1]:
+                    elif exif_orientation == 1:
                         # Already rotated, so we skip it
                         continue
                     else:
                         raise Exception("Invalid value for orientation: {0}"
-                                        .format(img.exif.primary.Orientation))
+                                        .format(exif_orientation))
                 except Exception as exc:
                     logger.warn("Cannot determine rotation for image {0}!"
                                 .format(imgpath))
