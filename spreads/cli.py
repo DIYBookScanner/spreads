@@ -215,23 +215,20 @@ def output(config):
 def wizard(config):
     # TODO: Think about how we can make this more dynamic, i.e. get list of
     #       options for plugin with a description for each entry
-    path = config['path'].get()
-    workflow = Workflow(config=config, path=path)
-
     print("==========================\n",
           "Starting capturing process\n",
           "==========================")
-    capture(workflow.config)
+    capture(config)
 
     print("=======================\n"
           "Starting postprocessing\n"
           "=======================")
-    postprocess(workflow.config)
+    postprocess(config)
 
     print("=================\n",
           "Generating output\n"
           "=================")
-    output(workflow.config)
+    output(config)
 
 
 def setup_parser(config):

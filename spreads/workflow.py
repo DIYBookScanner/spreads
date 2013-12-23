@@ -26,10 +26,10 @@ spreads workflow object.
 from __future__ import division, unicode_literals
 
 import logging
-import os
 import time
 
 from concurrent.futures import ThreadPoolExecutor
+from spreads.vendor.pathlib import Path
 
 import spreads.confit as confit
 from spreads.plugin import get_pluginmanager, get_devices
@@ -50,9 +50,11 @@ class Workflow(object):
         self.logger = logging.getLogger('Workflow')
         self.step = step
         self.step_done = step_done
+        if not isinstance(path, Path):
+            path = Path(path)
         self.path = path
-        if not os.path.exists(self.path):
-            os.mkdir(self.path)
+        if not self.path.exists():
+            self.path.mkdir()
         # See if supplied `config` is already a valid Configuration object
         if isinstance(config, confit.Configuration):
             self.config = config
@@ -76,26 +78,26 @@ class Workflow(object):
     @property
     def images(self):
         # Get fresh image list if number of pages has changed
-        raw_path = os.path.join(self.path, 'raw')
-        if not os.path.exists(raw_path):
+        raw_path = self.path / 'raw'
+        if not raw_path.exists():
             return None
-        return sorted(os.listdir(os.path.join(self.path, 'raw')))
+        return sorted(raw_path.iterdir())
 
     @property
     def out_files(self):
-        out_path = os.path.join(self.path, 'out')
-        if not os.path.exists(out_path):
+        out_path = self.path / 'out'
+        if not out_path.exists():
             return None
         else:
-            return os.path.listdir(out_path)
+            return sorted(out_path.iterdir())
 
     def _load_config(self, value):
         # Load default configuration
         config = confit.Configuration('spreads')
-        if value is None and 'config.yml' in os.listdir(self.path):
+        cfg_file = self.path / 'config.yml'
+        if value is None and cfg_file.exists():
             # Load workflow-specific configuration from file
-            config.set(
-                confit.ConfigSource({}, os.path.join(self.path, 'config.yml')))
+            config.set(confit.ConfigSource({}, unicode(cfg_file)))
         elif value is not None:
             # Load configuration from supplied ConfigSource or dictionary
             config.set(value)
@@ -112,29 +114,29 @@ class Workflow(object):
         If the workflow is shooting with two devices, this will select a
         filename that matches the device's target page (odd/even).
 
-        :param extension: file extension to be used
-        :type extension:  str/unicode
+        :param extension:   file extension to be used
+        :type extension:    str/unicode
         :param target_page: target page of file ('odd/even')
         :type target_page:  str/unicode/None if not applicable
-        :return:          absolute path to next filename
-                          (e.g. /tmp/proj/003.jpg)
+        :return:            absolute path to next filename
+                            (e.g. /tmp/proj/003.jpg)
+        :rtype:             pathlib.Path
         """
-        base_path = os.path.join(self.path, 'raw')
-        if not os.path.exists(base_path):
-            os.mkdir(base_path)
+        base_path = self.path / 'raw'
+        if not base_path.exists():
+            base_path.mkdir()
 
         try:
-            last_num = int(self.images[-1][:-4])
+            last_num = int(unicode(self.images[-1])[:-4])
         except IndexError:
             last_num = -1
 
         if target_page is None:
-            return os.path.join(
-                base_path, "{03:0}.{1}".format(self._pages_shot, extension))
+            return base_path / "{03:0}.{1}".format(self._pages_shot,
+                                                   extension)
 
         next_num = (last_num+2 if target_page == 'odd' else last_num+1)
-        return os.path.join(base_path,
-                            "{0:03}.{1}".format(next_num, extension))
+        return base_path / "{0:03}.{1}".format(next_num, extension)
 
     def prepare_capture(self):
         self.logger.info("Preparing capture.")
@@ -173,8 +175,7 @@ class Workflow(object):
 
         if retake:
             # Remove last n images, where n == len(self.devices)
-            map(os.remove, (os.path.join(self.path, x)
-                            for x in self.images[-num_devices:]))
+            map(lambda x: x.unlink(), self.images[-num_devices:])
 
         with ThreadPoolExecutor(num_devices) as executor:
             futures = []
@@ -205,9 +206,9 @@ class Workflow(object):
         self.logger.info("Generating output files...")
         self.step = 'output'
         self.step_done = False
-        out_path = os.path.join(self.path, 'out')
-        if not os.path.exists(out_path):
-            os.mkdir(out_path)
+        out_path = self.path / 'out'
+        if not out_path.exists():
+            out_path.mkdir()
         self._run_hook('output', self.path)
         self.logger.info("Done generating output files!")
         self.step_done = True

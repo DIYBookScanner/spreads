@@ -22,10 +22,10 @@ class DjvuBindPlugin(HookPlugin):
 
     def output(self, path):
         logger.info("Assembling DJVU.")
-        img_dir = os.path.join(path, 'done')
-        djvu_file = os.path.join(path, 'out',
-                                 "{0}.djvu".format(os.path.basename(path)))
-        cmd = ["djvubind", img_dir]
+        img_dir = path / 'done'
+        djvu_file = path / 'out' / "{0}.djvu".format(path.name)
+        cmd = ["djvubind", unicode(img_dir)]
+        # TODO: Do this via a check for *.html in 'done'-path
         if self.config['ocr'].get(unicode) == 'none':
             cmd.append("--no-ocr")
         logger.debug("Running " + " ".join(cmd))

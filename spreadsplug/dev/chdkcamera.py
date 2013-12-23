@@ -7,6 +7,7 @@ import tempfile
 from fractions import Fraction
 from itertools import chain
 
+from spreads.vendor.pathlib import Path
 
 from spreads.plugin import DevicePlugin, PluginOption, DeviceFeatures
 from spreads.util import DeviceException
@@ -62,7 +63,7 @@ class CHDKCameraDevice(DevicePlugin):
 
         """
         self.logger = logging.getLogger('ChdkCamera')
-        self._chdkptp_path = config["chdkptp_path"].get(unicode)
+        self._chdkptp_path = Path(config["chdkptp_path"].get(unicode))
         self._sensitivity = config["sensitivity"].get(int)
         self._shutter_speed = float(Fraction(config["shutter_speed"]
                                     .get(unicode)))
@@ -144,10 +145,10 @@ class CHDKCameraDevice(DevicePlugin):
         #       'exiftool', according to target page
 
     def _run(self, *commands):
-        cmd_args = list(chain((os.path.join(self._chdkptp_path, "chdkptp"),),
+        cmd_args = list(chain((unicode(self._chdkptp_path / "chdkptp"),),
                               self._cli_flags,
                               ("-e{0}".format(cmd) for cmd in commands)))
-        env = {'LUA_PATH': os.path.join(self._chdkptp_path, "lua/?.lua")}
+        env = {'LUA_PATH': unicode(self._chdkptp_path / "lua/?.lua")}
         self.logger.debug("Calling chdkptp with arguments: {0}"
                           .format(cmd_args))
         output = (subprocess.check_output(cmd_args, env=env,

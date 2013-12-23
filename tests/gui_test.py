@@ -2,6 +2,7 @@ import unittest
 
 from PySide.QtGui import QPixmap, QImage, QApplication
 from mock import patch, MagicMock as Mock
+from spreads.vendor.pathlib import Path
 
 import spreads.confit as confit
 import spreads.plugin as plugin
@@ -45,7 +46,7 @@ class TestWizard(unittest.TestCase):
         page.initializePage()
         page.line_edit.setText('/tmp/foobar')
         assert page.validatePage()
-        assert self.wizard.workflow.path == '/tmp/foobar'
+        assert self.wizard.workflow.path == Path('/tmp/foobar')
         #assert spreads.config['first_page'].get(unicode) == "left"
         #assert not spreads.config['rotate_inverse'].get(bool)
         #assert not spreads.config['autopilot'].get(bool)

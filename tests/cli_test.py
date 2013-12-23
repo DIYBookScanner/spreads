@@ -50,12 +50,16 @@ class TestCLI(unittest.TestCase):
         cli.postprocess(self.workflow)
         assert self.workflow.process.call_count == 1
 
-    def test_wizard(self):
+    @patch('spreads.cli.capture')
+    @patch('spreads.cli.postprocess')
+    @patch('spreads.cli.output')
+    def test_wizard(self, capture, postprocess, output):
         self.workflow.config['path'] = '/tmp/foo'
-        self.workflow.config['capture']['capture_keys'] = ["b", " "]
-        cli.getch = Mock(side_effect=chain(repeat('b', 10), 'c',
-                                           repeat('b', 10)))
         cli.wizard(self.workflow.config)
+        capture.assert_called_with(self.workflow.config)
+        postprocess.assert_called_with(self.workflow.config)
+        output.assert_called_with(self.workflow.config)
+
 
     def test_parser(self):
         cli.get_pluginmanager = Mock()

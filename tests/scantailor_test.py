@@ -2,6 +2,7 @@ import unittest
 from itertools import chain, repeat
 
 from mock import MagicMock as Mock, patch
+from spreads.vendor.pathlib import Path
 
 import spreads.confit as confit
 import spreads.plugin as plugin
@@ -34,19 +35,22 @@ class TestScanTailor(unittest.TestCase):
         scantailor.subprocess.call = Mock()
         assert self.stplug._enhanced
         # TODO: Setup up some config variables
-        self.stplug._generate_configuration('/tmp/foo.st', '/tmp/raw',
-                                            '/tmp/out')
+        self.stplug._generate_configuration(Path('/tmp/foo.st'),
+                                            Path('/tmp/raw'),
+                                            Path('/tmp/out'))
         # TODO: Check the sp.call for the correct parameters
 
     def test_generate_configuration_noenhanced(self):
         scantailor.subprocess.call = Mock()
         # TODO: Setup up some config variables
         self.stplug._enhanced = False
-        with patch('os.listdir') as listdir_mock:
-            listdir_mock.return_value = ["foo.jpg", "bar.jpg"]
-            self.stplug._generate_configuration('/tmp/foo.st', '/tmp/raw',
-                                                '/tmp/out')
-        assert "/tmp/raw/bar.jpg" in scantailor.subprocess.call.call_args[0][0]
+        imgdir_mock = Mock(wraps=Path('/tmp/raw'))
+        mock_imgs = [imgdir_mock/"foo.jpg", imgdir_mock/"bar.jpg"]
+        imgdir_mock.iterdir.return_value = mock_imgs
+        self.stplug._generate_configuration(Path('/tmp/foo.st'), imgdir_mock,
+                                            Path('/tmp/out'))
+        assert (unicode(mock_imgs[0])
+                in scantailor.subprocess.call.call_args[0][0])
 
     def test_split_configuration(self):
         # TODO: Provide a sample configuration
@@ -64,9 +68,9 @@ class TestScanTailor(unittest.TestCase):
         self.stplug._generate_configuration = Mock()
         self.stplug._generate_output = Mock()
         self.stplug.config['autopilot'] = True
-        self.stplug.process('/tmp')
+        self.stplug.process(Path('/tmp'))
         assert scantailor.subprocess.call.call_count == 0
         self.stplug.config['autopilot'] = False
-        self.stplug.process('/tmp')
+        self.stplug.process(Path('/tmp'))
         scantailor.subprocess.call.assert_called_with(
             ['scantailor', '/tmp/tmp.ScanTailor'])

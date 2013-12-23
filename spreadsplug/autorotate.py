@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
-
 import logging
-import os
 
 import wand.image
 from concurrent import futures
@@ -15,20 +12,20 @@ logger = logging.getLogger('spreadsplug.autorotate')
 
 
 def rotate_image(path, rotation):
-    with wand.image.Image(filename=path) as img:
+    with wand.image.Image(filename=unicode(path)) as img:
         logger.debug("Rotating image \'{0}\' by {1} degrees"
                      .format(path, rotation))
         if img.height > img.width:
             logger.info("Image already rotated, skipping...")
         else:
             img.rotate(rotation)
-            img.save(filename=path)
+            img.save(filename=unicode(path))
     # Update EXIF orientation
-    img = JpegFile.fromFile(path)
+    img = JpegFile.fromFile(unicode(path))
     if not img.exif.primary.Orientation == [1]:
         logger.debug("Updating EXIF information for image '{0}'".format(path))
         img.exif.primary.Orientation = [1]
-        img.writeFile(path)
+        img.writeFile(unicode(path))
 
 
 class AutoRotatePlugin(HookPlugin):
@@ -36,21 +33,23 @@ class AutoRotatePlugin(HookPlugin):
 
     @classmethod
     def configuration_template(cls):
-        conf = {'rotate_odd': PluginOption(-90, "Rotation applied to odd pages"),
-                'rotate_even': PluginOption(90, "Rotation applied to even pages"),
+        conf = {'rotate_odd': PluginOption(-90,
+                                           "Rotation applied to odd pages"),
+                'rotate_even': PluginOption(90,
+                                            "Rotation applied to even pages"),
                 }
         return conf
 
     def process(self, path):
-        img_dir = os.path.join(path, 'raw')
+        img_dir = path / 'raw'
         # Silence Wand logger
         (logging.getLogger("wand")
                 .setLevel(logging.ERROR))
         logger.info("Rotating images in {0}".format(img_dir))
         with futures.ProcessPoolExecutor() as executor:
-            for imgpath in os.listdir(img_dir):
+            for imgpath in sorted(img_dir.iterdir()):
                 try:
-                    img = JpegFile.fromFile(os.path.join(img_dir, imgpath))
+                    img = JpegFile.fromFile(unicode(imgpath))
                     if img.exif.primary.Orientation == [8]:
                         rotation = self.config['rotate_odd'].get(int)
                     elif img.exif.primary.Orientation == [6]:
@@ -68,8 +67,4 @@ class AutoRotatePlugin(HookPlugin):
                     continue
                 logger.debug("Orientation for \"{0}\" is {1}"
                              .format(imgpath, rotation))
-                executor.submit(
-                    rotate_image,
-                    os.path.join(img_dir, imgpath),
-                    rotation=rotation
-                )
+                executor.submit(rotate_image, imgpath, rotation=rotation)

@@ -5,12 +5,13 @@ from __future__ import division, unicode_literals
 import logging
 import math
 import multiprocessing
-import os
 import re
 import shutil
 import subprocess
 import tempfile
 from xml.etree.cElementTree import ElementTree as ET
+
+from spreads.vendor.pathlib import Path
 
 from spreads.plugin import HookPlugin, PluginOption
 from spreads.util import find_in_path, MissingDependencyException
@@ -51,8 +52,8 @@ class ScanTailorPlugin(HookPlugin):
         return conf
 
     def _generate_configuration(self, projectfile, img_dir, out_dir):
-        if not os.path.exists(out_dir):
-            os.mkdir(out_dir)
+        if not out_dir.exists():
+            out_dir.mkdir()
         logger.info("Generating ScanTailor configuration")
         filterconf = [self.config[x].get(bool)
                       for x in ('rotate', 'split_pages', 'deskew', 'content',
@@ -80,17 +81,17 @@ class ScanTailorPlugin(HookPlugin):
                 '--margins-left={0}'.format(marginconf[3]),
             ])
         if self._enhanced:
-            generation_cmd.append(img_dir)
+            generation_cmd.append(unicode(img_dir))
         else:
-            generation_cmd.extend([os.path.join(img_dir, x)
-                                   for x in os.listdir(img_dir)])
-        generation_cmd.append(out_dir)
+            generation_cmd.extend([unicode(x)
+                                   for x in sorted(img_dir.iterdir())])
+        generation_cmd.append(unicode(out_dir))
         logger.debug(" ".join(generation_cmd))
         subprocess.call(generation_cmd)
 
     def _split_configuration(self, projectfile, temp_dir):
         num_pieces = multiprocessing.cpu_count()
-        tree = ET(file=projectfile)
+        tree = ET(file=unicode(projectfile))
         num_files = len(tree.findall('./files/file'))
         splitfiles = []
         files_per_job = int(math.ceil(float(num_files)/num_pieces))
@@ -109,27 +110,25 @@ class ScanTailorPlugin(HookPlugin):
                              if not x in to_keep]
                 for node in to_remove:
                     elem_root.remove(node)
-            out_file = os.path.join(temp_dir,
-                                    "{0}-{1}.ScanTailor".format(
-                                    os.path.splitext(os.path.basename(
-                                    projectfile))[0], idx))
-            tree.write(out_file)
+            out_file = temp_dir / "{0}-{1}.ScanTailor".format(projectfile.stem,
+                                                              idx)
+            tree.write(unicode(out_file))
             splitfiles.append(out_file)
         return splitfiles
 
     def _generate_output(self, projectfile, out_dir):
         logger.debug("Generating output...")
-        temp_dir = tempfile.mkdtemp(prefix="spreads.")
+        temp_dir = Path(tempfile.mkdtemp(prefix="spreads."))
         split_config = self._split_configuration(projectfile, temp_dir)
         logger.debug("Launching those subprocesses!")
         processes = [subprocess.Popen(['scantailor-cli', '--start-filter=6',
-                                       x, out_dir])
-                     for x in split_config]
+                                       unicode(cfgfile), unicode(out_dir)])
+                     for cfgfile in split_config]
         while processes:
             for p in processes[:]:
                 if p.poll() is not None:
                     processes.remove(p)
-        shutil.rmtree(temp_dir)
+        shutil.rmtree(unicode(temp_dir))
 
     def process(self, path):
         autopilot = self.config['autopilot'].get(bool)
@@ -138,15 +137,14 @@ class ScanTailorPlugin(HookPlugin):
                 "Could not find executable `scantailor` in"
                 " $PATH. Please install the appropriate"
                 " package(s)!")
-        projectfile = os.path.join(path, "{0}.ScanTailor".format(
-            os.path.basename(path)))
-        img_dir = os.path.join(path, 'raw')
-        out_dir = os.path.join(path, 'done')
+        projectfile = path / "{0}.ScanTailor".format(path.name)
+        img_dir = path / 'raw'
+        out_dir = path / 'done'
 
-        if not os.path.exists(projectfile):
+        if not projectfile.exists():
             self._generate_configuration(projectfile, img_dir, out_dir)
         if not autopilot:
             logger.info("Opening ScanTailor GUI for manual adjustment")
-            subprocess.call(['scantailor', projectfile])
+            subprocess.call(['scantailor', unicode(projectfile)])
         logger.info("Generating output images from ScanTailor configuration.")
         self._generate_output(projectfile, out_dir)

@@ -128,14 +128,13 @@ class SpreadsPlugin(object):
 
 
 class DeviceFeatures(object):
+    #: Device can grab a preview picture
     PREVIEW = 1
-    """ Device can grab a preview picture """
 
+    #: Device class allows the operation of two devices simultaneously
+    #: (mainly to be used by cameras, where each device is responsible for
+    #: capturing a single page.
     TWO_DEVICES = 2
-    """ Device class allows the operation of two devices simultaneously
-        (mainly to be used by cameras, where each device is responsible for
-        capturing a single page.
-    """
 
 
 class DevicePlugin(SpreadsPlugin):
@@ -200,9 +199,12 @@ class DevicePlugin(SpreadsPlugin):
     def prepare_capture(self, path):
         """ Prepare device for scanning.
 
-            What this means exactly is up to the implementation and the type,
-            of device, usually it involves things like switching into record
-            mode, path and applying all relevant settings.
+        What this means exactly is up to the implementation and the type,
+        of device, usually it involves things like switching into record
+        mode, path and applying all relevant settings.
+
+        :param path:    Project base path
+        :type path:     pathlib.Path
 
         """
         raise NotImplementedError
@@ -210,6 +212,9 @@ class DevicePlugin(SpreadsPlugin):
     @abc.abstractmethod
     def capture(self, path):
         """ Capture a single image with the device.
+
+        :param path:    Path for the image
+        :type path:     pathlib.Path
 
         """
         raise NotImplementedError
@@ -238,10 +243,10 @@ class HookPlugin(SpreadsPlugin):
     def prepare_capture(self, devices, path):
         """ Perform some action before capturing begins.
 
-        :param devices: The devices used for capturing
-        :type devices: list(DevicePlugin)
-        :param path: The project path
-        :type path: unicode
+        :param devices:     The devices used for capturing
+        :type devices:      list(DevicePlugin)
+        :param path:        Project path
+        :type path:         pathlib.Path
 
         """
         pass
@@ -249,10 +254,10 @@ class HookPlugin(SpreadsPlugin):
     def capture(self, devices, path):
         """ Perform some action after each successful capture.
 
-        :param devices: The devices used for capturing
-        :type devices: list(DevicePlugin)
-        :param path: The project path
-        :type path: unicode
+        :param devices:     The devices used for capturing
+        :type devices:      list(DevicePlugin)
+        :param path:        Project path
+        :type path:         pathlib.Path
 
         """
         pass
@@ -260,10 +265,10 @@ class HookPlugin(SpreadsPlugin):
     def finish_capture(self, devices, path):
         """ Perform some action after capturing has finished.
 
-        :param devices: The devices used for capturing
-        :type devices: list(DevicePlugin)
-        :param path: The project path
-        :type path: unicode
+        :param devices:     The devices used for capturing
+        :type devices:      list(DevicePlugin)
+        :param path:        Project path
+        :type path:         pathlib.Path
 
         """
         pass
@@ -279,8 +284,8 @@ class HookPlugin(SpreadsPlugin):
             a copy of the original, scanned images will always be available
             for archival purposes.
 
-        :param path: The project path
-        :type path: unicode
+        :param path:        Project path
+        :type path:         pathlib.Path
 
         """
         pass
@@ -293,8 +298,9 @@ class HookPlugin(SpreadsPlugin):
             subfolder of the project path and store its output in the
             *out* subfolder.
 
-        :param path: The project path
-        :type path: unicode
+        :param path:        Project path
+        :type path:         pathlib.Path
+
         """
         pass
 

@@ -1,6 +1,5 @@
 import logging
 import operator
-import os
 
 import wand.api
 import wand.image
@@ -16,7 +15,7 @@ def correct_colors(img_path, factors):
     for channel, factor in zip(('red', 'green', 'blue'), factors):
         logger.debug("Correcting {0} channel by {1}"
                      .format(channel, factor))
-        with wand.image.Image(filename=img_path) as img:
+        with wand.image.Image(filename=unicode(img_path)) as img:
             wand.api.libmagick.MagickEvaluateImageChannel(
                 img.wand, wand.image.CHANNELS[channel],
                 wand.image.EVALUATE_OPS.index('multiply'),
@@ -39,7 +38,7 @@ class ColorCorrectionPlugin(HookPlugin):
         return conf
 
     def process(self, path):
-        path = os.path.join(path, 'raw')
+        path = path / 'raw'
         logger.debug("Starting color correction...")
         # Get the gray card's RGB values from configuration
         true_colors = (float(self.config['true_red']
@@ -50,7 +49,7 @@ class ColorCorrectionPlugin(HookPlugin):
                              .get(int))
                        )
         # We assume that the first two images shot were the gray card
-        images = sorted([os.path.join(path, x) for x in os.listdir(path)])
+        images = sorted(path.iterdir())
         factors_odd = map(operator.div, true_colors,
                           self._get_color(images[0]))
         factors_even = map(operator.div, true_colors,
@@ -67,7 +66,7 @@ class ColorCorrectionPlugin(HookPlugin):
 
     def _get_color(self, img_path):
         """ Get average color of image's core 500x500 area. """
-        with wand.image.Image(filename=img_path) as img:
+        with wand.image.Image(filename=unicode(img_path)) as img:
             img.crop(left=img.size[0]/2-250,
                      top=img.size[1]/2-250,
                      width=500, height=500)           # crop rectangle
