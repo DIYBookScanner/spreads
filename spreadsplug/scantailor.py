@@ -96,7 +96,7 @@ class ScanTailorPlugin(HookPlugin):
         splitfiles = []
         files_per_job = int(math.ceil(float(num_files)/num_pieces))
         for idx in xrange(num_pieces):
-            tree = ET(file=projectfile)
+            tree = ET(file=unicode(projectfile))
             root = tree.getroot()
             start = idx*files_per_job
             end = start + files_per_job
