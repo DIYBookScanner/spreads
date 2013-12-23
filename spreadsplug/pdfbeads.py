@@ -24,10 +24,11 @@ class PDFBeadsPlugin(HookPlugin):
         logger.info("Assembling PDF.")
         img_dir = path / 'done'
         pdf_file = path / 'out' / "{0}.pdf".format(path.name)
-        img_files = [unicode(x) for x in sorted(img_dir.glob('*.tif'))]
+        img_files = [unicode(x.name) for x in sorted(img_dir.glob('*.tif'))]
         cmd = ["pdfbeads", "-d"] + img_files + ["-o", unicode(pdf_file)]
         logger.debug("Running " + " ".join(cmd))
         # NOTE: pdfbeads only finds *html files for the text layer in the
         #       working directory...
         os.chdir(unicode(img_dir))
-        _ = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        logger.debug("Output:\n{0}".format(output))
