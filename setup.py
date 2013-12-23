@@ -1,5 +1,18 @@
 #!/usr/bin/env python2.7
 from setuptools import setup
+from setuptools.command.test import test as TestCommand
+import sys
+
+class PyTest(TestCommand):
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+    def run_tests(self):
+        #import here, cause outside the eggs aren't loaded
+        import pytest
+        errno = pytest.main(self.test_args)
+        sys.exit(errno)
 
 setup(
     name='spreads',
@@ -16,13 +29,11 @@ setup(
     install_requires=[
         "colorama >= 0.2.5",
         "pyusb >= 1.0.0a3",
-        "pyptpchdk >= 0.2.1",
         "PyYAML >= 3.10",
         "Wand >= 0.3.1",
         "stevedore >= 0.9.1",
         "futures >= 2.1.4",
         "pexif >= 0.13",
-        "Pillow >= 2.0.0",
     ],
     entry_points={
         'spreadsplug.devices': [
@@ -40,5 +51,6 @@ setup(
             'gui        = spreadsplug.gui:GuiCommand',
         ],
     },
-    test_suite='nose.collector',
+    tests_require=['pytest'],
+    cmdclass = {'test': PyTest},
 )

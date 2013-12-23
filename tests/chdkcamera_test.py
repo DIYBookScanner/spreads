@@ -1,9 +1,7 @@
 import unittest
-from itertools import chain, repeat
 
 import pytest
 from mock import MagicMock as Mock, patch, call
-from pyptpchdk import PTPError
 
 import spreads.confit as confit
 import spreads.util as util

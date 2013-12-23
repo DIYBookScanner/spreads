@@ -25,7 +25,7 @@ class TestCLI(unittest.TestCase):
 
     def test_capture(self):
         self.workflow.config['capture']['capture_keys'] = ["b", " "]
-        cli.getch = Mock(side_effect=chain(repeat('b', 3), 'c'))
+        cli.getch = Mock(side_effect=chain(repeat('b', 3), 'f'))
         cli.capture(self.workflow)
         assert cli.getch.call_count == 4
         assert self.workflow.prepare_capture.call_count == 1

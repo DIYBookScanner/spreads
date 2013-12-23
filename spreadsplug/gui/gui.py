@@ -3,7 +3,6 @@ import time
 
 from concurrent.futures import ThreadPoolExecutor
 from PySide import QtCore, QtGui
-from PIL import Image
 
 import spreads.workflow as workflow
 from spreads.plugin import get_pluginmanager, DeviceFeatures
@@ -245,8 +244,6 @@ class CapturePage(QtGui.QWizardPage):
             previewbox.addWidget(self.odd_preview)
             previewbox.addWidget(self.even_preview)
             layout.addLayout(previewbox)
-            self.refresh_btn = QtGui.QPushButton("Refresh")
-            self.refresh_btn.clicked.connect(self.update_preview)
 
         self.capture_btn = QtGui.QPushButton("Capture")
         self.capture_btn.clicked.connect(self.doCapture)
@@ -260,14 +257,11 @@ class CapturePage(QtGui.QWizardPage):
         self.log_handler.sig.connect(self.logbox.append)
 
         layout.addWidget(self.status)
-        if device_has_preview:
-            layout.addWidget(self.refresh_btn)
         layout.addWidget(self.capture_btn)
         layout.addWidget(self.logbox)
         self.setLayout(layout)
         if device_has_preview:
             time.sleep(0.5)
-            self.update_preview()
 
     def validatePage(self):
         self.wizard().workflow.finish_capture()
@@ -283,16 +277,12 @@ class CapturePage(QtGui.QWizardPage):
         if self.shot_count is None:
             self.shot_count = 0
         self.capture_btn.setEnabled(False)
-        if hasattr(self, 'refresh_btn'):
-            self.refresh_btn.setEnabled(False)
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(self.wizard().workflow.capture)
             while future.running():
                 QtGui.qApp.processEvents()
                 time.sleep(0.001)
         self.capture_btn.setEnabled(True)
-        if hasattr(self, 'refresh_btn'):
-            self.refresh_btn.setEnabled(True)
         self.capture_btn.setFocus()
         self.shot_count += 2
         self.status.setText("Shot {0} pages in {1:.0f} minutes "
@@ -301,27 +291,6 @@ class CapturePage(QtGui.QWizardPage):
                                 (time.time() - self.start_time) / 60,
                                 ((3600 / (time.time() - self.start_time))
                                  * self.shot_count)))
-
-    def update_preview(self):
-        def get_preview(dev):
-            img = dev.get_preview_image()
-            img = img.resize((320, 240), Image.ANTIALIAS).convert('RGBA')
-            data = img.tostring('raw')
-            image = QtGui.QImage(data, img.size[0], img.size[1],
-                                 QtGui.QImage.Format_ARGB32).rgbSwapped()
-            return dev.target_page, image
-
-        # TODO: Don't go via PIL, find a way to use RGB data directly
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            futures = executor.map(get_preview,
-                                   self.wizard().workflow.devices)
-            previews = tuple(futures)
-        for target_page, image in previews:
-            pixmap = QtGui.QPixmap.fromImage(image)
-            if target_page == 'odd':
-                self.odd_preview.setPixmap(pixmap)
-            else:
-                self.even_preview.setPixmap(pixmap)
 
 
 class PostprocessPage(QtGui.QWizardPage):
