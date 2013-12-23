@@ -41,17 +41,16 @@ class TesseractPlugin(HookPlugin):
         return conf
 
     def process(self, path):
-        ocr_lang = self.config['language'].get(str)
+        ocr_lang = self.config['language'].get()
         logger.info("Performing OCR")
         logger.info("Language is \"{0}\"".format(ocr_lang))
         img_dir = path / 'done'
         with futures.ProcessPoolExecutor() as executor:
-            for img in img_dir.glob('*.jpg'):
+            for img in img_dir.glob('*.tif'):
                 executor.submit(
                     subprocess.check_call,
-                    ["tesseract", img, img_dir / img.stem, "-l", ocr_lang,
-                     "hocr"],
-                    stderr=subprocess.STDOUT
+                    ["tesseract", unicode(img), unicode(img_dir / img.stem),
+                     "-l", ocr_lang, "hocr"], stderr=subprocess.STDOUT
                 )
         # NOTE: This modifies the hOCR files to make them compatible with
         #       pdfbeads.
@@ -78,7 +77,7 @@ class TesseractPlugin(HookPlugin):
             with page.open('r+') as fp:
                 content = re.sub(r'<em><\/em>', '', fp.read())
                 content = re.sub(r'<strong><\/strong>', '', content)
-            page = ET.fromstring(content)
+            page = ET.fromstring(content.encode('utf-8'))
             page_elem = page.find("xhtml:body/xhtml:div[@class='ocr_page']",
                                   dict(xhtml="http://www.w3.org/1999/xhtml"))
             # Correct page_number
@@ -91,4 +90,4 @@ class TesseractPlugin(HookPlugin):
             # Strip those annoying namespace tags...
             out_string = re.sub(r"(<\/*)html:", "\g<1>",
                                 ET.tostring(out_root))
-            fp.write(out_string.encode("UTF-8"))
+            fp.write(unicode(out_string))
