@@ -111,6 +111,24 @@ def _select_plugins(selected_plugins=None):
     return selected_plugins
 
 
+def _setup_processing_pipeline(config):
+    pm = get_pluginmanager(config)
+    extensions = [ext.name for ext in get_relevant_extensions(pm, ['process'])]
+    print("The following postprocessing plugins were detected:")
+    print("\n".join(" - {0}".format(ext) for ext in extensions))
+    while True:
+        answer = raw_input("Please enter the extensions in the order that they"
+                           " should be invoked, separated by commas:\n")
+        plugins = [x.strip() for x in answer.split(',')]
+        if any(x not in extensions for x in plugins):
+            print(colorize("At least one of the entered extensions was not"
+                           "found, please try again!", colorama.Fore.RED))
+        else:
+            break
+    config["plugins"] = plugins + [x for x in config["plugins"].get()
+                                   if x not in plugins]
+
+
 def _set_device_target_page(config, target_page):
     print("Please connect and turn on the device labeled \'{0}\'"
           .format(target_page))
