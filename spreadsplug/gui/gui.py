@@ -230,20 +230,15 @@ class CapturePage(QtGui.QWizardPage):
         self.setTitle("Capturing from devices")
         self.start_time = None
         self.shot_count = None
-        device_has_preview = (DeviceFeatures.PREVIEW
-                              in self.wizard().workflow.devices[0].features)
+
+        # TODO: Add horizontally scrolling box with thumbnails of all
+        #       previously shot images
+        # TODO: Display last two shot images next to each other
+        # TODO: Add button to retake the last capture
 
         layout = QtGui.QVBoxLayout(self)
         self.status = QtGui.QLabel("Press a capture key (default: Space, B)"
                                    " to begin capturing.")
-
-        if device_has_preview:
-            previewbox = QtGui.QHBoxLayout()
-            self.odd_preview = QtGui.QLabel()
-            self.even_preview = QtGui.QLabel()
-            previewbox.addWidget(self.odd_preview)
-            previewbox.addWidget(self.even_preview)
-            layout.addLayout(previewbox)
 
         self.capture_btn = QtGui.QPushButton("Capture")
         self.capture_btn.clicked.connect(self.doCapture)
@@ -260,8 +255,6 @@ class CapturePage(QtGui.QWizardPage):
         layout.addWidget(self.capture_btn)
         layout.addWidget(self.logbox)
         self.setLayout(layout)
-        if device_has_preview:
-            time.sleep(0.5)
 
     def validatePage(self):
         self.wizard().workflow.finish_capture()
