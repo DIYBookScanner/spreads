@@ -136,13 +136,16 @@ class CHDKCameraDevice(DevicePlugin):
         return data
 
     def capture(self, path, two_device_mode=False):
+        # NOTE: To obtain the "real" Canon ISO value, we multiply the
+        #       "market" value from the config by 0.65.
+        #       See core/shooting.c#~l150 in the CHDK source for more details
         if self._can_remote:
-            cmd = ("remoteshoot -tv={0} -isomode={1} {2} {3}"
-                   .format(self._shutter_speed, self._sensitivity,
+            cmd = ("remoteshoot -tv={0} -sv={1} {2} {3}"
+                   .format(self._shutter_speed, self._sensitivity*0.65,
                            "-dng" if self._shoot_raw else "", path))
         else:
-            cmd = ("shoot -tv={0} -isomode={1} -dng={2} -rm -dl {3}"
-                   .format(self._shutter_speed, self._sensitivity,
+            cmd = ("shoot -tv={0} -sv={1} -dng={2} -rm -dl {3}"
+                   .format(self._shutter_speed, self._sensitivity*0.65,
                            int(self._shoot_raw), path))
         try:
             self._run(cmd)
