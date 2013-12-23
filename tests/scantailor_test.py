@@ -1,10 +1,10 @@
 import unittest
 from itertools import chain, repeat
 
+import spreads.vendor.confit as confit
 from mock import MagicMock as Mock, patch
 from spreads.vendor.pathlib import Path
 
-import spreads.confit as confit
 import spreads.plugin as plugin
 
 with patch('subprocess.check_output') as mock_co:

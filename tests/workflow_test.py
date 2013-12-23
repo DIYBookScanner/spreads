@@ -3,10 +3,10 @@ from __future__ import division, unicode_literals
 import unittest
 
 import pytest
-from mock import call, MagicMock as Mock, patch, DEFAULT
+import spreads.vendor.confit as confit
+from mock import call, MagicMock as Mock, patch
 from spreads.vendor.pathlib import Path
 
-import spreads.confit as confit
 import spreads.util as util
 import spreads.workflow as workflow
 

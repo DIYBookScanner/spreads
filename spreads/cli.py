@@ -33,8 +33,8 @@ import time
 
 import colorama
 import pkg_resources
+import spreads.vendor.confit as confit
 
-import spreads.confit as confit
 from spreads.workflow import Workflow
 from spreads.plugin import (get_driver, get_devices, get_pluginmanager,
                             setup_plugin_config, get_relevant_extensions,

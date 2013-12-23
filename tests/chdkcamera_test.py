@@ -1,9 +1,9 @@
 import unittest
 
 import pytest
+import spreads.vendor.confit as confit
 from mock import MagicMock as Mock, patch, call
 
-import spreads.confit as confit
 import spreads.util as util
 import spreadsplug.dev.chdkcamera as chdkcamera
 

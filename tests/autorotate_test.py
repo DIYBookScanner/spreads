@@ -2,11 +2,10 @@ import shutil
 import tempfile
 import unittest
 
-from mock import call, patch, MagicMock as Mock
+import spreads.vendor.confit as confit
+from mock import call, MagicMock as Mock
 from spreads.vendor.pathlib import Path
 
-import spreads.confit as confit
-import spreads.plugin as plugin
 import spreads.util
 spreads.util.find_in_path = Mock(return_value=True)
 import spreadsplug.autorotate as autorotate

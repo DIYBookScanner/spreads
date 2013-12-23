@@ -28,10 +28,10 @@ from __future__ import division, unicode_literals
 import logging
 import time
 
+import spreads.vendor.confit as confit
 from concurrent.futures import ThreadPoolExecutor
 from spreads.vendor.pathlib import Path
 
-import spreads.confit as confit
 from spreads.plugin import get_pluginmanager, get_devices
 from spreads.util import check_futures_exceptions, DeviceException
 

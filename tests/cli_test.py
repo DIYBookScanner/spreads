@@ -3,11 +3,11 @@ import unittest
 from itertools import chain, repeat
 
 import pytest
+import spreads.vendor.confit as confit
 from mock import patch, MagicMock as Mock
 
 import spreads
 import spreads.cli as cli
-import spreads.confit as confit
 from spreads.util import DeviceException
 
 spreads.util.find_in_path = Mock(return_value=True)

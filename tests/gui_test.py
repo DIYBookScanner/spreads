@@ -1,10 +1,10 @@
 import unittest
 
+import spreads.vendor.confit as confit
 from PySide.QtGui import QPixmap, QImage, QApplication
 from mock import patch, MagicMock as Mock
 from spreads.vendor.pathlib import Path
 
-import spreads.confit as confit
 import spreads.plugin as plugin
 import spreads.workflow as workflow
 import spreadsplug.gui.gui as gui

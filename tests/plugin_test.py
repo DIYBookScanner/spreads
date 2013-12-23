@@ -1,9 +1,9 @@
 import unittest
 
 import pytest
+import spreads.vendor.confit as confit
 from mock import call, MagicMock as Mock, patch
 
-import spreads.confit as confit
 import spreads.plugin as plugin
 from spreads.util import DeviceException
 
