@@ -48,7 +48,7 @@ class TesseractPlugin(HookPlugin):
         with futures.ProcessPoolExecutor() as executor:
             for img in img_dir.glob('*.tif'):
                 executor.submit(
-                    subprocess.check_call,
+                    subprocess.check_output,
                     ["tesseract", unicode(img), unicode(img_dir / img.stem),
                      "-l", ocr_lang, "hocr"], stderr=subprocess.STDOUT
                 )
