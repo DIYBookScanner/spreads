@@ -2,8 +2,7 @@ import logging
 
 from PySide import QtGui
 
-import spreads
-from spreads.plugin import HookPlugin, get_devices
+from spreads.plugin import HookPlugin
 import gui
 import gui_rc
 
@@ -21,9 +20,7 @@ class GuiCommand(HookPlugin):
     def wizard(config):
         logger.debug("Starting GUI")
         app = QtGui.QApplication([])
-        # NOTE: This is a bit hackish....
-        #       Since the GUI creates its own workflow object(s), we here only
-        #       pass the configuration and the devices from the CLI workflow
+
         wizard = gui.SpreadsWizard(config)
         wizard.show()
         app.exec_()

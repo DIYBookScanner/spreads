@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from PySide import QtCore, QtGui
 
 import spreads.workflow as workflow
-from spreads.plugin import get_pluginmanager, DeviceFeatures
+from spreads.plugin import get_pluginmanager
 
 import gui_rc
 
@@ -27,7 +27,11 @@ class LogBoxHandler(logging.Handler):
 
     def emit(self, record):
         # Play a warning sound if something has gone wrong
-        self.sig.emit(self.format(record))
+        try:
+            self.sig.emit(self.format(record))
+        except:
+            self.handleError(record)
+
         if record.levelname in ('ERROR', 'CRITICAL', 'WARNING'):
             QtGui.QApplication.beep()
 
@@ -43,7 +47,7 @@ class LogBoxFormatter(logging.Formatter):
 
     def format(self, record):
         levelname = record.levelname
-        return self.LEVELS[levelname].format(record.message)
+        return self.LEVELS[levelname].format(record.msg)
 
 
 class SpreadsWizard(QtGui.QWizard):
@@ -56,7 +60,6 @@ class SpreadsWizard(QtGui.QWizard):
         self.addPage(CapturePage())
         self.addPage(PostprocessPage())
         self.addPage(OutputPage())
-        self.addPage(FinishPage())
 
         self.setPixmap(QtGui.QWizard.WatermarkPixmap,
                        QtGui.QPixmap(':/pixmaps/monk.png'))
@@ -71,6 +74,7 @@ class SpreadsWizard(QtGui.QWizard):
         self.setButtonLayout(button_layout)
 
         self.setWindowTitle("Spreads Wizard")
+        self.setFixedWidth(700)
 
 
 class IntroPage(QtGui.QWizardPage):
@@ -87,6 +91,7 @@ class IntroPage(QtGui.QWizardPage):
 
         dirpick_layout = QtGui.QHBoxLayout()
         self.line_edit = QtGui.QLineEdit()
+        self.line_edit.textChanged.connect(self.completeChanged)
         browse_btn = QtGui.QPushButton("Browse")
         dirpick_layout.addWidget(self.line_edit)
         dirpick_layout.addWidget(browse_btn)
@@ -181,6 +186,9 @@ class IntroPage(QtGui.QWizardPage):
         dialog.exec_()
         self.line_edit.setText(dialog.selectedFiles()[0])
 
+    def isComplete(self):
+        return bool(self.line_edit.text())
+
     def validatePage(self):
         wizard = self.wizard()
         project_path = self.line_edit.text()
@@ -244,6 +252,17 @@ class CapturePage(QtGui.QWizardPage):
         self.capture_btn.clicked.connect(self.doCapture)
         self.capture_btn.setFocus()
 
+        control_layout = QtGui.QHBoxLayout()
+        self.control_odd = QtGui.QLabel()
+        self.control_even = QtGui.QLabel()
+        control_layout.addWidget(self.control_odd)
+        control_layout.addWidget(self.control_even)
+
+        self.retake_btn = QtGui.QPushButton("Retake")
+        self.retake_btn.clicked.connect(self.retakeCapture)
+        self.retake_btn = QtGui.QPushButton("Retake")
+        self.retake_btn.clicked.connect(self.retakeCapture)
+
         self.logbox = QtGui.QTextEdit()
         self.log_handler = LogBoxHandler(self.logbox)
         self.log_handler.setLevel(logging.WARNING)
@@ -252,7 +271,10 @@ class CapturePage(QtGui.QWizardPage):
         self.log_handler.sig.connect(self.logbox.append)
 
         layout.addWidget(self.status)
+        layout.addStretch(1)
+        layout.addLayout(control_layout)
         layout.addWidget(self.capture_btn)
+        layout.addWidget(self.retake_btn)
         layout.addWidget(self.logbox)
         self.setLayout(layout)
 
@@ -264,31 +286,43 @@ class CapturePage(QtGui.QWizardPage):
         if event.key() in (QtCore.Qt.Key_B, QtCore.Qt.Key_Space):
             self.doCapture()
 
-    def doCapture(self):
-        if self.start_time is None:
-            self.start_time = time.time()
-        if self.shot_count is None:
-            self.shot_count = 0
+    def updateControl(self):
+        images = self.wizard().workflow.images
+        self.control_odd.setPixmap(
+            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[-2]))
+                                    .scaledToWidth(250)))
+        self.control_even.setPixmap(
+            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[-1]))
+                                    .scaledToWidth(250)))
+
+    def retakeCapture(self):
+        self.retake_btn.setEnabled(False)
+        self.doCapture(retake=True)
+        self.retake_btn.setEnabled(True)
+
+    def doCapture(self, retake=False):
         self.capture_btn.setEnabled(False)
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(self.wizard().workflow.capture)
+            future = executor.submit(self.wizard().workflow.capture, retake)
             while future.running():
                 QtGui.qApp.processEvents()
                 time.sleep(0.001)
         self.capture_btn.setEnabled(True)
         self.capture_btn.setFocus()
-        self.shot_count += 2
-        self.status.setText("Shot {0} pages in {1:.0f} minutes "
-                            "({2:.0f} pages/hour)".format(
-                                self.shot_count,
-                                (time.time() - self.start_time) / 60,
-                                ((3600 / (time.time() - self.start_time))
-                                 * self.shot_count)))
+        pages_shot = self.wizard().workflow._pages_shot
+        start_time = self.wizard().workflow.capture_start
+        self.status.setText(
+            "Shot {0} pages in {1:.0f} minutes ({2:.0f} pages/hour)"
+            .format(pages_shot, (time.time() - start_time) / 60,
+                    ((3600 / (time.time() - start_time)) * pages_shot)))
+        self.updateControl()
 
 
 class PostprocessPage(QtGui.QWizardPage):
     def initializePage(self):
         self.setTitle("Postprocessing")
+
+        self.done = False
 
         self.progressbar = QtGui.QProgressBar(self)
         self.progressbar.setRange(0, 0)
@@ -317,6 +351,11 @@ class PostprocessPage(QtGui.QWizardPage):
             if future.exception():
                 raise future.exception()
         self.progressbar.hide()
+        self.done = True
+        self.completeChanged.emit()
+
+    def isComplete(self):
+        return self.done
 
     def validatePage(self):
         logging.getLogger().removeHandler(self.log_handler)
@@ -326,6 +365,9 @@ class PostprocessPage(QtGui.QWizardPage):
 class OutputPage(QtGui.QWizardPage):
     def initializePage(self):
         self.setTitle("Generating output files")
+        self.setFinalPage(True)
+
+        self.done = False
 
         self.progressbar = QtGui.QProgressBar(self)
         self.progressbar.setRange(0, 0)
@@ -352,14 +394,12 @@ class OutputPage(QtGui.QWizardPage):
                 self.progressbar.setValue(0)
                 time.sleep(0.001)
         self.progressbar.hide()
+        self.done = True
+        self.completeChanged.emit()
+
+    def isComplete(self):
+        return self.done
 
     def validatePage(self):
         logging.getLogger().removeHandler(self.log_handler)
         return True
-
-
-class FinishPage(QtGui.QWizardPage):
-    def initializePage(self):
-        self.setFinalPage(True)
-        self.setTitle("Done!")
-        # TODO: Offer option to view project folder on exit
