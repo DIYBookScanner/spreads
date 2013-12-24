@@ -25,9 +25,8 @@ class DjvuBindPlugin(HookPlugin):
         img_dir = path / 'done'
         djvu_file = path / 'out' / "{0}.djvu".format(path.name)
         cmd = ["djvubind", unicode(img_dir)]
-        # TODO: Do this via a check for *.html in 'done'-path
-        if self.config['ocr'].get(unicode) == 'none':
+        if not img_dir.glob("*.html"):
             cmd.append("--no-ocr")
         logger.debug("Running " + " ".join(cmd))
-        _ = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-        os.rename("book.djvu", djvu_file)
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        os.rename("book.djvu", unicode(djvu_file))
