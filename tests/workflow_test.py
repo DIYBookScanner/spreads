@@ -45,14 +45,14 @@ class TestWorkflow(unittest.TestCase):
 
     @patch('spreads.plugin.os.mkdir')
     def test_get_next_filename(self, mkdir):
-        fname = self.workflow._get_next_filename('jpg', target_page='odd')
+        fname = self.workflow._get_next_filename(target_page='odd')
         assert fname == self.mock_path/'raw'/'001.jpg'
-        fname = self.workflow._get_next_filename('jpg', target_page='even')
+        fname = self.workflow._get_next_filename(target_page='even')
         assert fname == self.mock_path/'raw'/'000.jpg'
         self.workflow._pages_shot += 2
-        fname = self.workflow._get_next_filename('jpg', target_page='odd')
+        fname = self.workflow._get_next_filename(target_page='odd')
         assert fname == self.mock_path/'raw'/'003.jpg'
-        fname = self.workflow._get_next_filename('jpg', target_page='even')
+        fname = self.workflow._get_next_filename(target_page='even')
         assert fname == self.mock_path/'raw'/'002.jpg'
 
     def test_prepare_capture(self):
