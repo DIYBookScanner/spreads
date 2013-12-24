@@ -7,7 +7,7 @@ It takes a *command* as its first argument::
 
     $ spread [--verbose] COMMAND [ARGS...]
 
-All of *spreads'* functionality is accesible via the following commands:
+All of *spreads'* functionality is accessible via the following commands:
 
 wizard
 ======
@@ -34,12 +34,12 @@ capture
 
     $ spread capture [OPTIONS] <project-director>
 
-This command will start a capturing workflow. You will be asked to connect and
-turn on your devices. After the application is done setting them up, you will
-enter a loop, where both devices will trigger simultaneously (if not configured
-otherwise, see below) when you press the **b** key. Press any other key to
-finish capturing. Consult the documentation of your device driver for available
-options.
+This command will start a capturing workflow. Make sure that your devices are
+turned on. After the application is done setting them up, you will enter a
+loop, where all devices will trigger simultaneously (if not configured
+otherwise, see below) when you press one of the capture keys (by default:
+the **b** or **spacebar** key). Press *r* to discard the last capture and
+retake it. Press *f* to finish the capture process.
 
 .. program:: spread-capture
 
@@ -52,6 +52,7 @@ options.
 
    When using two devices, flip the configured target pages, i.e. the camera
    configured to be *odd* will temporarily be the *even* device and vice versa.
+   This can be useful when you are scanning e.g. East-Asian literature.
 
 
 postprocess
@@ -61,9 +62,8 @@ postprocess
     $ spread postprocess [--jobs <int>] <project-directory>
 
 Start the postprocessing workflow by calling each of the :ref:`postprocessing
-plugins <postproc_plugs>` defined in the configuration one after the other (by
-default: :ref:`autorotate <plug_autorotate>`, :ref:`scantailor <plug_scantailor>`).
-The transformed images will be stored in *project-directory/done*.
+plugins <postproc_plugs>` defined in the configuration one after the other.The
+transformed images will be stored in *project-directory/done*.
 
 .. program:: spread-postprocess
 
@@ -80,6 +80,5 @@ output
     $ spread output <project-directory>
 
 Start the output workflow, calling each of the :ref:`output plugins
-<output_plugs>` defined in the configuration (by
-default: :ref:`pdfbeads <plug_pdfbeads>`). All output files will be stored in
-*project-directory/out*.
+<output_plugs>` defined in the configuration. All output files will be stored
+in *project-directory/out*.

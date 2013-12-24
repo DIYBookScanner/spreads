@@ -9,7 +9,8 @@ Optional requirements
 To use some of the included plugins, you might want to install the following
 dependencies:
 
-* `chdkptp`_ to use cameras with the CHDK firmware
+* `chdkptp`_ to use cameras with the CHDK firmware (installed in
+  `/usr/local/lib/chdkptp`)
 * An up-to date version of ScanTailor-enhanced_
 * pdfbeads_
 * djvubind_
@@ -27,13 +28,6 @@ Installing from PyPi
 This will grab the latest release and install all Python dependencies::
 
     $ sudo pip install spreads
-
-To use the optional GUI, first install PySide::
-
-    $ sudo pip install PySide
-
-Then add the GUI plugin to the spreads configuration in
-`~/.config/spreads/config.yaml` by adding `gui` to the `plugins` list.
 
 Installing from GitHub
 ----------------------

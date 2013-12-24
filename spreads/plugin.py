@@ -96,7 +96,8 @@ class SpreadsPlugin(object):
         The returned dictionary has to be flat (i.e. no nested dicts)
         and contain a PluginOption object for each key.
 
-        Example:
+        Example::
+
           {
            'a_setting': PluginOption(value='default_value'),
            'another_setting': PluginOption(value=[1, 2, 3],

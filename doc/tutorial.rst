@@ -8,8 +8,8 @@ that have the latest version of CHDK installed. The rest of the setup is up to
 you, though development and testing has been performed with a build of the
 `DIYBookScanner`_. Furthermore, the following instructions are tailored to an
 up-to-date installation of a Debian GNU/Linux installation or one of its
-derivates (\*buntu, Linux Mint, etc). You might have to adjust the commands for
-other distributions. This tutorial will also use all of the included plugins,
+derivatives (\*buntu, Linux Mint, etc.). You might have to adjust the commands for
+other distributions. This tutorial will also use most of the included plugins,
 so the dependencies are rather numerous, though you can adapt that, if you
 want.
 
@@ -29,6 +29,9 @@ First, ensure that you have all the dependencies installed::
     $ sudo gem install pdfbeads
     $ wget http://djvubind.googlecode.com/files/djvubind_1.2.1.deb
     $ sudo dpkg -i djvubind_1.2.1.deb
+    # Download the latest 'chdkptp' release from the website:
+    # https://www.assembla.com/spaces/chdkptp/documents
+    $ sudo unzip chdkptp-<version>-<platform>.zip -d /usr/local/lib/chdkptp
     $ virtualenv ~/.spreads
     $ source ~/.spreads/bin/activate
     $ pip install spreads
@@ -43,21 +46,36 @@ To perform the initial configuration, launch the `configure` subcommand::
 .. TODO: Add link to --flip-target-pages
 
 You will be asked to select a device driver (choose **a2200**) and some plugins
-(choose all except **gui**). At the end, you can set the target pages for each
-of your cameras. This is neccesary, as the application has to:
+(choose all except **gui** and **colorcorrect**). Next, configure the order
+in which your postprocessing plugins should be invoked. I recommend you set
+this to the following value::
+
+    autorotate,scantailor,tesseract
+
+Next, you can set the target pages for each of your cameras. This is
+necessary, as the application has to:
 
 * combine the images from both cameras to a single directory in the right order
 * set the correct rotation for the captured images
 
 To do both of these things automatically, the application needs to know if the
-image is showing an odd or even page. Don't worry, you only have to perform this
-step once, the orientation is stored on the camera's memory card (under
+image is showing an odd or even page. Don't worry, you only have to perform
+this step once, the orientation is stored on the camera's memory card (under
 `A/OWN.TXT`). Should you later wish to briefly flip the target pages, you can
 do so via a command-line flag.
 
 .. note::
     If you are using a DIYBookScanner, the device for *odd* pages is the
     camera on the **left**, the one for *even* pages on the **right**.
+
+After that, you can choose to setup the *focus* for your devices. By default,
+the focus will be automatically detected on each shot. But this can lead to
+problems: Since the camera uses the center of the frame to obtain its focus,
+your images will be out of focus in cases where the center of the page does not
+have any text on it, e.g. in chapter endings. This step is therefore
+recommended for most users. Before you continue, make sure that you have loaded
+a book into the scanner, and that the pages facing the camera are evenly filled
+with text or illustrations.
 
 Once you're done, you can find the configuration file in the `.config/spreads`
 folder in your home directory.
@@ -72,19 +90,15 @@ the whole workflow::
 
     $ spread wizard ~/my_book
 
-Follow the instructions and press your book against the platen, to allow the
-cameras to automatically adjust their focus. This will be the focus that is
-used throughout the capturing process, so make sure that the distance between
-the pages and the cameras does not change significantly after this step!  When
-you are prepared, press a button (or your footpedal) and your cameras will
-simultaneously adjust their zoom levels and set their focus.
-
-Once this is done, the application will ask you to press one of your configured
-*shooting keys* (default: **b** or **space**). If you do so, both cameras will
-take a picture simultaneously, which is then transferred to our computer and
-stored under the correct filename in the `raw` subdirectory of our project
-directory. Now scan as many pages as you need, when you're done, press any
-other key to quit the capturing process and continue to the next step.
+On startup, your cameras will simultaneously adjust their zoom levels and set
+their focus.  Once this is done, the application will ask you to press one of
+your configured *shooting keys* (default: **b** or **space**). If you do so,
+both cameras will take a picture simultaneously, which is then transferred to
+our computer and stored under the correct filename in the `raw` subdirectory of
+our project directory. Should you notice that you made a mistake during the
+last capture, you can press **r** do discard the last capture and retake it.
+Now scan as many pages as you need, when you're done, press **f** to
+quit the capturing process and continue to the next step.
 
 Now spreads will begin with the postprocessing of the captured images. If you
 followed the instructions so far, it will first rotate the images, which,
@@ -119,65 +133,66 @@ of PySide installed on your machine and linked to your virtual environment::
     $ sudo apt-get install python-pyside
     $ ln -s /usr/lib/python2.7/dist-packages/PySide ~/.spreads/lib/python2.7/site-packages/PySide
 
-Then, just add ``gui`` to the ``plugins`` list in your configuration file
-(``~/.config/spreads/config.yaml`` on Linux).
+Then, just re-run the *configure* step and add *gui* to your list of plugins.
+You can launch the GUI with the following command::
+
+    $ spread gui
 
 Usage
 -----
-.. TODO: Update!
-On the first screen, you can adjust various settings for your scan. You have
-to specify a project directory (1) before you can continue. The rest of the
-settings depends on which plugins you have enabled. In the screenshot you can
-see that we are using the ``scantailor`` and ``tesseract`` plugins.
-The ``Device for even pages`` setting is used by the ``autorotate`` and
-``combine`` plugins and corresponds to their ``--first-page`` and
-``--rotate-inverse`` options (``True`` for ``Right``).
+On the :ref:`first screen <config_page>`, you can adjust various settings for
+your scan. You have to specify a project directory before you can continue. The
+rest of the settings depends on which plugins you have enabled. Select the
+plugin to configure from the dropdown menu and make your adjustments.
+
+.. _config_page:
 
 .. figure:: _static/wizard1.png
 
    Initial setup page
 
-The next screen allows you to select the devices you want to capture with.
-You have to select at least one of them to be able to continue. You can always
-refresh the list by clicking on the appropriate button. Once you have clicked
-on ``Next``, spreads will prepare your devices for capture (i.e. switching
-into record mode and applying the appropriate settings, see the above tutorial
-for more details).
+:ref:`After you've clicked *next*<capture_page>`, the cameras will be prepared
+for capture by setting their zoom and focus levels. At the top of the screen
+you can see how many pages you've already scanned, as well as your current
+average scanning speed. The text box at the bottom of the screen will display
+any warnings or error messages that occur during the capture process. Next,
+initiate a capture by clicking on the button (or pressing one of the capture
+keys).
+
+.. _capture_page:
 
 .. figure:: _static/wizard2.png
 
-   Device selection page
+   Capture page
 
+Once you have :ref:`captured your first pages<capture_page_images>`, you will
+see the last two pages your cameras shot. Here you can verify that everything
+went as expected. Should you notice a mistake, you can discard the previous
+shot and retake it by clicking on the *retake* button.
 
-Now you are at the capturing stage. The GUI shows you a preview for each
-camera, that you can refresh by clicking on the button above it. Beneath
-the preview images, you can see a text box that will display any warnings
-and errors that might occur during this step. To toggle a capture, press
-the appropriate button or hit ``b`` or ``space``, just like in the CLI
-interface.
+.. _capture_page_images:
 
 .. figure:: _static/wizard3.png
 
-   Capture page
+   Capture page with control images
+
+Once you've finished scanning your book and :ref:`clicked on the *next*
+button,<postprocess_page>` spreads will execute all enabled postprocessing
+plugins in the sequence that you configured. You can verify the progress in the
+text box.
+
+.. _postprocess_page:
 
 .. figure:: _static/wizard4.png
 
-   Capture page with warnings/errors.
+   Postprocessing page
 
+:ref:`Last<output_page>`, spreads will assemble the processed scans into your
+enabled output formats. As in the postprocessing step, follow the progress via
+the text box.
 
-Next, spreads will try to download all the images from your devices, combine
-them to a single directory and delete them from the devices (that is, if you
-have not checked the ``Keep files on devices`` box on the first page).
-You can follow the progress in the text box. In the case that there was an
-inequal amount of images on the devices, you will get a warning and have to
-fix the issue manually. You can then retry the combination by clicking the
-button in the warning dialogue.
+.. _output_page:
 
-.. TODO: Insert screenshot of download page
+.. figure:: _static/wizard5.png
 
-Now spreads will run all of your enabled postprocessing plugins in sequence.
-Just like during the download step, you can see the progress and any
-warnings and errors in the text box. Once the postprocessing plugins are done,
-it will try to generate the various output files as well.
-
-.. TODO: Insert screenshot of postprocess/output page
+   Output page

@@ -37,6 +37,7 @@ GitHub_
 
 .. seealso:: module :py:mod:`spreads.plugin`, module :py:mod:`spreads.util`
 
+.. _add_commands:
 
 Adding new commands
 ===================

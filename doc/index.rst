@@ -34,8 +34,8 @@ Before you can start scanning books, you will have to configure the application:
 
     $ spread configure
 
-Here, you can select a device driver, your desired plugins and setup the
-target page for each device, if you're using two cameras.
+Here, you can select a device driver, your desired plugins and setup your
+devices.
 
 Once you're done, you can start either the command-line or the GUI wizard::
 

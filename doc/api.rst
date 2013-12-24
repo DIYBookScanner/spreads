@@ -4,6 +4,8 @@ API Reference
 spreads.plugin
 --------------
 
+.. _plugin_api:
+
 .. automodule:: spreads.plugin
    :members:
    :private-members:

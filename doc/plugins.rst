@@ -1,10 +1,9 @@
 Plugins
 *******
 
-*spreads* comes with a variety of plugins pre-installed, most of which are
-activated by default (except for :ref:`djvubind`). Plugins perform their
-actions at several designated points in the workflow. They can also add options
-and arguments to the command-line switches of each command.
+*spreads* comes with a variety of plugins pre-installed. Plugins perform their
+actions at several designated points in the workflow. They can also add
+specify options that can be set from one of the interfaces.
 
 subcommand plugins
 ==================
@@ -14,11 +13,11 @@ for the application.
 
 gui
 ---
-Launches a graphical interface to the workflow. The steps are the same as
-with the :ref:`CLI wizard <cli_tutorial>`, additionally a small thumbnail of every
-captured image is shown during the capture process. Requires an installation
-of the *PySide* packages. Refer to the :ref:`GUI tutorial <gui_tutorial>`
-for more information.
+Launches a graphical interface to the workflow. The steps are the same as with
+the :ref:`CLI wizard <cli_tutorial>`, additionally a small thumbnail of every
+captured image is shown during the capture process. Requires an installation of
+the *PySide* packages. Refer to the :ref:`GUI tutorial <gui_tutorial>` for more
+information.
 
 .. _postproc_plugs:
 
@@ -62,17 +61,38 @@ you can adjust it in the ScanTailor UI, that will be opened automatically,
 unless you specified the :option:`auto <--auto -a>` option. The generation of
 the output images will run on all CPU cores in parallel.
 
-.. option:: --auto, -a
+.. option:: --autopilot
 
    Run ScanTailor on on autopilot and do not require and user input during
    postprocessing. This skips the step where you can manually adjust the
    ScanTailor configuration.
 
-.. option:: --page-detection, -pd
+.. option:: --detection <content/page> [default: content]
 
    By default, ScanTailor will use content boundaries to determine what to
    include in its output. With this option, you can tell it to use the page
    boundaries instead.
+
+.. option:: --no-content
+
+   Disable content detection step.
+
+.. option:: --rotate
+
+   Enable rotation step.
+
+.. option:: --no-deskew
+
+   Do not deskew images.
+
+.. option:: --no-split-pages
+
+   Do not split pages.
+
+.. option:: --no-auto-margins
+
+   Disable automatically detect margins.
+
 
 .. _plug_tesseract:
 
@@ -84,11 +104,10 @@ work. For every recognized page, a HTML document in hOCR format will be written
 to *project-directory/done*. These files can be used by the output plugins
 to include the recognized text.
 
-.. option:: --language LANGUAGE, -l LANGUAGE
+.. option:: --language LANGUAGE
 
    Tell tesseract which language to use for OCR. You can get a list of all
-   installed languages on your system by running ``tesseract --list-langs``.
-   The default is 'eng' (English).
+   installed languages on your system by running `spread capture --help`.
 
 .. _output_plugs:
 
