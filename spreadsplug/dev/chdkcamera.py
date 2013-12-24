@@ -29,7 +29,7 @@ class CHDKCameraDevice(DevicePlugin):
 
     """
 
-    features = (DeviceFeatures.PREVIEW, DeviceFeatures.TWO_DEVICES)
+    features = (DeviceFeatures.PREVIEW, DeviceFeatures.IS_CAMERA)
 
     target_page = None
     _cli_flags = None

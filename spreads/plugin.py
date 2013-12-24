@@ -134,7 +134,7 @@ class DeviceFeatures(object):
     #: Device class allows the operation of two devices simultaneously
     #: (mainly to be used by cameras, where each device is responsible for
     #: capturing a single page.
-    TWO_DEVICES = 2
+    IS_CAMERA = 2
 
 
 class DevicePlugin(SpreadsPlugin):
@@ -151,7 +151,7 @@ class DevicePlugin(SpreadsPlugin):
 
     @classmethod
     def configuration_template(cls):
-        if DeviceFeatures.TWO_DEVICES in cls.features:
+        if DeviceFeatures.IS_CAMERA in cls.features:
             return {
                 "parallel_capture": PluginOption(
                     value=True,
