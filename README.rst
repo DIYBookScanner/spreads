@@ -34,6 +34,10 @@ Once this is done, *spreads* can be easily installed from PyPi::
 
     $ pip install spreads
 
+To select your desired plugins and configure your devices::
+
+    $ spread configure
+
 *spreads* offers an interactive wizard that takes you from a physical book
 to a digitized version in one single workflow with minimal user input::
 
