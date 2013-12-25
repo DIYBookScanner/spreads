@@ -1,13 +1,16 @@
 Changelog
 =========
-0.4 (2013/12/24)
+0.4 (2013/12/25)
 ----------------
-* Windows support
 * Use `chdkptp` utility for controlling cameras with CHDK firmware
+* Fix instability when shooting with CHDK cameras
+* Shoot images in RAW/DNG file format *(experimental)*
 * Remove `download` step, images will be directly streamed to the project
   directory
-* Device driver and plugins can be selecte interactively via the `configure`
-  subcommand
+* Remove `combine` plugin, images will be combined in `capture` step
+* Device driver and plugins, as well as their order of execution can be set
+  interactively via the `configure` subcommand, which has to be run before
+  the first usage.
 * Lots of internal API changes
 
 0.3.3 (2013/08/28)

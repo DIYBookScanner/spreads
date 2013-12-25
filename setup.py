@@ -3,11 +3,13 @@ from setuptools import setup
 from setuptools.command.test import test as TestCommand
 import sys
 
+
 class PyTest(TestCommand):
     def finalize_options(self):
         TestCommand.finalize_options(self)
         self.test_args = []
         self.test_suite = True
+
     def run_tests(self):
         #import here, cause outside the eggs aren't loaded
         import pytest
@@ -16,7 +18,7 @@ class PyTest(TestCommand):
 
 setup(
     name='spreads',
-    version='0.3.3',
+    version='0.4',
     author='Johannes Baiter',
     author_email='johannes.baiter@gmail.com',
     packages=['spreads', 'spreadsplug', 'spreadsplug.dev'],
@@ -26,6 +28,16 @@ setup(
     license='MIT',
     description='Book digitization workflow assistant',
     long_description=open('README.rst').read(),
+    platforms = "Posix",
+    classifiers = [
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "Environment :: X11 Applications :: Qt",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: POSIX",
+        "Topic :: Multimedia :: Graphics :: Capture",
+        "Programming Language :: Python :: 2.7"
+    ],
     install_requires=[
         "colorama >= 0.2.5",
         "pyusb >= 1.0.0a3",
@@ -50,5 +62,5 @@ setup(
         ],
     },
     tests_require=['pytest'],
-    cmdclass = {'test': PyTest},
+    cmdclass={'test': PyTest},
 )
