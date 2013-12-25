@@ -38,7 +38,6 @@ setup(
         'spreadsplug.devices': [
             'chdkcamera = spreadsplug.dev.chdkcamera:CHDKCameraDevice',
             'a2200      = spreadsplug.dev.chdkcamera:CanonA2200CameraDevice',
-            'dummy      = spreadsplug.dev.dummy:DummyDevice',
         ],
         'spreadsplug.hooks': [
             'autorotate = spreadsplug.autorotate:AutoRotatePlugin',
