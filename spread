@@ -29,7 +29,7 @@ import traceback
 import colorama
 
 import spreads.cli as cli
-from spreads.confit import ConfigError
+from spreads.vendor.confit import ConfigError
 from spreads.util import DeviceException, MissingDependencyException
 
 if __name__ == '__main__':

@@ -21,7 +21,7 @@ setup(
     version='0.4',
     author='Johannes Baiter',
     author_email='johannes.baiter@gmail.com',
-    packages=['spreads', 'spreadsplug', 'spreadsplug.dev'],
+    packages=['spreads', 'spreads.vendor', 'spreadsplug', 'spreadsplug.dev'],
     include_package_data=True,
     scripts=['spread', ],
     url='http://github.com/jbaiter/spreads',

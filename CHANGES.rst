@@ -1,3 +1,7 @@
+0.4.1 (2013/12/25)
+    - Fix 'spread' tool
+    - Include missing 'vendor' package in distribution
+
 0.4 (2013/12/25)
     - Use `chdkptp` utility for controlling cameras with CHDK firmware
     - Fix instability when shooting with CHDK cameras
