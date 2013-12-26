@@ -1,12 +1,11 @@
 import json
 import logging
-import os
 import sqlite3
 from collections import namedtuple
 
-import spreads.confit as confit
 from flask import g
 from spreads.workflow import Workflow
+from spreads.vendor.pathlib import Path
 
 from spreadsplug.web import app
 
@@ -27,17 +26,16 @@ logger = logging.getLogger('spreadsplug.web.database')
 
 
 def initialize_database():
-    db_path = app.config['database']
+    db_path = app.config['database'].get()
     with sqlite3.connect(db_path) as con:
         con.executescript(SCHEMA)
 
 
 @app.before_request
 def open_connection():
-    db_path = app.config['database']
+    db_path = Path(app.config['database'])
     logger.debug('Opening database connection to \"{0}\"'.format(db_path))
-    db_is_new = not os.path.exists(db_path)
-    if db_is_new:
+    if not db_path.exists():
         logger.info('Initializing database.')
         initialize_database()
     g.db = sqlite3.connect(db_path)
@@ -52,7 +50,7 @@ def close_connection(exception):
 
 
 def save_workflow(workflow):
-    data = DbWorkflow(id=None, name=os.path.basename(workflow.path),
+    data = DbWorkflow(id=None, name=workflow.path.name,
                       step=workflow.step, step_done=workflow.step_done,
                       capture_start=workflow.capture_start,
                       config=json.dumps(workflow.config.flatten()))
@@ -88,7 +86,7 @@ def get_workflow(workflow_id):
     else:
         config = None
     workflow = Workflow(
-        path=os.path.join(app.config['base_path'], db_workflow.name),
+        path=Path(app.config['base_path'])/db_workflow.name,
         config=config,
         step=db_workflow.step,
         step_done=bool(db_workflow.step_done))

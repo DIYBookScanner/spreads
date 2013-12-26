@@ -4,9 +4,10 @@ import os
 from flask import abort, jsonify, request, send_file
 from werkzeug.contrib.cache import SimpleCache
 
-import spreads.confit as confit
+import spreads.vendor.confit as confit
 from spreads.plugin import (get_pluginmanager, get_relevant_extensions,
                             get_driver)
+from spreads.vendor.pathlib import Path
 from spreads.workflow import Workflow
 
 from spreadsplug.web import app
@@ -24,7 +25,7 @@ def index():
 @app.route('/workflow', methods=['POST'])
 def create_workflow():
     data = json.loads(request.data)
-    path = os.path.join(app.config['base_path'], data['name'])
+    path = Path(app.config['base_path'])/data['name']
 
     # Setup default configuration
     config = confit.Configuration('spreads')
@@ -52,7 +53,7 @@ def get_workflow(workflow_id):
         abort(404)
     out_dict = dict()
     out_dict['id'] = workflow_id
-    out_dict['name'] = os.path.basename(workflow.path)
+    out_dict['name'] = workflow.path.name
     out_dict['step'] = workflow.step
     out_dict['step_done'] = workflow.step_done
     out_dict['images'] = workflow.images

@@ -1,12 +1,12 @@
 import json
 import os
 import shutil
-import time
+import unittest
 
 import spreadsplug.web as web
 
 
-class TestWebScanner(object):
+class TestWebScanner(unittest.TestCase):
     def setUp(self):
         print "Setting up webtest"
         web.app.config['TESTING'] = True

@@ -3,6 +3,7 @@ import os
 
 from flask import Flask
 from spreads.plugin import HookPlugin, PluginOption
+from spreads.vendor.pathlib import Path
 
 app = Flask('spreadsplug.web', static_url_path='', static_folder='')
 import web
@@ -52,7 +53,7 @@ class WebCommands(HookPlugin):
 def run_scanner_mode(mode, config):
     logger.debug("Starting scanning station server in \"{0}\" mode"
                  .format(mode))
-    db_path = os.path.expanduser(config['web']['database'].get())
+    db_path = Path(config['web']['database'].get()).expanduser()
     project_dir = os.path.expanduser(config['web']['project_dir'].get())
     if not os.path.exists(project_dir):
         os.mkdir(project_dir)
