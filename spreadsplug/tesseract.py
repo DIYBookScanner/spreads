@@ -13,24 +13,18 @@ if not find_in_path('tesseract'):
                                      " in $PATH. Please install the"
                                      " appropriate package(s)!")
 
-AVAILABLE_LANGS = (subprocess.check_output(["tesseract", "--list-langs"],
-                                           stderr=subprocess.STDOUT)
-                   .split("\n")[1:-1])
+try:
+    AVAILABLE_LANGS = (subprocess.check_output(["tesseract", "--list-langfoo"],
+                                               stderr=subprocess.STDOUT)
+                       .split("\n")[1:-1])
+except subprocess.CalledProcessError:
+    AVAILABLE_LANGS = ['en']
 
 logger = logging.getLogger('spreadsplug.tesseract')
 
 
 class TesseractPlugin(HookPlugin):
     __name__ = 'tesseract'
-
-    @classmethod
-    def add_arguments(cls, command, parser):
-        if command == 'postprocess':
-            parser.add_argument("--language", "-l",
-                                dest="language", default="eng",
-                                help="OCR language (3-letter language code)"
-                                     " [default: {0}]"
-                                     .format(AVAILABLE_LANGS[0]))
 
     @classmethod
     def configuration_template(cls):
