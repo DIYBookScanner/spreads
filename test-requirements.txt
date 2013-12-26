@@ -1,0 +1,6 @@
+pytest-cov >= 1.6
+pytest >= 2.5.1
+coveralls >= 0.2
+sphinxcontrib-fulltoc==1.0
+mock>=1.0.1
+coverage>=3.6

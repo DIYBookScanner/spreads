@@ -1,12 +1,6 @@
 colorama<=0.2.5
 pyusb>=1.0.0a3
 PyYAML>=3.10
-coverage>=3.6
-mock>=1.0.1
-sphinxcontrib-fulltoc==1.0
 Wand >= 0.3.1
 stevedore >= 0.9.1
 futures >= 2.1.4
-coveralls >= 0.2
-pytest >= 2.5.1
-pytest-cov >= 1.6
