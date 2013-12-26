@@ -18,18 +18,19 @@ class PyTest(TestCommand):
 
 setup(
     name='spreads',
-    version='0.4',
+    version='0.4.1',
     author='Johannes Baiter',
     author_email='johannes.baiter@gmail.com',
     packages=['spreads', 'spreads.vendor', 'spreadsplug', 'spreadsplug.dev'],
+    package_data={'spreads': ['spreads/config_default.yaml']},
     include_package_data=True,
     scripts=['spread', ],
     url='http://github.com/jbaiter/spreads',
     license='MIT',
     description='Book digitization workflow assistant',
     long_description=open('README.rst').read(),
-    platforms = "Posix",
-    classifiers = [
+    platforms="Posix",
+    classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Environment :: X11 Applications :: Qt",
