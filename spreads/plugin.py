@@ -252,6 +252,23 @@ class HookPlugin(SpreadsPlugin):
         """
         pass
 
+    def start_trigger_loop(self, capture_callback):
+        """ Start a thread that runs an event loop and periodically triggers
+            a capture by calling the `capture_callback`.
+
+        :param capture_callback:    The function to run for triggering a
+                                    capture
+        :type capture_callback:     function
+
+        """
+        pass
+
+    def stop_trigger_loop(self):
+        """ Stop the thread started by `start_trigger_loop*.
+
+        """
+        pass
+
     def capture(self, devices, path):
         """ Perform some action after each successful capture.
 
