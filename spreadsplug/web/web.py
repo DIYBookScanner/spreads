@@ -1,5 +1,4 @@
 import json
-import os
 
 from flask import abort, jsonify, request, send_file
 from werkzeug.contrib.cache import SimpleCache
@@ -11,7 +10,7 @@ from spreads.vendor.pathlib import Path
 from spreads.workflow import Workflow
 
 from spreadsplug.web import app
-import database
+import persistence
 
 cache = SimpleCache()
 
@@ -113,3 +112,15 @@ def get_workflow_config_options(workflow_id):
                         for key, option in options.iteritems()}
     cache.set('config-{0}'.format(workflow_id), rv)
     return jsonify(rv)
+
+
+@app.route('/workflow/<int:workflow_id>/capture', methods=['GET'])
+def trigger_capture(workflow_id):
+    if app.config['mode'] not in ('scanner', 'full'):
+        abort(404)
+    workflow = database.get_workflow(workflow_id)
+    workflow.capture()
+    return jsonify({
+        'pages_shot': len(workflow.images),
+        'images': workflow.images[-2:]
+    })
