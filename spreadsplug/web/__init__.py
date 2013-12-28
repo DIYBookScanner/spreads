@@ -35,6 +35,11 @@ class WebCommands(HookPlugin):
                 value=u"~/.config/spreads/workflows.db",
                 docstring="Path to application database file",
                 selectable=False),
+            'postprocessing_server': PluginOption(
+                value=u"",  # Cannot be None because of type deduction in
+                            # option parser
+                docstring="Address of the postprocessing server",
+                selectable=False),
         }
 
     @staticmethod
@@ -63,4 +68,7 @@ def run_scanner_mode(mode, config):
     app.config['database'] = db_path
     app.config['base_path'] = project_dir
     app.config['default_config'] = config
+    if mode == 'scanner':
+        app.config['postproc_server'] = (config['web']['postprocessing_server']
+                                         .get())
     app.run()
