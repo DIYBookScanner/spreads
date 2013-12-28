@@ -1,7 +1,10 @@
 import json
+import logging
 from functools import wraps
 
 from flask import abort, jsonify, request, send_file
+from flask import abort, jsonify, request, send_file, url_for, make_response
+from wand.image import Image
 from werkzeug.contrib.cache import SimpleCache
 
 import spreads.vendor.confit as confit
@@ -14,6 +17,7 @@ from spreadsplug.web import app
 import persistence
 
 cache = SimpleCache()
+logger = logging.getLogger('spreadsplub.web')
 
 
 def cached(timeout=5 * 60, key='view/%s'):
@@ -131,6 +135,36 @@ def get_workflow_config_options(workflow_id):
                                   selectable=option.selectable)
                         for key, option in options.iteritems()}
     return jsonify(rv)
+
+
+@app.route('/workflow/<int:workflow_id>/image/<int:img_num>', methods=['GET'])
+def get_workflow_image(workflow_id, img_num):
+    workflow = persistence.get_workflow(workflow_id)
+    try:
+        img_path = workflow.images[img_num]
+    except IndexError:
+        abort(404)
+    return send_file(unicode(img_path))
+
+
+@cached
+@app.route('/workflow/<int:workflow_id>/image/<int:img_num>/thumb',
+           methods=['GET'])
+def get_workflow_image_thumb(workflow_id, img_num):
+    print cache.__dict__
+    logger.debug('Generating thumbnail for {0}.{1}'
+                 .format(workflow_id, img_num))
+    workflow = persistence.get_workflow(workflow_id)
+    try:
+        img_path = workflow.images[img_num]
+    except IndexError:
+        abort(404)
+    with Image(filename=unicode(img_path)) as img:
+        thumb_width = int(300/(img.width/float(img.height)))
+        img.sample(300, thumb_width)
+        response = make_response(img.make_blob('jpg'))
+    response.headers['Content-Type'] = 'image/jpeg'
+    return response
 
 
 @app.route('/workflow/<int:workflow_id>/capture', methods=['GET'])
