@@ -1,4 +1,5 @@
 import json
+from functools import wraps
 
 from flask import abort, jsonify, request, send_file
 from werkzeug.contrib.cache import SimpleCache
@@ -13,6 +14,21 @@ from spreadsplug.web import app
 import persistence
 
 cache = SimpleCache()
+
+
+def cached(timeout=5 * 60, key='view/%s'):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            cache_key = key % request.path
+            rv = cache.get(cache_key)
+            if rv is not None:
+                return rv
+            rv = f(*args, **kwargs)
+            cache.set(cache_key, rv, timeout=timeout)
+            return rv
+        return decorated_function
+    return decorator
 
 
 @app.route('/')
@@ -74,14 +90,10 @@ def update_workflow_config(workflow_id):
     persistence.update_workflow_config(workflow_id, request.data)
 
 
+@cached
 @app.route('/workflow/<int:workflow_id>/options', methods=['GET'])
 def get_workflow_config_options(workflow_id):
-    # Try to get from cache
-    rv = cache.get('config-{0}'.format(workflow_id))
-    if rv is not None:
-        return jsonify(rv)
-
-    workflow = database.get_workflow(workflow_id)
+    workflow = persistence.get_workflow(workflow_id)
     pluginmanager = get_pluginmanager(workflow.config)
     scanner_extensions = ['prepare_capture', 'capture', 'finish_capture']
     processor_extensions = ['process', 'output']
@@ -110,7 +122,6 @@ def get_workflow_config_options(workflow_id):
                                   docstring=option.docstring,
                                   selectable=option.selectable)
                         for key, option in options.iteritems()}
-    cache.set('config-{0}'.format(workflow_id), rv)
     return jsonify(rv)
 
 
