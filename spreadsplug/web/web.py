@@ -35,19 +35,19 @@ def create_workflow():
     workflow = Workflow(config=config, path=path,
                         step=data.get('step', None),
                         step_done=data.get('step_done', None))
-    workflow_id = database.save_workflow(workflow)
+    workflow_id = persistence.save_workflow(workflow)
     return jsonify(id=workflow_id)
 
 
 @app.route('/workflow', methods=['GET'])
 def list_workflows():
-    workflow_list = database.get_workflow_list()
+    workflow_list = persistence.get_workflow_list()
     return jsonify(workflows=workflow_list)
 
 
 @app.route('/workflow/<int:workflow_id>', methods=['GET'])
 def get_workflow(workflow_id):
-    workflow = database.get_workflow(workflow_id)
+    workflow = persistence.get_workflow(workflow_id)
     if workflow is None:
         abort(404)
     out_dict = dict()
@@ -63,7 +63,7 @@ def get_workflow(workflow_id):
 
 @app.route('/workflow/<int:workflow_id>/config', methods=['GET'])
 def get_workflow_config(workflow_id):
-    workflow = database.get_workflow(workflow_id)
+    workflow = persistence.get_workflow(workflow_id)
     if workflow is None:
         abort(404)
     return jsonify(workflow.config.flatten())
@@ -71,7 +71,7 @@ def get_workflow_config(workflow_id):
 
 @app.route('/workflow/<int:workflow_id>/config', methods=['PUT'])
 def update_workflow_config(workflow_id):
-    database.update_workflow_config(workflow_id, request.data)
+    persistence.update_workflow_config(workflow_id, request.data)
 
 
 @app.route('/workflow/<int:workflow_id>/options', methods=['GET'])
@@ -118,7 +118,7 @@ def get_workflow_config_options(workflow_id):
 def trigger_capture(workflow_id):
     if app.config['mode'] not in ('scanner', 'full'):
         abort(404)
-    workflow = database.get_workflow(workflow_id)
+    workflow = persistence.get_workflow(workflow_id)
     workflow.capture()
     return jsonify({
         'pages_shot': len(workflow.images),

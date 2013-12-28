@@ -26,8 +26,8 @@ logger = logging.getLogger('spreadsplug.web.database')
 
 
 def initialize_database():
-    db_path = app.config['database'].get()
-    with sqlite3.connect(db_path) as con:
+    db_path = app.config['database']
+    with sqlite3.connect(unicode(db_path)) as con:
         con.executescript(SCHEMA)
 
 
@@ -38,7 +38,7 @@ def open_connection():
     if not db_path.exists():
         logger.info('Initializing database.')
         initialize_database()
-    g.db = sqlite3.connect(db_path)
+    g.db = sqlite3.connect(unicode(db_path))
 
 
 @app.teardown_appcontext

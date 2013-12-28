@@ -7,7 +7,7 @@ from spreads.vendor.pathlib import Path
 
 app = Flask('spreadsplug.web', static_url_path='', static_folder='')
 import web
-import database
+import persistence
 logger = logging.getLogger('spreadsplug.web')
 
 
