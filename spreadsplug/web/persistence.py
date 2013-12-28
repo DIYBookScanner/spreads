@@ -20,6 +20,8 @@ create table workflow (
 );
 """
 
+WORKFLOW_INSTANCES = dict()
+
 DbWorkflow = namedtuple('DbWorkflow', ['id', 'name', 'step', 'step_done',
                                        'capture_start', 'config'])
 logger = logging.getLogger('spreadsplug.web.database')
@@ -60,6 +62,7 @@ def save_workflow(workflow):
                                   data).lastrowid
     logger.debug("Workflow written to database with id {0}"
                  .format(workflow_id))
+    WORKFLOW_INSTANCES[workflow_id] = workflow
     return workflow_id
 
 
@@ -71,7 +74,10 @@ def update_workflow_config(id, config):
 
 
 def get_workflow(workflow_id):
-    logger.debug("Trying to get workflow with id {0}".format(workflow_id))
+    if workflow_id in WORKFLOW_INSTANCES:
+        return WORKFLOW_INSTANCES[workflow_id]
+    logger.debug("Trying to get workflow with id {0} from database"
+                 .format(workflow_id))
     db_data = g.db.execute("select * from workflow where workflow.id=?",
                            (workflow_id,)).fetchone()
     if db_data is None:
@@ -91,6 +97,7 @@ def get_workflow(workflow_id):
         step=db_workflow.step,
         step_done=bool(db_workflow.step_done))
     workflow.capture_start = db_workflow.capture_start
+    WORKFLOW_INSTANCES[workflow_id] = workflow
     return workflow
 
 
