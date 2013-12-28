@@ -31,6 +31,13 @@ def cached(timeout=5 * 60, key='view/%s'):
     return decorator
 
 
+def _get_image_url(workflow_id, img_path):
+    img_num = int(img_path.stem)
+    return url_for('.get_workflow_image',
+                   workflow_id=workflow_id,
+                   img_num=img_num)
+
+
 @app.route('/')
 def index():
     if app.config['mode'] == 'scanner':
@@ -71,7 +78,8 @@ def get_workflow(workflow_id):
     out_dict['name'] = workflow.path.name
     out_dict['step'] = workflow.step
     out_dict['step_done'] = workflow.step_done
-    out_dict['images'] = workflow.images
+    out_dict['images'] = [_get_image_url(workflow_id, x)
+                          for x in workflow.images]
     out_dict['out_files'] = workflow.out_files
     out_dict['capture_start'] = workflow.capture_start
     return jsonify(out_dict)
@@ -133,5 +141,6 @@ def trigger_capture(workflow_id):
     workflow.capture()
     return jsonify({
         'pages_shot': len(workflow.images),
-        'images': workflow.images[-2:]
+        'images': [_get_image_url(workflow_id, x)
+                   for x in workflow.images[-2:]]
     })
