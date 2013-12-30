@@ -158,6 +158,26 @@ def get_workflow_config_options(workflow_id):
 
 
 # =============== #
+#  Queue-related  #
+# =============== #
+@app.route('/queue', methods=['POST'])
+def add_to_queue():
+    data = json.loads(request.data)
+    pos = persistence.append_to_queue(data['id'])
+    return jsonify({'queue_position': pos})
+
+
+@app.route('/queue', methods=['GET'])
+def list_jobs():
+    return json.dumps(persistence.get_queue())
+
+
+@app.route('/queue/<int:queue_pos>', methods=['DELETE'])
+def remove_from_queue(pos_idx):
+    persistence.delete_from_queue(pos_idx)
+    return
+
+# =============== #
 #  Image-related  #
 # =============== #
 def _get_image_url(workflow_id, img_path):

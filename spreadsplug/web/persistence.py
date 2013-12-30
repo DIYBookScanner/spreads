@@ -19,6 +19,10 @@ CREATE TABLE workflow (
     config          TEXT
 );
 
+CREATE TABLE queue (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    workflow_id     INTEGER,
+    FOREIGN KEY (workflow_id) REFERENCES workflow(id)
 );
 """
 
@@ -100,3 +104,37 @@ def get_workflow_list():
             "SELECT id, name, step, step_done FROM workflow").fetchall()
     return [dict(id=x[0], name=x[1], step=x[2], step_done=bool(x[3]))
             for x in result]
+
+
+def append_to_queue(workflow_id):
+    with open_connection() as con:
+        pos = con.execute("INSERT INTO queue VALUES (?,?)",
+                          (None, workflow_id)).lastrowid
+    return pos
+
+
+def delete_from_queue(queue_position):
+    with open_connection() as con:
+        con.execute("DELETE FROM queue WHERE id = ?", queue_position)
+
+
+def pop_from_queue():
+    with open_connection() as con:
+        result = con.execute(
+            "SELECT id, workflow_id FROM queue ORDER BY id LIMIT 1"
+        ).fetchone()
+        if not result:
+            return None
+        logger.debug("Popping job from queue...")
+        job_id, workflow_id = result
+        con.execute("DELETE FROM queue WHERE id = ?", (job_id, ))
+    return get_workflow(workflow_id)
+
+
+def get_queue():
+    with open_connection() as con:
+        dbdata = con.execute(
+            "SELECT id, workflow_id FROM queue ORDER BY id"
+        ).fetchall()
+    return {job_id: get_workflow(workflow_id)
+            for job_id, workflow_id in dbdata}
