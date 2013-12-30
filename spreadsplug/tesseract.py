@@ -1,9 +1,10 @@
 import logging
+import multiprocessing
+import os
 import re
 import subprocess
+import time
 import xml.etree.cElementTree as ET
-
-from concurrent import futures
 
 from spreads.plugin import HookPlugin, PluginOption
 from spreads.util import find_in_path, MissingDependencyException
@@ -37,17 +38,33 @@ class TesseractPlugin(HookPlugin):
         return conf
 
     def process(self, path):
+        def _clean_processes(procs):
+            for p in processes[:]:
+                if p.poll() is not None:
+                    processes.remove(p)
+
         ocr_lang = self.config['language'].get()
         logger.info("Performing OCR")
         logger.info("Language is \"{0}\"".format(ocr_lang))
         img_dir = path / 'done'
-        with futures.ProcessPoolExecutor() as executor:
-            for img in img_dir.glob('*.tif'):
-                executor.submit(
-                    subprocess.check_output,
-                    ["tesseract", unicode(img), unicode(img_dir / img.stem),
-                     "-l", ocr_lang, "hocr"], stderr=subprocess.STDOUT
-                )
+
+        processes = []
+        max_procs = multiprocessing.cpu_count()
+        FNULL = open(os.devnull, 'w')
+        for img in img_dir.glob('*.tif'):
+            # Wait until another process has finished
+            while len(processes) >= max_procs:
+                _clean_processes(processes)
+                time.sleep(0.01)
+            proc = subprocess.Popen(["tesseract", unicode(img),
+                                     unicode(img_dir / img.stem), "-l",
+                                     ocr_lang, "hocr"], stderr=FNULL,
+                                     stdout=FNULL)
+            processes.append(proc)
+        # Wait for remaining processes to finish
+        while processes:
+            _clean_processes(processes)
+
         # NOTE: This modifies the hOCR files to make them compatible with
         #       pdfbeads.
         #       See the following bugreport for more information:
