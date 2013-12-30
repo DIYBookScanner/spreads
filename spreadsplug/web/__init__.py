@@ -77,6 +77,6 @@ def run_in_mode(mode, config):
         worker = ProcessingWorker()
         worker.start()
     try:
-        app.run()
+        app.run(threaded=True)
     finally:
         worker.stop()

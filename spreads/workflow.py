@@ -80,14 +80,14 @@ class Workflow(object):
         # Get fresh image list if number of pages has changed
         raw_path = self.path / 'raw'
         if not raw_path.exists():
-            return None
+            return []
         return sorted(raw_path.iterdir())
 
     @property
     def out_files(self):
         out_path = self.path / 'out'
         if not out_path.exists():
-            return None
+            return []
         else:
             return sorted(out_path.iterdir())
 

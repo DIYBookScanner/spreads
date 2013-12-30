@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import requests
 from flask import abort, jsonify, request, send_file, url_for, make_response
@@ -28,6 +29,19 @@ def index():
 # ================== #
 #  Workflow-related  #
 # ================== #
+def _workflow_to_dict(workflow_id, workflow):
+    out_dict = dict()
+    out_dict['id'] = workflow_id
+    out_dict['name'] = workflow.path.name
+    out_dict['step'] = workflow.step
+    out_dict['step_done'] = workflow.step_done
+    out_dict['images'] = [_get_image_url(workflow_id, x)
+                          for x in workflow.images] if workflow.images else []
+    out_dict['out_files'] = ([unicode(path) for path in workflow.out_files]
+                             if workflow.out_files else [])
+    out_dict['capture_start'] = workflow.capture_start
+    return out_dict
+
 @app.route('/workflow', methods=['POST'])
 def create_workflow():
     data = json.loads(request.data)
@@ -57,17 +71,27 @@ def get_workflow(workflow_id):
     workflow = persistence.get_workflow(workflow_id)
     if workflow is None:
         abort(404)
-    out_dict = dict()
-    out_dict['id'] = workflow_id
-    out_dict['name'] = workflow.path.name
-    out_dict['step'] = workflow.step
-    out_dict['step_done'] = workflow.step_done
-    out_dict['images'] = [_get_image_url(workflow_id, x)
-                          for x in workflow.images]
-    out_dict['out_files'] = ([unicode(path) for path in workflow.out_files]
-                             if workflow.out_files else [])
-    out_dict['capture_start'] = workflow.capture_start
-    return jsonify(out_dict)
+    return jsonify(_workflow_to_dict(workflow_id, workflow))
+
+
+@app.route('/workflow/<int:workflow_id>/poll', methods=['GET'])
+def poll_for_updates(workflow_id):
+    workflow = persistence.get_workflow(workflow_id)
+    old_num_caps = len(workflow.images)
+    old_step = workflow.step
+    old_step_done = workflow.step_done
+
+    while True:
+        updated = (len(workflow.images) != old_num_caps
+                   or workflow.step != old_step
+                   or workflow.step_done != old_step_done)
+        if updated:
+            return jsonify(_workflow_to_dict(workflow_id, workflow))
+        else:
+            old_num_caps = len(workflow.images)
+            old_step = workflow.step
+            old_step_done = workflow.step_done
+            time.sleep(0.1)
 
 
 @app.route('/workflow/<int:workflow_id>/config', methods=['GET'])
