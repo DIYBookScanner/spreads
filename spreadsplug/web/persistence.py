@@ -10,13 +10,15 @@ from spreads.vendor.pathlib import Path
 from spreadsplug.web import app
 
 SCHEMA = """
-create table workflow (
-    id              integer primary key autoincrement not null,
-    name            text,
-    step            text,
-    step_done       boolean,
-    capture_start   integer,
-    config          text
+CREATE TABLE workflow (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    name            TEXT,
+    step            TEXT,
+    step_done       BOOLEAN,
+    capture_start   INTEGER,
+    config          TEXT
+);
+
 );
 """
 
@@ -33,22 +35,12 @@ def initialize_database():
         con.executescript(SCHEMA)
 
 
-@app.before_request
 def open_connection():
     db_path = Path(app.config['database'])
-    logger.debug('Opening database connection to \"{0}\"'.format(db_path))
     if not db_path.exists():
         logger.info('Initializing database.')
         initialize_database()
-    g.db = sqlite3.connect(unicode(db_path))
-
-
-@app.teardown_appcontext
-def close_connection(exception):
-    logger.debug('Closing database connection')
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
+    return sqlite3.connect(unicode(db_path))
 
 
 def save_workflow(workflow):
@@ -57,8 +49,8 @@ def save_workflow(workflow):
                       capture_start=workflow.capture_start,
                       config=json.dumps(workflow.config.flatten()))
     logger.debug("Writing workflow to database:\n{0}".format(data))
-    with g.db as con:
-        workflow_id = con.execute("insert into workflow values (?,?,?,?,?,?)",
+    with open_connection() as con:
+        workflow_id = con.execute("INSERT INTO workflow VALUES (?,?,?,?,?,?)",
                                   data).lastrowid
     logger.debug("Workflow written to database with id {0}"
                  .format(workflow_id))
@@ -68,8 +60,8 @@ def save_workflow(workflow):
 
 def update_workflow_config(id, config):
     config_data = json.dumps(config.flatten())
-    with g.db as con:
-        con.execute("update workflow set config=:config where id=:id",
+    with open_connection() as con:
+        con.execute("UPDATE WORKFLOW SET config=:config WHERE id=:id",
                     dict(config=config_data, id=id))
 
 
@@ -78,8 +70,9 @@ def get_workflow(workflow_id):
         return WORKFLOW_INSTANCES[workflow_id]
     logger.debug("Trying to get workflow with id {0} from database"
                  .format(workflow_id))
-    db_data = g.db.execute("select * from workflow where workflow.id=?",
-                           (workflow_id,)).fetchone()
+    with open_connection() as con:
+        db_data = con.execute("SELECT * FROM workflow WHERE workflow.id=?",
+                              (workflow_id,)).fetchone()
     if db_data is None:
         return None
     logger.debug("Workflow was found:\n{0}".format(db_data))
@@ -102,7 +95,8 @@ def get_workflow(workflow_id):
 
 
 def get_workflow_list():
-    result = g.db.execute(
-        "select id, name, step, step_done from workflow").fetchall()
+    with open_connection() as con:
+        result = con.execute(
+            "SELECT id, name, step, step_done FROM workflow").fetchall()
     return [dict(id=x[0], name=x[1], step=x[2], step_done=bool(x[3]))
             for x in result]
