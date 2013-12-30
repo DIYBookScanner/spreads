@@ -25,6 +25,9 @@ def index():
         return send_file("index_scanner.html")
 
 
+# ================== #
+#  Workflow-related  #
+# ================== #
 @app.route('/workflow', methods=['POST'])
 def create_workflow():
     data = json.loads(request.data)
@@ -77,6 +80,46 @@ def get_workflow_config(workflow_id):
 @app.route('/workflow/<int:workflow_id>/config', methods=['PUT'])
 def update_workflow_config(workflow_id):
     persistence.update_workflow_config(workflow_id, request.data)
+    return
+
+
+@app.route('/workflow/<int:workflow_id>/submit', methods=['POST'])
+def submit_workflow(workflow_id):
+    if app.config['mode'] not in ('scanner'):
+        abort(404)
+    workflow = persistence.get_workflow(workflow_id)
+    server = app.config['postproc_server']
+    if not server:
+        logger.error("Remote server was not configured, please set the"
+                     "'postprocessing_server' value in your configuration!")
+        abort(500)
+    logger.debug("Creating new workflow on postprocesing server")
+    resp = requests.post(server+'/workflow', data=json.dumps(
+        {'name': workflow.path.stem,
+         'step': 'capture',
+         'step_done': True}))
+    if not resp:
+        logger.error("Error creating remote workflow:\n{0}"
+                     .format(resp.content))
+        abort(resp.code)
+    remote_id = resp.json['id']
+    for imgpath in workflow.images:
+        logger.debug("Uploading image {0} to postprocessing server"
+                     .format(imgpath))
+        resp = requests.post("/".join([server, 'workflow', remote_id,
+                                       'image']),
+                             files={'file': {imgpath.name: imgpath.read('rb')}}
+                             )
+        if not resp:
+            logger.error("Error uploading image {0} to postprocessing server:"
+                         " \n{1}".format(imgpath, resp.content))
+            abort(resp.code)
+    resp = requests.post(server+'/queue', data=json.dumps({'id': remote_id}))
+    if not resp:
+        logger.error("Error putting remote workflow {1} into job queue:: \n{1}"
+                     .format(imgpath, resp.content))
+        abort(resp.code)
+    return
 
 
 @util.cached
@@ -114,6 +157,15 @@ def get_workflow_config_options(workflow_id):
     return jsonify(rv)
 
 
+# =============== #
+#  Image-related  #
+# =============== #
+def _get_image_url(workflow_id, img_path):
+    img_num = int(img_path.stem)
+    return url_for('.get_workflow_image',
+                   workflow_id=workflow_id,
+                   img_num=img_num)
+
 @app.route('/workflow/<int:workflow_id>/image/<int:img_num>', methods=['GET'])
 def get_workflow_image(workflow_id, img_num):
     workflow = persistence.get_workflow(workflow_id)
@@ -128,7 +180,6 @@ def get_workflow_image(workflow_id, img_num):
 @app.route('/workflow/<int:workflow_id>/image/<int:img_num>/thumb',
            methods=['GET'])
 def get_workflow_image_thumb(workflow_id, img_num):
-    print cache.__dict__
     logger.debug('Generating thumbnail for {0}.{1}'
                  .format(workflow_id, img_num))
     workflow = persistence.get_workflow(workflow_id)
@@ -144,6 +195,9 @@ def get_workflow_image_thumb(workflow_id, img_num):
     return response
 
 
+# ================= #
+#  Capture-related  #
+# ================= #
 @app.route('/workflow/<int:workflow_id>/capture', methods=['POST'])
 def trigger_capture(workflow_id, retake=False):
     if app.config['mode'] not in ('scanner', 'full'):
@@ -165,34 +219,4 @@ def finish_capture(workflow_id):
         abort(404)
     workflow = persistence.get_workflow(workflow_id)
     workflow.finish_capture()
-
-
-@app.route('/workflow/<int:workflow_id>/submit', methods=['POST'])
-def submit_workflow(workflow_id):
-    if app.config['mode'] not in ('scanner'):
-        abort(404)
-    workflow = persistence.get_workflow(workflow_id)
-    server = app.config['postproc_server']
-    if not server:
-        logger.error("Remote server was not configured, please set the"
-                     "'postprocessing_server' value in your configuration!")
-        abort(500)
-    logger.debug("Creating new workflow on postprocesing server")
-    resp = requests.post(server+'/workflow',
-                         data=json.dumps({'name': workflow.path.stem}))
-    if not resp:
-        logger.error("Error creating remote workflow:\n{0}"
-                     .format(resp.content))
-        abort(resp.code)
-    remote_id = resp.json['id']
-    for imgpath in workflow.images:
-        logger.debug("Uploading image {0} to postprocessing server"
-                     .format(imgpath))
-        resp = requests.post("/".join([server, 'workflow', remote_id,
-                                       'image']),
-                             files={'file': {imgpath.stem: imgpath.read('rb')}}
-                             )
-        if not resp:
-            logger.error("Error uploading image {0} to postprocessing server:"
-                         " \n{1}".format(imgpath, resp.content))
-            abort(resp.code)
+    return 'OK'
