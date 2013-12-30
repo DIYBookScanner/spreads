@@ -7,20 +7,22 @@ from concurrent import futures
 
 from spreads.plugin import HookPlugin, PluginOption
 from spreads.util import find_in_path, MissingDependencyException
+from spreads.vendor.pathlib import Path
 
 if not find_in_path('tesseract'):
     raise MissingDependencyException("Could not find executable `tesseract`"
                                      " in $PATH. Please install the"
                                      " appropriate package(s)!")
 
+logger = logging.getLogger('spreadsplug.tesseract')
 try:
     AVAILABLE_LANGS = (subprocess.check_output(["tesseract", "--list-langfoo"],
                                                stderr=subprocess.STDOUT)
                        .split("\n")[1:-1])
 except subprocess.CalledProcessError:
-    AVAILABLE_LANGS = ['en']
-
-logger = logging.getLogger('spreadsplug.tesseract')
+    AVAILABLE_LANGS = [x.stem for x in
+                       Path('/usr/share/tesseract-ocr/tessdata')
+                       .glob('*.traineddata')]
 
 
 class TesseractPlugin(HookPlugin):
