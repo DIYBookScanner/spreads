@@ -8,6 +8,8 @@ from spreads.vendor.pathlib import Path
 app = Flask('spreadsplug.web', static_url_path='', static_folder='')
 import web
 import persistence
+from worker import ProcessingWorker
+
 logger = logging.getLogger('spreadsplug.web')
 
 
@@ -71,4 +73,10 @@ def run_in_mode(mode, config):
     if mode == 'scanner':
         app.config['postproc_server'] = (config['web']['postprocessing_server']
                                          .get())
-    app.run()
+    if mode in ('processor', 'full'):
+        worker = ProcessingWorker()
+        worker.start()
+    try:
+        app.run()
+    finally:
+        worker.stop()

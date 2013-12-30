@@ -64,7 +64,8 @@ def get_workflow(workflow_id):
     out_dict['step_done'] = workflow.step_done
     out_dict['images'] = [_get_image_url(workflow_id, x)
                           for x in workflow.images]
-    out_dict['out_files'] = workflow.out_files
+    out_dict['out_files'] = ([unicode(path) for path in workflow.out_files]
+                             if workflow.out_files else [])
     out_dict['capture_start'] = workflow.capture_start
     return jsonify(out_dict)
 
@@ -185,6 +186,17 @@ def _get_image_url(workflow_id, img_path):
     return url_for('.get_workflow_image',
                    workflow_id=workflow_id,
                    img_num=img_num)
+
+
+@app.route('/workflow/<int:workflow_id>/image', methods=['POST'])
+def upload_workflow_image(workflow_id):
+    allowed = lambda x: x.rsplit('.', 1)[1].lower() in ('jpg', 'jpeg', 'dng')
+    file = request.files['file']
+    if file and allowed(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        return "OK"
+
 
 @app.route('/workflow/<int:workflow_id>/image/<int:img_num>', methods=['GET'])
 def get_workflow_image(workflow_id, img_num):
