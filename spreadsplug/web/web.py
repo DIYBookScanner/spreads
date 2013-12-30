@@ -1,11 +1,9 @@
 import json
 import logging
-from functools import wraps
 
 import requests
 from flask import abort, jsonify, request, send_file, url_for, make_response
 from wand.image import Image
-from werkzeug.contrib.cache import SimpleCache
 
 import spreads.vendor.confit as confit
 from spreads.plugin import (get_pluginmanager, get_relevant_extensions,
@@ -13,33 +11,12 @@ from spreads.plugin import (get_pluginmanager, get_relevant_extensions,
 from spreads.vendor.pathlib import Path
 from spreads.workflow import Workflow
 
-from spreadsplug.web import app
 import persistence
+import util
+from spreadsplug.web import app
 
-cache = SimpleCache()
+
 logger = logging.getLogger('spreadsplub.web')
-
-
-def cached(timeout=5 * 60, key='view/%s'):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            cache_key = key % request.path
-            rv = cache.get(cache_key)
-            if rv is not None:
-                return rv
-            rv = f(*args, **kwargs)
-            cache.set(cache_key, rv, timeout=timeout)
-            return rv
-        return decorated_function
-    return decorator
-
-
-def _get_image_url(workflow_id, img_path):
-    img_num = int(img_path.stem)
-    return url_for('.get_workflow_image',
-                   workflow_id=workflow_id,
-                   img_num=img_num)
 
 
 @app.route('/')
@@ -102,7 +79,7 @@ def update_workflow_config(workflow_id):
     persistence.update_workflow_config(workflow_id, request.data)
 
 
-@cached
+@util.cached
 @app.route('/workflow/<int:workflow_id>/options', methods=['GET'])
 def get_workflow_config_options(workflow_id):
     workflow = persistence.get_workflow(workflow_id)
@@ -147,7 +124,7 @@ def get_workflow_image(workflow_id, img_num):
     return send_file(unicode(img_path))
 
 
-@cached
+@util.cached
 @app.route('/workflow/<int:workflow_id>/image/<int:img_num>/thumb',
            methods=['GET'])
 def get_workflow_image_thumb(workflow_id, img_num):
