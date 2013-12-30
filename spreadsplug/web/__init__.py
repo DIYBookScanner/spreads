@@ -44,18 +44,18 @@ class WebCommands(HookPlugin):
 
     @staticmethod
     def run_scanner(config):
-        run_scanner_mode('scanner', config)
+        run_in_mode('scanner', config)
 
     @staticmethod
     def run_processor(config):
-        run_scanner_mode('processor', config)
+        run_in_mode('processor', config)
 
     @staticmethod
     def run_full(config):
-        run_scanner_mode('full', config)
+        run_in_mode('full', config)
 
 
-def run_scanner_mode(mode, config):
+def run_in_mode(mode, config):
     logger.debug("Starting scanning station server in \"{0}\" mode"
                  .format(mode))
     db_path = Path(config['web']['database'].get()).expanduser()
