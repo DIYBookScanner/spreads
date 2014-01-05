@@ -1,3 +1,7 @@
+0.4.2 (2014/01/05)
+    - Fix packaging issues
+    - Small bugfix for older Tesseract versions
+
 0.4.1 (2013/12/25)
     - Fix 'spread' tool
     - Include missing 'vendor' package in distribution
