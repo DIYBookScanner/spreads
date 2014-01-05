@@ -5,7 +5,7 @@ from flask import Flask
 from spreads.plugin import HookPlugin, PluginOption
 from spreads.vendor.pathlib import Path
 
-app = Flask('spreadsplug.web', static_url_path='', static_folder='')
+app = Flask('spreadsplug.web', static_url_path='', static_folder='./client')
 import web
 import persistence
 from worker import ProcessingWorker

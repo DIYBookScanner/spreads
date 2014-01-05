@@ -22,8 +22,7 @@ logger = logging.getLogger('spreadsplub.web')
 
 @app.route('/')
 def index():
-    if app.config['mode'] == 'scanner':
-        return send_file("index_scanner.html")
+    return send_file("client/index.html")
 
 
 # ================== #
