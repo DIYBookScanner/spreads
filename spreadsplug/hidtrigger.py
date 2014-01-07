@@ -43,7 +43,7 @@ class HidTrigger(HookPlugin):
                         return
                     time.sleep(0.01)
 
-    def _find_devices():
+    def _find_devices(self):
         for candidate in {(x['vendor_id'], x['product_id'])
                           for x in hid.enumerate(0, 0)}:
             try:
