@@ -5,6 +5,7 @@ import re
 import subprocess
 import tempfile
 import time
+import usb
 from fractions import Fraction
 from itertools import chain
 
@@ -55,11 +56,27 @@ class CHDKCameraDevice(DevicePlugin):
         return conf
 
     @classmethod
-    def match(cls, device):
-        cfg = device.get_active_configuration()[(0, 0)]
-        matches = (hex(cfg.bInterfaceClass) == "0x6"
-                   and hex(cfg.bInterfaceSubClass) == "0x1")
-        return matches
+    def yield_devices(cls):
+        """ Search for usable devices, yield one at a time
+        
+        """
+        def match(device):
+            """ Match device against USB device information.
+
+            :param device: The USB device to match against
+            :type vendor_id: `usb.core.Device <http://github.com/walac/pyusb>`_
+            :return: True if the :param usbdevice: matches the
+            implemented category
+
+            """
+            cfg = device.get_active_configuration()[(0, 0)]
+            is_match = (hex(cfg.bInterfaceClass) == "0x6"
+                       and hex(cfg.bInterfaceSubClass) == "0x1")
+            return is_match
+        
+        for dev in usb.core.find(find_all=True):
+            if match(dev):
+                yield dev
 
     def __init__(self, config, device):
         """ Set connection information and try to obtain target page.
