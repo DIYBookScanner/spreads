@@ -432,6 +432,6 @@ def main():
     handler.setLevel(loglevel)
     handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
     logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
     args.subcommand(config)
