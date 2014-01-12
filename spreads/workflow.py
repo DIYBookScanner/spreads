@@ -165,13 +165,11 @@ class Workflow(object):
         parallel_capture = ('parallel_capture' in self.config['device'].keys()
                             and self.config['device']['parallel_capture'].get()
                             )
-        num_devices = 1 if not parallel_capture else 2
-
         if retake:
             # Remove last n images, where n == len(self.devices)
-            map(lambda x: x.unlink(), self.images[-num_devices:])
+            map(lambda x: x.unlink(), self.images[-len(self.devices):])
 
-        with ThreadPoolExecutor(num_devices) as executor:
+        with ThreadPoolExecutor(1 if parallel_capture else 2) as executor:
             futures = []
             self.logger.debug("Sending capture command to devices")
             for dev in self.devices:
