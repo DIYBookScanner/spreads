@@ -2,11 +2,11 @@
 /* global require */
 (function() {
   'use strict';
-  var React = require('react');
+  var React = require('react/addons');
 
   module.exports = React.createClass({
     render: function() {
-      // TODO: Render something
+      return (<h2>Preferences</h2>) // jshint ignore:line
     }
   });
 }());

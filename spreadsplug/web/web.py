@@ -100,14 +100,13 @@ def create_workflow():
 def list_workflows():
     workflows = persistence.get_all_workflows()
     return make_response(
-        json.dumps([workflow_to_dict(workflow) for workflow in workflows]),
+        json.dumps([workflow_to_dict(workflow)
+                   for workflow in workflows.values()]),
         200, {'Content-Type': 'application/json'})
 
 
 @app.route('/workflow/<workflow:workflow>', methods=['GET'])
 def get_workflow(workflow):
-    if workflow is None:
-        abort(404)
     return jsonify(workflow_to_dict(workflow))
 
 

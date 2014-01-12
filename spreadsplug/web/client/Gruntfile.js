@@ -22,8 +22,14 @@ module.exports = function(grunt) {
       }
     },
     uglify: {
-      files: {
-        'spreads.min.js': ['spreads.js']
+      spreads: {
+        options: {
+          sourceMap: './spreads.min-map.js',
+          sourceMapIn: './spreads.js'
+        },
+        files: {
+            './spreads.min.js': ['./spreads.js']
+        }
       }
     },
     watch: {

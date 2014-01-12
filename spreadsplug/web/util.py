@@ -1,6 +1,6 @@
 from functools import wraps
 
-from flask import request, url_for
+from flask import request, url_for, abort
 from werkzeug.contrib.cache import SimpleCache
 from werkzeug.routing import BaseConverter, ValidationError
 
@@ -14,7 +14,10 @@ class WorkflowConverter(BaseConverter):
             workflow_id = int(value)
         except ValueError:
             raise ValidationError()
-        return get_workflow(workflow_id)
+        workflow = get_workflow(workflow_id)
+        if workflow is None:
+            abort(404)
+        return workflow
 
     def to_url(self, value):
         return unicode(value.id)

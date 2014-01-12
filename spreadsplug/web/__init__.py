@@ -83,7 +83,7 @@ def run_in_mode(mode, config):
         worker.start()
     try:
         # TODO: Use gunicorn as the WSGI container, launch via paster
-        app.run(threaded=True)
+        app.run(host="0.0.0.0",threaded=True)
     finally:
         shutil.rmtree(app.config['temp_dir'])
         if mode != 'scanner':
