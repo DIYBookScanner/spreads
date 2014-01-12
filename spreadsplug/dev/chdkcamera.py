@@ -56,7 +56,7 @@ class CHDKCameraDevice(DevicePlugin):
         return conf
 
     @classmethod
-    def yield_devices(cls):
+    def yield_devices(cls, config):
         """ Search for usable devices, yield one at a time
         
         """
@@ -76,7 +76,7 @@ class CHDKCameraDevice(DevicePlugin):
         
         for dev in usb.core.find(find_all=True):
             if match(dev):
-                yield dev
+                yield cls(config, dev)
 
     def __init__(self, config, device):
         """ Set connection information and try to obtain target page.
