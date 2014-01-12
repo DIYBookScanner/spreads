@@ -1,5 +1,7 @@
 import logging
 import os
+import shutil
+import tempfile
 
 from flask import Flask
 from spreads.plugin import HookPlugin, PluginOption
@@ -65,18 +67,25 @@ def run_in_mode(mode, config):
     if not os.path.exists(project_dir):
         os.mkdir(project_dir)
 
-    app.config['DEBUG'] = True
     app.config['mode'] = mode
     app.config['database'] = db_path
     app.config['base_path'] = project_dir
     app.config['default_config'] = config
+
+    # Temporary directory for thumbnails, archives, etc.
+    app.config['temp_dir'] = tempfile.mkdtemp()
+
     if mode == 'scanner':
         app.config['postproc_server'] = (config['web']['postprocessing_server']
                                          .get())
-    if mode in ('processor', 'full'):
+    if mode != 'scanner':
         worker = ProcessingWorker()
         worker.start()
     try:
+        # TODO: Use gunicorn as the WSGI container, launch via paster
         app.run(threaded=True)
     finally:
-        worker.stop()
+        shutil.rmtree(app.config['temp_dir'])
+        if mode != 'scanner':
+            worker.stop()
+        logger.info("Waiting for remaining connections to close...")
