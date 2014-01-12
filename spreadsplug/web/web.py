@@ -61,8 +61,10 @@ def create_workflow():
 
 @app.route('/workflow', methods=['GET'])
 def list_workflows():
-    workflow_list = persistence.get_workflow_list()
-    return jsonify(workflows=workflow_list)
+    workflows = persistence.get_all_workflows()
+    return make_response(
+        json.dumps([workflow_to_dict(workflow) for workflow in workflows]),
+        200, {'Content-Type': 'application/json'})
 
 
 @app.route('/workflow/<int:workflow_id>', methods=['GET'])

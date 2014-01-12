@@ -3,7 +3,6 @@ import logging
 import sqlite3
 from collections import namedtuple
 
-from flask import g
 from spreads.workflow import Workflow
 from spreads.vendor.pathlib import Path
 
@@ -70,6 +69,7 @@ def update_workflow_config(id, config):
 
 
 def get_workflow(workflow_id):
+    # See if the workflow is among our cached instances
     if workflow_id in WORKFLOW_INSTANCES:
         return WORKFLOW_INSTANCES[workflow_id]
     logger.debug("Trying to get workflow with id {0} from database"
@@ -94,16 +94,23 @@ def get_workflow(workflow_id):
         step=db_workflow.step,
         step_done=bool(db_workflow.step_done))
     workflow.capture_start = db_workflow.capture_start
-    WORKFLOW_INSTANCES[workflow_id] = workflow
+    # NOTE: For convenience, we store the workflow_id directly in the object
+    workflow.id = workflow_id
+    WORKFLOW_INSTANCES[workflow.id] = workflow
     return workflow
 
 
-def get_workflow_list():
+def get_all_workflows():
     with open_connection() as con:
         result = con.execute(
-            "SELECT id, name, step, step_done FROM workflow").fetchall()
-    return [dict(id=x[0], name=x[1], step=x[2], step_done=bool(x[3]))
-            for x in result]
+            "SELECT id FROM workflow").fetchall()
+    return {x[0]: get_workflow(x[0]) for x in result}
+
+
+def delete_workflow(workflow_id):
+    del(WORKFLOW_INSTANCES[workflow_id])
+    with open_connection() as con:
+        con.execute("DELETE FROM workflow WHERE id = ?", (workflow_id,))
 
 
 def append_to_queue(workflow_id):
