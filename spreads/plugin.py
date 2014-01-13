@@ -165,10 +165,10 @@ class DevicePlugin(SpreadsPlugin):
     @abstractclassmethod
     def yield_devices(self):
         """ Search for usable devices, yield one at a time
-        
+
         """
         raise NotImplementedError
-        
+
     def __init__(self, config, device):
         """ Set connection information and other properties.
 
@@ -326,10 +326,10 @@ def get_devices(config):
     driver_manager = get_driver(config["driver"].get())
     driver_class = driver_manager.driver
     logger.debug("Finding devices for driver \"{0}\"".format(driver_manager))
-    device_plugins = [dev for dev in driver_class.yield_devices(config['device'])]
-    if not device_plugins:
+    devices = list(driver_class.yield_devices(config['device']))
+    if not devices:
         raise DeviceException("Could not find any compatible devices!")
-    return device_plugins
+    return devices
 
 
 def setup_plugin_config(config):
