@@ -6,8 +6,10 @@ import tempfile
 from flask import Flask
 from spreads.plugin import HookPlugin, PluginOption
 from spreads.vendor.pathlib import Path
+from spreads.util import add_argument_from_option
 
-app = Flask('spreadsplug.web', static_url_path='', static_folder='./client')
+app = Flask('spreadsplug.web', static_url_path='', static_folder='./client',
+            template_folder='./client')
 import web
 import persistence
 from worker import ProcessingWorker
@@ -21,14 +23,23 @@ class WebCommands(HookPlugin):
         cmdparser = rootparser.add_parser(
             'web', help="Start the web interface")
         cmdparser.set_defaults(subcommand=cls.run_server)
-        cmdparser.add_argument(
-            '--mode', '-m', dest="web.mode",
-            choices=['scanner', 'processor', 'full'],
-            default='full')
+        for key, option in cls.configuration_template().iteritems():
+            try:
+                add_argument_from_option('web', key, option, cmdparser)
+            except:
+                continue
 
     @classmethod
     def configuration_template(cls):
         return {
+            'mode': PluginOption(
+                value=["full", "scanner", "processor"],
+                docstring="Mode to run server in",
+                selectable=True),
+            'debug': PluginOption(
+                value=False,
+                docstring="Run server in debugging mode",
+                selectable=False),
             'project_dir': PluginOption(
                 value=u"~/scans",
                 docstring="Directory for project folders",
@@ -59,6 +70,7 @@ class WebCommands(HookPlugin):
         if not os.path.exists(project_dir):
             os.mkdir(project_dir)
 
+        app.config['DEBUG'] = config['web']['debug'].get()
         app.config['mode'] = mode
         app.config['database'] = db_path
         app.config['base_path'] = project_dir
@@ -74,10 +86,14 @@ class WebCommands(HookPlugin):
             worker = ProcessingWorker()
             worker.start()
         try:
-            # TODO: Use gunicorn as the WSGI container, launch via paster
-            app.run(host="0.0.0.0", threaded=True)
+            if app.config['DEBUG']:
+                app.run(host="0.0.0.0", threaded=True, debug=True)
+            else:
+                import waitress
+                waitress.serve(app, port=5000)
         finally:
             shutil.rmtree(app.config['temp_dir'])
             if mode != 'scanner':
                 worker.stop()
-            logger.info("Waiting for remaining connections to close...")
+            if app.config['DEBUG']:
+                logger.info("Waiting for remaining connections to close...")

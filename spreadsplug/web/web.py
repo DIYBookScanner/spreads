@@ -6,7 +6,8 @@ import time
 import zipfile
 
 import requests
-from flask import abort, jsonify, request, send_file, make_response
+from flask import (abort, jsonify, request, send_file, make_response,
+                   render_template)
 from wand.image import Image
 from werkzeug import secure_filename
 
@@ -34,7 +35,7 @@ app.url_map.converters['workflow'] = WorkflowConverter
 @app.route('/')
 def index():
     """ Deliver static landing page that launches the client-side app. """
-    return send_file("client/index.html")
+    return render_template("index.html", debug=app.config['DEBUG'])
 
 
 @app.route('/plugins', methods=['GET'])
@@ -164,15 +165,20 @@ def poll_for_updates(workflow):
     """ Stall until the requested workflow has changed.
 
     Returns the changed workflow as a JSON object.
-    Currently times out after 30 seconds.
     """
     old_num_caps = len(workflow.images)
     old_step = workflow.step
     old_step_done = workflow.step_done
 
-    start_time = time.time()
-    # NOTE: We have a 30 second timeout for polling
-    while (time.time() - start_time) < 30:
+    if app.config['DEBUG']:
+        # NOTE: The wsgiref server does not time out long-running requests,
+        #       so we enforce a timeout of 110 seconds.
+        start_time = time.time()
+        can_continue = lambda: (time.time() - start_time) < 110
+    else:
+        can_continue = lambda: True
+
+    while can_continue():
         updated = (len(workflow.images) != old_num_caps
                    or workflow.step != old_step
                    or workflow.step_done != old_step_done)

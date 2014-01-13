@@ -3,6 +3,7 @@ graft spreadsplug/gui/pixmaps
 include spreadsplug/web/client/index.html
 include spreadsplug/web/client/spreads.css
 include spreadsplug/web/client/spreads.min.js
+include spreadsplug/web/client/spreads.js
 graft spreadsplug/web/client/foundation
 prune spreadsplug/web/client/foundation/js/foundation
 prune spreadsplug/web/client/foundation/js/vendor

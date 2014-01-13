@@ -39,7 +39,8 @@ from spreads.workflow import Workflow
 from spreads.plugin import (get_driver, get_devices, get_pluginmanager,
                             setup_plugin_config, get_relevant_extensions,
                             DeviceFeatures)
-from spreads.util import DeviceException, ColourStreamHandler
+from spreads.util import (DeviceException, ColourStreamHandler,
+                          add_argument_from_option)
 
 # Kudos to http://stackoverflow.com/a/1394994/487903
 try:
@@ -273,40 +274,6 @@ def wizard(config):
 
 
 def setup_parser(config):
-    def _add_argument_from_option(extname, key, option, parser):
-        flag = "--{0}".format(key.replace('_', '-'))
-        default = (option.value
-                   if not option.selectable
-                   else option.value[0])
-        kwargs = {'help': ("{0} [default: {1}]"
-                           .format(option.docstring, default)),
-                  'dest': "{0}.{1}".format(extname, key)}
-        if isinstance(option.value, basestring):
-            kwargs['type'] = unicode
-            kwargs['metavar'] = "<str>"
-        elif isinstance(option.value, bool):
-            kwargs['help'] = option.docstring
-            if option.value:
-                flag = "--no-{0}".format(key.replace('_', '-'))
-                kwargs['help'] = ("Disable {0}"
-                                  .format(option.docstring.lower()))
-                kwargs['action'] = "store_false"
-            else:
-                kwargs['action'] = "store_true"
-        elif isinstance(option.value, float):
-            kwargs['type'] = float
-            kwargs['metavar'] = "<float>"
-        elif isinstance(option.value, int):
-            kwargs['type'] = int
-            kwargs['metavar'] = "<int>"
-        elif option.selectable:
-            kwargs['type'] = type(option.value[0])
-            kwargs['metavar'] = "<{0}>".format("/".join(option.value))
-            kwargs['choices'] = option.value
-        else:
-            raise TypeError("Unsupported option type")
-        parser.add_argument(flag, **kwargs)
-
     def _add_device_arguments(name, parser):
         tmpl = get_driver(config["driver"]
                           .get()).driver.configuration_template()
@@ -314,7 +281,7 @@ def setup_parser(config):
             return
         for key, option in tmpl.iteritems():
             try:
-                _add_argument_from_option('device', key, option, parser)
+                add_argument_from_option('device', key, option, parser)
             except:
                 return
 
@@ -326,7 +293,7 @@ def setup_parser(config):
                 continue
             for key, option in tmpl.iteritems():
                 try:
-                    _add_argument_from_option(ext.name, key, option, parser)
+                    add_argument_from_option(ext.name, key, option, parser)
                 except:
                     continue
 
