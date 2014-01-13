@@ -169,7 +169,7 @@ class Workflow(object):
             # Remove last n images, where n == len(self.devices)
             map(lambda x: x.unlink(), self.images[-len(self.devices):])
 
-        with ThreadPoolExecutor(1 if parallel_capture else 2) as executor:
+        with ThreadPoolExecutor(2 if parallel_capture else 1) as executor:
             futures = []
             self.logger.debug("Sending capture command to devices")
             for dev in self.devices:
