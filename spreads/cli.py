@@ -114,6 +114,8 @@ def _select_plugins(selected_plugins=None):
 def _setup_processing_pipeline(config):
     pm = get_pluginmanager(config)
     extensions = [ext.name for ext in get_relevant_extensions(pm, ['process'])]
+    if not extensions:
+        return
     print("The following postprocessing plugins were detected:")
     print("\n".join(" - {0}".format(ext) for ext in extensions))
     while True:
