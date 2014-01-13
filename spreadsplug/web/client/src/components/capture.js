@@ -1,5 +1,5 @@
 /** @jsx React.DOM */
-/* global require */
+/* global module, require, console */
 (function() {
   'use strict';
 
@@ -7,8 +7,7 @@
       foundation = require('./foundation.js'),
       ModelMixin = require('../../lib/backbonemixin.js'),
       row = foundation.row,
-      column = foundation.column,
-      fn_button = foundation.button;
+      fnButton = foundation.button;
 
   module.exports = React.createClass({
     mixins: [ModelMixin],
@@ -31,7 +30,6 @@
     },
     render: function() {
       var workflow = this.props.workflow || {};
-      /* jshint ignore:start */
       return (
         <row>
           {workflow.has('images') ?
@@ -43,22 +41,21 @@
           }
           <ul className="button-group">
             <li>
-              <fn_button callback={this.handleRetake} size="small" secondary='true'>
+              <fnButton callback={this.handleRetake} size="small" secondary='true'>
                 <i className="fi-refresh"></i> Retake
-              </fn_button>
+              </fnButton>
             </li>
             <li>
-              <fn_button callback={this.handleFinish} size="small" secondary='true'>
+              <fnButton callback={this.handleFinish} size="small" secondary='true'>
                 <i className="fi-check"></i> Finish
-              </fn_button>
+              </fnButton>
             </li>
           </ul>
-          <fn_button callback={this.handleCapture} size="small">
+          <fnButton callback={this.handleCapture} size="small">
             <i className="fi-camera"></i> Capture
-          </fn_button>
+          </fnButton>
         </row>
       );
-      /* jshint ignore:end */
     }
   });
 }());

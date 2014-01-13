@@ -1,12 +1,11 @@
 /** @jsx React.DOM */
-/* global require */
+/* global module, require */
 (function() {
   'use strict';
   var React = require('react/addons');
 
   module.exports = React.createClass({
     render: function() {
-      /* jshint ignore:start */
       return (
         <div className="contain-to-grid fixed">
           <nav className="top-bar" data-topbar>
@@ -25,7 +24,6 @@
           </nav>
         </div>
       );
-      /* jshint ignore:end */
     }
   });
 }());

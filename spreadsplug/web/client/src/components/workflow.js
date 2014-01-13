@@ -1,5 +1,5 @@
 /** @jsx React.DOM */
-/* global require */
+/* global module, require */
 (function() {
   'use strict';
 
@@ -15,12 +15,7 @@
       return [this.props.workflow];
     },
     render: function() {
-      var workflow = this.props.workflow,
-          currentStep;
-      /* jshint ignore:start */
-      if (!workflow.has('current_step')) {
-      } else {
-      }
+      var workflow = this.props.workflow;
       return (
         <main>
           <row>
@@ -60,9 +55,9 @@
               <h2>Output files</h2>
               <ul>
                 {workflow.has('output_files') ?
-                  workflow.get('output_files').map(function(out_file) {
+                  workflow.get('output_files').map(function(outFile) {
                     return (
-                      <li key={out_file}><a href={out_file}>{out_file}</a></li>
+                      <li key={outFile}><a href={outFile}>{outFile}</a></li>
                     );
                   })
                   :''}
@@ -71,7 +66,6 @@
           </row>
         </main>
       );
-      /* jshint ignore:end */
     }
   });
 }());

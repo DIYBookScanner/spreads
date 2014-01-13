@@ -1,5 +1,5 @@
 /** @jsx React.DOM */
-/* global require */
+/* global require, module */
 (function() {
   'use strict';
   var React = require('react/addons'),
@@ -20,7 +20,6 @@
                              {trigger: true});
     },
     render: function() {
-      /* jshint ignore:start */
       var workflow = this.props.workflow;
       return (
         <tr>
@@ -39,7 +38,6 @@
           </td>
         </tr>
       );
-      /* jshint ignore:end */
     }
   });
 
@@ -49,7 +47,6 @@
       return this.props.workflows;
     },
     render: function() {
-      /* jshint ignore:start */
       return(
         <main>
           <row>
@@ -80,7 +77,6 @@
           </row>
         </main>
       );
-      /* jshint ignore:end */
     }
   });
 }());

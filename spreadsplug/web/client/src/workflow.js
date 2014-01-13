@@ -1,4 +1,4 @@
-/* global require */
+/* global module, require, console */
 (function() {
   'use strict';
 
@@ -17,9 +17,9 @@
   Workflow = Backbone.DeepModel.extend({
     // Don't synchronize these with the server
     blacklist: ['configuration_template'],
-    toJSON: function(options) {
+    toJSON: function() {
         return _.omit(this.attributes, this.blacklist);
-    },
+      },
     initialize: function() {
       this._setConfigurationTemplate();
       this._setPluginValidators();
@@ -54,7 +54,7 @@
         });
     },
     queue: function() {
-      jQuery.post('/queue', {id: this.id}, function(data, status) {
+      jQuery.post('/queue', {id: this.id}, function(data) {
         this.queueId = data.queue_position;
       });
     },
@@ -69,7 +69,7 @@
     triggerCapture: function(retake) {
       jQuery.post(
         '/workflow/' + this.id + "/capture" + (retake ? '?retake=true' : ''),
-        function(data, status) {
+        function(data) {
           console.debug("Capture succeeded");
           this.set('images', data.images);
         }.bind(this)).fail(function() {
@@ -138,19 +138,22 @@
         return;
       }
       (function poll() {
-        if (!this._keepPolling) return;
-        $.ajax({
+        if (!this._keepPolling) { return; }
+        jQuery.ajax({
             url: "/workflow/" + this.id + "/poll",
             success: function(data){
                 this.set(data);
-            }.bind(this),
+              }.bind(this),
             dataType: "json",
             complete: function(xhr, status) {
-                if (_.contains(["timeout", "success"], status)) poll.bind(this)();
-                else _.delay(poll.bind(this), 30*1000);
+              if (_.contains(["timeout", "success"], status)) {
+                poll.bind(this)();
+              } else {
+                _.delay(poll.bind(this), 30*1000);
+              }
             }.bind(this),
             timeout: 2*60*1000
-        });
+          });
       }.bind(this)());
     }
   });

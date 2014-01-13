@@ -1,11 +1,10 @@
 /** @jsx React.DOM */
-/* global require */
+/* global module, require, console */
 (function() {
   'use strict';
   var React = require('react/addons'),
       _ = require('underscore'),
       foundation = require('./foundation.js'),
-      Workflows = require('../workflow.js'),
       ModelMixin = require('../../lib/backbonemixin.js'),
       row = foundation.row,
       column = foundation.column,
@@ -27,24 +26,21 @@
       if (option.selectable && _.isArray(option.value)) {
         // Dropdown
         input = (
-          /* jshint ignore:start */
           <select multiple={!option.selectable} valueLink={bindFunc(name)}>
             {_.map(option.value, function(key) {
-              return <option value={key}>{key}</option>
+              return <option value={key}>{key}</option>;
             })}
           </select>
-          /* jshint ignore:end */
         );
       } else if (_.isArray(option.value)) {
         input = <em>oops</em>;
       } else {
         var types = { "boolean": "checkbox",
                       "number": "number",
-                      "string": "text" },
+                      "string": "text" };
 
         input = <input type={types[typeof option.value]} valueLink={bindFunc(name)} />;
       }
-      /* jshint ignore:start */
       return (
         <row>
           <column size='12'>
@@ -54,14 +50,12 @@
           </column>
         </row>
       );
-      /* jshint ignore:end */
     }
   });
 
   PluginWidget = React.createClass({
     render: function() {
       var template = this.props.template;
-      /* jshint ignore:start */
       return (
         <row>
           <column size='12'>
@@ -79,7 +73,6 @@
           </column>
         </row>
       );
-      /* jshint ignore:end */
     }
   });
 
@@ -108,7 +101,6 @@
     },
     render: function() {
       var selectedPlugin = this.state.selectedPlugin;
-      /* jshint ignore:start */
       return (
         <row>
           <column size='12'>
@@ -132,7 +124,6 @@
           </column>
         </row>
       );
-      /* jshint ignore:end */
     }
   });
 
@@ -156,7 +147,7 @@
       this.props.workflow.off('validated:invalid');
       this.props.workflow.off('all');
     },
-    handleSubmit: function(event) {
+    handleSubmit: function() {
       this.props.workflow.save().success(function(workflow) {
         window.router.navigate('/workflow/' + workflow.id + '/capture',
                                {trigger: true});
@@ -164,7 +155,6 @@
       // TODO: Error handling
     },
     render: function() {
-      /* jshint ignore:start */
       return (
         <section>
           <row>
@@ -193,7 +183,6 @@
           </row>
         </section>
       );
-      /* jshint ignore:end */
     }
   });
 }());

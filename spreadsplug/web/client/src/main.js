@@ -2,10 +2,9 @@
 (function() {
   'use strict';
 
-  var  React = require('react/addons'),
-  Backbone = require('backbone'),
-  $ = require('jquery')(window),
-  Router = require('./router');
+  var Backbone = require('backbone'),
+      $ = require('jquery')(window),
+      Router = require('./router');
 
   // Assign jQuery to Backbone
   Backbone.$ = $;
