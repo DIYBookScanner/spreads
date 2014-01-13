@@ -33,11 +33,15 @@ app.url_map.converters['workflow'] = WorkflowConverter
 # ========= #
 @app.route('/')
 def index():
+    """ Deliver static landing page that launches the client-side app. """
     return send_file("client/index.html")
 
 
 @app.route('/plugins', methods=['GET'])
 def get_plugins_with_options():
+    """ Return the names of all activated plugins and their configuration
+        templates.
+    """
     config = app.config['default_config']
     pluginmanager = get_pluginmanager(config)
     scanner_extensions = ['prepare_capture', 'capture', 'finish_capture']
@@ -72,6 +76,7 @@ def get_plugins_with_options():
 
 @app.route('/config', methods=['GET'])
 def get_global_config():
+    """ Return the global configuration. """
     return jsonify(app.config['default_config'].flatten())
 
 
@@ -80,6 +85,14 @@ def get_global_config():
 # ================== #
 @app.route('/workflow', methods=['POST'])
 def create_workflow():
+    """ Create a new workflow.
+
+    Payload should be a JSON object. The only required attribute is 'name' for
+    the desired workflow name. Optionally, 'config' can be set to a
+    configuration object in the form "plugin_name: { setting: value, ...}".
+
+    Returns the newly created workflow as a JSON object.
+    """
     data = json.loads(request.data)
     path = Path(app.config['base_path'])/unicode(data['name'])
 
@@ -98,6 +111,7 @@ def create_workflow():
 
 @app.route('/workflow', methods=['GET'])
 def list_workflows():
+    """ Return a list of all workflows. """
     workflows = persistence.get_all_workflows()
     return make_response(
         json.dumps([workflow_to_dict(workflow)
@@ -107,13 +121,21 @@ def list_workflows():
 
 @app.route('/workflow/<workflow:workflow>', methods=['GET'])
 def get_workflow(workflow):
+    """ Return a single workflow. """
     return jsonify(workflow_to_dict(workflow))
 
 
 @app.route('/workflow/<workflow_workflow>', methods=['PUT'])
 def update_workflow(workflow):
-    # NOTE: Currently the only attribute that can be updated from the client
-    #       is the configuration.
+    """ Update a single workflow.
+
+    Payload should be a JSON object, as returned by the '/workflow/<id>'
+    endpoint.
+    Currently the only attribute that can be updated from the client
+    is the configuration.
+
+    Returns the updated workflow as a JSON object.
+    """
     # TODO: Support renaming a workflow, i.e. rename directory as well
     config = json.loads(request.data).get('config', None)
     # Update workflow configuration
@@ -125,6 +147,7 @@ def update_workflow(workflow):
 
 @app.route('/workflow/<workflow:workflow>', methods=['DELETE'])
 def delete_workflow(workflow):
+    """ Delete a single workflow from database and disk. """
     # Remove directory
     try:
         shutil.rmtree(unicode(workflow.path))
@@ -138,6 +161,11 @@ def delete_workflow(workflow):
 
 @app.route('/workflow/<workflow:workflow>/poll', methods=['GET'])
 def poll_for_updates(workflow):
+    """ Stall until the requested workflow has changed.
+
+    Returns the changed workflow as a JSON object.
+    Currently times out after 30 seconds.
+    """
     old_num_caps = len(workflow.images)
     old_step = workflow.step
     old_step_done = workflow.step_done
@@ -160,6 +188,11 @@ def poll_for_updates(workflow):
 
 @app.route('/workflow/<workflow:workflow>/download', methods=['GET'])
 def download_workflow(workflow):
+    """ Return a ZIP archive of the current workflow.
+
+    Included all files from the workflow folder as well as the workflow
+    configuration as a YAML dump.
+    """
     tmp_path = Path(tempfile.gettempdir())/'spreads_download.zip'
     # Clean up previous file
     if tmp_path.exists:
@@ -183,6 +216,12 @@ def download_workflow(workflow):
 
 @app.route('/workflow/<workflow:workflow>/submit', methods=['POST'])
 def submit_workflow(workflow):
+    """ Submit the requested workflow to the postprocessing server.
+
+    Only available in 'scanner' mode. Requires that the 'postproc_server'
+    option is set to the address of a server with the server in 'processor'
+    or 'full' mode running.
+    """
     if app.config['mode'] not in ('scanner'):
         abort(404)
     server = app.config['postproc_server']
@@ -224,6 +263,11 @@ def submit_workflow(workflow):
 # =============== #
 @app.route('/queue', methods=['POST'])
 def add_to_queue():
+    """ Add a workflow to the processing queue.
+
+    Requires the payload to be a workflow object in JSON notation.
+    Returns the queue id.
+    """
     data = json.loads(request.data)
     pos = persistence.append_to_queue(data['id'])
     return jsonify({'queue_position': pos})
@@ -231,11 +275,13 @@ def add_to_queue():
 
 @app.route('/queue', methods=['GET'])
 def list_jobs():
+    """ List all items in the processing queue. """
     return json.dumps(persistence.get_queue())
 
 
 @app.route('/queue/<int:queue_pos>', methods=['DELETE'])
 def remove_from_queue(pos_idx):
+    """ Remove the requested workflow from the processing queue. """
     persistence.delete_from_queue(pos_idx)
     return
 
@@ -245,6 +291,12 @@ def remove_from_queue(pos_idx):
 # =============== #
 @app.route('/workflow/<workflow:workflow>/image', methods=['POST'])
 def upload_workflow_image(workflow):
+    """ Obtain an image for the requested workflow.
+
+    Image must be sent as an attachment with a valid filename and be in either
+    JPG or DNG format. Image will be stored in the 'raw' subdirectory of the
+    workflow directory.
+    """
     allowed = lambda x: x.rsplit('.', 1)[1].lower() in ('jpg', 'jpeg', 'dng')
     file = request.files['file']
     save_path = workflow.path/'raw'
@@ -259,6 +311,7 @@ def upload_workflow_image(workflow):
 @app.route('/workflow/<workflow:workflow>/image/<int:img_num>',
            methods=['GET'])
 def get_workflow_image(workflow, img_num):
+    """ Return image from requested workflow. """
     try:
         img_path = workflow.images[img_num]
     except IndexError:
@@ -270,6 +323,7 @@ def get_workflow_image(workflow, img_num):
 @app.route('/workflow/<workflow:workflow>/image/<int:img_num>/thumb',
            methods=['GET'])
 def get_workflow_image_thumb(workflow, img_num):
+    """ Return thumbnail for image from requested workflow. """
     thumbfile = (Path(app.config['temp_dir']) /
                  "{0}_{1}.jpg".format(workflow.id, img_num))
     try:
@@ -290,6 +344,13 @@ def get_workflow_image_thumb(workflow, img_num):
 # ================= #
 @app.route('/workflow/<workflow:workflow>/capture', methods=['POST'])
 def trigger_capture(workflow):
+    """ Trigger a capture on the requested workflow.
+
+    Optional parameter 'retake' specifies if the last shot is to be retaken.
+
+    Returns the number of pages shot and a list of the images captured by
+    this call in JSON notation.
+    """
     if app.config['mode'] not in ('scanner', 'full'):
         abort(404)
     if workflow.step != 'capture':
@@ -304,6 +365,7 @@ def trigger_capture(workflow):
 
 @app.route('/workflow/<workflow:workflow>/capture/finish', methods=['POST'])
 def finish_capture(workflow):
+    """ Wrap up capture process on the requested workflow. """
     if app.config['mode'] not in ('scanner', 'full'):
         abort(404)
     workflow.finish_capture()
