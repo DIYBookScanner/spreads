@@ -14,10 +14,25 @@ from spreads.plugin import DevicePlugin, PluginOption, DeviceFeatures
 from spreads.util import (DeviceException, find_in_path,
                           MissingDependencyException)
 
-if not find_in_path('exiftool'):
-    raise MissingDependencyException("Could not find executable `exiftool`"
-                                     " in $PATH. Please install the"
-                                     " appropriate package(s)!")
+try:
+    import pyexiv2
+
+    def update_exif_orientation(image, orientation):
+        metadata = pyexiv2.ImageMetadata(image)
+        metadata.read()
+        metadata['Image.Exif.Orientation'] = int(orientation)
+        metadata.write()
+
+except ImportError:
+    if not find_in_path('exiftool'):
+        raise MissingDependencyException("Could not find executable `exiftool`"
+                                         " in $PATH. Please install the"
+                                         " appropriate package(s)!")
+
+    def update_exif_orientation(image, orientation):
+        subprocess.check_output(
+            ['exiftool', '-Orientation={0}'.format(orientation), '-n',
+             '-overwrite_original', image])
 
 
 class CHDKPTPException(Exception):
@@ -161,9 +176,7 @@ class CHDKCameraDevice(DevicePlugin):
             exif_orientation = 8  # 90°
         else:
             exif_orientation = 6  # -90°
-        subprocess.check_output(
-            ['exiftool', '-Orientation={0}'.format(exif_orientation), '-n',
-             '-overwrite_original', local_path])
+        update_exif_orientation(local_path, exif_orientation)
 
     def _run(self, *commands):
         cmd_args = list(chain((unicode(self._chdkptp_path / "chdkptp"),),
