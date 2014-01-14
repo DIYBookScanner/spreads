@@ -95,7 +95,7 @@ def _select_plugins(selected_plugins=None):
     while True:
         for pos, ext in enumerate(available_plugins, 1):
             print("  {0} {1}: {2}"
-                  .format('✔' if ext.name in selected_plugins else ' ',
+                  .format('x' if ext.name in selected_plugins else ' ',
                           pos, ext.name))
         selection = raw_input("Select a plugin (or hit enter to finish): ")
         if not selection:

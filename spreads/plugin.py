@@ -26,7 +26,6 @@ import itertools
 import logging
 import os
 
-import usb
 import stevedore
 from stevedore.driver import DriverManager
 from stevedore.named import NamedExtensionManager
@@ -164,13 +163,8 @@ class DevicePlugin(SpreadsPlugin):
             }
 
     @abstractclassmethod
-    def match(cls, usbdevice):
-        """ Match device against USB device information.
-
-        :param device:      The USB device to match against
-        :type vendor_id:    `usb.core.Device <http://github.com/walac/pyusb>`_
-        :return:            True if the :param usbdevice: matches the
-                            implemented category
+    def yield_devices(self):
+        """ Search for usable devices, yield one at a time
 
         """
         raise NotImplementedError
@@ -329,12 +323,10 @@ def get_devices(config):
         raise DeviceException(
             "No driver has been configured\n"
             "Please run `spread configure` to select a driver.")
-    driver = get_driver(config["driver"].get())
-    driver_class = driver.driver
-    logger.debug("Finding devices for driver \"{0}\"".format(driver))
-    usb_devices = filter(lambda dev: driver_class.match(dev),
-                         usb.core.find(find_all=True))
-    devices = [driver_class(config['device'], dev) for dev in usb_devices]
+    driver_manager = get_driver(config["driver"].get())
+    driver_class = driver_manager.driver
+    logger.debug("Finding devices for driver \"{0}\"".format(driver_manager))
+    devices = list(driver_class.yield_devices(config['device']))
     if not devices:
         raise DeviceException("Could not find any compatible devices!")
     return devices
