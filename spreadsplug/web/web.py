@@ -17,7 +17,8 @@ from spreads.workflow import Workflow
 
 import persistence
 from spreadsplug.web import app
-from util import cached, get_image_url, workflow_to_dict, WorkflowConverter
+from util import (cached, get_image_url, workflow_to_dict, WorkflowConverter,
+                  get_thumbnail)
 
 
 logger = logging.getLogger('spreadsplub.web')
@@ -326,19 +327,13 @@ def get_workflow_image(workflow, img_num):
            methods=['GET'])
 def get_workflow_image_thumb(workflow, img_num):
     """ Return thumbnail for image from requested workflow. """
-    thumbfile = (Path(app.config['temp_dir']) /
-                 "{0}_{1}.jpg".format(workflow.id, img_num))
     try:
         img_path = workflow.images[img_num]
     except IndexError:
         abort(404)
-    if not thumbfile.exists():
-        logger.debug('Generating thumbnail for {0}'.format(thumbfile.stem))
-        with Image(filename=unicode(img_path)) as img:
-            thumb_width = int(300/(img.width/float(img.height)))
-            img.sample(300, thumb_width)
-            img.save(filename=unicode(thumbfile))
-    return send_file(unicode(thumbfile))
+
+    thumbnail = get_thumbnail(img_path)
+    return Response(thumbnail, mimetype='image/jpeg')
 
 
 # ================= #

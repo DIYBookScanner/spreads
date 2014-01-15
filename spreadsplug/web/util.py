@@ -6,6 +6,8 @@ from werkzeug.routing import BaseConverter, ValidationError
 
 from persistence import get_workflow
 
+logger = logging.getLogger('spreadsplug.web.util')
+
 
 class WorkflowConverter(BaseConverter):
     def to_python(self, value):
@@ -60,3 +62,26 @@ def workflow_to_dict(workflow):
 def get_image_url(workflow, img_path):
     img_num = int(img_path.stem)
     return url_for('.get_workflow_image', workflow=workflow, img_num=img_num)
+
+
+def get_thumbnail(img_path):
+    """ Return thumbnail for image.
+
+    :param img_path:  Path to image
+    :type img_path:   pathlib.Path
+    :return:          The thumbnail
+    :rtype:           bytestring
+    """
+    try:
+        import pyexiv2
+        logger.debug("Extracting EXIF thumbnail for {0}".format(img_path))
+        metadata = pyexiv2.ImageMetadata(unicode(img_path))
+        metadata.read()
+        return metadata.previews[0].data
+    except (IndexError, ImportError):
+        logger.debug("Generating thumbnail for {0}".format(img_path))
+        from wand.image import Image
+        with Image(filename=unicode(img_path)) as img:
+            thumb_width = int(200/(img.width/float(img.height)))
+            img.sample(200, thumb_width)
+            return img.make_blob()
