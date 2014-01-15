@@ -33,6 +33,7 @@ logger = logging.getLogger('spreadsplug.web.database')
 
 
 def initialize_database():
+    logger.info("Initializing database.")
     db_path = app.config['database']
     with sqlite3.connect(unicode(db_path)) as con:
         con.executescript(SCHEMA)
@@ -41,7 +42,6 @@ def initialize_database():
 def open_connection():
     db_path = Path(app.config['database'])
     if not db_path.exists():
-        logger.info('Initializing database.')
         initialize_database()
     return sqlite3.connect(unicode(db_path))
 
@@ -62,6 +62,7 @@ def save_workflow(workflow):
 
 
 def update_workflow_config(id, config):
+    logger.debug("Updating configuration for workflow {0}.".format(id))
     config_data = json.dumps(config.flatten())
     with open_connection() as con:
         con.execute("UPDATE WORKFLOW SET config=:config WHERE id=:id",
@@ -72,14 +73,13 @@ def get_workflow(workflow_id):
     # See if the workflow is among our cached instances
     if workflow_id in WORKFLOW_INSTANCES:
         return WORKFLOW_INSTANCES[workflow_id]
-    logger.debug("Trying to get workflow with id {0} from database"
-                 .format(workflow_id))
+    logger.debug("Loading workflow {0} from database".format(workflow_id))
     with open_connection() as con:
         db_data = con.execute("SELECT * FROM workflow WHERE workflow.id=?",
                               (workflow_id,)).fetchone()
     if db_data is None:
+        logger.warn("Workflow {0} was not found.".format(workflow_id))
         return None
-    logger.debug("Workflow was found:\n{0}".format(db_data))
 
     db_workflow = DbWorkflow(*db_data)
 
@@ -111,12 +111,14 @@ def get_all_workflows():
 
 
 def delete_workflow(workflow_id):
+    logger.debug("Deleting workflow {0} from database.".format(workflow_id))
     del(WORKFLOW_INSTANCES[workflow_id])
     with open_connection() as con:
         con.execute("DELETE FROM workflow WHERE id = ?", (workflow_id,))
 
 
 def append_to_queue(workflow_id):
+    logger.debug("Adding workflow {0} to job queue.".format(workflow_id))
     with open_connection() as con:
         pos = con.execute("INSERT INTO queue VALUES (?,?)",
                           (None, workflow_id)).lastrowid
@@ -124,6 +126,7 @@ def append_to_queue(workflow_id):
 
 
 def delete_from_queue(queue_position):
+    logger.debug("Removing job {0} from job queue.".format(queue_position))
     with open_connection() as con:
         con.execute("DELETE FROM queue WHERE id = ?", queue_position)
 
@@ -135,13 +138,14 @@ def pop_from_queue():
         ).fetchone()
         if not result:
             return None
-        logger.debug("Popping job from queue...")
         job_id, workflow_id = result
+        logger.debug("Popping workflow {0} from queue.".format(workflow_id))
         con.execute("DELETE FROM queue WHERE id = ?", (job_id, ))
     return get_workflow(workflow_id)
 
 
 def get_queue():
+    logger.debug("Loading job queue from database.")
     with open_connection() as con:
         dbdata = con.execute(
             "SELECT id, workflow_id FROM queue ORDER BY id"
