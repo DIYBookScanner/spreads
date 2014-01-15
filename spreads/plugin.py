@@ -163,9 +163,11 @@ class DevicePlugin(SpreadsPlugin):
             }
 
     @abstractclassmethod
-    def yield_devices(self):
+    def yield_devices(cls, config):
         """ Search for usable devices, yield one at a time
-
+        
+        :param config:  spreads configuration
+        :type config:   spreads.confit.ConfigView
         """
         raise NotImplementedError
 

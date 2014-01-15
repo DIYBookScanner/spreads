@@ -58,7 +58,9 @@ class CHDKCameraDevice(DevicePlugin):
     @classmethod
     def yield_devices(cls, config):
         """ Search for usable devices, yield one at a time
-
+        
+        :param config:  spreads configuration
+        :type config:   spreads.confit.ConfigView
         """
         for dev in usb.core.find(find_all=True):
             cfg = dev.get_active_configuration()[(0, 0)]
