@@ -1,15 +1,13 @@
 import json
 import logging
 import shutil
-import tempfile
 import time
-import zipfile
 
 import requests
 from flask import (abort, jsonify, request, send_file, make_response,
-                   render_template)
-from wand.image import Image
+                   render_template, Response)
 from werkzeug import secure_filename
+from zipstream import ZipFile
 
 import spreads.vendor.confit as confit
 from spreads.plugin import (get_pluginmanager, get_relevant_extensions,
@@ -199,25 +197,23 @@ def download_workflow(workflow):
     Included all files from the workflow folder as well as the workflow
     configuration as a YAML dump.
     """
-    tmp_path = Path(tempfile.gettempdir())/'spreads_download.zip'
-    # Clean up previous file
-    if tmp_path.exists:
-        tmp_path.unlink()
-    with zipfile.ZipFile(unicode(tmp_path), mode='w') as archive:
-        # Find all files within up to two levels deep, relative to the
-        # workflow base path
-        for fpath in workflow.path.glob('**/*'):
-            extract_path = '/'.join((workflow.path.stem,
-                                     unicode(fpath.relative_to(workflow.path)))
-                                    )
-            logger.debug("Adding {0} to archive as {1}"
-                         .format(fpath, extract_path))
-            archive.write(unicode(fpath), extract_path)
-        archive.writestr('/'.join((workflow.path.stem, 'config.yaml')),
-                         workflow.config.dump())
-    return send_file(unicode(tmp_path),
-                     attachment_filename=(workflow.path.stem + ".zip"),
-                     as_attachment=True)
+    # Open ZIP stream
+    zstream = ZipFile(mode='w')
+    # Dump configuration to workflow directory
+    workflow.config.dump(unicode(workflow.path/'config.yaml'))
+    # Find all files within up to two levels deep, relative to the
+    # workflow base path
+    for fpath in workflow.path.glob('**/*'):
+        extract_path = '/'.join((workflow.path.stem,
+                                 unicode(fpath.relative_to(workflow.path)))
+                                )
+        logger.debug("Adding {0} to archive as {1}"
+                     .format(fpath, extract_path))
+        zstream.write(unicode(fpath), extract_path)
+    response = Response(zstream, mimetype='application/zip')
+    response.headers['Content-Disposition'] = (
+        'attachment; filename={}'.format(workflow.path.stem + ".zip"))
+    return response
 
 
 @app.route('/workflow/<workflow:workflow>/submit', methods=['POST'])
