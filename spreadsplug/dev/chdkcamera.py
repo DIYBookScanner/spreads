@@ -5,10 +5,10 @@ import re
 import subprocess
 import tempfile
 import time
-import usb
 from fractions import Fraction
 from itertools import chain
 
+import usb
 from spreads.vendor.pathlib import Path
 
 from spreads.plugin import DevicePlugin, PluginOption, DeviceFeatures
@@ -91,6 +91,7 @@ class CHDKCameraDevice(DevicePlugin):
         :type device:   `usb.core.Device <http://github.com/walac/pyusb>`_
 
         """
+        self._device = device
         self.logger = logging.getLogger('ChdkCamera')
         self._chdkptp_path = Path(config["chdkptp_path"].get(unicode))
         self._sensitivity = config["sensitivity"].get(int)
@@ -102,8 +103,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._focus_distance = config['focus_distance'].get()
 
         self._cli_flags = []
-        self._cli_flags.append("-c-d={0:03} -b={1:03}".format(
-                               device.address, device.bus))
+        self._cli_flags.append("-c-s=".format(device.iSerialNumber))
         self._cli_flags.append("-eset cli_verbose=2")
         self._chdk_buildnum = (self._execute_lua("get_buildinfo()",
                                                  get_result=True)
@@ -118,6 +118,11 @@ class CHDKCameraDevice(DevicePlugin):
             self.target_page = None
         self.logger = logging.getLogger('ChdkCamera[{0}]'
                                         .format(self.target_page))
+
+    def connected(self):
+        # Check if device is still found
+        return (usb.core.find(iSerialNumber=self._device.iSerialNumber)
+                is not None)
 
     def set_target_page(self, target_page):
         """ Set the device target page.

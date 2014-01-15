@@ -47,7 +47,7 @@ class Workflow(object):
     _pluginmanager = None
 
     def __init__(self, path, config=None, step=None, step_done=None):
-        self.logger = logging.getLogger('Workflow')
+        self._logger = logging.getLogger('Workflow')
         self.step = step
         self.step_done = step_done
         if not isinstance(path, Path):
@@ -71,6 +71,12 @@ class Workflow(object):
     def devices(self):
         if self._devices is None:
             self._devices = get_devices(self.config)
+        if any(not dev.connected() for dev in self._devices):
+            self._logger.warning(
+                "At least one of the devices has been disconnected."
+                "Please make sure it has been re-enabled before taking another"
+                "action.")
+            self._devices = None
         if not self._devices:
             raise DeviceException("Could not find any compatible devices!")
         return self._devices
@@ -104,7 +110,7 @@ class Workflow(object):
         return config
 
     def _run_hook(self, hook_name, *args):
-        self.logger.debug("Running '{0}' hooks".format(hook_name))
+        self._logger.debug("Running '{0}' hooks".format(hook_name))
         for plugin in self.plugins:
             getattr(plugin, hook_name)(*args)
 
@@ -136,7 +142,7 @@ class Workflow(object):
         return base_path / "{0:03}".format(next_num)
 
     def prepare_capture(self):
-        self.logger.info("Preparing capture.")
+        self._logger.info("Preparing capture.")
         self.step = 'capture'
         if any(dev.target_page is None for dev in self.devices):
             raise DeviceException(
@@ -145,7 +151,7 @@ class Workflow(object):
                 "your devices.")
         with ThreadPoolExecutor(len(self.devices)) as executor:
             futures = []
-            self.logger.debug("Preparing capture in devices")
+            self._logger.debug("Preparing capture in devices")
             for dev in self.devices:
                 futures.append(executor.submit(dev.prepare_capture, self.path))
         check_futures_exceptions(futures)
@@ -161,7 +167,7 @@ class Workflow(object):
     def capture(self, retake=False):
         if self.capture_start is None:
             self.capture_start = time.time()
-        self.logger.info("Triggering capture.")
+        self._logger.info("Triggering capture.")
         parallel_capture = ('parallel_capture' in self.config['device'].keys()
                             and self.config['device']['parallel_capture'].get()
                             )
@@ -171,7 +177,7 @@ class Workflow(object):
 
         with ThreadPoolExecutor(2 if parallel_capture else 1) as executor:
             futures = []
-            self.logger.debug("Sending capture command to devices")
+            self._logger.debug("Sending capture command to devices")
             for dev in self.devices:
                 img_path = self._get_next_filename(dev.target_page)
                 futures.append(executor.submit(dev.capture, img_path))
@@ -186,18 +192,18 @@ class Workflow(object):
     def process(self):
         self.step = 'process'
         self.step_done = False
-        self.logger.info("Starting postprocessing...")
+        self._logger.info("Starting postprocessing...")
         self._run_hook('process', self.path)
-        self.logger.info("Done with postprocessing!")
+        self._logger.info("Done with postprocessing!")
         self.step_done = True
 
     def output(self):
-        self.logger.info("Generating output files...")
+        self._logger.info("Generating output files...")
         self.step = 'output'
         self.step_done = False
         out_path = self.path / 'out'
         if not out_path.exists():
             out_path.mkdir()
         self._run_hook('output', self.path)
-        self.logger.info("Done generating output files!")
+        self._logger.info("Done generating output files!")
         self.step_done = True

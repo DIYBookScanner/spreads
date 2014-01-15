@@ -181,6 +181,15 @@ class DevicePlugin(SpreadsPlugin):
         super(DevicePlugin, self).__init__(config['device'])
         self._device = device
 
+    @abc.abstractmethod
+    def connected(self):
+        """ Check if the device is still connected.
+
+        :rtype:     bool
+
+        """
+        raise NotImplementedError
+
     def set_target_page(self, target_page):
         """ Set the device target page, if applicable.
 
