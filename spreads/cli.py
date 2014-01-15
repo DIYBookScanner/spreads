@@ -27,6 +27,7 @@ from __future__ import division, unicode_literals, print_function
 
 import argparse
 import logging
+import logging.handlers
 import os
 import sys
 import time
@@ -34,11 +35,12 @@ import time
 import colorama
 import pkg_resources
 import spreads.vendor.confit as confit
+from spreads.vendor.pathlib import Path
 
 from spreads.workflow import Workflow
 from spreads.plugin import (get_driver, get_devices, get_pluginmanager,
                             setup_plugin_config, get_relevant_extensions,
-                            DeviceFeatures)
+                            DeviceFeatures, PluginOption)
 from spreads.util import (DeviceException, ColourStreamHandler,
                           add_argument_from_option)
 
@@ -155,11 +157,11 @@ def configure(config):
     config["driver"] = _select_driver()
     config["plugins"] = _select_plugins(config["plugins"].get())
 
+    # Set default plugin configuration
     setup_plugin_config(config)
     _setup_processing_pipeline(config)
 
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
-    setup_plugin_config(config)
 
     driver = get_driver(config["driver"].get()).driver
 
@@ -297,14 +299,23 @@ def setup_parser(config):
                 except:
                     continue
 
+    root_options = {
+        'verbose': PluginOption(value=False,
+                                docstring="Enable verbose output"),
+        'logfile': PluginOption(value="~/.config/spreads/spreads.log",
+                                docstring="Path to logfile"),
+        'loglevel': PluginOption(value=['info', 'critical', 'error', 'warning',
+                                        'debug'],
+                                 docstring="Logging level for logfile",
+                                 selectable=True)
+    }
+
     pluginmanager = get_pluginmanager(config)
     rootparser = argparse.ArgumentParser(
         description="Scanning Tool for  DIY Book Scanner")
     subparsers = rootparser.add_subparsers()
-
-    rootparser.add_argument(
-        '--verbose', '-v', dest="loglevel", action="store_const",
-        const="debug")
+    for key, option in root_options.iteritems():
+        add_argument_from_option('', key, option, rootparser)
 
     wizard_parser = subparsers.add_parser(
         'wizard', help="Interactive mode")
@@ -376,7 +387,6 @@ def main():
     # Lazy-load configuration
     config = confit.LazyConfig('spreads', __name__)
     config.read()
-    setup_plugin_config(config)
 
     parser = setup_parser(config)
     args = parser.parse_args()
@@ -391,16 +401,26 @@ def main():
         'error':    logging.ERROR,
         'critical': logging.CRITICAL,
     })
+    logfile = Path(os.path.expanduser(config['logfile'].get()))
+    if not logfile.parent.exists():
+        logfile.parent.mkdir()
 
     # Set up logger
     logger = logging.getLogger()
     if logger.handlers:
         for handler in logger.handlers:
             logger.removeHandler(handler)
-    handler = ColourStreamHandler()
-    handler.setLevel(loglevel)
-    handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
-    logger.addHandler(handler)
+    stdout_handler = ColourStreamHandler()
+    stdout_handler.setLevel(logging.DEBUG if config['verbose'].get()
+                            else logging.WARNING)
+    stdout_handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+    file_handler = logging.handlers.RotatingFileHandler(
+        filename=unicode(logfile), maxBytes=512*1024, backupCount=1)
+    file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
+    file_handler.setLevel(loglevel)
+    logger.addHandler(stdout_handler)
+    logger.addHandler(file_handler)
     logger.setLevel(logging.DEBUG)
 
     args.subcommand(config)
