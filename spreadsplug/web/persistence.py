@@ -101,6 +101,9 @@ def get_workflow(workflow_id):
 
 
 def get_all_workflows():
+    if WORKFLOW_INSTANCES:
+        return WORKFLOW_INSTANCES
+    logger.debug("Obtaining all workflows from database.")
     with open_connection() as con:
         result = con.execute(
             "SELECT id FROM workflow").fetchall()

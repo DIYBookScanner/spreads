@@ -24,7 +24,6 @@ from __future__ import division, unicode_literals
 import abc
 import itertools
 import logging
-import os
 
 import stevedore
 from stevedore.driver import DriverManager
@@ -220,6 +219,15 @@ class DevicePlugin(SpreadsPlugin):
         :param path:    Path for the image
         :type path:     pathlib.Path
 
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def finish_capture(self):
+        """ Tell device to finish capturing.
+
+        What this means exactly is up to the implementation and the type of
+        device, with a camera it could e.g. involve retractingthe lense.
         """
         raise NotImplementedError
 

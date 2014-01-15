@@ -152,6 +152,11 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("set_nd_filter(2)")
         self._set_focus()
 
+    def finish_capture(self):
+        # Switch camera back to play mode.
+        # This will retract the lens and protect it from dust.
+        self._run("play")
+
     def get_preview_image(self):
         fpath = tempfile.mkstemp()[1]
         cmd = "dumpframes -count=1 -nobm -nopal"
