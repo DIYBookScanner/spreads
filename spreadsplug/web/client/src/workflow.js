@@ -25,13 +25,7 @@
       this._setPluginValidators();
       if (this.isNew()) {
         this._setDefaultConfiguration();
-        this.on('sync', this._startPolling, this);
-      } else {
-        this._startPolling();
       }
-      this.on('destroy', function() {
-        this._keepPolling = false;
-      });
     },
     validation: {
       name: {
@@ -130,31 +124,6 @@
           }
         }, this);
       }, this);
-    },
-    _startPolling: function() {
-      if (!this._keepPolling) {
-        this._keepPolling = true;
-      } else {
-        return;
-      }
-      (function poll() {
-        if (!this._keepPolling) { return; }
-        jQuery.ajax({
-            url: "/workflow/" + this.id + "/poll",
-            success: function(data){
-                this.set(data);
-              }.bind(this),
-            dataType: "json",
-            complete: function(xhr, status) {
-              if (_.contains(["timeout", "success"], status)) {
-                poll.bind(this)();
-              } else {
-                _.delay(poll.bind(this), 30*1000);
-              }
-            }.bind(this),
-            timeout: 2*60*1000
-          });
-      }.bind(this)());
     }
   });
 

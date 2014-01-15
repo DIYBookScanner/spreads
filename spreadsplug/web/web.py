@@ -159,34 +159,36 @@ def delete_workflow(workflow):
     return jsonify({})
 
 
-@app.route('/workflow/<workflow:workflow>/poll', methods=['GET'])
-def poll_for_updates(workflow):
-    """ Stall until the requested workflow has changed.
+@app.route('/poll', methods=['GET'])
+def poll_for_updates():
+    """ Stall until one of the workflows has changed.
 
-    Returns the changed workflow as a JSON object.
+    Returns a JSON object with a field 'workflows', containing a list of all
+    changed workflows.
     """
-    old_num_caps = len(workflow.images)
-    old_step = workflow.step
-    old_step_done = workflow.step_done
 
-    if app.config['DEBUG']:
-        # NOTE: The wsgiref server does not time out long-running requests,
-        #       so we enforce a timeout of 110 seconds.
-        start_time = time.time()
-        can_continue = lambda: (time.time() - start_time) < 110
-    else:
-        can_continue = lambda: True
+    get_props = lambda x: {k: v for k, v in x.__dict__.iteritems()
+                           if not k[0] == '_'}
+    old_workflows = {workflow.id: get_props(workflow)
+                     for workflow in persistence.get_all_workflows().values()}
 
+
+    start_time = time.time()
+    can_continue = lambda: (time.time() - start_time) < 130
     while can_continue():
-        updated = (len(workflow.images) != old_num_caps
-                   or workflow.step != old_step
-                   or workflow.step_done != old_step_done)
-        if updated:
-            return jsonify(workflow_to_dict(workflow))
+        updated_workflows = {workflow.id: get_props(workflow)
+                             for workflow
+                             in persistence.get_all_workflows().values()}
+        workflows_updated = (updated_workflows != old_workflows)
+
+        if workflows_updated:
+            logger.debug("Workflows were updated.")
+            old_workflows = updated_workflows
+            workflows = [workflow_to_dict(persistence.get_workflow(wfid))
+                         for wfid in updated_workflows
+                         if old_workflows[wfid] != updated_workflows[wfid]]
+            return jsonify(workflows=workflows)
         else:
-            old_num_caps = len(workflow.images)
-            old_step = workflow.step
-            old_step_done = workflow.step_done
             time.sleep(0.1)
     abort(408)  # Request Timeout
 
