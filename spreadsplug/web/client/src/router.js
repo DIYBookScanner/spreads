@@ -1,5 +1,5 @@
 /** @jsx React.DOM */
-/* global module, require */
+/* global module, require, console */
 (function() {
   'use strict';
   var Backbone = require('backbone'),
@@ -7,11 +7,13 @@
       _ = require('underscore'),
       jQuery = require('jquery')(window),
       SpreadsApp = require('./components/spreadsapp'),
-      Workflows = require('./workflow.js');
+      Workflows = require('./workflow.js'),
+      Messages = require('./messages.js');
 
   module.exports = Backbone.Router.extend({
     initialize: function() {
       this._workflows = new Workflows();
+      this._messages = new Messages();
       this._workflows.fetch({async: false});
       this._startPolling();
     },
@@ -24,7 +26,8 @@
     },
     _renderView: function(view, workflow) {
       React.renderComponent(<SpreadsApp view={view} workflows={this._workflows}
-                                        workflowId={workflow}/>,
+                                        workflowId={workflow}
+                                        messages={this._messages} />,
                             document.getElementById('content'));
     },
     _startPolling: function() {
@@ -32,6 +35,10 @@
         jQuery.ajax({
             url: "/poll",
             success: function(data){
+              if (data.messages.length) {
+                console.debug("Updating messages.");
+                this._messages.set(data.messages);
+              }
               if (data.workflows.length) {
                 console.debug("Updating workflows.");
                 this._workflows.add(data.workflows, {merge: true});

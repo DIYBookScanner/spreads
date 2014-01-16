@@ -9,9 +9,14 @@
       PreferencesForm = require('./preferences'),
       WorkflowDetails = require('./workflow'),
       WorkflowList = require('./workflowlist'),
-      NavigationBar = require('./navbar');
+      NavigationBar = require('./navbar'),
+      fnAlert = require('./foundation').alert;
 
   module.exports = React.createClass({
+    componentDidMount: function() {
+      this.props.messages.on('add change remove',
+                             this.forceUpdate.bind(this, null));
+    },
     getNavTitle: function(viewName) {
       var mappings = {
         create:       "spreads: new workflow",
@@ -44,10 +49,20 @@
     },
     render: function() {
       var navTitle = this.getNavTitle(this.props.view),
-          viewComponent = this.getViewComponent(this.props.view);
-      // TODO: Handle case where this.props.workflows === undefined
+          viewComponent = this.getViewComponent(this.props.view),
+          getCloseCallback = function(message) {
+            return function() {
+              this.props.messages.remove([message]);
+            }.bind(this);
+          };
       return (<div>
                 <NavigationBar title={navTitle} />
+                {this.props.messages ?
+                  this.props.messages.map(function(message) {
+                    return (<fnAlert level={message.get('level')}
+                                     message={message.get('message')}
+                                     closeCallback={getCloseCallback.bind(this)(message)}/>);
+                  }, this):''}
                 {viewComponent}
               </div>);
     }

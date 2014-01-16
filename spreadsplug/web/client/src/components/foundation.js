@@ -2,7 +2,8 @@
 /* global module, require */
 (function() {
   'use strict';
-  var React = require('react/addons');
+  var React = require('react/addons'),
+      _ = require('underscore');
 
   module.exports = {
     row: React.createClass({
@@ -20,7 +21,7 @@
                     " large-" + (sizes[2] || sizes[1])+
                     " columns";
         } else {
-          classes = "small-" + this.props.size + " columns";
+          classes = "small-" + this.props.size || 12 + " columns";
         }
         return (<div className={classes}>{this.props.children}</div>);
       }
@@ -33,6 +34,23 @@
                               (this.props.secondary ? " secondary" : '')}>
                   {this.props.children}
                 </a>
+               );
+      }
+    }),
+    alert: React.createClass({
+      handleClose: function() {
+        this.props.closeCallback();
+      },
+      render: function() {
+        var classes = ['alert-box'];
+        if (_.contains(['WARNING', 'ERROR'], this.props.level)) {
+          classes.push('warning');
+        }
+        return (<div data-alert
+                     className={"alert-box " + classes.join(' ')} >
+                  {this.props.message}
+                  <a onClick={this.handleClose} className="close">&times;</a>
+                </div>
                );
       }
     })

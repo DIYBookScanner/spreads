@@ -1,3 +1,6 @@
+import logging
+import re
+from datetime import datetime
 from functools import wraps
 
 from flask import request, url_for, abort
@@ -62,6 +65,31 @@ def workflow_to_dict(workflow):
 def get_image_url(workflow, img_path):
     img_num = int(img_path.stem)
     return url_for('.get_workflow_image', workflow=workflow, img_num=img_num)
+
+
+def parse_log_lines(logfile, from_line, levels=['WARNING', 'ERROR']):
+    # "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
+    # 2014-01-14 22:00:48,734 1 thread(s) still running [waitress] [WARNING]
+    msg_re = re.compile(
+        r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})"  # timestamp
+        r" (.*?)"  # message
+        r" \[(.*?)]"  # logger
+        r" \[(\w+)]",  # loglevel
+        re.MULTILINE
+    )
+    with logfile.open('r') as fp:
+        loglines = fp.readlines()
+    new_lines = loglines[from_line:]
+    messages = [{'time': datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S,%f'),
+                 'message': message,
+                 'origin': origin,
+                 'level': loglevel}
+                for timestamp, message, origin, loglevel
+                in (msg_re.findall(x)[0] for x in new_lines
+                    if msg_re.match(x))
+                if loglevel in levels]
+    messages.sort(key=lambda e: e['time'])
+    return messages
 
 
 def get_thumbnail(img_path):
