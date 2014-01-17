@@ -21,7 +21,7 @@ try:
     def update_exif_orientation(image, orientation):
         metadata = pyexiv2.ImageMetadata(image)
         metadata.read()
-        metadata['Image.Exif.Orientation'] = int(orientation)
+        metadata['Exif.Image.Orientation'] = int(orientation)
         metadata.write()
 
 except ImportError:
