@@ -181,8 +181,12 @@ class CHDKCameraDevice(DevicePlugin):
         try:
             self._run(cmd)
         except CHDKPTPException as e:
-            self.logger.warn("Capture command failed.")
-            raise e
+            if 'not in rec mode' in e.message:
+                self.prepare_capture(None)
+                self.capture(path, two_device_mode)
+            else:
+                self.logger.warn("Capture command failed.")
+                raise e
 
         extension = 'dng' if self._shoot_raw else 'jpg'
         local_path = "{0}.{1}".format(path, extension)
@@ -237,6 +241,8 @@ class CHDKCameraDevice(DevicePlugin):
             return self._parse_table(ret_val)  # Table
         elif ret_val.startswith("'"):
             return ret_val.strip("'")  # String
+        elif ret_val in ('true', 'false'):
+            return ret_val == 'true'
         else:
             return int(ret_val)  # Integer
 
@@ -296,7 +302,6 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
 
     """
     def __init__(self, config, device):
-        print "Instantiating device..."
         super(CanonA2200CameraDevice, self).__init__(config, device)
         if self.target_page is not None:
             self.logger = logging.getLogger(
