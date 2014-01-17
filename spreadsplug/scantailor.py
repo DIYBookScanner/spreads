@@ -13,7 +13,7 @@ from xml.etree.cElementTree import ElementTree as ET
 
 from spreads.vendor.pathlib import Path
 
-from spreads.plugin import HookPlugin, PluginOption
+from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
 from spreads.util import find_in_path, MissingDependencyException
 
 if not find_in_path('scantailor-cli'):
@@ -24,7 +24,7 @@ if not find_in_path('scantailor-cli'):
 logger = logging.getLogger('spreadsplug.scantailor')
 
 
-class ScanTailorPlugin(HookPlugin):
+class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
     __name__ = 'scantailor'
 
     _enhanced = bool(re.match(r".*<images\|directory\|->.*",

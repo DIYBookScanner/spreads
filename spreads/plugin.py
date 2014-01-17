@@ -24,7 +24,6 @@ from __future__ import division, unicode_literals
 import abc
 import itertools
 import logging
-import os
 
 import stevedore
 from stevedore.driver import DriverManager
@@ -218,11 +217,19 @@ class DevicePlugin(SpreadsPlugin):
 
 
 class HookPlugin(SpreadsPlugin):
-    """ Add functionality to any of spreads' commands by implementing one or
-        more of the available hooks.
+    """ Base class for HookPlugins.
+
+    Implement one of the available mixin classes to register for the
+    appropriate hooks.
 
     """
-    @classmethod
+    pass
+
+
+class SubcommandHookMixin(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abstractclassmethod
     def add_command_parser(cls, rootparser):
         """ Allows a plugin to register a new command with the command-line
             parser. The subparser that is added to :param rootparser: should
@@ -237,6 +244,11 @@ class HookPlugin(SpreadsPlugin):
         """
         pass
 
+
+class CaptureHooksMixin(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
     def prepare_capture(self, devices, path):
         """ Perform some action before capturing begins.
 
@@ -248,6 +260,7 @@ class HookPlugin(SpreadsPlugin):
         """
         pass
 
+    @abc.abstractmethod
     def capture(self, devices, path):
         """ Perform some action after each successful capture.
 
@@ -259,6 +272,7 @@ class HookPlugin(SpreadsPlugin):
         """
         pass
 
+    @abc.abstractmethod
     def finish_capture(self, devices, path):
         """ Perform some action after capturing has finished.
 
@@ -270,6 +284,11 @@ class HookPlugin(SpreadsPlugin):
         """
         pass
 
+
+class ProcessHookMixin(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
     def process(self, path):
         """ Perform one or more actions that either modify the captured images
             or generate a different output.
@@ -287,6 +306,11 @@ class HookPlugin(SpreadsPlugin):
         """
         pass
 
+
+class OutputHookMixin(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
     def output(self, path):
         """ Assemble an output file from the postprocessed images.
 
@@ -366,27 +390,12 @@ def setup_plugin_config(config):
 def get_relevant_extensions(plugin_manager, hooks):
     """ Find all extensions that implement certain hooks.
 
-    :param hooks:   A list of hook method names
-    :type hooks:    list(unicode)
+    :param hooks:   HookMixins that are supposed to be implemented
+    :type hooks:    list(class)
     :return:        A generator that yields relevant extensions
     :rtype:         generator(Extension)
 
     """
-    # NOTE: This one is wicked... The goal is to find all extensions that
-    #       implement one of the specified hooks.
-    #       To do so, we compare the code objects for the appropriate
-    #       hook method with the same method in the HookPlugin base class.
-    #       If the two are not the same, we can (somewhat) safely assume
-    #       that the extension implements this hook and is thus relevant
-    #       to us.
-    #       Yes, this is not ideal and is due to our somewhat sloppy
-    #       plugin interface. That's why...
-    # TODO: Refactor plugin interface to make this less painful
     for ext in plugin_manager:
-        relevant = any(
-            getattr(ext.plugin, hook).func_code is not
-            getattr(HookPlugin, hook).func_code
-            for hook in hooks
-        )
-        if relevant:
+        if any(issubclass(ext.plugin, hook) for hook in hooks):
             yield ext

@@ -6,7 +6,7 @@ import subprocess
 import wand.image
 from concurrent import futures
 
-from spreads.plugin import HookPlugin, PluginOption
+from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
 from spreads.util import find_in_path, MissingDependencyException
 
 logger = logging.getLogger('spreadsplug.autorotate')
@@ -38,7 +38,7 @@ def rotate_image(path, rotation):
                                  '-overwrite_original', unicode(path)])
 
 
-class AutoRotatePlugin(HookPlugin):
+class AutoRotatePlugin(HookPlugin, ProcessHookMixin):
     __name__ = 'autorotate'
 
     @classmethod
