@@ -116,6 +116,9 @@ class CHDKCameraDevice(DevicePlugin):
             self.target_page = self._get_target_page()
         except:
             self.target_page = None
+
+        self._execute_lua('exit_alt(); set_config_value(291, 0);'
+                          'enter_alt();');
         self.logger = logging.getLogger('ChdkCamera[{0}]'
                                         .format(self.target_page))
 
@@ -197,6 +200,17 @@ class CHDKCameraDevice(DevicePlugin):
         else:
             exif_orientation = 6  # -90°
         update_exif_orientation(local_path, exif_orientation)
+
+    def show_textbox(self, message):
+        messages = message.split("\n")
+        script = "\n".join(
+            ['screen_width = get_gui_screen_width();',
+             'screen_height = get_gui_screen_height();',
+             'draw_rect_filled(0, 0, screen_width, screen_height, 256, 256);'] +
+            ['draw_string(0, 0+(screen_height/10)*{0}, "{1}", 258, 256);'
+             .format(idx, msg) for idx, msg in enumerate(messages, 1)]
+        )
+        self._execute_lua(script, wait=False, get_result=False)
 
     def _run(self, *commands):
         cmd_args = list(chain((unicode(self._chdkptp_path / "chdkptp"),),
