@@ -91,8 +91,12 @@ class CHDKCameraDevice(DevicePlugin):
         :type device:   `usb.core.Device <http://github.com/walac/pyusb>`_
 
         """
-        self._device = device
         self.logger = logging.getLogger('ChdkCamera')
+        self._serial_number = (
+            usb.util.get_string(device, 256, device.iSerialNumber)
+            .strip('\x00'))
+        self.logger.debug("Device has serial number {0}"
+                          .format(self._serial_number))
         self._chdkptp_path = Path(config["chdkptp_path"].get(unicode))
         self._sensitivity = config["sensitivity"].get(int)
         self._shutter_speed = float(Fraction(config["shutter_speed"]
@@ -103,7 +107,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._focus_distance = config['focus_distance'].get()
 
         self._cli_flags = []
-        self._cli_flags.append("-c-s=".format(device.iSerialNumber))
+        self._cli_flags.append("-c-s={0}".format(self._serial_number))
         self._cli_flags.append("-eset cli_verbose=2")
         self._chdk_buildnum = (self._execute_lua("get_buildinfo()",
                                                  get_result=True)
@@ -123,8 +127,14 @@ class CHDKCameraDevice(DevicePlugin):
                                         .format(self.target_page))
 
     def connected(self):
-        # Check if device is still found
-        return (usb.core.find(iSerialNumber=self._device.iSerialNumber)
+        def match_serial(dev):
+            serial = (
+                usb.util.get_string(dev, 256, dev.iSerialNumber)
+                .strip('\x00'))
+            return serial == self._serial_number
+        # Check if device is still attached
+        return (usb.core.find(idVendor=0x04a9,  # Canon vendor ID
+                              custom_match=match_serial)
                 is not None)
 
     def set_target_page(self, target_page):
@@ -174,11 +184,11 @@ class CHDKCameraDevice(DevicePlugin):
         #       "market" value from the config by 0.65.
         #       See core/shooting.c#~l150 in the CHDK source for more details
         if self._can_remote:
-            cmd = ("remoteshoot -tv={0} -sv={1} {2} {3}"
+            cmd = ("remoteshoot -tv={0} -sv={1} {2} \"{3}\""
                    .format(self._shutter_speed, self._sensitivity*0.65,
                            "-dng" if self._shoot_raw else "", path))
         else:
-            cmd = ("shoot -tv={0} -sv={1} -dng={2} -rm -dl {3}"
+            cmd = ("shoot -tv={0} -sv={1} -dng={2} -rm -dl \"{3}\""
                    .format(self._shutter_speed, self._sensitivity*0.65,
                            int(self._shoot_raw), path))
         try:
