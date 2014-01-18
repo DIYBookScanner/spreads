@@ -75,7 +75,7 @@
         console.debug("Capture successfully finished");
       }).fail(function() {
         console.error("Capture could not be finished.");
-      });
+      }).complete(callback);
     },
     _setConfigurationTemplate: function() {
       jQuery.ajax({

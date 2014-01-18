@@ -21,7 +21,7 @@
                     " large-" + (sizes[2] || sizes[1])+
                     " columns";
         } else {
-          classes = "small-" + this.props.size || 12 + " columns";
+          classes = "small-" + (this.props.size || 12) + " columns";
         }
         return (<div className={classes}>{this.props.children}</div>);
       }
