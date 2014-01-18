@@ -12,6 +12,25 @@
   require('backbone-validation');
   _.extend(Backbone.DeepModel.prototype, Backbone.Validation.mixin);
 
+  var templates = {};
+
+  // Load configuration templates from server
+  jQuery.ajax({
+    type: "GET",
+    url: '/plugins',
+    success: function(data) {
+      var template;
+      // Filter out empty
+      template = _.omit(data, _.filter(_.keys(data), function(key){
+        return _.isEmpty(data[key]);
+      }));
+      templates = template;
+    },
+    async: false
+  }).fail(function() {
+    console.error("Could not obtain configuration");
+  });
+
   /* We extend DeepModel instead of Model so we can listen on changes for
    * nested objects like workflow.config. */
   Workflow = Backbone.DeepModel.extend({
@@ -21,12 +40,12 @@
         return _.omit(this.attributes, this.blacklist);
       },
     initialize: function() {
-      this._setConfigurationTemplate();
       this._setPluginValidators();
       if (this.isNew()) {
         this._setDefaultConfiguration();
       }
     },
+    defaults: {"configuration_template": templates},
     validation: {
       name: {
         required: true,
@@ -40,59 +59,42 @@
       // pretends as if validation is always successful...
       return Backbone.Validation.mixin.validate.bind(this)();
     },
-    submit: function() {
+    submit: function(callback) {
       console.debug("Submitting workflow " + this.id + " for postprocessing");
       jQuery.post('/workflow/' + this.id + '/submit')
         .fail(function() {
           console.error("Could not submit workflow " + this.id);
-        });
+        }).complete(callback);
     },
-    queue: function() {
+    queue: function(callback) {
       jQuery.post('/queue', {id: this.id}, function(data) {
-        this.queueId = data.queue_position;
-      });
+          this.queueId = data.queue_position;
+        }).complete(callback);
     },
-    dequeue: function() {
+    dequeue: function(callback) {
       jQuery.ajax({
         type: "DELETE",
         url: '/queue/' + this.queueId,
       }).fail(function() {
         console.error("Could not delete workflow " + this.id + " from queue");
-      });
+      }).complete(callback);
     },
-    triggerCapture: function(retake) {
+    triggerCapture: function(retake, callback) {
       jQuery.post(
         '/workflow/' + this.id + "/capture" + (retake ? '?retake=true' : ''),
         function(data) {
           console.debug("Capture succeeded");
-          this.set('images', data.images);
+          this.set('images', this.get('images').concat(data.images));
         }.bind(this)).fail(function() {
           console.error("Capture failed");
-        });
+        }).complete(callback);
     },
-    finishCapture: function() {
+    finishCapture: function(callback) {
       jQuery.post('/workflow/' + this.id + "/capture/finish", function() {
         console.debug("Capture successfully finished");
       }).fail(function() {
         console.error("Capture could not be finished.");
       }).complete(callback);
-    },
-    _setConfigurationTemplate: function() {
-      jQuery.ajax({
-        type: "GET",
-        url: '/plugins',
-        success: function(data) {
-          var template;
-          // Filter out emptyjj
-          template = _.omit(data, _.filter(_.keys(data), function(key){
-            return _.isEmpty(data[key]);
-          }));
-          this.set('configuration_template', template);
-        }.bind(this),
-        async: false
-      }).fail(function() {
-        console.error("Could not obtain configuration");
-      });
     },
     _setDefaultConfiguration: function() {
       var templates = this.get('configuration_template');

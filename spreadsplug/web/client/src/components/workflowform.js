@@ -83,31 +83,23 @@
       return [this.props.workflow];
     },
     getInitialState: function() {
-      return {pluginTemplates: {},
-              selectedPlugin: undefined};
-    },
-    componentDidMount: function() {
-      // Since the only way for our configuration template to change is when
-      // the server restarts, it should be safe to only load it once.
-      if (_.isEmpty(this.state.pluginTemplates)) {
-        var templates = this.props.workflow.get('configuration_template');
-        this.setState({
-          pluginTemplates: templates,
-          selectedPlugin: _.keys(templates)[0]
-        });
-      }
+      return {selectedPlugin: undefined};
     },
     handleSelect: function(event) {
       this.setState({selectedPlugin: event.target.value});
     },
     render: function() {
-      var selectedPlugin = this.state.selectedPlugin;
+      var templates = this.props.workflow.get('configuration_template'),
+          selectedPlugin = this.state.selectedPlugin || _.keys(templates)[0];
+      if (_.isEmpty(templates)) {
+        return <row />;
+      }
       return (
         <row>
           <column size='12'>
             <label>Configure plugin</label>
             <select onChange={this.handleSelect}>
-              {_.keys(this.state.pluginTemplates).map(function(plugin) {
+              {_.keys(templates).map(function(plugin) {
                 return <option value={plugin}>{_.capitalize(plugin)}</option>;
               })}
             </select>
@@ -115,7 +107,7 @@
                       since we want to provide the second argument and leave
                       the first one to the caller. */}
             <PluginWidget plugin={selectedPlugin}
-                          template={this.state.pluginTemplates[selectedPlugin]}
+                          template={templates[selectedPlugin]}
                           bindFunc={function(key) {
                             return this.bindTo(
                               this.props.workflow,
