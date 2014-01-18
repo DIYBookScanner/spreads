@@ -92,6 +92,7 @@ class CHDKCameraDevice(DevicePlugin):
 
         """
         self.logger = logging.getLogger('ChdkCamera')
+        self._usbport = (device.bus, device.address)
         self._serial_number = (
             usb.util.get_string(device, 256, device.iSerialNumber)
             .strip('\x00'))
@@ -107,7 +108,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._focus_distance = config['focus_distance'].get()
 
         self._cli_flags = []
-        self._cli_flags.append("-c-s={0}".format(self._serial_number))
+        self._cli_flags.append("-c-d={1:03} -b={0:03}".format(*self._usbport))
         self._cli_flags.append("-eset cli_verbose=2")
         self._chdk_buildnum = (self._execute_lua("get_buildinfo()",
                                                  get_result=True)
@@ -132,10 +133,21 @@ class CHDKCameraDevice(DevicePlugin):
                 usb.util.get_string(dev, 256, dev.iSerialNumber)
                 .strip('\x00'))
             return serial == self._serial_number
+
         # Check if device is still attached
-        return (usb.core.find(idVendor=0x04a9,  # Canon vendor ID
-                              custom_match=match_serial)
-                is not None)
+        unchanged = usb.core.find(bus=self._usbport[0],
+                                  address=self._usbport[1],
+                                  custom_match=match_serial) is not None
+        if unchanged:
+            return True
+        new_device = usb.core.find(idVendor=0x04a9,  # Canon vendor ID
+                                   custom_match=match_serial)
+        if new_device is None:
+            return False
+
+        self._usbport = (new_device.bus, new_device.address)
+        self._cli_flags[0] = ("-c-d={1:03} -b={0:03}".format(*self._usbport))
+        return True
 
     def set_target_page(self, target_page):
         """ Set the device target page.
