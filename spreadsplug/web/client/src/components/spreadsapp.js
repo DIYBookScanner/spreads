@@ -35,7 +35,7 @@
           workflowId = this.props.workflowId;
       switch (viewName) {
       case "create":
-        var newWorkflow = workflows.add([{}])[0];
+        var newWorkflow = new workflows.model(null, {collection: workflows});
         return <WorkflowForm workflow={newWorkflow}/>;
       case "capture":
         return <CaptureInterface workflow={workflows.get(workflowId)}/>;

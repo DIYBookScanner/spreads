@@ -140,7 +140,9 @@
       this.props.workflow.on('validated:invalid', function(workflow, errors) {
         this.setState({errors: errors});
       }, this);
-      this.props.workflow.on('all', function(eventName) { console.debug(eventName);});
+      this.props.workflow.on('sync', function() {
+          this.props.workflow.collection.add(this.props.workflow);
+      }, this);
     },
     componentWillUnmount: function() {
       // Deregister event handlers
