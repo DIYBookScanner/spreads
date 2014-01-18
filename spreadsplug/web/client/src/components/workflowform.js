@@ -22,11 +22,12 @@
       var name = this.props.name,
           option = this.props.option,
           bindFunc = this.props.bindFunc,
+          label =  <label htmlFor={name}>{option.docstring || _.capitalize(name)}</label>,
           input;
       if (option.selectable && _.isArray(option.value)) {
         // Dropdown
         input = (
-          <select multiple={!option.selectable} valueLink={bindFunc(name)}>
+          <select id={name} multiple={!option.selectable} valueLink={bindFunc(name)}>
             {_.map(option.value, function(key) {
               return <option value={key}>{key}</option>;
             })}
@@ -39,13 +40,13 @@
                       "number": "number",
                       "string": "text" };
 
-        input = <input type={types[typeof option.value]} valueLink={bindFunc(name)} />;
+        input = <input id={name} type={types[typeof option.value]} valueLink={bindFunc(name)} />;
       }
       return (
         <row>
           <column size='12'>
-            <label>{option.docstring || _.capitalize(name)}</label>
-            {input}
+            {input.props.type === 'checkbox' ? input : label}
+            {input.props.type === 'checkbox' ? label : input}
             {this.props.error ? <small className="error">{this.props.error}</small>: ''}
           </column>
         </row>
