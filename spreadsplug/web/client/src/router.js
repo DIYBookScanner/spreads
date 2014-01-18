@@ -52,7 +52,7 @@
                 _.delay(poll.bind(this), 30*1000);
               }
             }.bind(this),
-            timeout: 2*60*1000
+            timeout: 30*1000
           });
       }.bind(this)());
     },

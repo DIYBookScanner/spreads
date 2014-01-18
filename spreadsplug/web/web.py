@@ -184,8 +184,7 @@ def poll_for_updates():
         last_loglinenum = len(fp.readlines())
 
     start_time = time.time()
-    can_continue = lambda: (time.time() - start_time) < 130
-    while can_continue():
+    while (time.time() - start_time) < 35:
         updated_workflows = {workflow.id: get_props(workflow)
                              for workflow
                              in persistence.get_all_workflows().values()}
@@ -193,11 +192,12 @@ def poll_for_updates():
         log_updated = (logfile.stat().st_mtime != last_logtime)
 
         if workflows_updated:
-            logger.debug("Workflows were updated.")
-            old_workflows = updated_workflows
             workflows = [workflow_to_dict(persistence.get_workflow(wfid))
                          for wfid in updated_workflows
-                         if old_workflows[wfid] != updated_workflows[wfid]]
+                         if (wfid not in old_workflows) or
+                            (old_workflows[wfid] != updated_workflows[wfid])]
+            old_workflows = updated_workflows
+            logger.debug("Workflows updated")
         else:
             workflows = []
         if log_updated:
