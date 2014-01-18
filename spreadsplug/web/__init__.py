@@ -5,6 +5,7 @@ import tempfile
 
 from flask import Flask
 from spreads.plugin import HookPlugin, PluginOption
+from spreads.plugin import HookPlugin, PluginOption, get_devices
 from spreads.vendor.pathlib import Path
 from spreads.util import add_argument_from_option
 
@@ -15,6 +16,28 @@ import persistence
 from worker import ProcessingWorker
 
 logger = logging.getLogger('spreadsplug.web')
+
+try:
+    # Most reliable way to get IP address, requires third-party package with
+    # C extension
+    import netifaces
+
+    def get_ip_address():
+        try:
+            iface = next(dev for dev in netifaces.interfaces()
+                        if 'wlan' in dev or 'eth' in dev
+                        or dev.startswith('br'))
+        except StopIteration:
+            return None
+        return netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
+except ImportError:
+    # Solution with built-ins, not as reliable
+    import socket
+
+    def get_ip_address():
+        return next(
+            ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
+            if not ip.startswith("127."))
 
 
 class WebCommands(HookPlugin):
@@ -82,12 +105,21 @@ class WebCommands(HookPlugin):
         if mode == 'scanner':
             app.config['postproc_server'] = (
                 config['web']['postprocessing_server'].get())
+
         if mode != 'scanner':
             worker = ProcessingWorker()
             worker.start()
+
+        ip_address = get_ip_address()
+        if ip_address and config['driver'].get() in ['chdkcamera', 'a2200']:
+            # Display the address of the web interface on the camera displays
+            for cam in get_devices(config):
+                cam.show_textbox(
+                    "\nYou can now access the web interface at:"
+                    "\n\n\n         http://{0}:5000".format(ip_address))
         try:
             if app.config['DEBUG']:
-                app.run(host="0.0.0.0", threaded=True, debug=True)
+                app.run(host="127.0.0.1", threaded=True, debug=True)
             else:
                 import waitress
                 waitress.serve(app, port=5000)
