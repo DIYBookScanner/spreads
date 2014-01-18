@@ -25,7 +25,10 @@ CREATE TABLE queue (
 );
 """
 
-WORKFLOW_INSTANCES = dict()
+# NOTE: This is a global dictionary that caches workflow instances, so we
+#       do not have to hit the database each time we want to get a workflow
+#       object.
+WorkflowCache = None
 
 DbWorkflow = namedtuple('DbWorkflow', ['id', 'name', 'step', 'step_done',
                                        'capture_start', 'config'])
@@ -57,7 +60,7 @@ def save_workflow(workflow):
                                   data).lastrowid
     logger.debug("Workflow written to database with id {0}"
                  .format(workflow_id))
-    WORKFLOW_INSTANCES[workflow_id] = workflow
+    WorkflowCache[workflow_id] = workflow
     return workflow_id
 
 
@@ -71,8 +74,8 @@ def update_workflow_config(id, config):
 
 def get_workflow(workflow_id):
     # See if the workflow is among our cached instances
-    if workflow_id in WORKFLOW_INSTANCES:
-        return WORKFLOW_INSTANCES[workflow_id]
+    if workflow_id in WorkflowCache:
+        return WorkflowCache[workflow_id]
     logger.debug("Loading workflow {0} from database".format(workflow_id))
     with open_connection() as con:
         db_data = con.execute("SELECT * FROM workflow WHERE workflow.id=?",
@@ -96,23 +99,26 @@ def get_workflow(workflow_id):
     workflow.capture_start = db_workflow.capture_start
     # NOTE: For convenience, we store the workflow_id directly in the object
     workflow.id = workflow_id
-    WORKFLOW_INSTANCES[workflow.id] = workflow
+    WorkflowCache[workflow.id] = workflow
     return workflow
 
 
 def get_all_workflows():
-    if WORKFLOW_INSTANCES:
-        return WORKFLOW_INSTANCES
+    global WorkflowCache
+    if WorkflowCache is not None:
+        return WorkflowCache
     logger.debug("Obtaining all workflows from database.")
     with open_connection() as con:
         result = con.execute(
             "SELECT id FROM workflow").fetchall()
-    return {x[0]: get_workflow(x[0]) for x in result}
+    WorkflowCache = {}
+    workflows = {x[0]: get_workflow(x[0]) for x in result}
+    return workflows
 
 
 def delete_workflow(workflow_id):
     logger.debug("Deleting workflow {0} from database.".format(workflow_id))
-    del(WORKFLOW_INSTANCES[workflow_id])
+    del(WorkflowCache[workflow_id])
     with open_connection() as con:
         con.execute("DELETE FROM workflow WHERE id = ?", (workflow_id,))
 
@@ -152,3 +158,11 @@ def get_queue():
         ).fetchall()
     return {job_id: get_workflow(workflow_id)
             for job_id, workflow_id in dbdata}
+
+
+@app.before_first_request
+def initialize_workflow_cache():
+    global WorkflowCache
+    logger.debug(id(WorkflowCache))
+    logger.debug("Initializing workflow cache")
+    WorkflowCache = get_all_workflows()
