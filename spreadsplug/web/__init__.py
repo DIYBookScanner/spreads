@@ -4,7 +4,7 @@ import shutil
 import tempfile
 
 from flask import Flask
-from spreads.plugin import HookPlugin, PluginOption
+from flask.ext.compress import Compress
 from spreads.plugin import HookPlugin, PluginOption, get_devices
 from spreads.vendor.pathlib import Path
 from spreads.util import add_argument_from_option
@@ -122,6 +122,8 @@ class WebCommands(HookPlugin):
                 app.run(host="127.0.0.1", threaded=True, debug=True)
             else:
                 import waitress
+                # Activate HTTP compression
+                Compress(app)
                 waitress.serve(app, port=5000)
         finally:
             shutil.rmtree(app.config['temp_dir'])
