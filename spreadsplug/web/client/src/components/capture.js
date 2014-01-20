@@ -20,6 +20,14 @@
       return {waiting: false,
               waitMessage: undefined};
     },
+    componentWillMount: function() {
+      this.triggerWaiting("Please wait while the devices  are being prepared " +
+                          "for capture");
+      this.props.workflow.prepareCapture(this.triggerWaiting.bind(this));
+    },
+    componentWillUnmount: function() {
+      this.props.workflow.finishCapture();
+    },
     handleCapture: function() {
       console.log("Triggering capture");
       this.triggerWaiting("Please wait for the capture to finish...");

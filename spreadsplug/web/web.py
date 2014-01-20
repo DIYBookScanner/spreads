@@ -362,6 +362,23 @@ def get_workflow_image_thumb(workflow, img_num):
 # ================= #
 #  Capture-related  #
 # ================= #
+@app.route('/workflow/<workflow:workflow>/prepare_capture', methods=['POST'])
+def prepare_capture(workflow):
+    """ Prepare capture for the requested workflow.
+
+    """
+    if app.config['mode'] not in ('scanner', 'full'):
+        abort(404)
+    # Check if any other workflow is active and finish, if neccessary
+    logger.debug("Finishing previous workflows")
+    for wfid, wf in persistence.get_all_workflows().iteritems():
+        if wf.active:
+            if wfid == workflow.id:
+                return 'OK'
+            wf.finish_capture()
+    workflow.prepare_capture()
+    return 'OK'
+
 @app.route('/workflow/<workflow:workflow>/capture', methods=['POST'])
 def trigger_capture(workflow):
     """ Trigger a capture on the requested workflow.

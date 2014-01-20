@@ -79,6 +79,15 @@
         console.error("Could not delete workflow " + this.id + " from queue");
       }).complete(callback);
     },
+    prepareCapture: function(callback) {
+      jQuery.post(
+        '/workflow/' + this.id + '/prepare_capture',
+        function(data) {
+          console.debug("Preparation successful");
+        }.bind(this)).fail(function() {
+          console.error("Capture preparation failed");
+        }).complete(callback);
+    },
     triggerCapture: function(retake, callback) {
       jQuery.post(
         '/workflow/' + this.id + "/capture" + (retake ? '?retake=true' : ''),
