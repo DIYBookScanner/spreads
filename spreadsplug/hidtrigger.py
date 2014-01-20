@@ -1,4 +1,5 @@
 import hid
+import logging
 import threading
 import time
 
@@ -7,12 +8,19 @@ from spreads.util import DeviceException
 
 
 class HidTrigger(HookPlugin):
+    __name__ = 'hidtrigger'
+
     _loop_thread = None
     _exit_event = None
+
+    def __init__(self, config):
+        self._logger = logging.getLogger('spreadsplug.hidtrigger')
+        self._logger.debug("Initializing HidTrigger plugin")
 
     def start_trigger_loop(self, capture_callback):
         self._hid_devs = []
         for dev in self._find_devices():
+            self._logger.debug("Found HID device: {0}".format(dev))
             dev.set_nonblocking(True)
             # Set device to non-blocking I/O
             self._hid_devs.append(dev)
@@ -21,9 +29,11 @@ class HidTrigger(HookPlugin):
         self._exit_event = threading.Event()
         self._loop_thread = threading.Thread(target=self._trigger_loop,
                                              args=(capture_callback, ))
+        self._logger.debug("Starting trigger loop")
         self._loop_thread.start()
 
     def stop_trigger_loop(self):
+        self._logger.debug("Stopping trigger loop")
         self._exit_event.set()
 
     def _trigger_loop(self, capture_func):
