@@ -43,6 +43,8 @@ class Workflow(object):
     step_done = False
     capture_start = None
     pages_shot = 0
+    active = False
+    prepared = False
 
     _devices = None
     _pluginmanager = None
@@ -50,6 +52,7 @@ class Workflow(object):
 
     def __init__(self, path, config=None, step=None, step_done=None):
         self._logger = logging.getLogger('Workflow')
+        self._logger.debug("Initializing workflow {0}".format(path))
         self.step = step
         self.step_done = step_done
         if not isinstance(path, Path):
@@ -64,11 +67,10 @@ class Workflow(object):
             self.config = config
         else:
             self.config = self._load_config(config)
+        self._pluginmanager = get_pluginmanager(self.config)
 
     @property
     def plugins(self):
-        if self._pluginmanager is None:
-            self._pluginmanager = get_pluginmanager(self.config)
         return [ext.obj for ext in self._pluginmanager]
 
     @property
@@ -168,6 +170,8 @@ class Workflow(object):
                                              self.devices[0].target_page)
         self._run_hook('prepare_capture', self.devices, self.path)
         self._run_hook('start_trigger_loop', self.capture)
+        self.prepared = True
+        self.active = True
 
     def capture(self, retake=False):
         self._capture_lock.acquire()
@@ -194,8 +198,16 @@ class Workflow(object):
 
     def finish_capture(self):
         self.step_done = True
-        self._run_hook('stop_trigger_loop')
+        with ThreadPoolExecutor(len(self.devices)) as executor:
+            futures = []
+            self._logger.debug("Sending finish_capture command to devices")
+            for dev in self.devices:
+                futures.append(executor.submit(dev.finish_capture))
+        check_futures_exceptions(futures)
         self._run_hook('finish_capture', self.devices, self.path)
+        self._run_hook('stop_trigger_loop')
+        self.prepared = False
+        self.active = False
 
     def process(self):
         self.step = 'process'
