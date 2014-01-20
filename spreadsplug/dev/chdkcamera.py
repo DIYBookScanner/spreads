@@ -351,6 +351,11 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
                    and hex(device.idProduct) == "0x322a")
         return matches
 
+    def finish_capture(self):
+        # Putting the device back into play mode crashes the a2200 with
+        # chdk 1.3, this is why we stub it out here.
+        pass
+
     def _set_zoom(self, level):
         """ Set zoom level.
 
