@@ -22,7 +22,16 @@
     },
     injectModel: function(model){
       if(!~this.__syncedModels.indexOf(model)){
-        var updater = this.forceUpdate.bind(this, null);
+        var updater = function() {
+          try {
+            this.forceUpdate();
+          } catch(e) {
+            // This means the component is already being updated somewhere
+            // else, so we just silently go on with our business.
+            // This is most likely due to some AJAX callback that already
+            // updated the model at the same time or slightly earlier.
+          }
+        }.bind(this, null);
         model.__updater = updater;
         model.on('add change remove', updater, this);
       }
