@@ -27,6 +27,7 @@ from __future__ import division, unicode_literals
 
 import logging
 import time
+import threading
 
 import spreads.vendor.confit as confit
 from concurrent.futures import ThreadPoolExecutor
@@ -41,10 +42,11 @@ class Workflow(object):
     step = None
     step_done = False
     capture_start = None
-    _pages_shot = 0
+    pages_shot = 0
 
     _devices = None
     _pluginmanager = None
+    _capture_lock = threading.Lock()
 
     def __init__(self, path, config=None, step=None, step_done=None):
         self._logger = logging.getLogger('Workflow')
@@ -55,6 +57,8 @@ class Workflow(object):
         self.path = path
         if not self.path.exists():
             self.path.mkdir()
+        if self.images:
+            self.pages_shot = len(self.images)
         # See if supplied `config` is already a valid Configuration object
         if isinstance(config, confit.Configuration):
             self.config = config
@@ -136,7 +140,7 @@ class Workflow(object):
             last_num = -1
 
         if target_page is None:
-            return base_path / "{03:0}".format(self._pages_shot)
+            return base_path / "{03:0}".format(self.pages_shot)
 
         next_num = (last_num+2 if target_page == 'odd' else last_num+1)
         return base_path / "{0:03}".format(next_num)
@@ -163,8 +167,10 @@ class Workflow(object):
              self.devices[1].target_page) = (self.devices[1].target_page,
                                              self.devices[0].target_page)
         self._run_hook('prepare_capture', self.devices, self.path)
+        self._run_hook('start_trigger_loop', self.capture)
 
     def capture(self, retake=False):
+        self._capture_lock.acquire()
         if self.capture_start is None:
             self.capture_start = time.time()
         self._logger.info("Triggering capture.")
@@ -183,10 +189,12 @@ class Workflow(object):
                 futures.append(executor.submit(dev.capture, img_path))
         check_futures_exceptions(futures)
         self._run_hook('capture', self.devices, self.path)
-        self._pages_shot += len(self.devices)
+        self.pages_shot += len(self.devices)
+        self._capture_lock.release()
 
     def finish_capture(self):
         self.step_done = True
+        self._run_hook('stop_trigger_loop')
         self._run_hook('finish_capture', self.devices, self.path)
 
     def process(self):

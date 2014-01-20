@@ -44,25 +44,23 @@ from spreads.plugin import (get_driver, get_devices, get_pluginmanager,
 from spreads.util import (DeviceException, ColourStreamHandler,
                           add_argument_from_option)
 
-# Kudos to http://stackoverflow.com/a/1394994/487903
-try:
-    from msvcrt import getch
-except ImportError:
+if sys.platform == 'win32':
+    import msvcrt
+    getch = msvcrt.getch()
+else:
+    import termios
+    import tty
+
     def getch():
-        """ Wait for keypress on stdin.
-
-        :returns: unicode -- Value of character that was pressed
-
-        """
-        import tty
-        import termios
         fd = sys.stdin.fileno()
         old = termios.tcgetattr(fd)
+        char = None
         try:
             tty.setraw(fd)
-            return sys.stdin.read(1)
+            char = sys.stdin.read(1)
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        return char
 
 
 def colorize(text, color):
@@ -197,6 +195,51 @@ def configure(config):
 def capture(config):
     path = config['path'].get()
     workflow = Workflow(config=config, path=path)
+    capture_keys = workflow.config['capture']['capture_keys'].as_str_seq()
+
+    # Some closures
+    def refresh_stats():
+        # Callback to print statistics
+        pages_per_hour = (3600/(time.time() -
+                          workflow.capture_start))*workflow.pages_shot
+        status = ("\rShot {0: >3} pages [{1: >4.0f}/h] "
+                  .format(unicode(workflow.pages_shot), pages_per_hour))
+        sys.stdout.write(status)
+        sys.stdout.flush()
+
+    def trigger_loop():
+        is_posix = sys.platform != 'win32'
+        old_count = workflow.pages_shot
+        if is_posix:
+            import select
+            old_settings = termios.tcgetattr(sys.stdin)
+            data_available = lambda: (select.select([sys.stdin], [], [], 0) ==
+                                     ([sys.stdin], [], []))
+            read_char = lambda: sys.stdin.read(1)
+        else:
+            data_available = msvcrt.kbhit
+            read_char = msvcrt.getch
+
+        try:
+            if is_posix:
+                tty.setcbreak(sys.stdin.fileno())
+            while True:
+                time.sleep(0.01)
+                if workflow.pages_shot != old_count:
+                    old_count = workflow.pages_shot
+                    refresh_stats()
+                if not data_available():
+                    continue
+                char = read_char()
+                if char in tuple(capture_keys) + ('r', ):
+                    workflow.capture(retake=(char == 'r'))
+                    refresh_stats()
+                elif char == 'f':
+                    break
+        finally:
+            if is_posix:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+
     if len(workflow.devices) != 2:
         raise DeviceException("Please connect and turn on two"
                               " pre-configured devices! ({0} were"
@@ -210,38 +253,15 @@ def capture(config):
     # Set up for capturing
     print("Setting up devices for capturing.")
     workflow.prepare_capture()
-    # Start capture loop
-    shot_count = 0
-    pages_per_hour = 0
-    capture_keys = workflow.config['capture']['capture_keys'].as_str_seq()
+
     print("({0}) capture | (r) retake last shot | (f) finish "
           .format("/".join(capture_keys)))
-    while True:
-        retake = False
-        char = getch().lower()
-        if char == 'f':
-            break
-        elif char == 'r':
-            retake = True
-        elif char not in capture_keys:
-            continue
-        workflow.capture(retake=retake)
-        shot_count += len(workflow.devices)
-        pages_per_hour = (3600/(time.time() -
-                          workflow.capture_start))*shot_count
-        status = ("\rShot {0: >3} pages [{1: >4.0f}/h] "
-                  .format(unicode(shot_count), pages_per_hour))
-        sys.stdout.write(status)
-        sys.stdout.flush()
+    # Start trigger loop
+    trigger_loop()
+
     workflow.finish_capture()
     if workflow.capture_start is None:
         return
-    sys.stdout.write("\rShot {0} pages in {1:.1f} minutes, average speed was"
-                     " {2:.0f} pages per hour\n"
-                     .format(colorize(str(shot_count), colorama.Fore.GREEN),
-                             (time.time() - workflow.capture_start)/60,
-                             pages_per_hour))
-    sys.stdout.flush()
 
 
 def postprocess(config):
@@ -334,7 +354,8 @@ def setup_parser(config):
     capture_parser.set_defaults(subcommand=capture)
     # Add arguments from plugins
     for parser in (capture_parser, wizard_parser):
-        _add_plugin_arguments(['prepare_capture', 'capture', 'finish_capture'],
+        _add_plugin_arguments(['prepare_capture', 'capture', 'finish_capture',
+                               'start_trigger_loop'],
                               parser)
         if 'driver' in config.keys():
             _add_device_arguments('capture', parser)
