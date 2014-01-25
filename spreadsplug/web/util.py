@@ -1,9 +1,12 @@
+from __future__ import division
+
 import logging
 import re
 from datetime import datetime
 from functools import wraps
 
 from flask import request, url_for, abort
+from jpegtran import JPEGImage
 from werkzeug.contrib.cache import SimpleCache
 from werkzeug.routing import BaseConverter, ValidationError
 
@@ -11,6 +14,14 @@ from persistence import get_workflow
 
 logger = logging.getLogger('spreadsplug.web.util')
 
+def scale_image(img_name, width=None, height=None):
+    if width is None and height is None:
+        raise ValueError("Please specify either width or height")
+    img = JPEGImage(img_name)
+    aspect = img.width/img.height
+    width = width if width else int(aspect*height)
+    height = height if height else int(width/aspect)
+    return img.downscale(width, height).as_blob()
 
 class WorkflowConverter(BaseConverter):
     def to_python(self, value):
@@ -100,16 +111,10 @@ def get_thumbnail(img_path):
     :return:          The thumbnail
     :rtype:           bytestring
     """
-    try:
-        import pyexiv2
-        logger.debug("Extracting EXIF thumbnail for {0}".format(img_path))
-        metadata = pyexiv2.ImageMetadata(unicode(img_path))
-        metadata.read()
-        return metadata.previews[0].data
-    except (IndexError, ImportError):
+    thumb= JPEGImage(unicode(img_path)).exif_thumbnail
+    if thumb:
+        logger.debug("Using EXIF thumbnail for {0}".format(img_path))
+        return thumb
+    else:
         logger.debug("Generating thumbnail for {0}".format(img_path))
-        from wand.image import Image
-        with Image(filename=unicode(img_path)) as img:
-            thumb_width = int(200/(img.width/float(img.height)))
-            img.sample(200, thumb_width)
-            return img.make_blob()
+        return scale_image(unicode(img_path), width=160)

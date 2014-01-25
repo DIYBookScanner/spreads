@@ -9,31 +9,12 @@ from fractions import Fraction
 from itertools import chain
 
 import usb
+from jpegtran import JPEGImage
 from spreads.vendor.pathlib import Path
 
 from spreads.plugin import DevicePlugin, PluginOption, DeviceFeatures
 from spreads.util import (DeviceException, find_in_path,
                           MissingDependencyException)
-
-try:
-    import pyexiv2
-
-    def update_exif_orientation(image, orientation):
-        metadata = pyexiv2.ImageMetadata(image)
-        metadata.read()
-        metadata['Exif.Image.Orientation'] = int(orientation)
-        metadata.write()
-
-except ImportError:
-    if not find_in_path('exiftool'):
-        raise MissingDependencyException("Could not find executable `exiftool`"
-                                         " in $PATH. Please install the"
-                                         " appropriate package(s)!")
-
-    def update_exif_orientation(image, orientation):
-        subprocess.check_output(
-            ['exiftool', '-Orientation={0}'.format(orientation), '-n',
-             '-overwrite_original', image])
 
 
 class CHDKPTPException(Exception):
@@ -217,11 +198,12 @@ class CHDKCameraDevice(DevicePlugin):
         local_path = "{0}.{1}".format(path, extension)
         # Set EXIF orientation
         self.logger.debug("Setting EXIF orientation on captured image")
+        img = JPEGImage(local_path)
         if self.target_page == 'odd':
-            exif_orientation = 8  # 90°
+            img.orientation = 8  # 90°
         else:
-            exif_orientation = 6  # -90°
-        update_exif_orientation(local_path, exif_orientation)
+            img.orientation = 6  # -90°
+        img.save(local_path)
 
     def show_textbox(self, message):
         messages = message.split("\n")
