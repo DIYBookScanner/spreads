@@ -55,6 +55,8 @@
     },
     render: function() {
       var workflow = this.props.workflow || {},
+          // Quick and dirty: (vpsize-(0.1*vpsize))/2
+          preview_width = (document.width-(0.1*document.width))/2,
           speed;
 
       if (workflow && workflow.has('capture_start')) {
@@ -70,8 +72,8 @@
             <column>
               <ul className="small-block-grid-2">
                 {/* TODO: Rotate via CSS3 transform according to EXIF orientation */}
-                <li><img src={workflow.get('images').slice(-2)[0]} /></li>
-                <li><img src={workflow.get('images').slice(-2)[1]} /></li>
+                <li><img src={workflow.get('images').slice(-2)[0]+"?width="+preview_width} /></li>
+                <li><img src={workflow.get('images').slice(-2)[1]+"?width="+preview_width} /></li>
               </ul>
             </column>
           </row>:''

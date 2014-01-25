@@ -338,11 +338,16 @@ def upload_workflow_image(workflow):
            methods=['GET'])
 def get_workflow_image(workflow, img_num):
     """ Return image from requested workflow. """
+    # Scale image if requested
+    width = int(request.args.get('width', None))
     try:
         img_path = workflow.images[img_num]
     except IndexError:
         abort(404)
-    return send_file(unicode(img_path))
+    if width:
+        return util.scale_image(unicode(img_path), width=width)
+    else:
+        return send_file(unicode(img_path))
 
 
 @cached
