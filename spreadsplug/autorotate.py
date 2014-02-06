@@ -6,12 +6,13 @@ import subprocess
 from concurrent import futures
 from jpegtran import JPEGImage
 
-from spreads.plugin import HookPlugin, PluginOption
-from spreads.util import find_in_path, MissingDependencyException
+from spreads.plugin import HookPlugin
 
 logger = logging.getLogger('spreadsplug.autorotate')
 
+
 def autorotate_image(path):
+    print "Rotating " + path
     img = JPEGImage(path)
     if img.exif_orientation is None:
         logger.warn("Image {0} did not have any EXIF rotation, did not rotate."
@@ -21,7 +22,7 @@ def autorotate_image(path):
         logger.info("Image {0} is already rotated.".format(path))
         return
     rotated = img.exif_autotransform()
-    img.save(path)
+    rotated.save(path)
 
 
 class AutoRotatePlugin(HookPlugin):
