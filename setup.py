@@ -3,11 +3,11 @@ import os
 from setuptools import setup
 
 if os.path.exists('README.rst'):
-    description_long = open('README.rst').read()
+    description_long=open('README.rst').read()
 else:
-    description_long = """
+    description_long="""
 spreads is a tool that aims to streamline your book scanning workflow.  It
-takes care of every step = Setting up your capturing devices, handling the
+takes care of every step=Setting up your capturing devices, handling the
 capturing process, downloading the images to your machine, post-processing them
 and finally assembling a variety of output formats.
 
@@ -22,14 +22,14 @@ your own custom sub-commands.
 """
 
 setup(
-    name = "spreads",
-    author = "Johannes Baiter",
-    author_email = "johannes.baiter@gmail.com",
-    url = "http://spreads.readthedocs.org",
-    description = "Book digitization workflow suite",
-    long_description = description_long,
-    license = "GNU AGPLv3",
-    classifiers = [
+    name="spreads",
+    author="Johannes Baiter",
+    author_email="johannes.baiter@gmail.com",
+    url="http://spreads.readthedocs.org",
+    description="Book digitization workflow suite",
+    long_description=description_long,
+    license="GNU AGPLv3",
+    classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
         "Environment :: X11 Applications :: Qt",
@@ -43,14 +43,14 @@ setup(
         "Topic :: Multimedia :: Graphics :: Capture",
         "Topic :: Multimedia :: Graphics :: Graphics Conversion",
     ],
-    keywords = [
+    keywords=[
         "digitization",
         "scanning",
         "chdk",
         "diybookscanner",
         "bookscanning",
     ],
-    packages = [
+    packages=[
         "spreads",
         "spreads.vendor",
         "spreadsplug",
@@ -58,10 +58,10 @@ setup(
         "spreadsplug.gui",
         "spreadsplug.web",
     ],
-    scripts = [
+    scripts=[
         "spread"
     ],
-    package_data = {
+    package_data={
         'spreads': ['config_default.yaml'],
         'spreadsplug.gui': ['pixmaps/monk.png'],
         'spreadsplug.web': ['client/index.html', 'client/spreads.css',
@@ -71,32 +71,30 @@ setup(
                             'client/foundation/js/foundation.min.js',
                             ]
     },
-    entry_points = {
+    entry_points={
         'spreadsplug.devices': [
-            "chdkcamera = spreadsplug.dev.chdkcamera:CHDKCameraDevice",
-            "a2200 = spreadsplug.dev.chdkcamera:CanonA2200CameraDevice",
-            "dummy = spreadsplug.dev.dummy:DummyDevice",
+            "chdkcamera=spreadsplug.dev.chdkcamera:CHDKCameraDevice",
+            "a2200=spreadsplug.dev.chdkcamera:CanonA2200CameraDevice",
         ],
         'spreadsplug.hooks': [
-            "autorotate      = spreadsplug.autorotate:AutoRotatePlugin",
-            "scantailor      = spreadsplug.scantailor:ScanTailorPlugin",
-            "pdfbeads        = spreadsplug.pdfbeads:PDFBeadsPlugin",
-            "djvubind        = spreadsplug.djvubind:DjvuBindPlugin",
-            "colorcorrect    = spreadsplug.colorcorrect:ColorCorrectionPlugin",
-            "tesseract       = spreadsplug.tesseract:TesseractPlugin",
-            "gui             = spreadsplug.gui:GuiCommand",
-            "web             = spreadsplug.web:WebCommands",
-            "intervaltrigger = spreadsplug.intervaltrigger:IntervalTrigger",
-            "hidtrigger      = spreadsplug.hidtrigger:HidTrigger",
+            "autorotate     =spreadsplug.autorotate:AutoRotatePlugin",
+            "scantailor     =spreadsplug.scantailor:ScanTailorPlugin",
+            "pdfbeads       =spreadsplug.pdfbeads:PDFBeadsPlugin",
+            "djvubind       =spreadsplug.djvubind:DjvuBindPlugin",
+            "tesseract      =spreadsplug.tesseract:TesseractPlugin",
+            "gui            =spreadsplug.gui:GuiCommand",
+            "web            =spreadsplug.web:WebCommands",
+            "intervaltrigger=spreadsplug.intervaltrigger:IntervalTrigger",
+            "hidtrigger     =spreadsplug.hidtrigger:HidTrigger",
         ]
     },
-    install_requires = [
+    install_requires=[
         "colorama>=0.2.5",
         "PyYAML>=3.10",
         "stevedore >= 0.9.1, < 0.14",
         "futures >= 2.1.4",
     ],
-    extras_require = {
+    extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.3"],
         "autorotate": ["jpegtran-cffi >= 0.3"],
         "colorcorrect": ["Wand >= 0.3.5"],
