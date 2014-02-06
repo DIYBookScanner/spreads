@@ -35,11 +35,25 @@ DbWorkflow = namedtuple('DbWorkflow', ['id', 'name', 'step', 'step_done',
 logger = logging.getLogger('spreadsplug.web.database')
 
 
+@app.before_first_request
+def initialize_workflow_cache():
+    global WorkflowCache
+    logger.debug(id(WorkflowCache))
+    logger.info("Initializing workflow cache")
+    WorkflowCache = get_all_workflows()
+
+
 def initialize_database():
     logger.info("Initializing database.")
     db_path = app.config['database']
     with sqlite3.connect(unicode(db_path)) as con:
         con.executescript(SCHEMA)
+    # NOTE: We set the WorkflowCache to an empty dict since during our tests,
+    # this module is only loaded once, hence the cache is valid across all
+    # tests. This is a hacky workaround until I can get to the bottom of this
+    # addmitedly weird behaviour...
+    global WorkflowCache
+    WorkflowCache = {}
 
 
 def open_connection():
