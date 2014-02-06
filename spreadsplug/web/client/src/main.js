@@ -3,7 +3,7 @@
   'use strict';
 
   var Backbone = require('backbone'),
-      $ = require('jquery')(window),
+      $ = require('jquery'),
       Router = require('./router');
 
   // Assign jQuery to Backbone

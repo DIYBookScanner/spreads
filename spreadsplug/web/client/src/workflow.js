@@ -4,7 +4,7 @@
 
   var Backbone = require('backbone'),
       _ = require('underscore'),
-      jQuery = require('jquery')(window),
+      jQuery = require('jquery'),
       Workflow;
   // Custom third party extension to Backbone, see below
   Backbone.DeepModel = require('../lib/backbone-deep-model.js');
