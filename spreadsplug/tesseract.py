@@ -38,16 +38,22 @@ class TesseractPlugin(HookPlugin):
         return conf
 
     def process(self, path):
+        # TODO: This plugin should be 'output' only, since we ideally work
+        #       with fully binarized output images
+        logger.info("Performing OCR")
+        img_dir = path / 'done'
+        self._perform_ocr(img_dir)
+        for fname in img_dir.glob('*.html'):
+            self._fix_hocr(fname)
+
+    def _perform_ocr(self, img_dir, language):
         def _clean_processes(procs):
             for p in processes[:]:
                 if p.poll() is not None:
                     processes.remove(p)
 
-        ocr_lang = self.config['language'].get()
-        logger.info("Performing OCR")
-        logger.info("Language is \"{0}\"".format(ocr_lang))
-        img_dir = path / 'done'
-
+        language = self.config['language'].get()
+        logger.info("Language is \"{0}\"".format(language))
         processes = []
         max_procs = multiprocessing.cpu_count()
         FNULL = open(os.devnull, 'w')
@@ -57,26 +63,26 @@ class TesseractPlugin(HookPlugin):
                 _clean_processes(processes)
                 time.sleep(0.01)
             proc = subprocess.Popen(["tesseract", unicode(img),
-                                     unicode(img_dir / img.stem), "-l",
-                                     ocr_lang, "hocr"], stderr=FNULL,
-                                     stdout=FNULL)
+                                    unicode(img_dir / img.stem), "-l",
+                                    language, "hocr"], stderr=FNULL,
+                                    stdout=FNULL)
             processes.append(proc)
         # Wait for remaining processes to finish
         while processes:
             _clean_processes(processes)
 
+    def _fix_hocr(self, fpath):
         # NOTE: This modifies the hOCR files to make them compatible with
         #       pdfbeads.
         #       See the following bugreport for more information:
         #       http://rubyforge.org/tracker/index.php?func=detail&aid=29737&group_id=9752&atid=37737
-        for fname in img_dir.glob('*.html'):
-            with fname.open('r') as fp:
-                new_content = re.sub(r'(<span[^>]*>(<strong>)? +(<\/strong>)?'
-                                     r'<\/span>*)(<span[^>]*>(<strong>)? '
-                                     r'+(<\/strong>)?<\/span> *)',
-                                     r'\g<1>', fp.read())
-            with fname.open('w') as fp:
-                fp.write(new_content)
+        with fpath.open('r') as fp:
+            new_content = re.sub(r'(<span[^>]*>(<strong>)? +(<\/strong>)?'
+                                 r'<\/span> *)(<span[^>]*>(<strong>)? '
+                                 r'+(<\/strong>)?<\/span> *)',
+                                 r'\g<1>', fp.read())
+        with fpath.open('w') as fp:
+            fp.write(new_content)
 
     def output(self, path):
         outfile = path / 'out' / "{0}.hocr".format(path.name)
