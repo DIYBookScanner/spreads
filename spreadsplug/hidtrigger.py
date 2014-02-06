@@ -35,11 +35,12 @@ class HidTrigger(HookPlugin):
     def stop_trigger_loop(self):
         self._logger.debug("Stopping trigger loop")
         self._exit_event.set()
+        self._loop_thread.join()
 
     def _trigger_loop(self, capture_func):
         # Polls all attached HID devices for a press->release event and
         # trigger a capture.
-        while True:
+        while not self._exit_event.is_set():
             for dev in self._hid_devs:
                 # See if there's input
                 if dev.read(8):
@@ -49,8 +50,6 @@ class HidTrigger(HookPlugin):
                         continue
                     capture_func()
                 else:
-                    if self._exit_event.is_set():
-                        return
                     time.sleep(0.01)
 
     def _find_devices(self):

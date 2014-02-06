@@ -15,8 +15,8 @@ class IntervalTrigger(HookPlugin):
 
     @classmethod
     def configuration_template(cls):
-        return {'interval': PluginOption(5, "Interval between captures"
-                                            " (in seconds)")}
+        return {'interval': PluginOption(5.0, "Interval between captures"
+                                              " (in seconds)")}
 
     def start_trigger_loop(self, capture_callback):
         logger.debug("Starting event loop")
@@ -28,9 +28,10 @@ class IntervalTrigger(HookPlugin):
     def stop_trigger_loop(self):
         logger.debug("Stopping event loop")
         self._exit_event.set()
+        self._loop_thread.join()
 
     def _trigger_loop(self, capture_func):
-        interval = self.config['interval'].get(int)
+        interval = self.config['interval'].get(float)
         while True:
             sleep_time = 0
             while sleep_time < interval:
