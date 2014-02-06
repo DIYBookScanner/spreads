@@ -148,7 +148,7 @@ def append_to_queue(workflow_id):
 def delete_from_queue(queue_position):
     logger.debug("Removing job {0} from job queue.".format(queue_position))
     with open_connection() as con:
-        con.execute("DELETE FROM queue WHERE id = ?", queue_position)
+        con.execute("DELETE FROM queue WHERE id = ?", (queue_position, ))
 
 
 def pop_from_queue():
@@ -172,11 +172,3 @@ def get_queue():
         ).fetchall()
     return {job_id: get_workflow(workflow_id)
             for job_id, workflow_id in dbdata}
-
-
-@app.before_first_request
-def initialize_workflow_cache():
-    global WorkflowCache
-    logger.debug(id(WorkflowCache))
-    logger.debug("Initializing workflow cache")
-    WorkflowCache = get_all_workflows()
