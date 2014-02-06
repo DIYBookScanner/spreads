@@ -2,9 +2,19 @@
 /* global module, require */
 (function() {
   'use strict';
-  var React = require('react/addons');
+  var React = require('react/addons'),
+      jQuery = require('jquery');
 
   module.exports = React.createClass({
+    doShutdown: function() {
+      // TODO: Ask for confirmation
+      // TODO: Show activity indicator until connection has died
+      // TODO: Make UI inactive until polling is successful again
+      jQuery.ajax({
+        type: "POST",
+        url: "/system/shutdown"
+      });
+    },
     render: function() {
       return (
         <div className="contain-to-grid fixed">
@@ -19,6 +29,7 @@
               </ul>
               <ul className="right">
                 <li><a href="#/preferences"><i className="fi-widget"></i> Preferences</a></li>
+                <li><a onClick={this.doShutdown}><i className="fi-power"></i> Shut down</a></li>
               </ul>
             </section>
           </nav>
