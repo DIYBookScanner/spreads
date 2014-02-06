@@ -69,15 +69,11 @@ class SpreadsNamedExtensionManager(NamedExtensionManager):
                              .__new__(cls, *args, **kwargs))
         return cls._instance
 
-    def _load_plugins(self, invoke_on_load, invoke_args, invoke_kwds):
+    def _load_plugins(self, *args, **kwargs):
         extensions = []
         for ep in self._find_entry_points(self.namespace):
             stevedore.LOG.debug('found extension %r', ep)
-            ext = self._load_one_plugin(ep,
-                                        invoke_on_load,
-                                        invoke_args,
-                                        invoke_kwds,
-                                        )
+            ext = self._load_one_plugin(ep, *args, **kwargs)
             if ext:
                 extensions.append(ext)
         return extensions
