@@ -25,8 +25,8 @@ try:
     def get_ip_address():
         try:
             iface = next(dev for dev in netifaces.interfaces()
-                        if 'wlan' in dev or 'eth' in dev
-                        or dev.startswith('br'))
+                         if 'wlan' in dev or 'eth' in dev
+                         or dev.startswith('br'))
         except StopIteration:
             return None
         return netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
@@ -35,9 +35,12 @@ except ImportError:
     import socket
 
     def get_ip_address():
-        return next(
-            ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
-            if not ip.startswith("127."))
+        try:
+            return next(
+                ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
+                if not ip.startswith("127."))
+        except StopIteration:
+            return None
 
 
 class WebCommands(HookPlugin):
