@@ -33,7 +33,7 @@ import spreads.vendor.confit as confit
 from concurrent.futures import ThreadPoolExecutor
 from spreads.vendor.pathlib import Path
 
-from spreads.plugin import get_pluginmanager, get_devices
+import spreads.plugin as plugin
 from spreads.util import check_futures_exceptions, DeviceException
 
 
@@ -67,7 +67,7 @@ class Workflow(object):
             self.config = config
         else:
             self.config = self._load_config(config)
-        self._pluginmanager = get_pluginmanager(self.config)
+        self._pluginmanager = plugin.get_pluginmanager(self.config)
 
     @property
     def plugins(self):
@@ -76,7 +76,7 @@ class Workflow(object):
     @property
     def devices(self):
         if self._devices is None:
-            self._devices = get_devices(self.config)
+            self._devices = plugin.get_devices(self.config)
         if any(not dev.connected() for dev in self._devices):
             self._logger.warning(
                 "At least one of the devices has been disconnected."
