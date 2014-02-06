@@ -192,7 +192,6 @@ class CHDKCameraDevice(DevicePlugin):
                 self.capture(path)
             else:
                 self.logger.warn("Capture command failed.")
-                P
                 raise e
 
         extension = 'dng' if self._shoot_raw else 'jpg'
@@ -330,10 +329,15 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
             self.logger = logging.getLogger('CanonA2200CameraDevice')
 
     @classmethod
-    def match(cls, device):
-        matches = (hex(device.idVendor) == "0x4a9"
-                   and hex(device.idProduct) == "0x322a")
-        return matches
+    def yield_devices(cls, config):
+        """ Search for usable devices, yield one at a time
+
+        """
+        for dev in usb.core.find(find_all=True):
+            is_match = (hex(dev.idVendor) == "0x4a9"
+                        and hex(dev.idProduct) == "0x322a")
+            if is_match:
+                yield cls(config, dev)
 
     def finish_capture(self):
         # Putting the device back into play mode crashes the a2200 with
