@@ -1,76 +1,92 @@
-import unittest
 from itertools import chain, repeat
+import xml.etree.cElementTree as ET
 
+import mock
+import pytest
 import spreads.vendor.confit as confit
-from mock import MagicMock as Mock, patch
 from spreads.vendor.pathlib import Path
 
-import spreads.plugin as plugin
 
-with patch('subprocess.check_output') as mock_co:
-    mock_co.return_value = "".join(chain(
-        repeat("\n", 7),
-        ("scantailor-cli [options] <images|directory|-> <output>",))
-    )
+@pytest.fixture
+def pluginclass(mock_findinpath):
     import spreadsplug.scantailor as scantailor
+    return scantailor.ScanTailorPlugin
 
 
-class TestScanTailor(unittest.TestCase):
-    @patch('subprocess.check_output')
-    def setUp(self, mock_co):
-        self.config = confit.Configuration('test_scantailor')
+@pytest.fixture
+def config(pluginclass):
+    config = confit.Configuration('test_scantailor')
+    tmpl = pluginclass.configuration_template()
+    for key, option in tmpl.items():
+        if option.selectable:
+            config['scantailor'][key] = option.value[0]
+        else:
+            config['scantailor'][key] = option.value
+    return config
 
-        tmpl = scantailor.ScanTailorPlugin.configuration_template()
-        for key, option in tmpl.items():
-            if option.selectable:
-                self.config['scantailor'][key] = option.value[0]
-            else:
-                self.config['scantailor'][key] = option.value
-        self.stplug = scantailor.ScanTailorPlugin(self.config)
 
-    def tearDown(self):
-        plugin.SpreadsNamedExtensionManager._instance = None
+@pytest.fixture
+def plugin(pluginclass, config):
+    with mock.patch('subprocess.check_output') as mock_co:
+        mock_co.return_value = "".join(chain(
+            repeat("\n", 7),
+            ("scantailor-cli [options] <images|directory|-> <output>",))
+        )
+        return pluginclass(config)
 
-    def test_generate_configuration(self):
-        scantailor.subprocess.call = Mock()
-        assert self.stplug._enhanced
-        # TODO: Setup up some config variables
-        self.stplug._generate_configuration(Path('/tmp/foo.st'),
-                                            Path('/tmp/raw'),
-                                            Path('/tmp/out'))
-        # TODO: Check the sp.call for the correct parameters
 
-    def test_generate_configuration_noenhanced(self):
-        scantailor.subprocess.call = Mock()
-        # TODO: Setup up some config variables
-        self.stplug._enhanced = False
-        imgdir_mock = Mock(wraps=Path('/tmp/raw'))
-        mock_imgs = [imgdir_mock/"foo.jpg", imgdir_mock/"bar.jpg"]
-        imgdir_mock.iterdir.return_value = mock_imgs
-        self.stplug._generate_configuration(Path('/tmp/foo.st'), imgdir_mock,
-                                            Path('/tmp/out'))
-        assert (unicode(mock_imgs[0])
-                in scantailor.subprocess.call.call_args[0][0])
+@mock.patch('spreadsplug.scantailor.subprocess.call')
+def test_generate_configuration(call, plugin):
+    # TODO: Setup up some config variables
+    plugin._generate_configuration(Path('/tmp/foo.st'),
+                                   Path('/tmp/raw'),
+                                   Path('/tmp/out'))
+    # TODO: Check the sp.call for the correct parameters
 
-    def test_split_configuration(self):
-        # TODO: Provide a sample configuration
-        # TODO: Check for number of files
-        # TODO: Check if the files have all the pages
-        pass
 
-    def test_generate_output(self):
-        scantailor.subprocess.Popen = Mock()
-        self.stplug._split_configuration = Mock()
-        self.stplug._generate_output('/tmp/foo.st', '/tmp')
+@mock.patch('spreadsplug.scantailor.subprocess.call')
+def test_generate_configuration_noenhanced(call, config, pluginclass):
+    # TODO: Setup up some config variables
+    with mock.patch('subprocess.check_output') as mock_co:
+        mock_co.return_value = "".join(chain(
+            repeat("\n", 7),
+            ("scantailor-cli [options] <image, image, ...>"
+             " <output_directory>",))
+        )
+        plugin = pluginclass(config)
+    imgdir = mock.MagicMock(wraps=Path('/tmp/raw'))
+    imgs = [imgdir/"foo.jpg", imgdir/"bar.jpg"]
+    imgdir.iterdir.return_value = imgs
+    plugin._generate_configuration(Path('/tmp/foo.st'), imgdir,
+                                   Path('/tmp/out'))
+    assert (unicode(imgs[0]) in call.call_args[0][0])
 
-    def test_process(self):
-        scantailor.subprocess.call = Mock()
-        self.stplug._generate_configuration = Mock()
-        self.stplug._generate_output = Mock()
-        self.stplug.config['autopilot'] = True
-        self.stplug.process(Path('/tmp'))
-        assert scantailor.subprocess.call.call_count == 0
-        self.stplug.config['autopilot'] = False
-        self.stplug.process(Path('/tmp'))
-        scantailor.subprocess.call.assert_called_with(
-            ['scantailor', '/tmp/tmp.ScanTailor'])
+
+def test_split_configuration(plugin, tmpdir):
+    with mock.patch('spreadsplug.scantailor.multiprocessing.cpu_count') as cnt:
+        cnt.return_value = 4
+        splitfiles = plugin._split_configuration(
+            Path('./tests/data/test.scanTailor'), Path(unicode(tmpdir)))
+    assert len(splitfiles) == 4
+    tree = ET.parse(unicode(splitfiles[0]))
+    for elem in ('files', 'images', 'pages', 'file-name-disambiguation'):
+        assert len(tree.find('./{0}'.format(elem))) == 7
+
+
+@mock.patch('spreadsplug.scantailor.subprocess.Popen')
+def test_generate_output(popen, plugin):
+        plugin._split_configuration = mock.Mock(
+            return_value=['foo.st', 'bar.st'])
+        plugin._generate_output('/tmp/foo.st', '/tmp')
+
+
+@mock.patch('spreadsplug.scantailor.subprocess.call')
+def test_process(call, plugin):
+    plugin._generate_configuration = mock.Mock()
+    plugin._generate_output = mock.Mock()
+    plugin.config['autopilot'] = True
+    plugin.process(Path('/tmp'))
+    assert call.call_count == 0
+    plugin.config['autopilot'] = False
+    plugin.process(Path('/tmp'))
+    call.assert_called_with(['scantailor', '/tmp/tmp.ScanTailor'])
