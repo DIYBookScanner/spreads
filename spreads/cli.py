@@ -37,10 +37,8 @@ import pkg_resources
 import spreads.vendor.confit as confit
 from spreads.vendor.pathlib import Path
 
+import spreads.plugin as plugin
 from spreads.workflow import Workflow
-from spreads.plugin import (get_driver, get_devices, get_pluginmanager,
-                            setup_plugin_config, get_relevant_extensions,
-                            DeviceFeatures, PluginOption)
 from spreads.util import (DeviceException, ColourStreamHandler,
                           add_argument_from_option)
 
@@ -113,8 +111,9 @@ def _select_plugins(selected_plugins=None):
 
 
 def _setup_processing_pipeline(config):
-    pm = get_pluginmanager(config)
-    extensions = [ext.name for ext in get_relevant_extensions(pm, ['process'])]
+    pm = plugin.get_pluginmanager(config)
+    extensions = [ext.name
+                  for ext in plugin.get_relevant_extensions(pm, ['process'])]
     if not extensions:
         return
     print("The following postprocessing plugins were detected:")
@@ -137,7 +136,7 @@ def _set_device_target_page(config, target_page):
           .format(target_page))
     print("Press any key when ready.")
     getch()
-    devs = get_devices(config)
+    devs = plugin.get_devices(config)
     if len(devs) > 1:
         raise DeviceException("Please ensure that only one device is"
                               " turned on!")
@@ -156,16 +155,16 @@ def configure(config):
     config["plugins"] = _select_plugins(config["plugins"].get())
 
     # Set default plugin configuration
-    setup_plugin_config(config)
+    plugin.setup_plugin_config(config)
     _setup_processing_pipeline(config)
 
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
 
-    driver = get_driver(config["driver"].get()).driver
+    driver = plugin.get_driver(config["driver"].get()).driver
 
     # We only need to set the device target_page if the driver supports
     # shooting with two devices
-    if DeviceFeatures.IS_CAMERA in driver.features:
+    if plugin.DeviceFeatures.IS_CAMERA in driver.features:
         answer = raw_input(
             "Do you want to configure the target_page of your devices?\n"
             "(Required for shooting with two devices) [y/n]: ")
@@ -182,7 +181,7 @@ def configure(config):
             print("Please turn on one of your capture devices.\n"
                   "Press any key to continue")
             getch()
-            devs = get_devices(config)
+            devs = plugin.get_devices(config)
             print("Please put a book with as little whitespace as possible"
                   "under your cameras.\nPress any button to continue")
             getch()
@@ -297,8 +296,8 @@ def wizard(config):
 
 def setup_parser(config):
     def _add_device_arguments(name, parser):
-        tmpl = get_driver(config["driver"]
-                          .get()).driver.configuration_template()
+        tmpl = plugin.get_driver(config["driver"]
+                                 .get()).driver.configuration_template()
         if not tmpl:
             return
         for key, option in tmpl.iteritems():
@@ -308,7 +307,7 @@ def setup_parser(config):
                 return
 
     def _add_plugin_arguments(hooks, parser):
-        extensions = get_relevant_extensions(pluginmanager, hooks)
+        extensions = plugin.get_relevant_extensions(pluginmanager, hooks)
         for ext in extensions:
             tmpl = ext.plugin.configuration_template()
             if not tmpl:
@@ -320,17 +319,17 @@ def setup_parser(config):
                     continue
 
     root_options = {
-        'verbose': PluginOption(value=False,
-                                docstring="Enable verbose output"),
-        'logfile': PluginOption(value="~/.config/spreads/spreads.log",
-                                docstring="Path to logfile"),
-        'loglevel': PluginOption(value=['info', 'critical', 'error', 'warning',
-                                        'debug'],
-                                 docstring="Logging level for logfile",
-                                 selectable=True)
+        'verbose': plugin.PluginOption(value=False,
+                                       docstring="Enable verbose output"),
+        'logfile': plugin.PluginOption(value="~/.config/spreads/spreads.log",
+                                       docstring="Path to logfile"),
+        'loglevel': plugin.PluginOption(value=['info', 'critical', 'error',
+                                               'warning', 'debug'],
+                                        docstring="Logging level for logfile",
+                                        selectable=True)
     }
 
-    pluginmanager = get_pluginmanager(config)
+    pluginmanager = plugin.get_pluginmanager(config)
     rootparser = argparse.ArgumentParser(
         description="Scanning Tool for  DIY Book Scanner")
     subparsers = rootparser.add_subparsers()
