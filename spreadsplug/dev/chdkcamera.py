@@ -141,6 +141,7 @@ class CHDKCameraDevice(DevicePlugin):
         os.write(tmp_handle[0], target_page.upper()+"\n")
         self._run("upload {0} \"OWN.TXT\"".format(tmp_handle[1]))
         self.target_page = target_page
+        os.remove(tmp_handle[1])
 
     def prepare_capture(self, path):
         # Try to go into alt mode to prevent weird behaviour
@@ -268,11 +269,12 @@ class CHDKCameraDevice(DevicePlugin):
         tmp_handle = tempfile.mkstemp(text=True)
         try:
             self._run("download \"OWN.TXT\" {0}".format(tmp_handle[1]))
+            with open(tmp_handle[1], 'r') as fp:
+                target_page = fp.readline().strip().lower()
         except DeviceException:
             raise ValueError("Could not find OWN.TXT")
-        with open(tmp_handle[1], 'r') as fp:
-            target_page = fp.readline().strip().lower()
-        os.remove(tmp_handle[1])
+        finally:
+            os.remove(tmp_handle[1])
         if not target_page:
             raise ValueError("Could not read OWN.TXT")
         return target_page
