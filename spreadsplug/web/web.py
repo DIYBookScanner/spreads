@@ -19,7 +19,7 @@ from spreads.workflow import Workflow
 import persistence
 from spreadsplug.web import app
 from util import (cached, get_image_url, workflow_to_dict, WorkflowConverter,
-                  parse_log_lines, get_thumbnail)
+                  parse_log_lines, get_thumbnail, mount_stick)
 
 
 logger = logging.getLogger('spreadsplub.web')
@@ -238,6 +238,27 @@ def download_workflow(workflow):
     response.headers['Content-Disposition'] = (
         'attachment; filename={}'.format(workflow.path.stem + ".zip"))
     return response
+
+
+@app.route('/workflow/<workflow:workflow>/transfer', methods=['POST'])
+def transfer_workflow(workflow):
+    """ Transfer workflow to an attached USB storage device.
+
+    """
+    with mount_stick() as p:
+        target_path = Path(p)/workflow.path.name
+        if target_path.exists():
+            shutil.rmtree(unicode(target_path))
+        try:
+            shutil.copytree(unicode(workflow.path), unicode(target_path))
+        except shutil.Error as e:
+            # Error 38 means that some permissions could not be copied, this is
+            # expected behaviour for filesystems like FAT32 or exFAT, so we
+            # silently ignore it here, since the actual data will have been
+            # copied nevertheless.
+            if any("[Errno 38]" not in exc for src, dst, exc in e[0]):
+                raise e
+    return 'OK'
 
 
 @app.route('/workflow/<workflow:workflow>/submit', methods=['POST'])

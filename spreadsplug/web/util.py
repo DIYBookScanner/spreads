@@ -2,6 +2,7 @@ from __future__ import division
 
 import logging
 import re
+from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
 
@@ -111,10 +112,53 @@ def get_thumbnail(img_path):
     :return:          The thumbnail
     :rtype:           bytestring
     """
-    thumb= JPEGImage(unicode(img_path)).exif_thumbnail
+    thumb = JPEGImage(unicode(img_path)).exif_thumbnail.as_blob()
     if thumb:
         logger.debug("Using EXIF thumbnail for {0}".format(img_path))
         return thumb
     else:
         logger.debug("Generating thumbnail for {0}".format(img_path))
         return scale_image(unicode(img_path), width=160)
+
+
+@contextmanager
+def mount_stick():
+    """ Context Manager that mounts the first available partition on a USB
+    drive, yields its path and then unmounts it.
+
+    """
+    import dbus
+    bus = dbus.SystemBus()
+    iudisks = dbus.Interface(
+        bus.get_object("org.freedesktop.UDisks", "/org/freedesktop/UDisks"),
+        "org.freedesktop.UDisks")
+    devices = [bus.get_object("org.freedesktop.UDisks", dev)
+               for dev in iudisks.EnumerateDevices()]
+    idevices = [dbus.Interface(dev, "org.freedesktop.DBus.Properties")
+                for dev in devices]
+    try:
+        istick = next(i for i in idevices if i.Get("", "DeviceIsPartition")
+                      and i.Get("", "DriveConnectionInterface") == "usb")
+    except StopIteration:
+        yield None
+        return
+    stick = dbus.Interface(
+        bus.get_object("org.freedesktop.UDisks",
+                       iudisks.FindDeviceByDeviceFile(
+                           istick.Get("", "DeviceFile"))),
+        "org.freedesktop.DBus.UDisks.Device")
+    mount = stick.get_dbus_method(
+        "FilesystemMount", dbus_interface="org.freedesktop.UDisks.Device")
+    path = mount('', [])
+    try:
+        yield path
+    except Exception as e:
+        raise e
+    finally:
+        unmount = stick.get_dbus_method(
+            "FilesystemUnmount",
+            dbus_interface="org.freedesktop.UDisks.Device")
+        unmount([], timeout=1e6)  # dbus-python doesn't know an infinite
+                                  # timeout... unmounting sometimes takes a
+                                  # long time, since the device has to be
+                                  # synced.
