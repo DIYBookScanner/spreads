@@ -56,7 +56,7 @@
     render: function() {
       var workflow = this.props.workflow || {},
           // Quick and dirty: (vpsize-(0.1*vpsize))/2
-          preview_width = (document.width-(0.1*document.width))/2,
+          preview_width = Math.floor((document.width-(0.1*document.width))/2),
           speed;
 
       if (workflow && workflow.has('capture_start')) {
@@ -67,13 +67,14 @@
       return (
         <row>
           {this.state.waiting ? <LoadingOverlay message={this.state.waitMessage} />:''}
-          {workflow.has('images') ?
+          {workflow.has('images') && workflow.get('images').length ?
           <row>
             <column>
+              {/* TODO: If there isn't another trigger within 5 seconds, load
+               /*       a higher resolution previoew. */}
               <ul className="small-block-grid-2">
-                {/* TODO: Rotate via CSS3 transform according to EXIF orientation */}
-                <li><img src={workflow.get('images').slice(-2)[0]+"?width="+preview_width} /></li>
-                <li><img src={workflow.get('images').slice(-2)[1]+"?width="+preview_width} /></li>
+                <li><img width="100%" src={workflow.get('images').slice(-2)[0]+"/thumb"} /></li>
+                <li><img width="100%" src={workflow.get('images').slice(-2)[1]+"/thumb"} /></li>
               </ul>
             </column>
           </row>:''
