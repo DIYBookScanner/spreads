@@ -193,7 +193,8 @@ class Workflow(object):
                 futures.append(executor.submit(dev.capture, img_path))
         check_futures_exceptions(futures)
         self._run_hook('capture', self.devices, self.path)
-        self.pages_shot += len(self.devices)
+        if not retake:
+            self.pages_shot += len(self.devices)
         self._capture_lock.release()
 
     def finish_capture(self):
