@@ -79,7 +79,7 @@ class SpreadsNamedExtensionManager(NamedExtensionManager):
         return extensions
 
 
-class SpreadsPlugin(object):
+class SpreadsPlugin(object):  # pragma: no cover
     """ Plugin base class.
 
     """
@@ -122,7 +122,7 @@ class SpreadsPlugin(object):
             self.config = config
 
 
-class DeviceFeatures(object):
+class DeviceFeatures(object):  # pragma: no cover
     #: Device can grab a preview picture
     PREVIEW = 1
 
@@ -132,7 +132,7 @@ class DeviceFeatures(object):
     IS_CAMERA = 2
 
 
-class DevicePlugin(SpreadsPlugin):
+class DevicePlugin(SpreadsPlugin):  # pragma: no cover
     """ Base class for devices.
 
         Subclass to implement support for different devices.
@@ -158,7 +158,7 @@ class DevicePlugin(SpreadsPlugin):
             }
 
     @abstractclassmethod
-    def yield_devices(self):
+    def yield_devices(self, config):
         """ Search for usable devices, yield one at a time
 
         """
