@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import shutil
+import subprocess
 import time
 
 import requests
@@ -11,16 +12,14 @@ from werkzeug import secure_filename
 from zipstream import ZipFile
 
 import spreads.vendor.confit as confit
-from spreads.plugin import (get_pluginmanager, get_relevant_extensions,
-                            get_driver)
+import spreads.plugin as plugin
 from spreads.vendor.pathlib import Path
 from spreads.workflow import Workflow
 
 import persistence
 from spreadsplug.web import app
 from util import (cached, get_image_url, workflow_to_dict, WorkflowConverter,
-                  parse_log_lines, get_thumbnail, mount_stick)
-
+                  parse_log_lines, get_thumbnail, mount_stick, scale_image)
 
 logger = logging.getLogger('spreadsplub.web')
 
@@ -44,25 +43,25 @@ def get_plugins_with_options():
         templates.
     """
     config = app.config['default_config']
-    pluginmanager = get_pluginmanager(config)
+    pluginmanager = plugin.get_pluginmanager(config)
     scanner_extensions = ['prepare_capture', 'capture', 'finish_capture']
     processor_extensions = ['process', 'output']
     if app.config['mode'] == 'scanner':
         templates = {ext.name: ext.plugin.configuration_template()
-                     for ext in get_relevant_extensions(
+                     for ext in plugin.get_relevant_extensions(
                          pluginmanager, scanner_extensions)}
-        templates["device"] = (get_driver(config["driver"].get())
+        templates["device"] = (plugin.get_driver(config["driver"].get())
                                .driver.configuration_template())
     elif app.config['mode'] == 'processor':
         templates = {ext.name: ext.plugin.configuration_template()
-                     for ext in get_relevant_extensions(
+                     for ext in plugin.get_relevant_extensions(
                          pluginmanager, processor_extensions)}
     elif app.config['mode'] == 'full':
         templates = {ext.name: ext.plugin.configuration_template()
-                     for ext in get_relevant_extensions(
+                     for ext in plugin.get_relevant_extensions(
                          pluginmanager,
                          scanner_extensions + processor_extensions)}
-        templates["device"] = (get_driver(config["driver"].get())
+        templates["device"] = (plugin.get_driver(config["driver"].get())
                                .driver.configuration_template())
     rv = dict()
     for plugname, options in templates.iteritems():
@@ -98,7 +97,7 @@ def create_workflow():
     path = Path(app.config['base_path'])/unicode(data['name'])
 
     # Setup default configuration
-    config = confit.Configuration('spreads')
+    config = app.config['default_config']
     # Overlay user-supplied values, if existant
     user_config = data.get('config', None)
     if user_config is not None:
@@ -126,7 +125,7 @@ def get_workflow(workflow):
     return jsonify(workflow_to_dict(workflow))
 
 
-@app.route('/workflow/<workflow_workflow>', methods=['PUT'])
+@app.route('/workflow/<workflow:workflow>', methods=['PUT'])
 def update_workflow(workflow):
     """ Update a single workflow.
 
@@ -289,9 +288,10 @@ def submit_workflow(workflow):
     for imgpath in workflow.images:
         logger.debug("Uploading image {0} to postprocessing server"
                      .format(imgpath))
-        resp = requests.post("/".join([server, 'workflow', remote_id,
-                                       'image']),
-                             files={'file': {imgpath.name: imgpath.read('rb')}}
+        resp = requests.post("{0}/workflow/{1}/image"
+                             .format(server, remote_id),
+                             files={'file': {
+                                 imgpath.name: imgpath.open('rb').read()}}
                              )
         if not resp:
             logger.error("Error uploading image {0} to postprocessing server:"
@@ -302,7 +302,7 @@ def submit_workflow(workflow):
         logger.error("Error putting remote workflow {1} into job queue:: \n{1}"
                      .format(imgpath, resp.content))
         abort(resp.code)
-    return
+    return ''
 
 
 # =============== #
@@ -323,14 +323,15 @@ def add_to_queue():
 @app.route('/queue', methods=['GET'])
 def list_jobs():
     """ List all items in the processing queue. """
-    return json.dumps(persistence.get_queue())
+    return json.dumps({jobid: workflow_to_dict(wf)
+                       for jobid, wf in persistence.get_queue().iteritems()})
 
 
-@app.route('/queue/<int:queue_pos>', methods=['DELETE'])
+@app.route('/queue/<int:pos_idx>', methods=['DELETE'])
 def remove_from_queue(pos_idx):
     """ Remove the requested workflow from the processing queue. """
     persistence.delete_from_queue(pos_idx)
-    return
+    return 'OK'
 
 
 # =============== #
@@ -346,12 +347,14 @@ def upload_workflow_image(workflow):
     """
     allowed = lambda x: x.rsplit('.', 1)[1].lower() in ('jpg', 'jpeg', 'dng')
     file = request.files['file']
+    if not allowed(file.filename):
+        abort(500, 'Only JPG or DNG files are permitted')
     save_path = workflow.path/'raw'
     if not save_path.exists():
         save_path.mkdir()
     if file and allowed(file.filename):
         filename = secure_filename(file.filename)
-        file.save(save_path/filename)
+        file.save(unicode(save_path/filename))
         return "OK"
 
 
@@ -360,13 +363,13 @@ def upload_workflow_image(workflow):
 def get_workflow_image(workflow, img_num):
     """ Return image from requested workflow. """
     # Scale image if requested
-    width = int(request.args.get('width', None))
+    width = request.args.get('width', None)
     try:
         img_path = workflow.images[img_num]
     except IndexError:
         abort(404)
     if width:
-        return util.scale_image(unicode(img_path), width=width)
+        return scale_image(unicode(img_path), width=int(width))
     else:
         return send_file(unicode(img_path))
 
@@ -405,6 +408,7 @@ def prepare_capture(workflow):
     workflow.prepare_capture()
     return 'OK'
 
+
 @app.route('/workflow/<workflow:workflow>/capture', methods=['POST'])
 def trigger_capture(workflow):
     """ Trigger a capture on the requested workflow.
@@ -417,6 +421,7 @@ def trigger_capture(workflow):
     if app.config['mode'] not in ('scanner', 'full'):
         abort(404)
     if workflow.step != 'capture':
+        # TODO: Abort with error, since capture has to be prepared first
         workflow.prepare_capture()
     workflow.capture(retake=('retake' in request.args))
     return jsonify({
@@ -426,10 +431,24 @@ def trigger_capture(workflow):
     })
 
 
-@app.route('/workflow/<workflow:workflow>/capture/finish', methods=['POST'])
+@app.route('/workflow/<workflow:workflow>/finish_capture', methods=['POST'])
 def finish_capture(workflow):
     """ Wrap up capture process on the requested workflow. """
     if app.config['mode'] not in ('scanner', 'full'):
         abort(404)
     workflow.finish_capture()
     return 'OK'
+
+
+# ================== #
+#   System-related   #
+# ================== #
+@app.route('/system/shutdown', methods=['POST'])
+def shutdown():
+    if not app.config['standalone']:
+        abort(404)
+    # NOTE: This requires that the user running spreads can execute
+    #       /sbin/shutdown via sudo.
+    logger.info("Shutting device down")
+    subprocess.call("/usr/bin/sudo /sbin/shutdown -h now".split())
+    return ''
