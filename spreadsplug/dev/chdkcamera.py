@@ -247,7 +247,7 @@ class CHDKCameraDevice(DevicePlugin):
         return self._parse_lua_output(output)
 
     def _parse_table(self, data):
-        values = dict(re.findall(r'([\w_]+?)=(\d+|".*?"),', data[6:]))
+        values = dict(re.findall(r'([\w_]+?)=(\d+|".*?"),*', data[6:]))
         for k, v in values.iteritems():
             if v.startswith('"') and v.endswith('"'):
                 values[k] = v.strip('"')  # String
