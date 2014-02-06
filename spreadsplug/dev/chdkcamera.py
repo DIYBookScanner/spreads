@@ -13,8 +13,7 @@ from jpegtran import JPEGImage
 from spreads.vendor.pathlib import Path
 
 from spreads.plugin import DevicePlugin, PluginOption, DeviceFeatures
-from spreads.util import (DeviceException, find_in_path,
-                          MissingDependencyException)
+from spreads.util import DeviceException
 
 
 class CHDKPTPException(Exception):
@@ -104,7 +103,7 @@ class CHDKCameraDevice(DevicePlugin):
             self.target_page = None
 
         self._execute_lua('exit_alt(); set_config_value(291, 0);'
-                          'enter_alt();');
+                          'enter_alt();')
         self.logger = logging.getLogger('ChdkCamera[{0}]'
                                         .format(self.target_page))
 
@@ -282,8 +281,8 @@ class CHDKCameraDevice(DevicePlugin):
 
     def _set_zoom(self, level):
         if level >= self._zoom_steps:
-            raise Exception("Zoom level {0} exceeds the camera's range!"
-                            " (max: {1})".format(level, self._zoom_steps-1))
+            raise ValueError("Zoom level {0} exceeds the camera's range!"
+                             " (max: {1})".format(level, self._zoom_steps-1))
         self._execute_lua("set_zoom({0})".format(level), wait=False)
 
     def _acquire_focus(self):
@@ -353,7 +352,7 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
 
         """
         if level >= self._zoom_steps:
-            raise DeviceException(
+            raise ValueError(
                 "Zoom level {0} exceeds the camera's range!"
                 " (max: {1})".format(level, self._zoom_steps-1))
         zoom = self._execute_lua("get_zoom()", get_result=True)
