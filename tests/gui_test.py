@@ -1,82 +1,70 @@
-import unittest
-
-import spreads.vendor.confit as confit
-from PySide.QtGui import QPixmap, QImage, QApplication
-from mock import patch, MagicMock as Mock
-from spreads.vendor.pathlib import Path
-
+import mock
+import pytest
 import spreads.plugin as plugin
-import spreads.workflow as workflow
-import spreadsplug.gui.gui as gui
-with patch('subprocess.check_output'):
-    import spreadsplug.tesseract as tess
 
 
-class TestWizard(unittest.TestCase):
-    def setUp(self):
-        try:
-            self.app = QApplication([])
-        except RuntimeError:
-            # TODO: Somehow our app gets created multiple times, so we just
-            #       ignore that here...
-            pass
-        self.config = confit.Configuration('test_gui')
-        self.config['plugins'] = [u'tesseract', u'scantailor']
-        self.config['driver'] = u'dummy'
-        self.workflow = workflow.Workflow(config=self.config,
-                                          path='/tmp/foobar')
-        plugin.setup_plugin_config(self.config)
+@pytest.yield_fixture
+def mock_msgbox():
+    with mock.patch('spreadsplug.gui.gui.QtGui.QMessageBox') as msgbox:
+        msgbox.exec_.return_value = True
+        yield msgbox
 
-        tess.AVAILABLE_LANGS = ["en"]
-        # TODO: Cams ought to be 'odd' and 'even'!
-        self.cams = [Mock(), Mock()]
-        workflow.get_devices = Mock(return_value=self.cams)
-        # Mock out message boxes
-        gui.QtGui.QMessageBox = Mock()
-        gui.QtGui.QMessageBox.exec_.return_value = True
-        self.wizard = gui.SpreadsWizard(self.config)
-        self.wizard.show()
 
-    def tearDown(self):
-        gui.QtGui.QImage = QImage
-        gui.QtGui.QPixmap = QPixmap
+@pytest.fixture
+def wizard(config, mock_plugin_mgr, mock_driver_mgr):
+    import spreadsplug.gui.gui as gui
+    plugin.setup_plugin_config(config)
 
-    def test_intro_page(self):
-        page = self.wizard.page(0)
-        page.initializePage()
-        page.line_edit.setText('/tmp/foobar')
-        assert page.validatePage()
-        assert self.wizard.workflow.path == Path('/tmp/foobar')
-        #assert spreads.config['first_page'].get(unicode) == "left"
-        #assert not spreads.config['rotate_inverse'].get(bool)
-        #assert not spreads.config['autopilot'].get(bool)
-        assert (self.config['scantailor']['detection'].get(unicode)
-                == u"content")
-        #assert spreads.config['language'].get(str) == 'eng'
+    wizard = gui.SpreadsWizard(config)
+    wizard.show()
+    return wizard
 
-        # TODO: Check option boxes
-        # TODO: Select path
-        # TODO: Assert that spreads.config is updated accordingly
-        # TODO: Assert that the project path is set correctly
 
-    def test_intro_page_nopath(self):
-        page = self.wizard.page(0)
-        page.initializePage()
-        assert not page.validatePage()
+@pytest.fixture
+def workflow(config, mock_plugin_mgr, mock_driver_mgr):
+    from spreads.workflow import Workflow
+    wf = Workflow("/tmp/foobar")
+    return wf
 
-    def test_capture_page(self):
-        self.wizard.workflow = self.workflow
-        self.wizard.selected_devices = self.cams
-        gui.QtGui.QImage = Mock()
-        gui.QtGui.QPixmap.fromImage = Mock(return_value=QPixmap())
-        page = self.wizard.page(1)
+
+def test_intro_page(wizard):
+    page = wizard.page(0)
+    page.initializePage()
+    page.line_edit.setText('/tmp/foobar')
+    assert page.validatePage()
+    assert unicode(wizard.workflow.path) == '/tmp/foobar'
+    # TODO: Check plugin options
+
+
+def test_intro_page_nopath(wizard, mock_msgbox):
+    page = wizard.page(0)
+    page.initializePage()
+    assert not page.validatePage()
+
+
+def test_capture_page(wizard, workflow):
+    wizard.workflow = workflow
+    with mock.patch.multiple("spreadsplug.gui.gui.QtGui", QImage=mock.DEFAULT,
+                             QPixmap=mock.DEFAULT) as values:
+        values["QPixmap"].fromImage = mock.Mock(
+            return_value=values["QImage"]())
+        page = wizard.page(1)
         page.initializePage()
         # TODO: Test capture triggering, logbox updates, etc
         assert page.validatePage()
 
-    def test_postprocess_page(self):
-        self.wizard.workflow = self.workflow
-        page = self.wizard.page(3)
-        page.initializePage()
-        # TODO: See that logbox works, postprocess is executed
-        assert page.validatePage()
+
+def test_postprocess_page(wizard, workflow):
+    wizard.workflow = workflow
+    page = wizard.page(2)
+    page.initializePage()
+    # TODO: See that logbox works, postprocess is executed
+    assert page.validatePage()
+
+
+def test_output_page(wizard, workflow):
+    wizard.workflow = workflow
+    page = wizard.page(3)
+    page.initializePage()
+    # TODO: See that logbox works, postprocess is executed
+    assert page.validatePage()
