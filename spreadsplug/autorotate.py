@@ -32,4 +32,6 @@ class AutoRotatePlugin(HookPlugin):
         logger.info("Rotating images in {0}".format(img_dir))
         with futures.ProcessPoolExecutor() as executor:
             for imgpath in sorted(img_dir.iterdir()):
-                executor.submit(autorotate_image, imgpath)
+                if imgpath.lower()[-4:] not in ('.jpg', 'jpeg'):
+                    continue
+                executor.submit(autorotate_image, unicode(imgpath))
