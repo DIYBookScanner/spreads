@@ -4,6 +4,7 @@ import time
 
 from persistence import pop_from_queue
 
+
 class ProcessingWorker(object):
     current_workflow = None
     current_step = None
@@ -34,5 +35,5 @@ class ProcessingWorker(object):
                 self.logger.info("Starting output generation of workflow '{0}'"
                                  .format(workflow.path.stem))
                 workflow.output()
-            time.sleep(5)
+            time.sleep(1)
         self.logger.debug("Thread has finished")
