@@ -173,7 +173,7 @@ class CHDKCameraDevice(DevicePlugin):
         os.remove(fpath)
         return data
 
-    def capture(self, path, two_device_mode=False):
+    def capture(self, path):
         # NOTE: To obtain the "real" Canon ISO value, we multiply the
         #       "market" value from the config by 0.65.
         #       See core/shooting.c#~l150 in the CHDK source for more details
@@ -190,9 +190,10 @@ class CHDKCameraDevice(DevicePlugin):
         except CHDKPTPException as e:
             if 'not in rec mode' in e.message:
                 self.prepare_capture(None)
-                self.capture(path, two_device_mode)
+                self.capture(path)
             else:
                 self.logger.warn("Capture command failed.")
+                P
                 raise e
 
         extension = 'dng' if self._shoot_raw else 'jpg'
