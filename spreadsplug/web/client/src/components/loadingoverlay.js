@@ -22,10 +22,10 @@
       return (
         <div className="overlay">
           <div className="circle">
-            <p className="text">
-                {this.props.message}
-            </p>
           </div>
+          <p className="text">
+              {this.props.message}
+          </p>
         </div>
       );
     }

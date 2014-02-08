@@ -7,9 +7,9 @@
       foundation = require('./foundation.js'),
       row = foundation.row,
       column = foundation.column,
-      WorkflowRow;
+      WorkflowItem;
 
-  WorkflowRow = React.createClass({
+  WorkflowItem = React.createClass({
     handleRemove: function() {
       // TODO: Ask for verification
       this.props.workflow.destroy({wait: true});
@@ -20,23 +20,32 @@
                              {trigger: true});
     },
     render: function() {
-      var workflow = this.props.workflow;
+      var workflow = this.props.workflow,
+          workflowUrl = '#/workflow/' + workflow.get('id');
       return (
-        <tr>
-          <td><a href={'#/workflow/' + workflow.get('id')}>{workflow.get('name')}</a></td>
-          {workflow.has('current_step') ?
-            <td>{workflow.get('current_step')}{': '}{workflow.get('finished') ? '' : <em>in progress</em>}</td>:
-            <td><em>inactive</em></td>
+        <row>
+          <column size={[6, 3]}>
+          {workflow.get('images').length > 0 ?
+            <a href={workflowUrl}>
+              <img width="100%" src={workflow.get('images').slice(-1)[0] + '/thumb'} />
+            </a>:
+            'no images'
           }
-          <td>
-            {workflow.has('images') ? workflow.get('images').length : 0}
-          </td>
-          <td>
-            <a onClick={this.handleRemove} className="fi-trash"></a>
-            <a href={'/workflow/' + workflow.id + '/download'} className="fi-download"></a>
-            <a onClick={this.handleContinue} className="fi-play"></a>
-          </td>
-        </tr>
+          </column>
+          <column size={[6, 9]}>
+            <row><h3><a href={workflowUrl}>{workflow.get('name')}</a></h3></row>
+            <row>
+              <p>{workflow.has('images') ? workflow.get('images').length : 0} pages</p>
+            </row>
+            <row>
+              <ul className="button-group">
+                <li><a onClick={this.handleRemove} className="button fi-trash"></a></li>
+                <li><a href={'/workflow/' + workflow.id + '/download'} className="button fi-download"></a></li>
+                <li><a onClick={this.handleContinue} className="button fi-play"></a></li>
+              </ul>
+            </row>
+          </column>
+        </row>
       );
     }
   });
@@ -54,27 +63,13 @@
               <h1>Workflows</h1>
             </column>
           </row>
-          <row>
-            <column size={[12, 8, 6]}>
-              {this.props.workflows ?
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Images</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {this.props.workflows.map(function(workflow) {
-                    return <WorkflowRow key={workflow.id} workflow={workflow} />;
-                  })}
-                </tbody>
-              </table>:
-              <h2>No workflows yet!</h2>}
-            </column>
-          </row>
+          <div>
+            {this.props.workflows.length > 0 ?
+                this.props.workflows.map(function(workflow) {
+                  return <WorkflowItem key={workflow.id} workflow={workflow} />;
+                }):
+            <row><column><h2>No workflows yet!</h2></column></row>}
+          </div>
         </main>
       );
     }

@@ -55,63 +55,63 @@
     },
     render: function() {
       var workflow = this.props.workflow || {},
-          // Quick and dirty: (vpsize-(0.1*vpsize))/2
-          preview_width = Math.floor((document.width-(0.1*document.width))/2),
           speed;
-
       if (workflow && workflow.has('capture_start')) {
         var elapsed = (new Date().getTime()/1000) - workflow.get('capture_start');
-        speed = (3600/elapsed)*workflow.get('images').length;
+        speed = (3600/elapsed)*workflow.get('images').length | 0;
       }
 
       return (
-        <row>
+        <div>
           {this.state.waiting ? <LoadingOverlay message={this.state.waitMessage} />:''}
           {workflow.has('images') && workflow.get('images').length ?
           <row>
             <column>
               {/* TODO: If there isn't another trigger within 5 seconds, load
                /*       a higher resolution previoew. */}
-              <ul className="small-block-grid-2">
-                <li><img width="100%" src={workflow.get('images').slice(-2)[0]+"/thumb"} /></li>
-                <li><img width="100%" src={workflow.get('images').slice(-2)[1]+"/thumb"} /></li>
+              <ul className="show-for-landscape small-block-grid-2 capture-preview">
+                <li><img src={workflow.get('images').slice(-2)[0]+"/thumb"} /></li>
+                <li><img src={workflow.get('images').slice(-2)[1]+"/thumb"} /></li>
+              </ul>
+              <ul className="show-for-portrait small-block-grid-1 medium-block-grid-2 capture-preview">
+                <li><img src={workflow.get('images').slice(-2)[0]+"/thumb"} /></li>
+                <li><img src={workflow.get('images').slice(-2)[1]+"/thumb"} /></li>
               </ul>
             </column>
           </row>:''
           }
+          <row className="capture-info">
+            <column size="6">
+              <span className="pagecount">{workflow.get('images').length} pages</span>
+            </column>
+            {speed ? 
+            <column size="6">
+              <span className="capturespeed">{speed} pages/hour</span>
+            </column>:''}
+          </row>
           <row>
-            <column>
-              <ul className="button-group">
-                  <li>
-                  <fnButton callback={this.handleRetake} size="small" secondary='true'>
-                      <i className="fi-refresh"></i> Retake
+            <div className="small-12 capture-controls columns">
+              <ul>
+                <li>
+                  <fnButton callback={this.handleRetake} secondary='true' size='large'>
+                      <i className="fi-refresh"></i>
                   </fnButton>
-                  </li>
-                  <li>
-                  <fnButton callback={this.handleFinish} size="small" secondary='true'>
-                      <i className="fi-check"></i> Finish
+                </li>
+                <li id="trigger-capture">
+                  <fnButton callback={this.handleCapture} size='large'>
+                    <i className="fi-camera"></i>
                   </fnButton>
-                  </li>
+                </li>
+                <li>
+                  <fnButton callback={this.handleFinish} secondary='true' size='large'>
+                      <i className="fi-check"></i>
+                  </fnButton>
+                </li>
               </ul>
-            </column>
+            </div>
           </row>
-          <row>
-            <column>
-              <fnButton callback={this.handleCapture} size="small">
-                <i className="fi-camera"></i> Capture
-              </fnButton>
-            </column>
-          </row>
-          <row>
-            <column size="6">
-              {workflow.get('images').length + ' images'}
-            </column>
-            <column size="6">
-              {speed ? 'Average speed: ' + speed + ' pages/hour' : ''}
-            </column>
-          </row>
-        </row>
+        </div>
       );
     }
   });
-}());
+})();

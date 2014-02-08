@@ -82,7 +82,7 @@
     prepareCapture: function(callback) {
       jQuery.post(
         '/workflow/' + this.id + '/prepare_capture',
-        function(data) {
+        function() {
           console.debug("Preparation successful");
         }.bind(this)).fail(function() {
           console.error("Capture preparation failed");
@@ -99,7 +99,7 @@
         }).complete(callback);
     },
     finishCapture: function(callback) {
-      jQuery.post('/workflow/' + this.id + "/capture/finish", function() {
+      jQuery.post('/workflow/' + this.id + "/finish_capture", function() {
         console.debug("Capture successfully finished");
       }).fail(function() {
         console.error("Capture could not be finished.");

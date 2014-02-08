@@ -8,20 +8,23 @@
   module.exports = {
     row: React.createClass({
       render: function() {
-        return (<div className="row">{this.props.children}</div>);
+        var classes = [];
+        if (this.props.className) classes.push(this.props.className);
+        classes.push('row');
+        return (<div className={classes.join(" ")}>{this.props.children}</div>);
       }
     }),
     column: React.createClass({
       render: function() {
-        var classes;
+        var classes = this.props.className || '';
         if (typeof this.props.size === 'object') {
           var sizes = this.props.size;
-          classes = "small-" + sizes[0] +
+          classes += " small-" + sizes[0] +
                     " medium-" + sizes[1] +
                     " large-" + (sizes[2] || sizes[1])+
                     " columns";
         } else {
-          classes = "small-" + (this.props.size || 12) + " columns";
+          classes += " small-" + (this.props.size || 12) + " columns";
         }
         return (<div className={classes}>{this.props.children}</div>);
       }
@@ -29,9 +32,10 @@
     button: React.createClass({
       render: function() {
         return (<a onClick={this.props.callback}
-                   className={(this.props.size + ' ' || '') +
-                              "button" +
-                              (this.props.secondary ? " secondary" : '')}>
+                   className={(this.props.size || '') +
+                              " button" +
+                              (this.props.secondary ? " secondary" : '') +
+                              (this.props.expand ? " expand" : '')}>
                   {this.props.children}
                 </a>
                );
