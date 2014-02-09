@@ -112,7 +112,7 @@ def get_thumbnail(img_path):
     :return:          The thumbnail
     :rtype:           bytestring
     """
-    thumb = JPEGImage(unicode(img_path)).exif_thumbnail.as_blob()
+    thumb = JPEGImage(unicode(img_path)).exif_thumbnail
     if thumb:
         logger.debug("Using EXIF thumbnail for {0}".format(img_path))
         return thumb
