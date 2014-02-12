@@ -282,7 +282,7 @@ class CHDKCameraDevice(DevicePlugin):
         if level >= self._zoom_steps:
             raise ValueError("Zoom level {0} exceeds the camera's range!"
                              " (max: {1})".format(level, self._zoom_steps-1))
-        self._execute_lua("set_zoom({0})".format(level), wait=False)
+        self._execute_lua("set_zoom({0})".format(level), wait=True)
 
     def _acquire_focus(self):
         """ Acquire auto focus and lock it. """
@@ -368,3 +368,4 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
             self._execute_lua("while(get_zoom()>{0}) "
                               "do click(\"zoom_out\") end".format(level+1),
                               wait=True)
+
