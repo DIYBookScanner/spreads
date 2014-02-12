@@ -96,13 +96,13 @@ setup(
     ],
     extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.3"],
-        "autorotate": ["jpegtran-cffi >= 0.3"],
+        "autorotate": ["jpegtran-cffi >= 0.4"],
         "colorcorrect": ["Wand >= 0.3.5"],
         "gui": ["PySide >= 1.2.1"],
         "web": [
             "Flask >= 0.10.1",
             "Flask-Compress >= 1.0.0",
-            "jpegtran-cffi >= 0.3",
+            "jpegtran-cffi >= 0.4",
             "requests >= 2.2.0",
             "waitress >= 0.8.8",
             "zipstream >= 1.0.2",
