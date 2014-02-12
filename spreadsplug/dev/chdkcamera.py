@@ -369,29 +369,3 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
                               "do click(\"zoom_out\") end".format(level+1),
                               wait=True)
 
-class CanonA1400CameraDevice(CHDKCameraDevice):
-    """ Canon A1400 driver.
-
-        Works around some quirks of this camera.
-
-    """
-    def __init__(self, config, device):
-        print "Instantiating device..."
-        super(CanonA1400CameraDevice, self).__init__(config, device)
-        if self.target_page is not None:
-            self.logger = logging.getLogger(
-                'CanonA1400CameraDevice[{0}]'.format(self.target_page))
-        else:
-            self.logger = logging.getLogger('CanonA1400CameraDevice')
-
-    @classmethod
-    def yield_devices(cls, config):
-        """ Search for usable devices, yield one at a time
-
-        """
-        for dev in usb.core.find(find_all=True):
-            is_match = (hex(dev.idVendor) == "0x4a9"
-                        and hex(dev.idProduct) == "0x3264")
-            if is_match:
-                yield cls(config, dev)
-
