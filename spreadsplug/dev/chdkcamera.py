@@ -282,7 +282,7 @@ class CHDKCameraDevice(DevicePlugin):
         if level >= self._zoom_steps:
             raise ValueError("Zoom level {0} exceeds the camera's range!"
                              " (max: {1})".format(level, self._zoom_steps-1))
-        self._execute_lua("set_zoom({0})".format(level), wait=False)
+        self._execute_lua("set_zoom({0})".format(level), wait=True)
 
     def _acquire_focus(self):
         """ Acquire auto focus and lock it. """
@@ -395,17 +395,3 @@ class CanonA1400CameraDevice(CHDKCameraDevice):
             if is_match:
                 yield cls(config, dev)
 
-    def _set_zoom(self, level):
-        """ Set zoom level.
-
-            The A1400 is happier with you if you wait for the set_zoom
-            function to return before issuing more commands.
-            
-        :param level: The zoom level to be used
-        :type level:  int
-
-        """
-        if level >= self._zoom_steps:
-            raise ValueError("Zoom level {0} exceeds the camera's range!"
-                             " (max: {1})".format(level, self._zoom_steps-1))
-        self._execute_lua("set_zoom({0})".format(level), wait=True)
