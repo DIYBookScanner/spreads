@@ -13,7 +13,7 @@ def mock_msgbox():
 @pytest.fixture
 def wizard(config, mock_plugin_mgr, mock_driver_mgr):
     import spreadsplug.gui.gui as gui
-    plugin.setup_plugin_config(config)
+    plugin.set_default_config(config)
 
     wizard = gui.SpreadsWizard(config)
     wizard.show()

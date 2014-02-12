@@ -161,8 +161,7 @@ def add_argument_from_option(extname, key, option, parser):
                else option.value[0])
     kwargs = {'help': ("{0} [default: {1}]"
                        .format(option.docstring, default)),
-              'dest': "{0}{1}".format(extname, '.'+key if extname else key),
-              'default': default}
+              'dest': "{0}{1}".format(extname, '.'+key if extname else key)}
     if isinstance(option.value, basestring):
         kwargs['type'] = unicode
         kwargs['metavar'] = "<str>"

@@ -16,6 +16,8 @@ from multiprocessing.pool import ThreadPool
 @pytest.yield_fixture
 def app(config, mock_driver_mgr, mock_plugin_mgr, tmpdir):
     from spreadsplug.web import setup_app, app
+    from spreads.plugin import set_default_config
+    set_default_config(config)
     logger = logging.getLogger()
     config['loglevel'] = 'warning'
 

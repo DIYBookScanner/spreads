@@ -198,7 +198,6 @@ def test_setup_parser(mock_plugin_mgr, config):
     assert process_opts["--float"].type == float
     output_opts = subparsers['output']._option_string_actions
     assert "--selectable" in output_opts
-    assert output_opts["--selectable"].default == 'a'
     assert output_opts["--selectable"].choices == ['a', 'b', 'c']
 
 
@@ -206,11 +205,11 @@ def test_setup_parser(mock_plugin_mgr, config):
 @patch('spreads.cli.confit.LazyConfig')
 def test_main(LazyConfig, exists, config, mock_plugin_mgr,
               mock_driver_mgr, tmpdir):
-    # NOTE: We mock out parser, since it interferes with pytest's parser
     config["loglevel"] = "info"
     config["verbose"] = False
     config["logfile"] = unicode(tmpdir.join('spreads.log'))
     LazyConfig.return_value = config
     exists.return_value = False
+    # NOTE: We mock out parser, since it interferes with pytest's parser
     with patch('spreads.cli.argparse.ArgumentParser'):
         cli.main()

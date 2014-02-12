@@ -155,7 +155,7 @@ def configure(config):
     config["plugins"] = _select_plugins(config["plugins"].get())
 
     # Set default plugin configuration
-    plugin.setup_plugin_config(config)
+    plugin.set_default_config(config)
     _setup_processing_pipeline(config)
 
     cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
@@ -406,6 +406,9 @@ def main():
 
     # Lazy-load configuration
     config = confit.LazyConfig('spreads', __name__)
+    # Load default plugin configuration
+    plugin.set_default_config(config)
+    # Load user configuration
     config.read()
 
     parser = setup_parser(config)

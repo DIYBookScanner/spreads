@@ -362,7 +362,7 @@ def get_devices(config):
     return devices
 
 
-def setup_plugin_config(config):
+def set_default_config(config):
     pluginmanager = get_pluginmanager(config)
     if "driver" in config.keys():
         driver = get_driver(config["driver"].get(unicode))

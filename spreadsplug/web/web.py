@@ -67,7 +67,7 @@ def get_plugins_with_options():
     for plugname, options in templates.iteritems():
         if options is None:
             continue
-        rv[plugname] = {key: dict(value=option.value,
+        rv[plugname] = {key: dict(value=config[plugname][key].get(),
                                   docstring=option.docstring,
                                   selectable=option.selectable)
                         for key, option in options.iteritems()}
