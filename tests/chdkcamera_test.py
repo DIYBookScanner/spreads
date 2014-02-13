@@ -273,7 +273,7 @@ def test_set_zoom(camera):
     with pytest.raises(ValueError):
         camera._set_zoom(10)
     camera._set_zoom(7)
-    camera._execute_lua.assert_called_once_with("set_zoom(7)", wait=False)
+    camera._execute_lua.assert_called_once_with("set_zoom(7)", wait=True)
 
 
 @mock.patch('spreadsplug.dev.chdkcamera.time.sleep')
