@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from PySide import QtCore, QtGui
 
 import spreads.workflow as workflow
-from spreads.plugin import get_pluginmanager
+from spreads.plugin import get_pluginmanager, get_driver
 
 import gui_rc
 
@@ -102,17 +102,19 @@ class IntroPage(QtGui.QWizardPage):
         page_combobox.activated.connect(self.stack_widget.setCurrentIndex)
         #QtCore.QObject.connect(page_combobox, SIGNAL("activated(int)"),
         #        self.stack_widget, SLOT("setCurrentIndex(int)"))
-
+        templates = {ext.name: ext.plugin.configuration_template()
+                     for ext in self.pluginmanager}
+        templates["device"] = (get_driver(wizard.config["driver"].get())
+                               .driver.configuration_template())
         # Add configuration widgets from plugins
         self.plugin_widgets = {}
-        for ext in self.pluginmanager:
-            tmpl = ext.plugin.configuration_template()
+        for name, tmpl in templates.iteritems():
             if not tmpl:
                 continue
             page = QtGui.QGroupBox()
             layout = QtGui.QFormLayout()
             widgets = self._get_plugin_config_widgets(tmpl)
-            self.plugin_widgets[ext.name] = widgets
+            self.plugin_widgets[name] = widgets
             for label, widget in widgets.values():
                 # We don't need a label for QCheckBoxes
                 if isinstance(widget, QtGui.QCheckBox):
@@ -121,7 +123,7 @@ class IntroPage(QtGui.QWizardPage):
                     layout.addRow(label, widget)
             page.setLayout(layout)
             self.stack_widget.addWidget(page)
-            page_combobox.addItem(ext.name.title())
+            page_combobox.addItem(name.title())
 
         main_layout = QtGui.QVBoxLayout()
         main_layout.addWidget(intro_label)

@@ -31,6 +31,7 @@ def test_intro_page(wizard):
     page = wizard.page(0)
     page.initializePage()
     page.line_edit.setText('/tmp/foobar')
+    assert 'device' in page.plugin_widgets
     assert page.validatePage()
     assert unicode(wizard.workflow.path) == '/tmp/foobar'
     # TODO: Check plugin options
