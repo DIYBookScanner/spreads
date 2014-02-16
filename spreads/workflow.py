@@ -117,7 +117,7 @@ class Workflow(object):
 
     def _run_hook(self, hook_name, *args):
         self._logger.debug("Running '{0}' hooks".format(hook_name))
-        for plugin in self.plugins:
+        for plugin in [x for x in self.plugins if hasattr(x, hook_name)]:
             getattr(plugin, hook_name)(*args)
 
     def _get_next_filename(self, target_page=None):
