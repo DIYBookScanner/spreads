@@ -44,8 +44,8 @@ def get_plugins_with_options():
     """
     config = app.config['default_config']
     pluginmanager = plugin.get_pluginmanager(config)
-    scanner_extensions = ['prepare_capture', 'capture', 'finish_capture']
-    processor_extensions = ['process', 'output']
+    scanner_extensions = [plugin.CaptureHooksMixin, plugin.TriggerHooksMixin]
+    processor_extensions = [plugin.ProcessHookMixin, plugin.OutputHookMixin]
     if app.config['mode'] == 'scanner':
         templates = {ext.name: ext.plugin.configuration_template()
                      for ext in plugin.get_relevant_extensions(
