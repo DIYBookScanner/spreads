@@ -3,11 +3,11 @@ import logging
 import threading
 import time
 
-from spreads.plugin import HookPlugin
+from spreads.plugin import HookPlugin, TriggerHooksMixin
 from spreads.util import DeviceException
 
 
-class HidTrigger(HookPlugin):
+class HidTrigger(HookPlugin, TriggerHooksMixin):
     __name__ = 'hidtrigger'
 
     _loop_thread = None

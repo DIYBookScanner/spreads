@@ -2,12 +2,12 @@ import logging
 import threading
 import time
 
-from spreads.plugin import HookPlugin, PluginOption
+from spreads.plugin import HookPlugin, PluginOption, TriggerHooksMixin
 
 logger = logging.getLogger('spreadsplug.intervaltrigger')
 
 
-class IntervalTrigger(HookPlugin):
+class IntervalTrigger(HookPlugin, TriggerHooksMixin):
     __name__ = 'intervaltrigger'
 
     _loop_thread = None
