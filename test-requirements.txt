@@ -1,3 +1,4 @@
+pytest-qt >= 1.0
 pytest-cov >= 1.6
 pytest >= 2.5.1
 coveralls >= 0.2
