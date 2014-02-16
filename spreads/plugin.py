@@ -69,21 +69,17 @@ class SpreadsNamedExtensionManager(NamedExtensionManager):
                              .__new__(cls, *args, **kwargs))
         return cls._instance
 
-    def _load_plugins(self, invoke_on_load, invoke_args, invoke_kwds):
+    def _load_plugins(self, *args, **kwargs):
         extensions = []
         for ep in self._find_entry_points(self.namespace):
             stevedore.LOG.debug('found extension %r', ep)
-            ext = self._load_one_plugin(ep,
-                                        invoke_on_load,
-                                        invoke_args,
-                                        invoke_kwds,
-                                        )
+            ext = self._load_one_plugin(ep, *args, **kwargs)
             if ext:
                 extensions.append(ext)
         return extensions
 
 
-class SpreadsPlugin(object):
+class SpreadsPlugin(object):  # pragma: no cover
     """ Plugin base class.
 
     """
@@ -126,7 +122,7 @@ class SpreadsPlugin(object):
             self.config = config
 
 
-class DeviceFeatures(object):
+class DeviceFeatures(object):  # pragma: no cover
     #: Device can grab a preview picture
     PREVIEW = 1
 
@@ -136,7 +132,7 @@ class DeviceFeatures(object):
     IS_CAMERA = 2
 
 
-class DevicePlugin(SpreadsPlugin):
+class DevicePlugin(SpreadsPlugin):  # pragma: no cover
     """ Base class for devices.
 
         Subclass to implement support for different devices.
@@ -164,7 +160,7 @@ class DevicePlugin(SpreadsPlugin):
     @abstractclassmethod
     def yield_devices(cls, config):
         """ Search for usable devices, yield one at a time
-        
+
         :param config:  spreads configuration
         :type config:   spreads.confit.ConfigView
         """
@@ -181,6 +177,15 @@ class DevicePlugin(SpreadsPlugin):
         """
         super(DevicePlugin, self).__init__(config['device'])
         self._device = device
+
+    @abc.abstractmethod
+    def connected(self):
+        """ Check if the device is still connected.
+
+        :rtype:     bool
+
+        """
+        raise NotImplementedError
 
     def set_target_page(self, target_page):
         """ Set the device target page, if applicable.
@@ -212,6 +217,15 @@ class DevicePlugin(SpreadsPlugin):
         :param path:    Path for the image
         :type path:     pathlib.Path
 
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def finish_capture(self):
+        """ Tell device to finish capturing.
+
+        What this means exactly is up to the implementation and the type of
+        device, with a camera it could e.g. involve retractingthe lense.
         """
         raise NotImplementedError
 
@@ -280,6 +294,29 @@ class CaptureHooksMixin(object):
         :type devices:      list(DevicePlugin)
         :param path:        Project path
         :type path:         pathlib.Path
+
+        """
+        pass
+
+
+class TriggerHooksMixin(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def start_trigger_loop(self, capture_callback):
+        """ Start a thread that runs an event loop and periodically triggers
+            a capture by calling the `capture_callback`.
+
+        :param capture_callback:    The function to run for triggering a
+                                    capture
+        :type capture_callback:     function
+
+        """
+        pass
+
+    @abc.abstractmethod
+    def stop_trigger_loop(self):
+        """ Stop the thread started by `start_trigger_loop*.
 
         """
         pass
@@ -358,7 +395,7 @@ def get_devices(config):
     return devices
 
 
-def setup_plugin_config(config):
+def set_default_config(config):
     pluginmanager = get_pluginmanager(config)
     if "driver" in config.keys():
         driver = get_driver(config["driver"].get(unicode))

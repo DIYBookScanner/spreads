@@ -27,10 +27,6 @@ logger = logging.getLogger('spreadsplug.scantailor')
 class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
     __name__ = 'scantailor'
 
-    _enhanced = bool(re.match(r".*<images\|directory\|->.*",
-                              subprocess.check_output('scantailor-cli')
-                              .splitlines()[7]))
-
     @classmethod
     def configuration_template(cls):
         conf = {'autopilot': PluginOption(value=False,
@@ -50,6 +46,12 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
                 'margins': PluginOption([2.5, 2.5, 2.5, 2.5])
                 }
         return conf
+
+    def __init__(self, config):
+        super(ScanTailorPlugin, self).__init__(config)
+        self._enhanced = bool(re.match(r".*<images\|directory\|->.*",
+                              subprocess.check_output('scantailor-cli')
+                              .splitlines()[7]))
 
     def _generate_configuration(self, projectfile, img_dir, out_dir):
         if not out_dir.exists():

@@ -1,116 +1,103 @@
 from __future__ import division, unicode_literals
 
-import unittest
+import shutil
 
 import pytest
-import spreads.vendor.confit as confit
-from mock import call, MagicMock as Mock, patch
-from spreads.vendor.pathlib import Path
 
 import spreads.util as util
-import spreads.workflow as workflow
-
-util.find_in_path = Mock(return_value=True)
+import spreads.workflow
 
 
-class TestWorkflow(unittest.TestCase):
-    def setUp(self):
-        self.plugins = [Mock() for x in xrange(3)]
-        self.devices = [Mock() for x in xrange(2)]
-        self.devices[0].target_page = 'odd'
-        self.devices[1].target_page = 'even'
-        workflow.get_pluginmanager = Mock(return_value=self.plugins)
-        workflow.get_devices = Mock(return_value=self.devices)
-        config = confit.Configuration('test_workflow')
-        self.mock_path = Mock(wraps=Path('/tmp/test_workflow'), spec=Path)
-        self.workflow = workflow.Workflow(config=config,
-                                          path=self.mock_path)
+@pytest.fixture
+def workflow(mock_plugin_mgr, mock_driver_mgr, config, tmpdir):
+    # NOTE: To avoid accessing the filesystem and to have more control, we
+    #       monkey-patch the relevant methods to be mocks.
+    return spreads.workflow.Workflow(config=config, path=unicode(tmpdir))
 
-    def test_get_plugins(self):
-        foo = self.workflow.plugins
-        bar = self.workflow.plugins
-        assert workflow.get_pluginmanager.call_count == 1
-        assert foo == bar == [x.obj for x in self.plugins]
 
-    def test_get_devices(self):
-        foo = self.workflow.devices
-        bar = self.workflow.devices
-        assert workflow.get_devices.call_count == 1
-        assert foo == bar == self.devices
+def test_get_plugins(workflow):
+    plugins = workflow.plugins
+    names = [x.__name__ for x in plugins]
+    assert 'test_output' in names
+    assert 'test_process' in names
+    assert 'test_process2' in names
 
-    def test_get_devices_no_device(self):
-        workflow.get_devices = Mock(return_value=[])
-        with pytest.raises(util.DeviceException) as excinfo:
-            self.workflow.devices
 
-    @patch('spreads.plugin.os.mkdir')
-    def test_get_next_filename(self, mkdir):
-        fname = self.workflow._get_next_filename(target_page='odd')
-        assert fname == self.mock_path/'raw'/'001.jpg'
-        fname = self.workflow._get_next_filename(target_page='even')
-        assert fname == self.mock_path/'raw'/'000.jpg'
-        self.workflow._pages_shot += 2
-        fname = self.workflow._get_next_filename(target_page='odd')
-        assert fname == self.mock_path/'raw'/'003.jpg'
-        fname = self.workflow._get_next_filename(target_page='even')
-        assert fname == self.mock_path/'raw'/'002.jpg'
+def test_get_devices(workflow):
+    devices = workflow.devices
+    assert len(devices) == 2
+    # TODO: Verify
 
-    def test_prepare_capture(self):
-        self.workflow.prepare_capture()
-        for dev in self.devices:
-            assert dev.prepare_capture.call_count == 1
-            assert dev.prepare_capture.called_with(self.mock_path)
-        for plug in self.plugins:
-            assert plug.obj.prepare_capture.call_count == 1
-            assert plug.obj.prepare_capture.call_args_list == (
-                [call(self.devices, self.mock_path)])
 
-    def test_capture(self):
-        self.workflow.config['device']['parallel_capture'] = True
-        self.workflow.config['device']['flip_target_pages'] = False
-        self.workflow.capture()
-        self.devices[0].capture.assert_called_with(self.mock_path/'raw'/'001.jpg')
-        self.devices[1].capture.assert_called_with(self.mock_path/'raw'/'000.jpg')
-        for plug in self.plugins:
-            assert plug.obj.capture.call_count == 1
-            assert (plug.obj.capture.call_args_list ==
-                    [call(self.devices, self.mock_path)])
+def test_get_devices_no_device(workflow, mock_driver_mgr):
+    mock_driver_mgr.return_value.driver.num_devices = 0
+    with pytest.raises(util.DeviceException):
+        _ = workflow.devices
+    mock_driver_mgr.return_value.driver.num_devices = 2
 
-    def test_capture_noparallel(self):
-        self.workflow.config['device']['parallel_capture'] = False
-        self.workflow.config['device']['flip_target_pages'] = False
-        self.workflow.capture()
-        # TODO: Find a way to verify that the cameras were indeed triggered
-        #       in sequence and not in parallel
-        for dev in self.devices:
-            assert dev.capture.call_count == 1
 
-    def test_capture_flip_target_pages(self):
-        self.workflow.config['device']['parallel_capture'] = False
-        self.workflow.config['device']['flip_target_pages'] = True
-        self.workflow.capture()
-        self.devices[0].capture.assert_called_with(self.mock_path/'raw'/'000.jpg')
-        self.devices[1].capture.assert_called_with(self.mock_path/'raw'/'001.jpg')
+def test_get_next_filename(workflow):
+    root_path = workflow.path/'raw'
+    fname = workflow._get_next_filename(target_page='odd')
+    assert unicode(fname) == unicode(root_path/"001")
+    fname = workflow._get_next_filename(target_page='even')
+    assert unicode(fname) == unicode(root_path/"000")
 
-    def test_finish_capture(self):
-        self.workflow.finish_capture()
-        for plug in self.plugins:
-            assert plug.obj.finish_capture.call_count == 1
-            assert plug.obj.finish_capture.call_args_list == (
-                [call(self.devices, self.mock_path)])
+    shutil.copyfile('./tests/data/even.jpg', unicode(root_path/'000.jpg'))
+    shutil.copyfile('./tests/data/odd.jpg', unicode(root_path/'001.jpg'))
 
-    def test_process(self):
-        self.workflow.process()
-        for plug in self.plugins:
-            assert plug.obj.process.call_count == 1
-            assert (plug.obj.process.call_args_list ==
-                    [call(self.mock_path)])
+    fname = workflow._get_next_filename(target_page='odd')
+    assert unicode(fname) == unicode(root_path/"003")
+    fname = workflow._get_next_filename(target_page='even')
+    assert unicode(fname) == unicode(root_path/"002")
 
-    def test_output(self):
-        (self.mock_path/'out').exists.return_value = False
-        self.workflow.output()
-        for plug in self.plugins:
-            assert plug.obj.output.call_count == 1
-            assert (plug.obj.output.call_args_list ==
-                    [call(self.mock_path)])
-        assert (self.mock_path/'out').mkdir.call_count == 1
+
+def test_prepare_capture(workflow):
+    workflow.prepare_capture()
+    assert workflow.prepared
+    assert workflow.active
+    assert workflow.step == 'capture'
+
+
+def test_capture(workflow):
+    workflow.config['device']['parallel_capture'] = True
+    workflow.config['device']['flip_target_pages'] = False
+    for dev in workflow.devices:
+        dev.delay = 0.25
+    workflow.capture()
+    assert workflow.pages_shot == 2
+    assert (workflow.images[1].stat().st_ctime -
+            workflow.images[0].stat().st_ctime) < 0.25
+
+
+def test_capture_noparallel(workflow):
+    workflow.config['device']['parallel_capture'] = False
+    workflow.config['device']['flip_target_pages'] = False
+    for dev in workflow.devices:
+        dev.delay = 0.25
+    workflow.capture()
+    assert workflow.pages_shot == 2
+    assert (workflow.images[1].stat().st_ctime -
+            workflow.images[0].stat().st_ctime) >= 0.25
+
+
+def test_capture_flip_target_pages(workflow):
+    workflow.config['device']['parallel_capture'] = False
+    workflow.config['device']['flip_target_pages'] = True
+    workflow.capture()
+    # TODO: Verify
+
+
+def test_finish_capture(workflow):
+    workflow.finish_capture()
+    # TODO: Verify
+
+
+def test_process(workflow):
+    workflow.process()
+    # TODO: Verify
+
+
+def test_output(workflow):
+    workflow.output()
+    # TODO: Verify

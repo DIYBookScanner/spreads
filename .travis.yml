@@ -12,6 +12,7 @@ before_install:
     - sleep 3
 install:
     - pip install -r requirements.txt --use-mirrors
+    - pip install -r requirements-test.txt --use-mirrors
     - pip install .
 script:  py.test --cov spreads --cov spreadsplug
 after_success: coveralls

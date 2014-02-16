@@ -801,10 +801,11 @@ class Configuration(RootView):
                           as well
         """
         out_dict = OrderedDict()
-        default_conf = next(x for x in self.sources if x.default)
         try:
+            default_conf = next(x for x in self.sources if x.default)
             default_keys = list(default_conf.keys())
-        except AttributeError:
+        except (StopIteration, AttributeError):
+            default_conf = None
             default_keys = []
         new_keys = [x for x in self.keys() if not x in default_keys]
         out_keys = default_keys + new_keys
@@ -823,9 +824,10 @@ class Configuration(RootView):
                              width=1000)
 
         # Restore comments to the YAML text.
-        with open(default_conf.filename, 'r') as fp:
-            default_data = fp.read()
-        yaml_out = restore_yaml_comments(yaml_out, default_data)
+        if default_conf:
+            with open(default_conf.filename, 'r') as fp:
+                default_data = fp.read()
+            yaml_out = restore_yaml_comments(yaml_out, default_data)
 
         # Return the YAML or write it to a file.
         if filename is None:

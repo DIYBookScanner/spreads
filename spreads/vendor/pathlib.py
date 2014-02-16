@@ -968,6 +968,12 @@ class Path(PurePath):
         """
         return cls(os.getcwd())
 
+    def expanduser(self):
+        """ Return a new path with expanded ~ and ~user constructs
+        (as returned by os.path.expanduser)
+        """
+        return self.__class__(os.path.expanduser(str(self)))
+
     def iterdir(self):
         """Iterate over the files in this directory.  Does not yield any
         result for the special paths '.' and '..'.

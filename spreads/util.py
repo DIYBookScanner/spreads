@@ -152,3 +152,38 @@ class ColourStreamHandler(StreamHandler):
             raise
         except:
             self.handleError(record)
+
+
+def add_argument_from_option(extname, key, option, parser):
+    flag = "--{0}".format(key.replace('_', '-'))
+    default = (option.value
+               if not option.selectable
+               else option.value[0])
+    kwargs = {'help': ("{0} [default: {1}]"
+                       .format(option.docstring, default)),
+              'dest': "{0}{1}".format(extname, '.'+key if extname else key)}
+    if isinstance(option.value, basestring):
+        kwargs['type'] = unicode
+        kwargs['metavar'] = "<str>"
+    elif isinstance(option.value, bool):
+        kwargs['help'] = option.docstring
+        if option.value:
+            flag = "--no-{0}".format(key.replace('_', '-'))
+            kwargs['help'] = ("Disable {0}"
+                              .format(option.docstring.lower()))
+            kwargs['action'] = "store_false"
+        else:
+            kwargs['action'] = "store_true"
+    elif isinstance(option.value, float):
+        kwargs['type'] = float
+        kwargs['metavar'] = "<float>"
+    elif isinstance(option.value, int):
+        kwargs['type'] = int
+        kwargs['metavar'] = "<int>"
+    elif option.selectable:
+        kwargs['type'] = type(option.value[0])
+        kwargs['metavar'] = "<{0}>".format("/".join(option.value))
+        kwargs['choices'] = option.value
+    else:
+        raise TypeError("Unsupported option type")
+    parser.add_argument(flag, **kwargs)

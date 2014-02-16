@@ -5,20 +5,15 @@ import re
 import subprocess
 import tempfile
 import time
-import usb
 from fractions import Fraction
 from itertools import chain
 
+import usb
+from jpegtran import JPEGImage
 from spreads.vendor.pathlib import Path
 
 from spreads.plugin import DevicePlugin, PluginOption, DeviceFeatures
-from spreads.util import (DeviceException, find_in_path,
-                          MissingDependencyException)
-
-if not find_in_path('exiftool'):
-    raise MissingDependencyException("Could not find executable `exiftool`"
-                                     " in $PATH. Please install the"
-                                     " appropriate package(s)!")
+from spreads.util import DeviceException
 
 
 class CHDKPTPException(Exception):
@@ -79,6 +74,12 @@ class CHDKCameraDevice(DevicePlugin):
 
         """
         self.logger = logging.getLogger('ChdkCamera')
+        self._usbport = (device.bus, device.address)
+        self._serial_number = (
+            usb.util.get_string(device, 256, device.iSerialNumber)
+            .strip('\x00'))
+        self.logger.debug("Device has serial number {0}"
+                          .format(self._serial_number))
         self._chdkptp_path = Path(config["chdkptp_path"].get(unicode))
         self._sensitivity = config["sensitivity"].get(int)
         self._shutter_speed = float(Fraction(config["shutter_speed"]
@@ -89,8 +90,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._focus_distance = config['focus_distance'].get()
 
         self._cli_flags = []
-        self._cli_flags.append("-c-d={0:03} -b={1:03}".format(
-                               device.address, device.bus))
+        self._cli_flags.append("-c-d={1:03} -b={0:03}".format(*self._usbport))
         self._cli_flags.append("-eset cli_verbose=2")
         self._chdk_buildnum = (self._execute_lua("get_buildinfo()",
                                                  get_result=True)
@@ -103,8 +103,33 @@ class CHDKCameraDevice(DevicePlugin):
             self.target_page = self._get_target_page()
         except:
             self.target_page = None
+
+        self._execute_lua('exit_alt(); set_config_value(291, 0);'
+                          'enter_alt();')
         self.logger = logging.getLogger('ChdkCamera[{0}]'
                                         .format(self.target_page))
+
+    def connected(self):
+        def match_serial(dev):
+            serial = (
+                usb.util.get_string(dev, 256, dev.iSerialNumber)
+                .strip('\x00'))
+            return serial == self._serial_number
+
+        # Check if device is still attached
+        unchanged = usb.core.find(bus=self._usbport[0],
+                                  address=self._usbport[1],
+                                  custom_match=match_serial) is not None
+        if unchanged:
+            return True
+        new_device = usb.core.find(idVendor=0x04a9,  # Canon vendor ID
+                                   custom_match=match_serial)
+        if new_device is None:
+            return False
+
+        self._usbport = (new_device.bus, new_device.address)
+        self._cli_flags[0] = ("-c-d={1:03} -b={0:03}".format(*self._usbport))
+        return True
 
     def set_target_page(self, target_page):
         """ Set the device target page.
@@ -117,6 +142,7 @@ class CHDKCameraDevice(DevicePlugin):
         os.write(tmp_handle[0], target_page.upper()+"\n")
         self._run("upload {0} \"OWN.TXT\"".format(tmp_handle[1]))
         self.target_page = target_page
+        os.remove(tmp_handle[1])
 
     def prepare_capture(self, path):
         # Try to go into alt mode to prevent weird behaviour
@@ -134,6 +160,11 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("set_nd_filter(2)")
         self._set_focus()
 
+    def finish_capture(self):
+        # Switch camera back to play mode.
+        # This will retract the lens and protect it from dust.
+        self._run("play")
+
     def get_preview_image(self):
         fpath = tempfile.mkstemp()[1]
         cmd = "dumpframes -count=1 -nobm -nopal"
@@ -143,35 +174,49 @@ class CHDKCameraDevice(DevicePlugin):
         os.remove(fpath)
         return data
 
-    def capture(self, path, two_device_mode=False):
+    def capture(self, path):
         # NOTE: To obtain the "real" Canon ISO value, we multiply the
         #       "market" value from the config by 0.65.
         #       See core/shooting.c#~l150 in the CHDK source for more details
         if self._can_remote:
-            cmd = ("remoteshoot -tv={0} -sv={1} {2} {3}"
+            cmd = ("remoteshoot -tv={0} -sv={1} {2} \"{3}\""
                    .format(self._shutter_speed, self._sensitivity*0.65,
                            "-dng" if self._shoot_raw else "", path))
         else:
-            cmd = ("shoot -tv={0} -sv={1} -dng={2} -rm -dl {3}"
+            cmd = ("shoot -tv={0} -sv={1} -dng={2} -rm -dl \"{3}\""
                    .format(self._shutter_speed, self._sensitivity*0.65,
                            int(self._shoot_raw), path))
         try:
             self._run(cmd)
         except CHDKPTPException as e:
-            self.logger.warn("Capture command failed.")
-            raise e
+            if 'not in rec mode' in e.message:
+                self.prepare_capture(None)
+                self.capture(path)
+            else:
+                self.logger.warn("Capture command failed.")
+                raise e
 
         extension = 'dng' if self._shoot_raw else 'jpg'
         local_path = "{0}.{1}".format(path, extension)
         # Set EXIF orientation
         self.logger.debug("Setting EXIF orientation on captured image")
+        img = JPEGImage(local_path)
         if self.target_page == 'odd':
-            exif_orientation = 8  # 90°
+            img.orientation = 8  # 90°
         else:
-            exif_orientation = 6  # -90°
-        subprocess.check_output(
-            ['exiftool', '-Orientation={0}'.format(exif_orientation), '-n',
-             '-overwrite_original', local_path])
+            img.orientation = 6  # -90°
+        img.save(local_path)
+
+    def show_textbox(self, message):
+        messages = message.split("\n")
+        script = "\n".join(
+            ['screen_width = get_gui_screen_width();',
+             'screen_height = get_gui_screen_height();',
+             'draw_rect_filled(0, 0, screen_width, screen_height, 256, 256);'] +
+            ['draw_string(0, 0+(screen_height/10)*{0}, "{1}", 258, 256);'
+             .format(idx, msg) for idx, msg in enumerate(messages, 1)]
+        )
+        self._execute_lua(script, wait=False, get_result=False)
 
     def _run(self, *commands):
         cmd_args = list(chain((unicode(self._chdkptp_path / "chdkptp"),),
@@ -202,7 +247,7 @@ class CHDKCameraDevice(DevicePlugin):
         return self._parse_lua_output(output)
 
     def _parse_table(self, data):
-        values = dict(re.findall(r'([\w_]+?)=(\d+|".*?"),', data[6:]))
+        values = dict(re.findall(r'([\w_]+?)=(\d+|".*?"),*', data[6:]))
         for k, v in values.iteritems():
             if v.startswith('"') and v.endswith('"'):
                 values[k] = v.strip('"')  # String
@@ -216,6 +261,8 @@ class CHDKCameraDevice(DevicePlugin):
             return self._parse_table(ret_val)  # Table
         elif ret_val.startswith("'"):
             return ret_val.strip("'")  # String
+        elif ret_val in ('true', 'false'):
+            return ret_val == 'true'
         else:
             return int(ret_val)  # Integer
 
@@ -223,20 +270,21 @@ class CHDKCameraDevice(DevicePlugin):
         tmp_handle = tempfile.mkstemp(text=True)
         try:
             self._run("download \"OWN.TXT\" {0}".format(tmp_handle[1]))
+            with open(tmp_handle[1], 'r') as fp:
+                target_page = fp.readline().strip().lower()
         except DeviceException:
             raise ValueError("Could not find OWN.TXT")
-        with open(tmp_handle[1], 'r') as fp:
-            target_page = fp.readline().strip().lower()
-        os.remove(tmp_handle[1])
+        finally:
+            os.remove(tmp_handle[1])
         if not target_page:
             raise ValueError("Could not read OWN.TXT")
         return target_page
 
     def _set_zoom(self, level):
         if level >= self._zoom_steps:
-            raise Exception("Zoom level {0} exceeds the camera's range!"
-                            " (max: {1})".format(level, self._zoom_steps-1))
-        self._execute_lua("set_zoom({0})".format(level), wait=False)
+            raise ValueError("Zoom level {0} exceeds the camera's range!"
+                             " (max: {1})".format(level, self._zoom_steps-1))
+        self._execute_lua("set_zoom({0})".format(level), wait=True)
 
     def _acquire_focus(self):
         """ Acquire auto focus and lock it. """
@@ -275,7 +323,6 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
 
     """
     def __init__(self, config, device):
-        print "Instantiating device..."
         super(CanonA2200CameraDevice, self).__init__(config, device)
         if self.target_page is not None:
             self.logger = logging.getLogger(
@@ -284,10 +331,20 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
             self.logger = logging.getLogger('CanonA2200CameraDevice')
 
     @classmethod
-    def match(cls, device):
-        matches = (hex(device.idVendor) == "0x4a9"
-                   and hex(device.idProduct) == "0x322a")
-        return matches
+    def yield_devices(cls, config):
+        """ Search for usable devices, yield one at a time
+
+        """
+        for dev in usb.core.find(find_all=True):
+            is_match = (hex(dev.idVendor) == "0x4a9"
+                        and hex(dev.idProduct) == "0x322a")
+            if is_match:
+                yield cls(config, dev)
+
+    def finish_capture(self):
+        # Putting the device back into play mode crashes the a2200 with
+        # chdk 1.3, this is why we stub it out here.
+        pass
 
     def _set_zoom(self, level):
         """ Set zoom level.
@@ -301,7 +358,7 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
 
         """
         if level >= self._zoom_steps:
-            raise DeviceException(
+            raise ValueError(
                 "Zoom level {0} exceeds the camera's range!"
                 " (max: {1})".format(level, self._zoom_steps-1))
         zoom = self._execute_lua("get_zoom()", get_result=True)
@@ -313,3 +370,4 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
             self._execute_lua("while(get_zoom()>{0}) "
                               "do click(\"zoom_out\") end".format(level+1),
                               wait=True)
+
