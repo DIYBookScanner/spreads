@@ -424,9 +424,6 @@ def main():
         'error':    logging.ERROR,
         'critical': logging.CRITICAL,
     })
-    logfile = Path(os.path.expanduser(config['logfile'].get()))
-    if not logfile.parent.exists():
-        logfile.parent.mkdir()
 
     # Set up logger
     logger = logging.getLogger()
@@ -437,13 +434,18 @@ def main():
     stdout_handler.setLevel(logging.DEBUG if config['verbose'].get()
                             else logging.WARNING)
     stdout_handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
-    file_handler = logging.handlers.RotatingFileHandler(
-        filename=unicode(logfile), maxBytes=512*1024, backupCount=1)
-    file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
-    file_handler.setLevel(loglevel)
     logger.addHandler(stdout_handler)
-    logger.addHandler(file_handler)
+    if 'logfile' in config.keys():
+      logfile = Path(os.path.expanduser(config['logfile'].get()))
+      if not logfile.parent.exists():
+          logfile.parent.mkdir()
+      file_handler = logging.handlers.RotatingFileHandler(
+        filename=unicode(logfile), maxBytes=512*1024, backupCount=1)
+      file_handler.setFormatter(logging.Formatter(
+          "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
+      file_handler.setLevel(loglevel)
+      logger.addHandler(file_handler)
+
     logger.setLevel(logging.DEBUG)
 
     args.subcommand(config)
