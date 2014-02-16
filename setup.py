@@ -99,7 +99,7 @@ setup(
         "autorotate": ["jpegtran-cffi >= 0.4"],
         "colorcorrect": ["Wand >= 0.3.5"],
         "gui": ["PySide >= 1.2.1"],
-        "hidtrigger": ["Cython >= 0.15", "hidapi >= 0.7"],
+        "hidtrigger": ["hidapi >= 0.7"],
         "web": [
             "Flask >= 0.10.1",
             "Flask-Compress >= 1.0.0",
