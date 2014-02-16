@@ -6,7 +6,7 @@ import subprocess
 import time
 import xml.etree.cElementTree as ET
 
-from spreads.plugin import HookPlugin, PluginOption
+from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
 from spreads.util import find_in_path, MissingDependencyException
 from spreads.vendor.pathlib import Path
 
@@ -26,7 +26,7 @@ except subprocess.CalledProcessError:
                        .glob('*.traineddata')]
 
 
-class TesseractPlugin(HookPlugin):
+class TesseractPlugin(HookPlugin, ProcessHookMixin):
     __name__ = 'tesseract'
 
     @classmethod

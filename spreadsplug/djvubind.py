@@ -6,7 +6,7 @@ import logging
 import os
 import subprocess
 
-from spreads.plugin import HookPlugin
+from spreads.plugin import HookPlugin, OutputHookMixin
 from spreads.util import MissingDependencyException, find_in_path
 
 if not find_in_path('djvubind'):
@@ -17,7 +17,7 @@ if not find_in_path('djvubind'):
 logger = logging.getLogger('spreadsplug.djvubind')
 
 
-class DjvuBindPlugin(HookPlugin):
+class DjvuBindPlugin(HookPlugin, OutputHookMixin):
     __name__ = 'djvubind'
 
     def output(self, path):

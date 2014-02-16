@@ -6,7 +6,7 @@ import logging
 import os
 import subprocess
 
-from spreads.plugin import HookPlugin
+from spreads.plugin import HookPlugin, OutputHookMixin
 from spreads.util import MissingDependencyException, find_in_path
 
 if not find_in_path('pdfbeads'):
@@ -17,7 +17,7 @@ if not find_in_path('pdfbeads'):
 logger = logging.getLogger('spreadsplug.pdfbeads')
 
 
-class PDFBeadsPlugin(HookPlugin):
+class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
     __name__ = 'pdfbeads'
 
     def output(self, path):

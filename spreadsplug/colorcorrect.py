@@ -5,7 +5,7 @@ import wand.api
 import wand.image
 from concurrent import futures
 
-from spreads.plugin import HookPlugin, PluginOption
+from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
 
 logger = logging.getLogger('spreadsplug.colorcorrect')
 
@@ -23,7 +23,7 @@ def correct_colors(img_path, factors):
             img.save(filename=img_path)
 
 
-class ColorCorrectionPlugin(HookPlugin):
+class ColorCorrectionPlugin(HookPlugin, ProcessHookMixin):
     __name__ = 'colorcorrect'
 
     @classmethod
