@@ -10,7 +10,8 @@ from spreads.vendor.confit import Configuration
 import spreads.plugin
 
 
-class TestPluginProcess(spreads.plugin.HookPlugin):
+class TestPluginProcess(spreads.plugin.HookPlugin,
+                        spreads.plugin.ProcessHookMixin):
     __name__ = 'test_process'
 
     @classmethod
@@ -42,7 +43,9 @@ class TestPluginProcessB(TestPluginProcess):
         (path/'processed_b.txt').touch()
 
 
-class TestPluginOutput(spreads.plugin.HookPlugin):
+class TestPluginOutput(spreads.plugin.HookPlugin,
+                       spreads.plugin.OutputHookMixin,
+                       spreads.plugin.SubcommandHookMixin):
     __name__ = 'test_output'
 
     @classmethod

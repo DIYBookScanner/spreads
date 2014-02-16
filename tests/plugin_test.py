@@ -23,7 +23,7 @@ def test_set_default_config(config, mock_driver_mgr, mock_plugin_mgr):
 def test_get_relevant_extensions(mock_plugin_mgr):
     plugin_manager = plugin.get_pluginmanager()
     exts = list(plugin.get_relevant_extensions(
-        plugin_manager, ["process"]))
+        plugin_manager, [plugin.ProcessHookMixin]))
     assert len(exts) == 2
     assert exts[0].name == "test_process"
     assert exts[1].name == "test_process2"
