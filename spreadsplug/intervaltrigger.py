@@ -2,7 +2,8 @@ import logging
 import threading
 import time
 
-from spreads.plugin import HookPlugin, PluginOption, TriggerHooksMixin
+from spreads.config import OptionTemplate
+from spreads.plugin import HookPlugin, TriggerHooksMixin
 
 logger = logging.getLogger('spreadsplug.intervaltrigger')
 
@@ -15,8 +16,8 @@ class IntervalTrigger(HookPlugin, TriggerHooksMixin):
 
     @classmethod
     def configuration_template(cls):
-        return {'interval': PluginOption(5.0, "Interval between captures"
-                                              " (in seconds)")}
+        return {'interval': OptionTemplate(5.0, "Interval between captures"
+                                                " (in seconds)")}
 
     def start_trigger_loop(self, capture_callback):
         logger.debug("Starting event loop")

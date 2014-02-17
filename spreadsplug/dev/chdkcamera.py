@@ -12,7 +12,8 @@ import usb
 from jpegtran import JPEGImage
 from spreads.vendor.pathlib import Path
 
-from spreads.plugin import DevicePlugin, PluginOption, DeviceFeatures
+from spreads.config import OptionTemplate
+from spreads.plugin import DevicePlugin, DeviceFeatures
 from spreads.util import DeviceException
 
 
@@ -36,16 +37,16 @@ class CHDKCameraDevice(DevicePlugin):
     def configuration_template(cls):
         conf = super(CHDKCameraDevice, cls).configuration_template()
         conf.update(
-            {'sensitivity': PluginOption(80, "The ISO sensitivity value"),
-             'shutter_speed': PluginOption(
+            {'sensitivity': OptionTemplate(80, "The ISO sensitivity value"),
+             'shutter_speed': OptionTemplate(
                  u"1/25", "The shutter speed as a fraction"),
-             'zoom_level': PluginOption(3, "The default zoom level"),
-             'dpi': PluginOption(300, "The capturing resolution"),
-             'shoot_raw': PluginOption(False, "Shoot in RAW format (DNG)"),
-             'focus_distance': PluginOption(0, "Set focus distance"),
-             'monochrome': PluginOption(
+             'zoom_level': OptionTemplate(3, "The default zoom level"),
+             'dpi': OptionTemplate(300, "The capturing resolution"),
+             'shoot_raw': OptionTemplate(False, "Shoot in RAW format (DNG)"),
+             'focus_distance': OptionTemplate('auto', "Set focus distance"),
+             'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
-             'chdkptp_path': PluginOption(
+             'chdkptp_path': OptionTemplate(
                  u"/usr/local/lib/chdkptp",
                  "Path to CHDKPTP binary/libraries"),
              })

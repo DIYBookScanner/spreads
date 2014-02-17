@@ -3,27 +3,26 @@ import shutil
 import time
 from random import randint
 
-import blinker
 import mock
 import pytest
-from spreads.vendor.confit import Configuration
 from spreads.workflow import Workflow
 from spreads.plugin import SpreadsPlugin
 from spreads.util import EventHandler
 
-import spreads.plugin
+import spreads.plugin as plugin
+from spreads.config import Configuration, OptionTemplate
 
 
-class TestPluginProcess(spreads.plugin.HookPlugin,
-                        spreads.plugin.ProcessHookMixin):
+class TestPluginProcess(plugin.HookPlugin,
+                        plugin.ProcessHookMixin):
     __name__ = 'test_process'
 
     @classmethod
     def configuration_template(cls):
-        return {'a_boolean': spreads.plugin.PluginOption(
+        return {'a_boolean': OptionTemplate(
                     value=True, docstring="A boolean",
                     selectable=False),
-                'float': spreads.plugin.PluginOption(
+                'float': OptionTemplate(
                     value=3.14, docstring="A float",
                     selectable=False)}
 
@@ -36,10 +35,10 @@ class TestPluginProcessB(TestPluginProcess):
 
     @classmethod
     def configuration_template(cls):
-        return {'an_integer': spreads.plugin.PluginOption(
+        return {'an_integer': OptionTemplate(
                     value=10, docstring="An integer",
                     selectable=False),
-                'list': spreads.plugin.PluginOption(
+                'list': OptionTemplate(
                     value=[1, 2, 3], docstring="A list",
                     selectable=False)}
 
@@ -47,17 +46,17 @@ class TestPluginProcessB(TestPluginProcess):
         (path/'processed_b.txt').touch()
 
 
-class TestPluginOutput(spreads.plugin.HookPlugin,
-                       spreads.plugin.OutputHookMixin,
-                       spreads.plugin.SubcommandHookMixin):
+class TestPluginOutput(plugin.HookPlugin,
+                       plugin.OutputHookMixin,
+                       plugin.SubcommandHookMixin):
     __name__ = 'test_output'
 
     @classmethod
     def configuration_template(cls):
-        return {'string': spreads.plugin.PluginOption(
+        return {'string': OptionTemplate(
                     value="moo", docstring="A string",
                     selectable=False),
-                'selectable': spreads.plugin.PluginOption(
+                'selectable': OptionTemplate(
                     value=["a", "b", "c"], docstring="A selectable",
                     selectable=True)}
 
@@ -74,10 +73,10 @@ class TestPluginOutput(spreads.plugin.HookPlugin,
         (path/'output.txt').touch()
 
 
-class TestDriver(spreads.plugin.DevicePlugin):
+class TestDriver(plugin.DevicePlugin):
     __name__ = 'testdriver'
 
-    features = (spreads.plugin.DeviceFeatures.IS_CAMERA, )
+    features = (plugin.DeviceFeatures.IS_CAMERA, )
     num_devices = 2
     target_pages = True
     delay = 0
@@ -120,7 +119,7 @@ class TestDriver(spreads.plugin.DevicePlugin):
 
 @pytest.fixture
 def config():
-    cfg = Configuration('plugin_test')
+    cfg = Configuration(appname='spreads_test')
     cfg["driver"] = u"testdriver"
     cfg["plugins"] = [u"test_output", u"test_process", u"test_process2"]
     cfg["capture"]["capture_keys"] = ["b", " "]
@@ -142,7 +141,7 @@ def mock_plugin_mgr(config):
         exts[1].name = "test_process"
         exts[2].name = "test_process2"
 
-        pm = mock.MagicMock(spec=spreads.plugin.SpreadsNamedExtensionManager)
+        pm = mock.MagicMock(spec=plugin.SpreadsNamedExtensionManager)
         pm.__iter__.return_value = exts
         pm.map = lambda func, *args, **kwargs: [func(ext, *args, **kwargs)
                                                 for ext in exts]
@@ -155,7 +154,7 @@ def mock_driver_mgr():
     with mock.patch('spreads.plugin.get_driver') as get_driver:
         ext = mock.Mock(plugin=TestDriver)
         ext.name = "testdriver"
-        dm = mock.MagicMock(spec=spreads.plugin.DriverManager)
+        dm = mock.MagicMock(spec=plugin.DriverManager)
         dm.driver = TestDriver
         dm.extensions = [ext]
         dm.__iter__.return_value = [ext]

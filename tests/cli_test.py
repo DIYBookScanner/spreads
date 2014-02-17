@@ -92,6 +92,7 @@ def test_set_device_target_page(config, mock_getch, mock_driver_mgr):
 
 def test_configure(mock_pkg_resources, mock_driver_mgr, mock_plugin_mgr,
                    config, mock_input, mock_getch):
+    config["plugins"] = []
     mockdriver = Mock()
     mockdriver.name = "testdriver"
     mockplugs = [Mock(), Mock(), Mock()]
@@ -106,8 +107,8 @@ def test_configure(mock_pkg_resources, mock_driver_mgr, mock_plugin_mgr,
     mock_getch.return_value = " "
     mock_input.side_effect = (
         "1",  # Select device driver
-        "1",  # Select plugin 'test_output'
-        "2",  # Select plugin 'test_process'
+        "3",  # Select plugin 'test_output'
+        "1",  # Select plugin 'test_process'
         "",   # Finish plugin selection
         "test_process",  # Set processing pipeline
         "y",  # Start setting target pages,
@@ -120,6 +121,7 @@ def test_configure(mock_pkg_resources, mock_driver_mgr, mock_plugin_mgr,
 
     mock_driver_mgr.return_value.driver.num_devices = 2
 
+    print config['plugins'].get()
     assert config['driver'].get() == 'testdriver'
     assert config['plugins'].get() == ["test_process", "test_output"]
     assert config["device"]["focus_distance"].get() == 300
@@ -202,13 +204,11 @@ def test_setup_parser(mock_plugin_mgr, mock_driver_mgr, config):
 
 
 @patch('os.path.exists')
-@patch('spreads.cli.confit.LazyConfig')
-def test_main(LazyConfig, exists, config, mock_plugin_mgr,
+def test_main(exists, config, mock_plugin_mgr,
               mock_driver_mgr, tmpdir):
     config["loglevel"] = "info"
     config["verbose"] = False
     config["logfile"] = unicode(tmpdir.join('spreads.log'))
-    LazyConfig.return_value = config
     exists.return_value = False
     # NOTE: We mock out parser, since it interferes with pytest's parser
     with patch('spreads.cli.argparse.ArgumentParser'):

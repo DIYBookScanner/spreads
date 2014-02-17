@@ -15,7 +15,8 @@ from xml.etree.cElementTree import ElementTree as ET
 import psutil
 from spreads.vendor.pathlib import Path
 
-from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
+from spreads.config import OptionTemplate
+from spreads.plugin import HookPlugin, ProcessHookMixin
 from spreads.util import find_in_path, MissingDependencyException
 
 if not find_in_path('scantailor-cli'):
@@ -31,22 +32,23 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
 
     @classmethod
     def configuration_template(cls):
-        conf = {'autopilot': PluginOption(value=False,
-                                          docstring="Skip manual correction"),
-                'rotate': PluginOption(value=False, docstring="Rotate pages"),
-                'split_pages': PluginOption(value=True,
-                                            docstring="Split pages"),
-                'deskew': PluginOption(value=True, docstring="Deskew pages"),
-                'content': PluginOption(value=True,
-                                        docstring="Detect page content"),
-                'auto_margins': PluginOption(value=True,
-                                             docstring="Automatically detect"
-                                                       " margins"),
-                'detection': PluginOption(value=('content', 'page'),
-                                          docstring="Content detection mode",
-                                          selectable=True),
-                'margins': PluginOption([2.5, 2.5, 2.5, 2.5])
-                }
+        conf = {
+            'autopilot': OptionTemplate(value=False,
+                                        docstring="Skip manual correction"),
+            'rotate': OptionTemplate(value=False, docstring="Rotate pages"),
+            'split_pages': OptionTemplate(value=True,
+                                          docstring="Split pages"),
+            'deskew': OptionTemplate(value=True, docstring="Deskew pages"),
+            'content': OptionTemplate(value=True,
+                                      docstring="Detect page content"),
+            'auto_margins': OptionTemplate(value=True,
+                                           docstring="Automatically detect"
+                                                     " margins"),
+            'detection': OptionTemplate(value=('content', 'page'),
+                                        docstring="Content detection mode",
+                                        selectable=True),
+            'margins': OptionTemplate([2.5, 2.5, 2.5, 2.5])
+        }
         return conf
 
     def __init__(self, config):

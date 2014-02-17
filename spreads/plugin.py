@@ -22,7 +22,6 @@
 from __future__ import division, unicode_literals
 
 import abc
-import itertools
 import logging
 
 import stevedore
@@ -30,32 +29,13 @@ from blinker import Namespace
 from stevedore.driver import DriverManager
 from stevedore.named import NamedExtensionManager
 
+from spreads.config import OptionTemplate
 from spreads.util import abstractclassmethod, DeviceException
 
 
 logger = logging.getLogger("spreads.plugin")
 pluginmanager = None
 devices = None
-
-
-class PluginOption(object):
-    """ A configuration option.
-
-    :attr value:      The default value for the option or a list of available
-                      options if :attr selectable: is True
-    :type value:      object (or list/tuple when :attr selectable: is True)
-    :attr docstring:  A string explaining the configuration option
-    :type docstring:  unicode
-    :attr selectable: Make the PluginOption a selectable, i.e. value contains
-                      a list or tuple of acceptable values for this option,
-                      with the first member being the default selection.
-    :type selectable: bool
-    """
-
-    def __init__(self, value, docstring=None, selectable=False):
-        self.value = value
-        self.docstring = docstring
-        self.selectable = selectable
 
 
 class SpreadsNamedExtensionManager(NamedExtensionManager):
@@ -101,21 +81,21 @@ class SpreadsPlugin(object):  # pragma: no cover
         """ Allows a plugin to define its configuration keys.
 
         The returned dictionary has to be flat (i.e. no nested dicts)
-        and contain a PluginOption object for each key.
+        and contain a OptionTemplate object for each key.
 
         Example::
 
           {
-           'a_setting': PluginOption(value='default_value'),
-           'another_setting': PluginOption(value=[1, 2, 3],
+           'a_setting': OptionTemplate(value='default_value'),
+           'another_setting': OptionTemplate(value=[1, 2, 3],
                                            docstring="A list of things"),
            # In this case, 'full-fat' would be the default value
-           'milk': PluginOption(value=('full-fat', 'skim'),
+           'milk': OptionTemplate(value=('full-fat', 'skim'),
                                 docstring="Type of milk",
                                 selectable=True),
           }
 
-        :return: dict with unicode: PluginOption(value, docstring, selection)
+        :return: dict with unicode: OptionTemplate(value, docstring, selection)
         """
         pass
 
@@ -161,11 +141,11 @@ class DevicePlugin(SpreadsPlugin):  # pragma: no cover
     def configuration_template(cls):
         if DeviceFeatures.IS_CAMERA in cls.features:
             return {
-                "parallel_capture": PluginOption(
+                "parallel_capture": OptionTemplate(
                     value=True,
                     docstring="Trigger capture on multiple devices at once.",
                     selectable=False),
-                "flip_target_pages": PluginOption(
+                "flip_target_pages": OptionTemplate(
                     value=False, docstring="Temporarily switch target pages"
                                            "(useful for e.g. East-Asian books")
             }
@@ -410,35 +390,6 @@ def get_devices(config, force_reload=False):
         if not devices:
             raise DeviceException("Could not find any compatible devices!")
     return devices
-
-
-def set_default_config(config):
-    pluginmanager = get_pluginmanager(config)
-    if "driver" in config.keys():
-        driver = get_driver(config["driver"].get(unicode))
-    else:
-        driver = ()
-    for ext in itertools.chain(pluginmanager, driver):
-        logger.debug("Obtaining configuration template for plugin \"{0}\""
-                     .format(ext.name))
-        tmpl = ext.plugin.configuration_template()
-        if ext in driver.extensions:
-            section = 'device'
-        else:
-            section = ext.name
-        if not tmpl:
-            continue
-        # Add default values
-        for key, option in tmpl.items():
-            # Check if we already have a configuration entry for this setting
-            if key in config[section].keys():
-                continue
-            logging.info("Adding setting {0} from  plugin {1}"
-                         .format(key, ext.name))
-            if option.selectable:
-                config[section][key] = option.value[0]
-            else:
-                config[section][key] = option.value
 
 
 def get_relevant_extensions(plugin_manager, hooks):

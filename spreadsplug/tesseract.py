@@ -6,7 +6,8 @@ import subprocess
 import time
 import xml.etree.cElementTree as ET
 
-from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
+from spreads.config import OptionTemplate
+from spreads.plugin import HookPlugin, ProcessHookMixin
 from spreads.util import find_in_path, MissingDependencyException
 from spreads.vendor.pathlib import Path
 
@@ -31,9 +32,9 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
 
     @classmethod
     def configuration_template(cls):
-        conf = {'language': PluginOption(value=AVAILABLE_LANGS,
-                                         docstring="OCR language",
-                                         selectable=True),
+        conf = {'language': OptionTemplate(value=AVAILABLE_LANGS,
+                                           docstring="OCR language",
+                                           selectable=True),
                 }
         return conf
 

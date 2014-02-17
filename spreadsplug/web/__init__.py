@@ -8,9 +8,9 @@ from spreads.vendor.huey.consumer import Consumer
 from spreads.vendor.pathlib import Path
 from flask import Flask
 
-from spreads.plugin import (HookPlugin, SubcommandHookMixin, PluginOption,
-                            get_devices)
-from spreads.util import add_argument_from_option, EventHandler
+from spreads.config import OptionTemplate
+from spreads.plugin import HookPlugin, SubcommandHookMixin, get_devices
+from spreads.cli import add_argument_from_template
 from spreads.workflow import Workflow
 
 app = Flask('spreadsplug.web', static_url_path='', static_folder='./client',
@@ -61,35 +61,35 @@ class WebCommands(HookPlugin, SubcommandHookMixin):
         cmdparser.set_defaults(subcommand=run_server)
         for key, option in cls.configuration_template().iteritems():
             try:
-                add_argument_from_option('web', key, option, cmdparser)
+                add_argument_from_template('web', key, option, cmdparser)
             except:
                 continue
 
     @classmethod
     def configuration_template(cls):
         return {
-            'mode': PluginOption(
+            'mode': OptionTemplate(
                 value=["full", "scanner", "processor"],
                 docstring="Mode to run server in",
                 selectable=True),
-            'debug': PluginOption(
+            'debug': OptionTemplate(
                 value=False,
                 docstring="Run server in debugging mode",
                 selectable=False),
-            'project_dir': PluginOption(
+            'project_dir': OptionTemplate(
                 value=u"~/scans",
                 docstring="Directory for project folders",
                 selectable=False),
-            'database': PluginOption(
+            'database': OptionTemplate(
                 value=u"~/.config/spreads/workflows.db",
                 docstring="Path to application database file",
                 selectable=False),
-            'postprocessing_server': PluginOption(
+            'postprocessing_server': OptionTemplate(
                 value=u"",  # Cannot be None because of type deduction in
                             # option parser
                 docstring="Address of the postprocessing server",
                 selectable=False),
-            'standalone_device': PluginOption(
+            'standalone_device': OptionTemplate(
                 value=False,
                 docstring="Server runs on a standalone device dedicated to "
                           "scanning (e.g. 'spreadpi').",
@@ -142,7 +142,7 @@ def setup_signals(ws_server=None):
 
     # Register event handlers
     signals = chain(*(x.signals.values()
-                      for x in (Workflow, EventHandler, web)))
+                      for x in (Workflow, util.EventHandler, web)))
 
     for signal in signals:
         signal.connect(get_signal_callback_http(signal), weak=False)

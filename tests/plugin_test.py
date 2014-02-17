@@ -11,7 +11,8 @@ def test_get_devices(config, mock_driver_mgr):
 
 
 def test_set_default_config(config, mock_driver_mgr, mock_plugin_mgr):
-    plugin.set_default_config(config)
+    # TODO: This should be moved to the config-tests
+    config.load_defaults()
     assert config["test_process"]["a_boolean"].get()
     assert config["test_process"]["float"].get() == 3.14
     assert config["test_process2"]["an_integer"].get() == 10

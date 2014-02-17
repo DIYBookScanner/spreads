@@ -187,7 +187,7 @@ def update_workflow(workflow):
         workflow.path = new_path
     config = data.get('config')
     # Update workflow configuration
-    workflow.config.set(config)
+    workflow.config = workflow.config.with_overlay(config)
     # Persist to disk
     persistence.save_workflow(workflow)
     return make_response(json.dumps(workflow),

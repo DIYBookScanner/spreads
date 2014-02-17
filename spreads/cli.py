@@ -38,9 +38,9 @@ import spreads.vendor.confit as confit
 from spreads.vendor.pathlib import Path
 
 import spreads.plugin as plugin
+from spreads.config import Configuration
+from spreads.util import DeviceException, ColourStreamHandler, EventHandler
 from spreads.workflow import Workflow
-from spreads.util import (DeviceException, ColourStreamHandler, EventHandler,
-                          add_argument_from_option)
 
 if sys.platform == 'win32':
     import msvcrt
@@ -161,14 +161,15 @@ def _set_device_target_page(config, target_page):
 
 
 def configure(config):
+    old_plugins = config["plugins"].get()
     config["driver"] = _select_driver()
-    config["plugins"] = _select_plugins(config["plugins"].get())
-
-    # Set default plugin configuration
-    plugin.set_default_config(config)
+    config["plugins"] = _select_plugins(old_plugins)
     _setup_processing_pipeline(config)
 
-    cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
+    # Load default configuration for newly added plugins
+    new_plugins = [x for x in config["plugins"].get() if x not in old_plugins]
+    for name in new_plugins:
+        config.set_from_template(name, config.templates[name])
 
     driver = plugin.get_driver(config["driver"].get()).driver
 
@@ -197,6 +198,7 @@ def configure(config):
             getch()
             focus = devs[0]._acquire_focus()
             config['device']['focus_distance'] = focus
+    cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
     print("Writing configuration file to '{0}'".format(cfg_path))
     config.dump(filename=cfg_path)
 
@@ -229,7 +231,7 @@ def capture(config):
             import select
             old_settings = termios.tcgetattr(sys.stdin)
             data_available = lambda: (select.select([sys.stdin], [], [], 0) ==
-                                     ([sys.stdin], [], []))
+                                      ([sys.stdin], [], []))
             read_char = lambda: sys.stdin.read(1)
         else:
             data_available = msvcrt.kbhit
@@ -317,46 +319,15 @@ def wizard(config):
 
 
 def setup_parser(config):
-    def _add_device_arguments(name, parser):
-        tmpl = plugin.get_driver(config["driver"]
-                                 .get()).driver.configuration_template()
-        if not tmpl:
-            return
-        for key, option in tmpl.iteritems():
-            try:
-                add_argument_from_option('device', key, option, parser)
-            except:
-                return
-
-    def _add_plugin_arguments(hooks, parser):
-        extensions = plugin.get_relevant_extensions(pluginmanager, hooks)
-        for ext in extensions:
-            tmpl = ext.plugin.configuration_template()
-            if not tmpl:
-                continue
-            for key, option in tmpl.iteritems():
-                try:
-                    add_argument_from_option(ext.name, key, option, parser)
-                except:
-                    continue
-
-    root_options = {
-        'verbose': plugin.PluginOption(value=False,
-                                       docstring="Enable verbose output"),
-        'logfile': plugin.PluginOption(value="~/.config/spreads/spreads.log",
-                                       docstring="Path to logfile"),
-        'loglevel': plugin.PluginOption(value=['info', 'critical', 'error',
-                                               'warning', 'debug'],
-                                        docstring="Logging level for logfile",
-                                        selectable=True)
-    }
-
-    pluginmanager = plugin.get_pluginmanager(config)
+    pm = plugin.get_pluginmanager()
     rootparser = argparse.ArgumentParser(
         description="Scanning Tool for  DIY Book Scanner")
     subparsers = rootparser.add_subparsers()
-    for key, option in root_options.iteritems():
-        add_argument_from_option('', key, option, rootparser)
+    for key, option in config.templates['core'].iteritems():
+        try:
+            add_argument_from_template('', key, option, rootparser)
+        except TypeError:
+            continue
 
     wizard_parser = subparsers.add_parser(
         'wizard', help="Interactive mode")
@@ -375,10 +346,15 @@ def setup_parser(config):
     capture_parser.set_defaults(subcommand=capture)
     # Add arguments from plugins
     for parser in (capture_parser, wizard_parser):
-        _add_plugin_arguments(
-            [plugin.CaptureHooksMixin, plugin.TriggerHooksMixin], parser)
-        if 'driver' in config.keys():
-            _add_device_arguments('capture', parser)
+        exts = [ext.name for ext in plugin.get_relevant_extensions(
+                pm, [plugin.CaptureHooksMixin, plugin.TriggerHooksMixin])]
+        exts.append('driver')
+        for ext in exts:
+            for key, tmpl in config.templates.get(ext, {}).iteritems():
+                try:
+                    add_argument_from_template(ext, key, tmpl, parser)
+                except TypeError:
+                    continue
 
     postprocess_parser = subparsers.add_parser(
         'postprocess',
@@ -391,7 +367,14 @@ def setup_parser(config):
     postprocess_parser.set_defaults(subcommand=postprocess)
     # Add arguments from plugins
     for parser in (postprocess_parser, wizard_parser):
-        _add_plugin_arguments([plugin.ProcessHookMixin], parser)
+        exts = [ext.name for ext in plugin.get_relevant_extensions(
+                pm, [plugin.ProcessHookMixin])]
+        for ext in exts:
+            for key, tmpl in config.templates.get(ext, {}).iteritems():
+                try:
+                    add_argument_from_template(ext, key, tmpl, parser)
+                except TypeError:
+                    continue
 
     output_parser = subparsers.add_parser(
         'output',
@@ -401,46 +384,70 @@ def setup_parser(config):
     output_parser.set_defaults(subcommand=output)
     # Add arguments from plugins
     for parser in (output_parser, wizard_parser):
-        _add_plugin_arguments([plugin.OutputHookMixin], parser)
+        exts = [ext.name for ext in plugin.get_relevant_extensions(
+                pm, [plugin.OutputHookMixin])]
+        for ext in exts:
+            for key, tmpl in config.templates.get(ext, {}).iteritems():
+                try:
+                    add_argument_from_template(ext, key, tmpl, parser)
+                except TypeError:
+                    continue
 
     # Add custom subcommands from plugins
     if config["plugins"].get():
-        exts = plugin.get_relevant_extensions(pluginmanager,
-                                              [plugin.SubcommandHookMixin])
-
-        for ext in exts:
+        for ext in (plugin.get_relevant_extensions(
+                    pm, [plugin.SubcommandHookMixin])):
             ext.plugin.add_command_parser(subparsers)
     return rootparser
 
 
-def set_config_from_args(config, args):
-    for argkey, value in args.__dict__.iteritems():
-        if value is None or argkey == 'subcommand' or argkey.startswith('_'):
-            continue
-        if '.' in argkey:
-            section, key = argkey.split('.')
-            config[section][key] = value
+def add_argument_from_template(extname, key, template, parser):
+    flag = "--{0}".format(key.replace('_', '-'))
+    default = (template.value
+               if not template.selectable
+               else template.value[0])
+    kwargs = {'help': ("{0} [default: {1}]"
+                       .format(template.docstring, default)),
+              'dest': "{0}{1}".format(extname, '.'+key if extname else key)}
+    if isinstance(template.value, basestring):
+        kwargs['type'] = unicode
+        kwargs['metavar'] = "<str>"
+    elif isinstance(template.value, bool):
+        kwargs['help'] = template.docstring
+        if template.value:
+            flag = "--no-{0}".format(key.replace('_', '-'))
+            kwargs['help'] = ("Disable {0}"
+                              .format(template.docstring.lower()))
+            kwargs['action'] = "store_false"
         else:
-            config[argkey] = value
+            kwargs['action'] = "store_true"
+    elif isinstance(template.value, float):
+        kwargs['type'] = float
+        kwargs['metavar'] = "<float>"
+    elif isinstance(template.value, int):
+        kwargs['type'] = int
+        kwargs['metavar'] = "<int>"
+    elif template.selectable:
+        kwargs['type'] = type(template.value[0])
+        kwargs['metavar'] = "<{0}>".format("/".join(template.value))
+        kwargs['choices'] = template.value
+    else:
+        raise TypeError("Unsupported option type")
+    parser.add_argument(flag, **kwargs)
 
 
 def main():
     # Set to ERROR so we can see errors during plugin loading.
     logging.basicConfig(loglevel=logging.ERROR)
 
-    # Lazy-load configuration
-    config = confit.LazyConfig('spreads', __name__)
-    # Load default plugin configuration
-    plugin.set_default_config(config)
-    # Load user configuration
-    config.read()
+    config = Configuration()
 
     parser = setup_parser(config)
     args = parser.parse_args()
     # Set configuration from parsed arguments
-    set_config_from_args(config, args)
+    config.set_from_args(args)
 
-    loglevel = config['loglevel'].as_choice({
+    loglevel = config['core']['loglevel'].as_choice({
         'none':     logging.NOTSET,
         'info':     logging.INFO,
         'debug':    logging.DEBUG,
@@ -455,13 +462,13 @@ def main():
         for handler in logger.handlers:
             logger.removeHandler(handler)
     stdout_handler = ColourStreamHandler()
-    stdout_handler.setLevel(logging.DEBUG if config['verbose'].get()
+    stdout_handler.setLevel(logging.DEBUG if config['core']['verbose'].get()
                             else logging.WARNING)
     stdout_handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
     logger.addHandler(stdout_handler)
     logger.addHandler(EventHandler())
     if 'logfile' in config.keys():
-        logfile = Path(os.path.expanduser(config['logfile'].get()))
+        logfile = Path(os.path.expanduser(config['core']['logfile'].get()))
         if not logfile.parent.exists():
             logfile.parent.mkdir()
         file_handler = logging.handlers.RotatingFileHandler(

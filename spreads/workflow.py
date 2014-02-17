@@ -34,6 +34,7 @@ from concurrent.futures import ThreadPoolExecutor
 from spreads.vendor.pathlib import Path
 
 import spreads.plugin as plugin
+from spreads.config import Configuration
 from spreads.util import (check_futures_exceptions, get_free_space,
                           DeviceException)
 
@@ -57,7 +58,7 @@ class Workflow(object):
         else:
             self.pages_shot = 0
         # See if supplied `config` is already a valid Configuration object
-        if isinstance(config, confit.Configuration):
+        if isinstance(config, Configuration):
             self.config = config
         else:
             self.config = self._load_config(config)
@@ -142,14 +143,14 @@ class Workflow(object):
 
     def _load_config(self, value):
         # Load default configuration
-        config = confit.Configuration('spreads')
+        config = Configuration()
         cfg_file = self.path / 'config.yml'
         if value is None and cfg_file.exists():
             # Load workflow-specific configuration from file
-            config.set(confit.ConfigSource({}, unicode(cfg_file)))
-        elif value is not None:
+            value = confit.ConfigSource({}, unicode(cfg_file))
+        if value is not None:
             # Load configuration from supplied ConfigSource or dictionary
-            config.set(value)
+            config = config.with_overlay(value)
         return config
 
     def _run_hook(self, hook_name, *args):

@@ -1,9 +1,0 @@
-# Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
-loglevel: warning
-logfile: ~/.config/spreads/spreads.log
-plugins: []
-
-# Options for 'capture' step
-capture:
-    # Keys that trigger a capture. Put the space bar inside double ticks.
-    capture_keys: [" " , b]
