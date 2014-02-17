@@ -7,7 +7,7 @@ before_install:
     - sudo apt-get update -qq
     - sudo apt-get install -qq libusb-dev python-pyside cython libffi-dev libjpeg8-dev libudev-dev libusb-1.0-0-dev python-dbus
     - ln -s /usr/lib/python2.7/dist-packages/PySide /usr/lib/python2.7/dist-packages/*dbus* ~/virtualenv/python2.7/lib/python2.7/site-packages/
-    - ln -s /usr/share/pyshared/Cython* /usr/share/pyshared/cython.py /usr/share/pyshared/pyximport ~/virtualen/python2.7/lib/python2.7/site-packages/
+    - ln -s /usr/share/pyshared/Cython* /usr/share/pyshared/cython.py /usr/share/pyshared/pyximport ~/virtualenv/python2.7/lib/python2.7/site-packages/
     - "export DISPLAY=:99.0"
     - "sh -e /etc/init.d/xvfb start"
     - sleep 3
