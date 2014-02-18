@@ -15,7 +15,7 @@ from spreads.workflow import Workflow
 
 
 @pytest.yield_fixture
-def app(config, mock_driver_mgr, mock_plugin_mgr, tmpdir):
+def app(config, tmpdir):
     import spreadsplug.web.persistence as persistence
     from spreadsplug.web import setup_app, setup_logging, setup_signals, app
     from spreadsplug.web.web import event_queue

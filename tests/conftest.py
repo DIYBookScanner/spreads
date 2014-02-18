@@ -1,3 +1,4 @@
+import itertools
 import os.path
 import shutil
 import time
@@ -117,6 +118,40 @@ class TestDriver(plugin.DevicePlugin):
         return 300
 
 
+@pytest.yield_fixture(autouse=True)
+def mock_iter_entry_points():
+    def iter_entry_points(namespace, name=None):
+        if namespace == 'spreadsplug.hooks':
+            exts = [mock.Mock(), mock.Mock(), mock.Mock()]
+            exts[0].name = "test_output"
+            exts[0].load.return_value = TestPluginOutput
+            exts[1].name = "test_process"
+            exts[1].load.return_value = TestPluginProcess
+            exts[2].name = "test_process2"
+            exts[2].load.return_value = TestPluginProcessB
+            if name is None:
+                return iter(exts)
+            elif name == 'test_output':
+                return iter((exts[0],))
+            elif name == 'test_process':
+                return iter((exts[1],))
+            elif name == 'test_process2':
+                return iter((exts[2],))
+        elif namespace == 'spreadsplug.devices':
+            mock_ext = mock.Mock()
+            mock_ext.name = 'testdriver'
+            mock_ext.load.return_value = TestDriver
+            return iter((mock_ext,))
+    with mock.patch('spreads.plugin.pkg_resources') as pkg_resources:
+        pkg_resources.iter_entry_points = iter_entry_points
+        yield
+
+
+@pytest.fixture
+def mock_driver():
+    return TestDriver
+
+
 @pytest.fixture
 def config():
     cfg = Configuration(appname='spreads_test')
@@ -124,42 +159,6 @@ def config():
     cfg["plugins"] = [u"test_output", u"test_process", u"test_process2"]
     cfg["capture"]["capture_keys"] = ["b", " "]
     return cfg
-
-
-@pytest.yield_fixture
-def mock_plugin_mgr(config):
-    with mock.patch('spreads.plugin.get_pluginmanager') as get_pm:
-        # TODO: Use stevedore.TestExtensionManager and real Extension instances
-        #       for this
-        exts = [mock.Mock(plugin=TestPluginOutput,
-                          obj=TestPluginOutput(config)),
-                mock.Mock(plugin=TestPluginProcess,
-                          obj=TestPluginProcess(config)),
-                mock.Mock(plugin=TestPluginProcessB,
-                          obj=TestPluginProcessB(config))]
-        exts[0].name = "test_output"
-        exts[1].name = "test_process"
-        exts[2].name = "test_process2"
-
-        pm = mock.MagicMock(spec=plugin.SpreadsNamedExtensionManager)
-        pm.__iter__.return_value = exts
-        pm.map = lambda func, *args, **kwargs: [func(ext, *args, **kwargs)
-                                                for ext in exts]
-        get_pm.return_value = pm
-        yield get_pm
-
-
-@pytest.yield_fixture
-def mock_driver_mgr():
-    with mock.patch('spreads.plugin.get_driver') as get_driver:
-        ext = mock.Mock(plugin=TestDriver)
-        ext.name = "testdriver"
-        dm = mock.MagicMock(spec=plugin.DriverManager)
-        dm.driver = TestDriver
-        dm.extensions = [ext]
-        dm.__iter__.return_value = [ext]
-        get_driver.return_value = dm
-        yield get_driver
 
 
 @pytest.yield_fixture(scope='module')

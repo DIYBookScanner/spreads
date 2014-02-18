@@ -23,11 +23,10 @@ from __future__ import division, unicode_literals
 
 import abc
 import logging
+from collections import OrderedDict
 
-import stevedore
+import pkg_resources
 from blinker import Namespace
-from stevedore.driver import DriverManager
-from stevedore.named import NamedExtensionManager
 
 from spreads.config import OptionTemplate
 from spreads.util import abstractclassmethod, DeviceException
@@ -38,29 +37,8 @@ pluginmanager = None
 devices = None
 
 
-class SpreadsNamedExtensionManager(NamedExtensionManager):
-    """ Custom extension manager for spreads.
-
-    stevedore's NamedExtensionmanger does not give us the Exception that caused
-    a plugin to fail at initialization. This derived class throws the original
-    exception instead of logging it.
-    """
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = (super(SpreadsNamedExtensionManager, cls)
-                             .__new__(cls, *args, **kwargs))
-        return cls._instance
-
-    def _load_plugins(self, *args, **kwargs):
-        extensions = []
-        for ep in self._find_entry_points(self.namespace):
-            stevedore.LOG.debug('found extension %r', ep)
-            ext = self._load_one_plugin(ep, *args, **kwargs)
-            if ext:
-                extensions.append(ext)
-        return extensions
+class ExtensionException(Exception):
+    pass
 
 
 class SpreadsPlugin(object):  # pragma: no cover
@@ -356,51 +334,63 @@ class OutputHookMixin(object):
         pass
 
 
-def get_pluginmanager(config):
-    global pluginmanager
-    if pluginmanager is None:
-        logger.debug("Creating plugin manager")
-        pluginmanager = SpreadsNamedExtensionManager(
-            namespace='spreadsplug.hooks',
-            names=config['plugins'].as_str_seq(),
-            invoke_on_load=True,
-            invoke_args=[config],
-            name_order=True)
-    return pluginmanager
+def available_plugins():
+    return [ext.name
+            for ext in pkg_resources.iter_entry_points('spreadsplug.hooks')]
+
+
+def get_plugins(*names):
+    logger.debug("Creating plugin manager")
+    extensions = OrderedDict()
+    for name in names:
+        try:
+            ext = next(pkg_resources.iter_entry_points('spreadsplug.hooks',
+                                                       name=name))
+        except StopIteration:
+            raise ExtensionException("Could not locate extension '{0}'"
+                                     .format(name))
+        try:
+            extensions[name] = ext.load()
+        except ImportError as err:
+            raise ExtensionException(
+                "Missing dependency for extension '{0}': {1}"
+                .format(name, err.message[16:]))
+    return extensions
+
+
+def available_drivers():
+    return [ext.name
+            for ext in pkg_resources.iter_entry_points('spreadsplug.devices')]
 
 
 def get_driver(driver_name):
-    return DriverManager(namespace="spreadsplug.devices",
-                         name=driver_name)
+    try:
+        ext = next(pkg_resources.iter_entry_points('spreadsplug.devices',
+                                                   name=driver_name))
+    except StopIteration:
+        raise ExtensionException("Could not locate driver '{0}'"
+                                 .format(driver_name))
+    try:
+        return ext.load()
+    except ImportError as err:
+        raise ExtensionException(
+            "Missing dependency for driver '{0}': {1}"
+            .format(driver_name, err.message[16:]))
 
 
 def get_devices(config, force_reload=False):
     """ Initialize configured devices.
     """
     global devices
-    if not 'driver' in config.keys():
-        raise DeviceException(
-            "No driver has been configured\n"
-            "Please run `spread configure` to select a driver.")
-    if force_reload or not devices:
-        driver_manager = get_driver(config["driver"].get())
-        driver_class = driver_manager.driver
-        logger.debug("Finding devices for driver \"{0}\"".format(driver_manager))
-        devices = list(driver_class.yield_devices(config['device']))
+    if not devices:
+        if 'driver' not in config.keys():
+            raise DeviceException(
+                "No driver has been configured\n"
+                "Please run `spread configure` to select a driver.")
+        driver = get_driver(config["driver"].get())
+        logger.debug("Finding devices for driver \"{0}\""
+                     .format(driver.__name__))
         if not devices:
             raise DeviceException("Could not find any compatible devices!")
+        devices = list(driver.yield_devices(config['device']))
     return devices
-
-
-def get_relevant_extensions(plugin_manager, hooks):
-    """ Find all extensions that implement certain hooks.
-
-    :param hooks:   HookMixins that are supposed to be implemented
-    :type hooks:    list(class)
-    :return:        A generator that yields relevant extensions
-    :rtype:         generator(Extension)
-
-    """
-    for ext in plugin_manager:
-        if any(issubclass(ext.plugin, hook) for hook in hooks):
-            yield ext

@@ -33,8 +33,6 @@ import sys
 import time
 
 import colorama
-import pkg_resources
-import spreads.vendor.confit as confit
 from spreads.vendor.pathlib import Path
 
 import spreads.plugin as plugin
@@ -77,17 +75,16 @@ def draw_progress(progress):
 def _select_driver():
     print(colorize("Please select a device driver from the following list:",
                    colorama.Fore.BLUE))
-    available_drivers = list(
-        pkg_resources.iter_entry_points('spreadsplug.devices'))
-    for pos, ext in enumerate(available_drivers, 1):
-        print("  [{0}]: {1}".format(pos, ext.name))
+    available_drivers = plugin.available_drivers()
+    for pos, ext in enumerate(plugin.available_drivers(), 1):
+        print("  [{0}]: {1}".format(pos, ext))
     while True:
         selection = raw_input("Select a driver: ")
         if not selection.isdigit() or int(selection) > len(available_drivers):
             print(colorize("Please select a number in the range of 1 to {0}"
                            .format(len(available_drivers)), colorama.Fore.RED))
             continue
-        driver = unicode(available_drivers[int(selection)-1].name)
+        driver = unicode(available_drivers[int(selection)-1])
         print(colorize("Selected \"{0}\" as device driver".format(driver),
                        colorama.Fore.GREEN))
         return driver
@@ -97,13 +94,11 @@ def _select_plugins(selected_plugins=None):
     if selected_plugins is None:
         selected_plugins = []
     print("Please select your desired plugins from the following list:")
-    available_plugins = list(
-        pkg_resources.iter_entry_points('spreadsplug.hooks'))
+    available_plugins = plugin.available_plugins()
     while True:
         for pos, ext in enumerate(available_plugins, 1):
             print("  {0} {1}: {2}"
-                  .format('x' if ext.name in selected_plugins else ' ',
-                          pos, ext.name))
+                  .format('x' if ext in selected_plugins else ' ', pos, ext))
         selection = raw_input("Select a plugin (or hit enter to finish): ")
         if not selection:
             break
@@ -111,7 +106,7 @@ def _select_plugins(selected_plugins=None):
             print(colorize("Please select a number in the range of 1 to {0}"
                            .format(len(available_plugins)), colorama.Fore.RED))
             continue
-        plugin_name = available_plugins[int(selection)-1].name
+        plugin_name = available_plugins[int(selection)-1]
         if plugin_name in selected_plugins:
             selected_plugins.remove(plugin_name)
         else:
@@ -120,19 +115,17 @@ def _select_plugins(selected_plugins=None):
 
 
 def _setup_processing_pipeline(config):
-    pm = plugin.get_pluginmanager(config)
-    extensions = [
-        ext.name for ext in
-        plugin.get_relevant_extensions(pm, [plugin.ProcessHookMixin])]
-    if not extensions:
+    exts = [name for name, cls in plugin.get_plugins(*config["plugins"].get())
+            .iteritems() if issubclass(cls, plugin.ProcessHookMixin)]
+    if not exts:
         return
     print("The following postprocessing plugins were detected:")
-    print("\n".join(" - {0}".format(ext) for ext in extensions))
+    print("\n".join(" - {0}".format(ext) for ext in exts))
     while True:
         answer = raw_input("Please enter the extensions in the order that they"
                            " should be invoked, separated by commas:\n")
         plugins = [x.strip() for x in answer.split(',')]
-        if any(x not in extensions for x in plugins):
+        if any(x not in exts for x in plugins):
             print(colorize("At least one of the entered extensions was not"
                            "found, please try again!", colorama.Fore.RED))
         else:
@@ -171,7 +164,7 @@ def configure(config):
     for name in new_plugins:
         config.set_from_template(name, config.templates[name])
 
-    driver = plugin.get_driver(config["driver"].get()).driver
+    driver = plugin.get_driver(config["driver"].get())
 
     # We only need to set the device target_page if the driver supports
     # shooting with two devices
@@ -198,16 +191,15 @@ def configure(config):
             getch()
             focus = devs[0]._acquire_focus()
             config['device']['focus_distance'] = focus
-    cfg_path = os.path.join(config.config_dir(), confit.CONFIG_FILENAME)
-    print("Writing configuration file to '{0}'".format(cfg_path))
-    config.dump(filename=cfg_path)
+    print("Writing configuration file to '{0}'".format(config.cfg_path))
+    config.dump(filename=config.cfg_path)
 
 
 def capture(config):
     path = config['path'].get()
     workflow = Workflow(config=config, path=path)
     workflow.on_created.send(workflow=workflow)
-    capture_keys = workflow.config['capture']['capture_keys'].as_str_seq()
+    capture_keys = workflow.config['core']['capture_keys'].as_str_seq()
 
     # Some closures
     def refresh_stats():
@@ -319,7 +311,7 @@ def wizard(config):
 
 
 def setup_parser(config):
-    pm = plugin.get_pluginmanager()
+    plugins = plugin.get_plugins(*config["plugins"].get())
     rootparser = argparse.ArgumentParser(
         description="Scanning Tool for  DIY Book Scanner")
     subparsers = rootparser.add_subparsers()
@@ -346,10 +338,12 @@ def setup_parser(config):
     capture_parser.set_defaults(subcommand=capture)
     # Add arguments from plugins
     for parser in (capture_parser, wizard_parser):
-        exts = [ext.name for ext in plugin.get_relevant_extensions(
-                pm, [plugin.CaptureHooksMixin, plugin.TriggerHooksMixin])]
-        exts.append('driver')
-        for ext in exts:
+        ext_names = [
+            name for name, cls in plugins.iteritems()
+            if any(issubclass(cls, mixin) for mixin in
+                   (plugin.CaptureHooksMixin, plugin.TriggerHooksMixin))]
+        ext_names.append('driver')
+        for ext in ext_names:
             for key, tmpl in config.templates.get(ext, {}).iteritems():
                 try:
                     add_argument_from_template(ext, key, tmpl, parser)
@@ -367,9 +361,9 @@ def setup_parser(config):
     postprocess_parser.set_defaults(subcommand=postprocess)
     # Add arguments from plugins
     for parser in (postprocess_parser, wizard_parser):
-        exts = [ext.name for ext in plugin.get_relevant_extensions(
-                pm, [plugin.ProcessHookMixin])]
-        for ext in exts:
+        ext_names = [name for name, cls in plugins.iteritems()
+                     if issubclass(cls, plugin.ProcessHookMixin)]
+        for ext in ext_names:
             for key, tmpl in config.templates.get(ext, {}).iteritems():
                 try:
                     add_argument_from_template(ext, key, tmpl, parser)
@@ -384,9 +378,9 @@ def setup_parser(config):
     output_parser.set_defaults(subcommand=output)
     # Add arguments from plugins
     for parser in (output_parser, wizard_parser):
-        exts = [ext.name for ext in plugin.get_relevant_extensions(
-                pm, [plugin.OutputHookMixin])]
-        for ext in exts:
+        ext_names = [name for name, cls in plugins.iteritems()
+                     if issubclass(cls, plugin.OutputHookMixin)]
+        for ext in ext_names:
             for key, tmpl in config.templates.get(ext, {}).iteritems():
                 try:
                     add_argument_from_template(ext, key, tmpl, parser)
@@ -395,9 +389,10 @@ def setup_parser(config):
 
     # Add custom subcommands from plugins
     if config["plugins"].get():
-        for ext in (plugin.get_relevant_extensions(
-                    pm, [plugin.SubcommandHookMixin])):
-            ext.plugin.add_command_parser(subparsers)
+        classes = (cls for cls in plugins.values()
+                   if issubclass(cls, plugin.SubcommandHookMixin))
+        for cls in classes:
+            cls.add_command_parser(subparsers)
     return rootparser
 
 

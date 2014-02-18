@@ -8,8 +8,8 @@ from spreads.vendor.huey.consumer import Consumer
 from spreads.vendor.pathlib import Path
 from flask import Flask
 
+import spreads.plugin as plugin
 from spreads.config import OptionTemplate
-from spreads.plugin import HookPlugin, SubcommandHookMixin, get_devices
 from spreads.cli import add_argument_from_template
 from spreads.workflow import Workflow
 
@@ -53,7 +53,7 @@ except ImportError:
             return None
 
 
-class WebCommands(HookPlugin, SubcommandHookMixin):
+class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
     @classmethod
     def add_command_parser(cls, rootparser):
         cmdparser = rootparser.add_parser(
@@ -167,11 +167,12 @@ def run_server(config):
             and config['driver'].get() in ['chdkcamera', 'a2200']):
         # Display the address of the web interface on the camera displays
         try:
-            for cam in get_devices(config):
+            driver = plugin.get_driver(config['driver'].get())
+            for cam in plugin.get_devices(driver, config):
                 cam.show_textbox(
                     "\n    You can now access the web interface at:"
                     "\n\n\n         http://{0}:5000".format(ip_address))
-        except:
+        except plugin.DeviceException:
             logger.warn("No devices could be found at startup.")
 
     # Start task consumer

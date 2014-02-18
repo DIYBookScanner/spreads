@@ -4,8 +4,6 @@ import os
 
 import spreads.vendor.confit as confit
 
-import plugin
-
 
 class OptionTemplate(object):
     """ A configuration option.
@@ -80,13 +78,17 @@ class Configuration(object):
         :rtype: dict
 
         """
+        import spreads.plugin
         templates = {'core': CORE_OPTIONS}
         if 'driver' in self.keys():
             driver_name = self["driver"].get()
-            templates['device'] = (plugin.get_driver(driver_name)
-                                   .driver.configuration_template())
-            for ext in plugin.get_extensions(self["plugins"].get()):
-                templates[ext.name] = ext.plugin.configuration_template()
+            templates['device'] = (spreads.plugin.get_driver(driver_name)
+                                   .configuration_template())
+            plugins = spreads.plugin.get_plugins(*self["plugins"].get())
+            for name, plugin in plugins.iteritems():
+                tmpl = plugin.configuration_template()
+                if tmpl:
+                    templates[name] = tmpl
         return templates
 
     @property

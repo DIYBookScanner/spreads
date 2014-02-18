@@ -6,6 +6,8 @@ from mock import Mock, patch
 import spreads.cli as cli
 from spreads.util import DeviceException
 
+from conftest import TestDriver
+
 
 @pytest.yield_fixture
 def mock_input():
@@ -19,12 +21,6 @@ def mock_getch():
         yield getch
 
 
-@pytest.yield_fixture
-def mock_pkg_resources():
-    with patch('spreads.cli.pkg_resources') as pkg:
-        yield pkg
-
-
 @patch('spreads.cli.sys.stdin')
 @patch('spreads.cli.termios')
 @patch('spreads.cli.tty')
@@ -36,30 +32,23 @@ def test_getch(tty, termios, stdin):
     termios.tcsetattr.assert_called_once_with(1, termios.TCSADRAIN, 16)
 
 
-def test_select_driver(mock_pkg_resources, mock_input):
+def test_select_driver(mock_input):
     driver = Mock()
     driver.name = "testdriver"
-    mock_pkg_resources.iter_entry_points.return_value = (driver, )
     mock_input.side_effect = ('a', '1')
     assert cli._select_driver() == 'testdriver'
 
 
-def test_select_plugins(mock_pkg_resources, mock_input):
-    plugs = (Mock(), Mock(), Mock())
-    plugs[0].name = "test_process"
-    plugs[1].name = "test_process2"
-    plugs[2].name = "test_output"
-    mock_pkg_resources.iter_entry_points.return_value = plugs
-
-    mock_input.side_effect = ('a', '1', '2', '3', '2', '')
-    assert cli._select_plugins() == ["test_process", "test_output"]
+def test_select_plugins(mock_input):
+    mock_input.side_effect = ('a', '1', '3', '2', '3', '')
+    assert cli._select_plugins() == ["test_output", "test_process"]
 
     mock_input.side_effect = ('1', '2', '3', '')
-    assert cli._select_plugins(['test_process']) == ["test_process2",
-                                                     "test_output"]
+    assert cli._select_plugins(['test_output']) == ["test_process",
+                                                    "test_process2"]
 
 
-def test_setup_processing_pipeline(mock_plugin_mgr, mock_input, config):
+def test_setup_processing_pipeline(mock_input, config):
     mock_input.return_value = "test_process2,test_process"
     cli._setup_processing_pipeline(config)
     assert config["plugins"].get() == ["test_process2", "test_process",
@@ -73,53 +62,44 @@ def test_setup_processing_pipeline(mock_plugin_mgr, mock_input, config):
                                        "test_output"]
 
 
-def test_set_device_target_page(config, mock_getch, mock_driver_mgr):
+def test_set_device_target_page(config, mock_getch):
     mock_getch.return_value = " "
 
-    mock_driver_mgr.return_value.driver.num_devices = 1
+    TestDriver.num_devices = 1
     cli._set_device_target_page(config, 'even')
 
-    mock_driver_mgr.return_value.driver.num_devices = 2
+    TestDriver.num_devices = 2
     with pytest.raises(cli.DeviceException):
         cli._set_device_target_page(config, 'even')
 
-    mock_driver_mgr.return_value.driver.num_devices = 0
+    TestDriver.num_devices = 0
     with pytest.raises(cli.DeviceException):
         cli._set_device_target_page(config, 'even')
 
-    mock_driver_mgr.return_value.driver.num_devices = 2
+    TestDriver.num_devices = 2
 
 
-def test_configure(mock_pkg_resources, mock_driver_mgr, mock_plugin_mgr,
-                   config, mock_input, mock_getch):
+def test_configure(config, mock_input, mock_getch, mock_driver):
     config["plugins"] = []
-    mockdriver = Mock()
-    mockdriver.name = "testdriver"
-    mockplugs = [Mock(), Mock(), Mock()]
-    mockplugs[0].name = "test_process"
-    mockplugs[1].name = "test_process2"
-    mockplugs[2].name = "test_output"
-    mock_pkg_resources.iter_entry_points.side_effect = [(mockdriver, ),
-                                                        mockplugs]
     # We need to mock out all methods that touch the filesystem
     config.config_dir = Mock(return_value='/tmp/foo')
     config.dump = Mock()
     mock_getch.return_value = " "
     mock_input.side_effect = (
         "1",  # Select device driver
-        "3",  # Select plugin 'test_output'
-        "1",  # Select plugin 'test_process'
+        "1",  # Select plugin 'test_output'
+        "2",  # Select plugin 'test_process'
         "",   # Finish plugin selection
         "test_process",  # Set processing pipeline
         "y",  # Start setting target pages,
         "y",  # Confirm focus setting
     )
 
-    mock_driver_mgr.return_value.driver.num_devices = 1
+    mock_driver.num_devices = 1
 
     cli.configure(config)
 
-    mock_driver_mgr.return_value.driver.num_devices = 2
+    mock_driver.num_devices = 2
 
     print config['plugins'].get()
     assert config['driver'].get() == 'testdriver'
@@ -132,8 +112,7 @@ def test_configure(mock_pkg_resources, mock_driver_mgr, mock_plugin_mgr,
 @patch('spreads.cli.sys.stdin')
 @patch('spreads.cli.termios')
 @patch("spreads.cli.tty")
-def test_capture(tty, termios, stdin, select, config, mock_driver_mgr,
-                 mock_plugin_mgr, capsys, tmpdir):
+def test_capture(tty, termios, stdin, select, config, capsys, tmpdir):
     select.return_value = ([stdin], [], [])
     stdin.read.side_effect = chain(repeat('b', 3), 'r', 'f')
     config['path'] = unicode(tmpdir)
@@ -143,31 +122,30 @@ def test_capture(tty, termios, stdin, select, config, mock_driver_mgr,
     assert " 6 pages " in last_status
 
 
-def test_capture_nodevices(config, mock_driver_mgr, mock_plugin_mgr, tmpdir):
+def test_capture_nodevices(config, mock_driver, tmpdir):
     config['path'] = unicode(tmpdir)
-    mock_driver_mgr.return_value.driver.num_devices = 0
+    mock_driver.num_devices = 0
     with pytest.raises(DeviceException):
         cli.capture(config)
-    mock_driver_mgr.return_value.driver.num_devices = 2
+    mock_driver.num_devices = 2
 
 
-def test_capture_no_target_page(config, mock_driver_mgr, mock_plugin_mgr,
-                                tmpdir):
+def test_capture_no_target_page(config, mock_driver, tmpdir):
     config['path'] = unicode(tmpdir)
-    mock_driver_mgr.return_value.driver.target_pages = False
+    mock_driver.target_pages = False
     with pytest.raises(DeviceException):
         cli.capture(config)
-    mock_driver_mgr.return_value.driver.target_pages = True
+    mock_driver.target_pages = True
 
 
-def test_postprocess(config, mock_plugin_mgr, tmpdir):
+def test_postprocess(config, tmpdir):
     config['path'] = unicode(tmpdir)
     # NOTE: Nothing to assert here, we just check that it runs with our dummy
     # environment
     cli.postprocess(config)
 
 
-def test_output(config, mock_plugin_mgr, tmpdir):
+def test_output(config, tmpdir):
     config['path'] = unicode(tmpdir)
     # NOTE: Nothing to assert here, we just check that it runs with our dummy
     # environment
@@ -184,7 +162,7 @@ def test_wizard(capture, postprocess, output, config):
     output.assert_called_with(config)
 
 
-def test_setup_parser(mock_plugin_mgr, mock_driver_mgr, config):
+def test_setup_parser(config):
     parser = cli.setup_parser(config)
     subparsers = next(x._name_parser_map for x in parser._actions
                       if hasattr(x, '_name_parser_map'))
@@ -204,8 +182,7 @@ def test_setup_parser(mock_plugin_mgr, mock_driver_mgr, config):
 
 
 @patch('os.path.exists')
-def test_main(exists, config, mock_plugin_mgr,
-              mock_driver_mgr, tmpdir):
+def test_main(exists, config, tmpdir):
     config["loglevel"] = "info"
     config["verbose"] = False
     config["logfile"] = unicode(tmpdir.join('spreads.log'))

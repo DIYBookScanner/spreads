@@ -96,7 +96,6 @@ setup(
     install_requires=[
         "colorama>=0.2.5",
         "PyYAML>=3.10",
-        "stevedore >= 0.9.1, < 0.14",
         "futures >= 2.1.4",
         "blinker == 1.3",
     ],

@@ -60,26 +60,25 @@ def get_plugin_templates():
         configuration templates.
     """
     config = app.config['default_config']
-    pluginmanager = plugin.get_pluginmanager(config)
-    scanner_extensions = [plugin.CaptureHooksMixin, plugin.TriggerHooksMixin]
-    processor_extensions = [plugin.ProcessHookMixin, plugin.OutputHookMixin]
+    plugins = plugin.get_plugins(*config['plugins'].get())
+    scanner_exts = [name for name, cls in plugins.iteritems()
+                    if any(issubclass(cls, mixin) for mixin in
+                    (plugin.CaptureHooksMixin, plugin.TriggerHooksMixin))]
+    processor_exts = [name for name, cls in plugins.iteritems()
+                      if any(issubclass(cls, mixin) for mixin in
+                      (plugin.ProcessHookMixin, plugin.OutputHookMixin))]
     if app.config['mode'] == 'scanner':
-        templates = {ext.name: ext.plugin.configuration_template()
-                     for ext in plugin.get_relevant_extensions(
-                         pluginmanager, scanner_extensions)}
-        templates["device"] = (plugin.get_driver(config["driver"].get())
-                               .driver.configuration_template())
+        templates = {section: config.templates[section]
+                     for section in config.templates
+                     if section in scanner_exts or section == 'driver'}
     elif app.config['mode'] == 'processor':
-        templates = {ext.name: ext.plugin.configuration_template()
-                     for ext in plugin.get_relevant_extensions(
-                         pluginmanager, processor_extensions)}
+        templates = {section: config.templates[section]
+                     for section in config.templates
+                     if section in processor_exts}
     elif app.config['mode'] == 'full':
-        templates = {ext.name: ext.plugin.configuration_template()
-                     for ext in plugin.get_relevant_extensions(
-                         pluginmanager,
-                         scanner_extensions + processor_extensions)}
-        templates["device"] = (plugin.get_driver(config["driver"].get())
-                               .driver.configuration_template())
+        templates = {section: config.templates[section]
+                     for section in config.templates
+                     if section != 'core'}
     rv = dict()
     for plugname, options in templates.iteritems():
         if options is None:

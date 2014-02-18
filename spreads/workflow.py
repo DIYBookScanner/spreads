@@ -67,14 +67,17 @@ class Workflow(object):
         self._devices = None
         self._pluginmanager = None
 
-    @property
-    def plugins(self):
-        if self._pluginmanager is None:
-            self._pluginmanager = plugin.get_pluginmanager(self.config)
-        return [ext.obj for ext in self._pluginmanager]
+        # Instantiate plugins
+        self.plugins = [cls(self.config) for cls in
+                        plugin.get_plugins(*self.config["plugins"].get())
+                        .values()]
 
     @property
     def devices(self):
+        if 'driver' not in self.config.keys():
+            raise DeviceException(
+                "No driver has been configured\n"
+                "Please run `spread configure` to select a driver.")
         if self._devices is None:
             self._devices = plugin.get_devices(self.config, force_reload=True)
         if any(not dev.connected() for dev in self._devices):

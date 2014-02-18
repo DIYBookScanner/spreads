@@ -10,7 +10,7 @@ def mock_msgbox():
 
 
 @pytest.fixture
-def wizard(config, mock_plugin_mgr, mock_driver_mgr):
+def wizard(config):
     import spreadsplug.gui.gui as gui
     wizard = gui.SpreadsWizard(config)
     wizard.show()
@@ -18,7 +18,7 @@ def wizard(config, mock_plugin_mgr, mock_driver_mgr):
 
 
 @pytest.fixture
-def workflow(config, mock_plugin_mgr, mock_driver_mgr):
+def workflow(config):
     from spreads.workflow import Workflow
     wf = Workflow(path="/tmp/foobar", config=config)
     return wf

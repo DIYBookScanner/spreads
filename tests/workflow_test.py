@@ -9,7 +9,7 @@ import spreads.workflow
 
 
 @pytest.fixture
-def workflow(mock_plugin_mgr, mock_driver_mgr, config, tmpdir):
+def workflow(config, tmpdir):
     # NOTE: To avoid accessing the filesystem and to have more control, we
     #       monkey-patch the relevant methods to be mocks.
     return spreads.workflow.Workflow(config=config, path=unicode(tmpdir))
@@ -29,11 +29,11 @@ def test_get_devices(workflow):
     # TODO: Verify
 
 
-def test_get_devices_no_device(workflow, mock_driver_mgr):
-    mock_driver_mgr.return_value.driver.num_devices = 0
+def test_get_devices_no_device(workflow, mock_driver):
+    mock_driver.num_devices = 0
     with pytest.raises(util.DeviceException):
         _ = workflow.devices
-    mock_driver_mgr.return_value.driver.num_devices = 2
+    mock_driver.num_devices = 2
 
 
 def test_get_next_filename(workflow):

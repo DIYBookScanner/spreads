@@ -5,7 +5,6 @@ from concurrent.futures import ThreadPoolExecutor
 from PySide import QtCore, QtGui
 
 import spreads.workflow as workflow
-from spreads.plugin import get_pluginmanager, get_driver
 
 import gui_rc
 
@@ -80,8 +79,6 @@ class SpreadsWizard(QtGui.QWizard):
 class IntroPage(QtGui.QWizardPage):
     def initializePage(self):
         wizard = self.wizard()
-        self.pluginmanager = get_pluginmanager(wizard.config)
-        wizard.active_plugins = self.pluginmanager.names()
         self.setTitle("Welcome!")
 
         intro_label = QtGui.QLabel(
@@ -102,13 +99,9 @@ class IntroPage(QtGui.QWizardPage):
         page_combobox.activated.connect(self.stack_widget.setCurrentIndex)
         #QtCore.QObject.connect(page_combobox, SIGNAL("activated(int)"),
         #        self.stack_widget, SLOT("setCurrentIndex(int)"))
-        templates = {ext.name: ext.plugin.configuration_template()
-                     for ext in self.pluginmanager}
-        templates["device"] = (get_driver(wizard.config["driver"].get())
-                               .driver.configuration_template())
         # Add configuration widgets from plugins
         self.plugin_widgets = {}
-        for name, tmpl in templates.iteritems():
+        for name, tmpl in wizard.config.templates.iteritems():
             if not tmpl:
                 continue
             page = QtGui.QGroupBox()
@@ -209,30 +202,30 @@ class IntroPage(QtGui.QWizardPage):
 
     def _update_config_from_plugin_widgets(self):
         config = self.wizard().config
-        for ext in self.pluginmanager:
-            if not ext.name in self.plugin_widgets:
+        for section in config.templates:
+            if not section in self.plugin_widgets:
                 continue
             logger.debug("Updating config from widgets for plugin {0}"
-                         .format(ext.name))
-            for key in self.plugin_widgets[ext.name]:
+                         .format(section))
+            for key in self.plugin_widgets[section]:
                 logger.debug("Trying to set key \"{0}\"".format(key))
-                label, widget = self.plugin_widgets[ext.name][key]
+                label, widget = self.plugin_widgets[section][key]
                 if isinstance(widget, QtGui.QComboBox):
                     idx = widget.currentIndex()
-                    values = ext.plugin.configuration_template()[key].value
+                    values = config.templates[section][key].value
                     logger.debug("Setting to \"{0}\"".format(values[idx]))
-                    config[ext.name][key] = values[idx]
+                    config[section][key] = values[idx]
                 elif isinstance(widget, QtGui.QCheckBox):
                     checked = widget.isChecked()
                     logger.debug("Setting to \"{0}\"".format(checked))
-                    config[ext.name][key] = checked
+                    config[section][key] = checked
                 elif any(isinstance(widget, x)
                          for x in (QtGui.QSpinBox, QtGui.QDoubleSpinBox)):
-                    config[ext.name][key] = widget.value()
+                    config[section][key] = widget.value()
                 else:
-                    content = config[ext.name][key] = widget.text()
+                    content = config[section][key] = widget.text()
                     logger.debug("Setting to \"{0}\"".format(content))
-                    config[ext.name][key] = unicode(content)
+                    config[section][key] = unicode(content)
 
 
 class CapturePage(QtGui.QWizardPage):
