@@ -317,7 +317,7 @@ def setup_parser(config):
     subparsers = rootparser.add_subparsers()
     for key, option in config.templates['core'].iteritems():
         try:
-            add_argument_from_template('', key, option, rootparser)
+            add_argument_from_template('core', key, option, rootparser)
         except TypeError:
             continue
 
