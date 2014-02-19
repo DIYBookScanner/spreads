@@ -28,7 +28,6 @@ from __future__ import division, unicode_literals, print_function
 import argparse
 import logging
 import logging.handlers
-import os
 import sys
 import time
 
@@ -463,7 +462,7 @@ def main():
     logger.addHandler(stdout_handler)
     logger.addHandler(EventHandler())
     if 'logfile' in config.keys():
-        logfile = Path(os.path.expanduser(config['core']['logfile'].get()))
+        logfile = Path(config['core']['logfile'].as_filename())
         if not logfile.parent.exists():
             logfile.parent.mkdir()
         file_handler = logging.handlers.RotatingFileHandler(
