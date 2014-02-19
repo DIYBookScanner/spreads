@@ -110,6 +110,11 @@ class Configuration(object):
         new_config.set(overlay)
         return new_config
 
+
+    def as_view(self):
+        return self._config
+
+
     def load_defaults(self, overwrite=True):
         """ Load default settings from option templates.
 

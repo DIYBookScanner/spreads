@@ -57,9 +57,11 @@ class Workflow(object):
             self.pages_shot = len(self.images)
         else:
             self.pages_shot = 0
-        # See if supplied `config` is already a valid Configuration object
-        if isinstance(config, Configuration):
+        # See if supplied `config` is already a valid ConfigView object
+        if isinstance(config, confit.ConfigView):
             self.config = config
+        elif isinstance(config, Configuration):
+            self.config = config.as_view()
         else:
             self.config = self._load_config(config)
         self._capture_lock = threading.RLock()

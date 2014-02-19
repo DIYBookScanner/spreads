@@ -138,7 +138,7 @@ def create_workflow():
     # Overlay user-supplied values, if existant
     user_config = data.get('config', None)
     if user_config is not None:
-        config.set(user_config)
+        config = config.with_overlay(user_config)
     workflow = Workflow(config=config, path=path,
                         step=data.get('step', None),
                         step_done=data.get('step_done', None))
@@ -186,7 +186,7 @@ def update_workflow(workflow):
         workflow.path = new_path
     config = data.get('config')
     # Update workflow configuration
-    workflow.config = workflow.config.with_overlay(config)
+    workflow.config.set(config)
     # Persist to disk
     persistence.save_workflow(workflow)
     return make_response(json.dumps(workflow),
