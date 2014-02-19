@@ -181,11 +181,13 @@ def test_setup_parser(config):
     assert output_opts["--selectable"].choices == ['a', 'b', 'c']
 
 
+@patch('spreads.cli.Configuration')
 @patch('os.path.exists')
-def test_main(exists, config, tmpdir):
+def test_main(exists, mock_cfgcls, config, tmpdir):
     config["loglevel"] = "info"
     config["verbose"] = False
     config["logfile"] = unicode(tmpdir.join('spreads.log'))
+    mock_cfgcls.return_value = config
     exists.return_value = False
     # NOTE: We mock out parser, since it interferes with pytest's parser
     with patch('spreads.cli.argparse.ArgumentParser'):

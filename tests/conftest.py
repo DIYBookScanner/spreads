@@ -13,7 +13,6 @@ from spreads.util import EventHandler
 import spreads.plugin as plugin
 from spreads.config import Configuration, OptionTemplate
 
-
 class TestPluginProcess(plugin.HookPlugin,
                         plugin.ProcessHookMixin):
     __name__ = 'test_process'
@@ -154,7 +153,8 @@ def mock_driver():
 
 @pytest.fixture
 def config():
-    cfg = Configuration(appname='spreads_test')
+    with mock.patch('spreads.config.confit.LazyConfig.read'):
+        cfg = Configuration(appname='spreads_test')
     cfg["driver"] = u"testdriver"
     cfg["plugins"] = [u"test_output", u"test_process", u"test_process2"]
     cfg["capture"]["capture_keys"] = ["b", " "]
