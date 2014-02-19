@@ -94,7 +94,7 @@ def worker():
     from spreadsplug.web.worker import ProcessingWorker
     worker = ProcessingWorker()
     worker.start()
-    time.sleep(1)
+    time.sleep(0.1)
     yield
     worker.stop()
 
@@ -107,7 +107,7 @@ def create_workflow(client, num_captures='random'):
                       data=json.dumps(workflow)).data)
     if num_captures:
         client.post('/workflow/{0}/prepare_capture'.format(data['id']))
-        for _ in xrange(random.randint(1, 16)
+        for _ in xrange(random.randint(1, 4)
                         if num_captures == 'random' else num_captures):
             client.post('/workflow/{0}/capture'.format(data['id']))
         client.post('/workflow/{0}/finish_capture'.format(data['id']))
@@ -223,7 +223,7 @@ def test_add_to_queue(client, tmpdir, worker):
     rv = client.post('/queue', data=json.dumps({'id': wfid}))
     assert json.loads(rv.data)['queue_position'] == 1
     wfname = json.loads(client.get('/workflow/{0}'.format(wfid)).data)['name']
-    time.sleep(5)
+    time.sleep(1)
     assert tmpdir.join(wfname, 'processed_a.txt').exists()
     assert tmpdir.join(wfname, 'processed_b.txt').exists()
     assert tmpdir.join(wfname, 'output.txt').exists()
