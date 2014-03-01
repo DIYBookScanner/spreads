@@ -10,7 +10,8 @@ def test_process():
     # configuration
     config = {'autorotate': None}
     path = mock.MagicMock(wraps=Path('/tmp/foobar'))
-    files = [u'001.jpg', u'002.jpg', u'003.jpg', u'004.jpg', u'foo.txt']
+    files = [Path('001.jpg'), Path('002.jpg'), Path('003.jpg'),
+             Path('004.jpg'), Path('foo.txt')]
     (path/'raw').iterdir.return_value = files
 
     with mock.patch('concurrent.futures.ProcessPoolExecutor') as mockctx:
@@ -21,7 +22,7 @@ def test_process():
         assert pool.submit.call_count == 4
         # We only want the second parameter to submit, the first is the
         # function to call
-        assert sorted(files[:-1]) == (
+        assert sorted([unicode(x) for x in files[:-1]]) == (
             sorted(x[0][1] for x in pool.submit.call_args_list))
 
 
