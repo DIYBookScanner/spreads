@@ -55,6 +55,7 @@
     },
     render: function() {
       var workflow = this.props.workflow || {},
+          randomSuffix = Math.random()*10e3 | 0,
           speed;
       if (workflow && workflow.has('capture_start')) {
         var elapsed = (new Date().getTime()/1000) - workflow.get('capture_start');
@@ -69,13 +70,17 @@
             <column>
               {/* TODO: If there isn't another trigger within 5 seconds, load
                /*       a higher resolution previoew. */}
+              {/* NOTE: We append a random suffix to the thumbnail URL to force
+                *       the browser to load from the server and not from the cache.
+                *       This is needed since the images might change on the server,
+                *       e.g. after a retake. */}
               <ul className="show-for-landscape small-block-grid-2 capture-preview">
-                <li><img src={workflow.get('images').slice(-2)[0]+"/thumb"} /></li>
-                <li><img src={workflow.get('images').slice(-2)[1]+"/thumb"} /></li>
+                <li><img src={workflow.get('images').slice(-2)[0]+"/thumb?"+randomSuffix} /></li>
+                <li><img src={workflow.get('images').slice(-2)[1]+"/thumb?"+randomSuffix} /></li>
               </ul>
               <ul className="show-for-portrait small-block-grid-1 medium-block-grid-2 capture-preview">
-                <li><img src={workflow.get('images').slice(-2)[0]+"/thumb"} /></li>
-                <li><img src={workflow.get('images').slice(-2)[1]+"/thumb"} /></li>
+                <li><img src={workflow.get('images').slice(-2)[0]+"/thumb?"+randomSuffix} /></li>
+                <li><img src={workflow.get('images').slice(-2)[1]+"/thumb?"+randomSuffix} /></li>
               </ul>
             </column>
           </row>:''

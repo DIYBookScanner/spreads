@@ -93,7 +93,11 @@
         '/workflow/' + this.id + "/capture" + (retake ? '?retake=true' : ''),
         function(data) {
           console.debug("Capture succeeded");
-          this.set('images', this.get('images').concat(data.images));
+          if (retake) {
+            this.trigger('change');
+          } else {
+            this.set('images', this.get('images').concat(data.images));
+          }
         }.bind(this)).fail(function() {
           console.error("Capture failed");
         }).complete(callback);
