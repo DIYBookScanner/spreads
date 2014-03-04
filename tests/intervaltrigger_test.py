@@ -15,6 +15,6 @@ def plugin(config):
 def test_trigger_loop(plugin):
     cbmock = mock.Mock()
     plugin.start_trigger_loop(cbmock)
-    time.sleep(0.55)
+    time.sleep(0.6)
     plugin.stop_trigger_loop()
     assert cbmock.call_count == 5
