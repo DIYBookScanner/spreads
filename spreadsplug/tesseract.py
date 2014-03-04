@@ -42,7 +42,7 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
         #       with fully binarized output images
         logger.info("Performing OCR")
         img_dir = path / 'done'
-        self._perform_ocr(img_dir)
+        self._perform_ocr(img_dir, self.config["language"].get())
         for fname in img_dir.glob('*.html'):
             self._fix_hocr(fname)
 
