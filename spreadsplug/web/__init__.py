@@ -3,7 +3,8 @@ import os
 
 from flask import Flask
 from flask.ext.compress import Compress
-from spreads.plugin import HookPlugin, PluginOption, get_devices
+from spreads.plugin import (HookPlugin, SubcommandHookMixin, PluginOption,
+                            get_devices)
 from spreads.vendor.pathlib import Path
 from spreads.util import add_argument_from_option
 
@@ -41,7 +42,7 @@ except ImportError:
             return None
 
 
-class WebCommands(HookPlugin):
+class WebCommands(HookPlugin, SubcommandHookMixin):
     @classmethod
     def add_command_parser(cls, rootparser):
         cmdparser = rootparser.add_parser(
