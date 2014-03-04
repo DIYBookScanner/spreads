@@ -102,7 +102,6 @@ setup(
         "hidtrigger": ["hidapi >= 0.7"],
         "web": [
             "Flask >= 0.10.1",
-            "Flask-Compress >= 1.0.0",
             "jpegtran-cffi >= 0.4",
             "requests >= 2.2.0",
             "waitress >= 0.8.8",
