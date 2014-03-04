@@ -15,6 +15,11 @@ from persistence import get_workflow
 
 logger = logging.getLogger('spreadsplug.web.util')
 
+# NOTE: This is a workaround for a known datetime/time race condition, see
+#       this CPython bugreport for more details:
+#       http://bugs.python.org/issue7980
+datetime.strptime("2014", "%Y")
+
 def scale_image(img_name, width=None, height=None):
     if width is None and height is None:
         raise ValueError("Please specify either width or height")
