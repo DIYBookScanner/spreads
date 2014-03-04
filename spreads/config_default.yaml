@@ -1,5 +1,6 @@
 # Valid values: 'none', 'debug', 'info', 'warning', 'error', 'critical'
 loglevel: warning
+logfile: ~/.config/spreads/spreads.log
 plugins: []
 
 # Options for 'capture' step
