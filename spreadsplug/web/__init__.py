@@ -2,7 +2,6 @@ import logging
 import os
 
 from flask import Flask
-from flask.ext.compress import Compress
 from spreads.plugin import (HookPlugin, SubcommandHookMixin, PluginOption,
                             get_devices)
 from spreads.vendor.pathlib import Path
@@ -132,8 +131,6 @@ def run_server(config):
 
     try:
         import waitress
-        # Activate HTTP compression
-        Compress(app)
         waitress.serve(app, port=5000)
     finally:
         if app.config['mode'] != 'scanner':
