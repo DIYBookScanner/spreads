@@ -186,8 +186,9 @@ def test_poll_for_updates_errors(client):
 
 def test_download_workflow(client):
     wfid = create_workflow(client, 10)
-    data = client.get('/workflow/{0}/download'.format(wfid)).data
-    zfile = zipfile.ZipFile(StringIO.StringIO(data))
+    resp = client.get('/workflow/{0}/download'.format(wfid),
+                      follow_redirects=True)
+    zfile = zipfile.ZipFile(StringIO.StringIO(resp.data))
     assert len([x for x in zfile.namelist()
                 if '/raw/' in x and x.endswith('jpg')]) == 20
 
