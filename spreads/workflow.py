@@ -34,7 +34,8 @@ from concurrent.futures import ThreadPoolExecutor
 from spreads.vendor.pathlib import Path
 
 import spreads.plugin as plugin
-from spreads.util import check_futures_exceptions, DeviceException
+from spreads.util import (check_futures_exceptions, get_free_space,
+                          DeviceException)
 
 
 class Workflow(object):
@@ -181,6 +182,10 @@ class Workflow(object):
         parallel_capture = ('parallel_capture' in self.config['device'].keys()
                             and self.config['device']['parallel_capture'].get()
                             )
+        # Abort when there is little free space
+        if get_free_space(self.path) < 50*(1024**2):
+            raise IOError("Insufficient disk space to take a capture.")
+
         if retake:
             # Remove last n images, where n == len(self.devices)
             map(lambda x: x.unlink(), self.images[-len(self.devices):])

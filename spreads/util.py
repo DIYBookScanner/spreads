@@ -63,6 +63,12 @@ def check_futures_exceptions(futures):
         raise exc
 
 
+def get_free_space(path):
+    # TODO: Add path for windows
+    st = os.statvfs(unicode(path))
+    return (st.f_bavail * st.f_frsize)
+
+
 class _instancemethodwrapper(object):
     def __init__(self, callable):
         self.callable = callable

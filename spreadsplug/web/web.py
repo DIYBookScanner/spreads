@@ -428,7 +428,11 @@ def trigger_capture(workflow):
     if workflow.step != 'capture':
         # TODO: Abort with error, since capture has to be prepared first
         workflow.prepare_capture()
-    workflow.capture(retake=('retake' in request.args))
+    try:
+        workflow.capture(retake=('retake' in request.args))
+    except IOError as e:
+        logger.error(e)
+        abort(500)
     return jsonify({
         'pages_shot': len(workflow.images),
         'images': [get_image_url(workflow, x)
