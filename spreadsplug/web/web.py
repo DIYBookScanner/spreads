@@ -6,10 +6,10 @@ import subprocess
 import time
 
 import requests
+import zipstream
 from flask import (abort, jsonify, request, send_file, make_response,
                    render_template, Response)
 from werkzeug import secure_filename
-from zipstream import ZipFile
 
 import spreads.vendor.confit as confit
 import spreads.plugin as plugin
@@ -221,7 +221,7 @@ def download_workflow(workflow):
     configuration as a YAML dump.
     """
     # Open ZIP stream
-    zstream = ZipFile(mode='w')
+    zstream = zipstream.ZipFile(mode='w', compression=zipstream.ZIP_STORED)
     # Dump configuration to workflow directory
     workflow.config.dump(unicode(workflow.path/'config.yaml'))
     # Find all files within up to two levels deep, relative to the
