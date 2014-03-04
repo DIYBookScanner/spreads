@@ -202,9 +202,9 @@ class CHDKCameraDevice(DevicePlugin):
         self.logger.debug("Setting EXIF orientation on captured image")
         img = JPEGImage(local_path)
         if self.target_page == 'odd':
-            img.orientation = 8  # 90°
+            img.exif_orientation = 8  # 90°
         else:
-            img.orientation = 6  # -90°
+            img.exif_orientation = 6  # -90°
         img.save(local_path)
 
     def show_textbox(self, message):
