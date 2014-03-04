@@ -8,7 +8,7 @@ import time
 import requests
 import zipstream
 from flask import (abort, jsonify, request, send_file, make_response,
-                   render_template, Response)
+                   render_template, url_for, redirect, Response)
 from werkzeug import secure_filename
 
 import spreads.vendor.confit as confit
@@ -212,14 +212,21 @@ def poll_for_updates():
             time.sleep(0.1)
     abort(408)  # Request Timeout
 
-
-@app.route('/workflow/<workflow:workflow>/download', methods=['GET'])
-def download_workflow(workflow):
+@app.route('/workflow/<workflow:workflow>/download', methods=['GET'],
+           defaults={'fname': None})
+@app.route('/workflow/<workflow:workflow>/download/<fname>',
+           methods=['GET'])
+def download_workflow(workflow, fname):
     """ Return a ZIP archive of the current workflow.
 
     Included all files from the workflow folder as well as the workflow
     configuration as a YAML dump.
     """
+    # Set proper file name for zip file
+    if fname is None:
+        return redirect(url_for('download_workflow', workflow=workflow,
+                        fname="{0}.zip".format(workflow.path.stem)))
+
     # Open ZIP stream
     zstream = zipstream.ZipFile(mode='w', compression=zipstream.ZIP_STORED)
     # Dump configuration to workflow directory
@@ -234,8 +241,6 @@ def download_workflow(workflow):
                      .format(fpath, extract_path))
         zstream.write(unicode(fpath), extract_path)
     response = Response(zstream, mimetype='application/zip')
-    response.headers['Content-Disposition'] = (
-        'attachment; filename={}'.format(workflow.path.stem + ".zip"))
     return response
 
 
