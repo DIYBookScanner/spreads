@@ -39,8 +39,8 @@ def index():
 
 @app.route('/plugins', methods=['GET'])
 def get_plugins_with_options():
-    """ Return the names of all activated plugins and their configuration
-        templates.
+    """ Return the names of all globally activated plugins and their
+        configuration templates.
     """
     config = app.config['default_config']
     pluginmanager = plugin.get_pluginmanager(config)

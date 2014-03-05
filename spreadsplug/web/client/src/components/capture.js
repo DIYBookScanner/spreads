@@ -18,7 +18,9 @@
     },
     getInitialState: function() {
       return {waiting: false,
-              waitMessage: undefined};
+              initialPageCount: this.props.workflow.get('images').length,
+              waitMessage: undefined,
+              captureStart: undefined };
     },
     componentWillMount: function() {
       this.triggerWaiting("Please wait while the devices  are being prepared " +
@@ -56,16 +58,24 @@
     render: function() {
       var workflow = this.props.workflow || {},
           randomSuffix = Math.random()*10e3 | 0,
-          speed;
-      if (workflow && workflow.has('capture_start')) {
-        var elapsed = (new Date().getTime()/1000) - workflow.get('capture_start');
-        speed = (3600/elapsed)*workflow.get('images').length | 0;
+          speed, oddImage, evenImage;
+      if (workflow && this.state.captureStart) {
+        var elapsed = (new Date().getTime()/1000) - this.state.captureStart,
+            shot = workflow.get('images').length - this.state.initialPageCount;
+        speed = (3600/elapsed)*shot | 0;
+      } else {
+        this.setState({captureStart: new Date().getTime()/1000});
+        speed = 0.0;
+      }
+      if (workflow.get('images').length) {
+        oddImage = workflow.get('images').slice(-2)[0];
+        evenImage = workflow.get('images').slice(-2)[1];
       }
 
       return (
         <div>
           {this.state.waiting ? <LoadingOverlay message={this.state.waitMessage} />:''}
-          {workflow.has('images') && workflow.get('images').length ?
+          {(oddImage && evenImage) ?
           <row>
             <column>
               {/* TODO: If there isn't another trigger within 5 seconds, load
@@ -75,12 +85,12 @@
                 *       This is needed since the images might change on the server,
                 *       e.g. after a retake. */}
               <ul className="show-for-landscape small-block-grid-2 capture-preview">
-                <li><img src={workflow.get('images').slice(-2)[0]+"/thumb?"+randomSuffix} /></li>
-                <li><img src={workflow.get('images').slice(-2)[1]+"/thumb?"+randomSuffix} /></li>
+                <li><img src={oddImage+"/thumb?"+randomSuffix} /></li>
+                <li><img src={evenImage+"/thumb?"+randomSuffix} /></li>
               </ul>
               <ul className="show-for-portrait small-block-grid-1 medium-block-grid-2 capture-preview">
-                <li><img src={workflow.get('images').slice(-2)[0]+"/thumb?"+randomSuffix} /></li>
-                <li><img src={workflow.get('images').slice(-2)[1]+"/thumb?"+randomSuffix} /></li>
+                <li><img src={oddImage+"/thumb?"+randomSuffix} /></li>
+                <li><img src={evenImage+"/thumb?"+randomSuffix} /></li>
               </ul>
             </column>
           </row>:''
@@ -89,7 +99,7 @@
             <column size="6">
               <span className="pagecount">{workflow.get('images').length} pages</span>
             </column>
-            {speed ? 
+            {speed ?
             <column size="6">
               <span className="capturespeed">{speed} pages/hour</span>
             </column>:''}

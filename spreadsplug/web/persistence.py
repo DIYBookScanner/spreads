@@ -14,7 +14,6 @@ CREATE TABLE workflow (
     name            TEXT,
     step            TEXT,
     step_done       BOOLEAN,
-    capture_start   INTEGER,
     config          TEXT
 );
 
@@ -31,7 +30,7 @@ CREATE TABLE queue (
 WorkflowCache = None
 
 DbWorkflow = namedtuple('DbWorkflow', ['id', 'name', 'step', 'step_done',
-                                       'capture_start', 'config'])
+                                       'config'])
 logger = logging.getLogger('spreadsplug.web.database')
 
 
@@ -66,7 +65,6 @@ def open_connection():
 def save_workflow(workflow):
     data = DbWorkflow(id=None, name=workflow.path.name,
                       step=workflow.step, step_done=workflow.step_done,
-                      capture_start=workflow.capture_start,
                       config=json.dumps(workflow.config.flatten()))
     logger.debug("Writing workflow to database:\n{0}".format(data))
     with open_connection() as con:
@@ -110,7 +108,6 @@ def get_workflow(workflow_id):
         config=config,
         step=db_workflow.step,
         step_done=bool(db_workflow.step_done))
-    workflow.capture_start = db_workflow.capture_start
     # NOTE: For convenience, we store the workflow_id directly in the object
     workflow.id = workflow_id
     WorkflowCache[workflow.id] = workflow

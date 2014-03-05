@@ -74,7 +74,6 @@ def workflow_to_dict(workflow):
                           for x in workflow.images] if workflow.images else []
     out_dict['out_files'] = ([unicode(path) for path in workflow.out_files]
                              if workflow.out_files else [])
-    out_dict['capture_start'] = workflow.capture_start
     out_dict['config'] = workflow.config.flatten()
     return out_dict
 
