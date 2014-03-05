@@ -68,7 +68,7 @@ def save_workflow(workflow):
                       config=json.dumps(workflow.config.flatten()))
     logger.debug("Writing workflow to database:\n{0}".format(data))
     with open_connection() as con:
-        workflow_id = con.execute("INSERT INTO workflow VALUES (?,?,?,?,?,?)",
+        workflow_id = con.execute("INSERT INTO workflow VALUES (?,?,?,?,?)",
                                   data).lastrowid
     logger.debug("Workflow written to database with id {0}"
                  .format(workflow_id))
