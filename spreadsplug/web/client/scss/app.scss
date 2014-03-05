@@ -56,3 +56,23 @@
     width: 45%;
   }
 }
+
+
+.lightbox {
+  position: fixed;
+  z-index: 9999;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  top: 0;
+  left: 0;
+  background: white;
+  background: rgba(255,255,255,0.8);
+  outline: none;
+
+  img {
+    max-width: 90%;
+    max-height: 80%;
+    margin-top: 2%;
+  }
+}

@@ -7,6 +7,7 @@
       foundation = require('./foundation.js'),
       ModelMixin = require('../../lib/backbonemixin.js'),
       LoadingOverlay = require('./loadingoverlay.js'),
+      lightbox = require('./lightbox.js'),
       row = foundation.row,
       column = foundation.column,
       fnButton = foundation.button;
@@ -34,7 +35,6 @@
       console.log("Triggering capture");
       this.triggerWaiting("Please wait for the capture to finish...");
       this.props.workflow.triggerCapture(false, this.triggerWaiting.bind(this));
-      // TODO: Implement
     },
     handleRetake: function() {
       console.log("Re-taking last shot");
@@ -54,6 +54,16 @@
       } else {
         this.setState({waiting: false});
       }
+    },
+    openLightbox: function(img) {
+      this.setState({
+        lightboxImage: img
+      });
+    },
+    closeLightbox: function() {
+      this.setState({
+        lightboxImage: undefined
+      });
     },
     render: function() {
       var workflow = this.props.workflow || {},
@@ -75,22 +85,37 @@
       return (
         <div>
           {this.state.waiting ? <LoadingOverlay message={this.state.waitMessage} />:''}
+          {this.state.lightboxImage ?
+            <lightbox onClose={this.closeLightbox} src={this.state.lightboxImage} />
+            :''}
           {(oddImage && evenImage) ?
           <row>
             <column>
-              {/* TODO: If there isn't another trigger within 5 seconds, load
-               /*       a higher resolution previoew. */}
               {/* NOTE: We append a random suffix to the thumbnail URL to force
                 *       the browser to load from the server and not from the cache.
                 *       This is needed since the images might change on the server,
                 *       e.g. after a retake. */}
               <ul className="show-for-landscape small-block-grid-2 capture-preview">
-                <li><img src={oddImage+"/thumb?"+randomSuffix} /></li>
-                <li><img src={evenImage+"/thumb?"+randomSuffix} /></li>
+                <li>
+                  <a onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix)}.bind(this)}>
+                    <img src={oddImage+"/thumb?"+randomSuffix} />
+                  </a>
+                </li>
+                <li>
+                  <a onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix)}.bind(this)}>
+                    <img src={evenImage+"/thumb?"+randomSuffix} />
+                  </a>
+                </li>
               </ul>
               <ul className="show-for-portrait small-block-grid-1 medium-block-grid-2 capture-preview">
-                <li><img src={oddImage+"/thumb?"+randomSuffix} /></li>
-                <li><img src={evenImage+"/thumb?"+randomSuffix} /></li>
+                <a onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix)}.bind(this)}>
+                  <li><img src={oddImage+"/thumb?"+randomSuffix} /></li>
+                </a>
+                <li>
+                  <a onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix)}.bind(this)}>
+                    <img src={evenImage+"/thumb?"+randomSuffix} />
+                  </a>
+                </li>
               </ul>
             </column>
           </row>:''
