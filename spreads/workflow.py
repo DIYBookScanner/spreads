@@ -42,7 +42,6 @@ class Workflow(object):
     path = None
     step = None
     step_done = False
-    capture_start = None
     pages_shot = 0
     active = False
     prepared = False
@@ -176,8 +175,6 @@ class Workflow(object):
 
     def capture(self, retake=False):
         self._capture_lock.acquire()
-        if self.capture_start is None:
-            self.capture_start = time.time()
         self._logger.info("Triggering capture.")
         parallel_capture = ('parallel_capture' in self.config['device'].keys()
                             and self.config['device']['parallel_capture'].get()

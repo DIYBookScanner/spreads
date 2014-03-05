@@ -193,6 +193,9 @@ def configure(config):
 
 
 def capture(config):
+    # NOTE: We have to use a 1-item list to work around the lack of a
+    #       'nonlocal' keyword in Python 2...
+    start_time = [None]
     path = config['path'].get()
     workflow = Workflow(config=config, path=path)
     capture_keys = workflow.config['capture']['capture_keys'].as_str_seq()
@@ -200,8 +203,12 @@ def capture(config):
     # Some closures
     def refresh_stats():
         # Callback to print statistics
-        pages_per_hour = (3600/(time.time() -
-                          workflow.capture_start))*workflow.pages_shot
+        if start_time[0] is not None:
+            pages_per_hour = ((3600/(time.time() - start_time[0]))
+                              *workflow.pages_shot)
+        else:
+            pages_per_hour = 0.0
+            start_time[0] = time.time()
         status = ("\rShot {0: >3} pages [{1: >4.0f}/h] "
                   .format(unicode(workflow.pages_shot), pages_per_hour))
         sys.stdout.write(status)
@@ -260,8 +267,6 @@ def capture(config):
     trigger_loop()
 
     workflow.finish_capture()
-    if workflow.capture_start is None:
-        return
 
 
 def postprocess(config):
