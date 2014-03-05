@@ -312,11 +312,16 @@ class CapturePage(QtGui.QWizardPage):
         self.capture_btn.setEnabled(True)
         self.capture_btn.setFocus()
         pages_shot = self.wizard().workflow._pages_shot
-        start_time = self.wizard().workflow.capture_start
+        if hasattr(self, '_start_time'):
+            capture_speed = ((3600 / (time.time() - self._start_time))
+                             * pages_shot)
+        else:
+            self._start_time = start_time
+            capture_speed = 0.0
         self.status.setText(
             "Shot {0} pages in {1:.0f} minutes ({2:.0f} pages/hour)"
-            .format(pages_shot, (time.time() - start_time) / 60,
-                    ((3600 / (time.time() - start_time)) * pages_shot)))
+            .format(pages_shot, (time.time() - self._start_time) / 60,
+                    capture_speed))
         self.updateControl()
 
 
