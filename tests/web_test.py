@@ -134,7 +134,6 @@ def test_get_workflow(client):
     data = json.loads(client.get('/workflow/{0}'.format(wfid)).data)
     assert 'test_output' in data['config']['plugins']
     assert data['step'] == 'capture'
-    assert data['capture_start'] < time.time()
 
 
 def test_update_workflow(client):
