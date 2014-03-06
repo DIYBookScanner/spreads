@@ -12,25 +12,6 @@
   require('backbone-validation');
   _.extend(Backbone.DeepModel.prototype, Backbone.Validation.mixin);
 
-  var templates = {};
-
-  // Load configuration templates from server
-  jQuery.ajax({
-    type: "GET",
-    url: '/plugins',
-    success: function(data) {
-      var template;
-      // Filter out empty
-      template = _.omit(data, _.filter(_.keys(data), function(key){
-        return _.isEmpty(data[key]);
-      }));
-      templates = template;
-    },
-    async: false
-  }).fail(function() {
-    console.error("Could not obtain configuration");
-  });
-
   /* We extend DeepModel instead of Model so we can listen on changes for
    * nested objects like workflow.config. */
   Workflow = Backbone.DeepModel.extend({
@@ -45,7 +26,6 @@
         this._setDefaultConfiguration();
       }
     },
-    defaults: {"configuration_template": templates},
     validation: {
       name: {
         required: true,
@@ -110,7 +90,7 @@
       }).complete(callback);
     },
     _setDefaultConfiguration: function() {
-      var templates = this.get('configuration_template');
+      var templates = window.pluginTemplates;
       _.each(templates, function(template, plugin) {
         _.each(template, function(option, name) {
           var path = 'config.' + plugin + '.' + name;
@@ -123,7 +103,7 @@
       }, this);
     },
     _setPluginValidators: function() {
-      var templates = this.get('configuration_template');
+      var templates = window.pluginTemplates;
       _.each(templates, function(template, plugin) {
         _.each(template, function(option, name) {
           var path = 'config.' + plugin + '.' + name;

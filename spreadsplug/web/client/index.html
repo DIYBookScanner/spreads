@@ -11,6 +11,10 @@
 <body>
 <div id="content"></div>
 
+<script type="text/javascript">
+  window.config = {{default_config|tojson|safe}};
+  window.pluginTemplates = {{plugin_templates|tojson|safe}};
+</script>
 {% if debug %}
   <script src="spreads.js"></script>
   <script src="foundation/js/foundation.js"></script>

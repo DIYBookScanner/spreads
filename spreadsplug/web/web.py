@@ -34,11 +34,15 @@ app.url_map.converters['workflow'] = WorkflowConverter
 @app.route('/')
 def index():
     """ Deliver static landing page that launches the client-side app. """
-    return render_template("index.html", debug=app.config['DEBUG'])
+    return render_template(
+        "index.html",
+        debug=app.config['DEBUG'],
+        default_config=app.config['default_config'].flatten(),
+        plugin_templates=get_plugin_templates()
+    )
 
 
-@app.route('/plugins', methods=['GET'])
-def get_plugins_with_options():
+def get_plugin_templates():
     """ Return the names of all globally activated plugins and their
         configuration templates.
     """
@@ -67,17 +71,18 @@ def get_plugins_with_options():
     for plugname, options in templates.iteritems():
         if options is None:
             continue
-        rv[plugname] = {key: dict(value=config[plugname][key].get(),
-                                  docstring=option.docstring,
-                                  selectable=option.selectable)
-                        for key, option in options.iteritems()}
-    return jsonify(rv)
-
-
-@app.route('/config', methods=['GET'])
-def get_global_config():
-    """ Return the global configuration. """
-    return jsonify(app.config['default_config'].flatten())
+        for key, option in options.iteritems():
+            if option.selectable:
+                value = [config[plugname][key].get()]
+                value += [x for x in option.value if x not in value]
+            else:
+                value = config[plugname][key].get()
+            if not plugname in rv:
+                rv[plugname] = dict()
+            rv[plugname][key] = dict(value=value,
+                                     docstring=option.docstring,
+                                     selectable=option.selectable)
+    return rv
 
 
 # ================== #

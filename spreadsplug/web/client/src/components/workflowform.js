@@ -89,7 +89,7 @@
       this.setState({selectedPlugin: event.target.value});
     },
     render: function() {
-      var templates = this.props.workflow.get('configuration_template'),
+      var templates = window.pluginTemplates,
           selectedPlugin = this.state.selectedPlugin || _.keys(templates)[0];
       if (_.isEmpty(templates)) {
         return <row />;

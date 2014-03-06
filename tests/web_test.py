@@ -3,6 +3,7 @@ import logging
 import logging.handlers
 import os
 import random
+import re
 import StringIO
 import time
 import zipfile
@@ -19,7 +20,7 @@ def app(config, mock_driver_mgr, mock_plugin_mgr, tmpdir):
     from spreads.plugin import set_default_config
     set_default_config(config)
     logger = logging.getLogger()
-    config['loglevel'] = 'warning'
+    config['loglevel'] = 'debug'
 
     logfile = tmpdir.join('logfile.txt')
     logfile.write('')
@@ -98,18 +99,15 @@ def test_index(client):
     assert "<title>spreads</title>" in rv.data
     assert "<script src=\"spreads.min.js\"></script>" in rv.data
 
-
-def test_get_plugins_with_options(client):
-    data = json.loads(client.get('/plugins').data)
-    # TODO: Check the data some more
-    assert len(data.keys()) == 4
-
-
-def test_get_global_config(client):
-    cfg = json.loads(client.get('/config').data)
+    cfg = json.loads(re.findall(r"window.config = ({.*});", rv.data)[0])
     assert cfg['plugins'] == ['test_output', 'test_process', 'test_process2']
     assert cfg['driver'] == 'testdriver'
     assert cfg['web']['mode'] == 'full'
+    templates = json.loads(re.findall(r"window.pluginTemplates = ({.*});",
+                                      rv.data)[0])
+    assert 'a_boolean' in templates['test_process']
+    assert 'flip_target_pages' in templates['device']
+    assert 'string' in templates['test_output']
 
 
 def test_create_workflow(client, jsonworkflow):
