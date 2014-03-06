@@ -3,9 +3,15 @@
 (function() {
   'use strict';
   var React = require('react/addons'),
-      jQuery = require('jquery');
+      jQuery = require('jquery'),
+      confirmModal = require('./foundation.js').confirmModal;
 
   module.exports = React.createClass({
+    getInitialState: function() {
+      return {
+        shutdownModal: false
+      }
+    },
     doShutdown: function() {
       // TODO: Ask for confirmation
       // TODO: Show activity indicator until connection has died
@@ -14,10 +20,25 @@
         type: "POST",
         url: "/system/shutdown"
       });
+      this.setState({
+        shutdownModal: false
+      });
+    },
+    handleShutdown: function() {
+      this.setState({
+        shutdownModal: true
+      });
     },
     render: function() {
       return (
         <div className="contain-to-grid fixed">
+          {this.state.shutdownModal ?
+            <confirmModal
+              onCancel={function(){this.setState({shutdownModal: false})}.bind(this)}
+              onConfirm={this.doShutdown}>
+              <h1>Shut down</h1>
+              <p>Do you really want to shut down the device?</p>
+            </confirmModal>:''}
           <nav className="top-bar" data-topbar>
             <ul className="title-area">
               <li className="name"> <h1><a href="#/">{this.props.title}</a></h1> </li>
@@ -29,7 +50,7 @@
               </ul>
               <ul className="right">
                 <li><a href="#/preferences"><i className="fi-widget"></i> Preferences</a></li>
-                <li><a onClick={this.doShutdown}><i className="fi-power"></i> Shut down</a></li>
+                <li><a onClick={this.handleShutdown}><i className="fi-power"></i> Shut down</a></li>
               </ul>
             </section>
           </nav>

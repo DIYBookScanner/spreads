@@ -7,12 +7,25 @@
       foundation = require('./foundation.js'),
       row = foundation.row,
       column = foundation.column,
+      confirmModal = foundation.confirmModal,
       WorkflowItem;
 
   WorkflowItem = React.createClass({
-    handleRemove: function() {
-      // TODO: Ask for verification
+    getInitialState: function() {
+      return {
+        deleteModal: false
+      };
+    },
+    doRemove: function() {
       this.props.workflow.destroy({wait: true});
+      this.setState({
+        deleteModal: false
+      });
+    },
+    handleRemove: function() {
+      this.setState({
+        deleteModal: true
+      });
     },
     handleContinue: function() {
       // TODO: Perform next step, depending on mode we're running in
@@ -24,6 +37,14 @@
           workflowUrl = '#/workflow/' + workflow.get('id');
       return (
         <row>
+          {this.state.deleteModal ?
+            <confirmModal
+              onCancel={function(){this.setState({deleteModal: false})}.bind(this)}
+              onConfirm={this.doRemove}>
+              <h1>Remove?</h1>
+              <p>Do you really want to permanently remove this workflow and all
+                 of its related files?</p>
+            </confirmModal>:''}
           <column size={[6, 3]}>
           {workflow.get('images').length > 0 ?
             <a href={workflowUrl}>
