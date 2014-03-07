@@ -26,7 +26,7 @@
     componentWillMount: function() {
       this.triggerWaiting("Please wait while the devices  are being prepared " +
                           "for capture");
-      this.props.workflow.prepareCapture(this.triggerWaiting.bind(this));
+      this.props.workflow.prepareCapture(this.triggerWaiting);
     },
     componentWillUnmount: function() {
       this.props.workflow.finishCapture();
@@ -34,12 +34,12 @@
     handleCapture: function() {
       console.log("Triggering capture");
       this.triggerWaiting("Please wait for the capture to finish...");
-      this.props.workflow.triggerCapture(false, this.triggerWaiting.bind(this));
+      this.props.workflow.triggerCapture(false, this.triggerWaiting);
     },
     handleRetake: function() {
       console.log("Re-taking last shot");
       this.triggerWaiting("Please wait for the capture to finish...");
-      this.props.workflow.triggerCapture(true, this.triggerWaiting.bind(this));
+      this.props.workflow.triggerCapture(true, this.triggerWaiting);
     },
     handleFinish: function() {
       console.log("Wrapping up capture process");
@@ -109,9 +109,11 @@
                 </li>
               </ul>
               <ul className="show-for-portrait small-block-grid-1 medium-block-grid-2 capture-preview">
-                <a onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix)}.bind(this)}>
-                  <li><img src={oddImage+"/thumb?"+randomSuffix} /></li>
-                </a>
+                  <li>
+                    <a onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
+                      <img src={oddImage+"/thumb?"+randomSuffix} />
+                    </a>
+                  </li>
                 <li>
                   <a onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix)}.bind(this)}>
                     <img src={evenImage+"/thumb?"+randomSuffix} />
