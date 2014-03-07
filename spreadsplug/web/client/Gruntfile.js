@@ -1,11 +1,8 @@
 module.exports = function(grunt) {
 
-  var dejsx = require('grunt-react').browserify;
-
   grunt.loadNpmTasks('grunt-sass');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-browserify');
-  grunt.loadNpmTasks('grunt-react');
   grunt.loadNpmTasks('grunt-contrib-uglify');
 
   grunt.initConfig({
@@ -13,7 +10,7 @@ module.exports = function(grunt) {
 
     browserify: {
       options: {
-        transform: [dejsx],
+        transform: ['reactify'],
         debug: true
       },
       app: {
