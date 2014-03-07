@@ -74,7 +74,6 @@ setup(
     entry_points={
         'spreadsplug.devices': [
             "chdkcamera=spreadsplug.dev.chdkcamera:CHDKCameraDevice",
-            "a2200=spreadsplug.dev.chdkcamera:CanonA2200CameraDevice",
         ],
         'spreadsplug.hooks': [
             "autorotate     =spreadsplug.autorotate:AutoRotatePlugin",

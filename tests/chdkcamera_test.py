@@ -297,16 +297,28 @@ def test_set_focus(sleep, camera):
 @mock.patch('spreadsplug.dev.chdkcamera.CanonA2200CameraDevice._execute_lua')
 @mock.patch('spreadsplug.dev.chdkcamera.usb')
 def test_a2200_yield_devices(usb, lua, config):
+    match_cfg = mock.Mock()
+    match_cfg.bInterfaceClass = 0x6
+    match_cfg.bInterfaceSubClass = 0x1
+    nomatch_cfg = mock.Mock()
+    nomatch_cfg.bInterfaceClass = 0x3
+    nomatch_cfg.bInterfaceSubClass = 0x3
     mock_devs = [mock.Mock(idProduct=0xff, idVendor=0xff) for x in xrange(10)]
+    for dev in mock_devs:
+        dev.get_active_configuration.return_value = {(0, 0): nomatch_cfg}
     mock_devs[-1].idProduct, mock_devs[-1].idVendor = 0x322a, 0x4a9
     mock_devs[-1].bus, mock_devs[-1].address = 1, 1
     mock_devs[-2].idProduct, mock_devs[-2].idVendor = 0x322a, 0x4a9
     mock_devs[-2].bus, mock_devs[-2].address = 2, 1
+    for dev in mock_devs[-2:]:
+        dev.get_active_configuration.return_value = {(0, 0): match_cfg}
     usb.core.find.return_value = mock_devs
     lua.return_value = {'build_revision': 3000}
     usb.util.get_string.side_effect = (b'12345678\x00\x00\x00',
                                        b'87654321\x00\x00\x00')
-    devs = list(chdkcamera.CanonA2200CameraDevice.yield_devices(config))
+    devs = list(chdkcamera.CHDKCameraDevice.yield_devices(config))
+    assert not any(not isinstance(dev, chdkcamera.CanonA2200CameraDevice)
+                   for dev in devs)
     assert len(devs) == 2
     assert devs[0]._serial_number == '12345678'
     assert devs[1]._serial_number == '87654321'

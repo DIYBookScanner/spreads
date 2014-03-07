@@ -24,7 +24,6 @@ class CHDKCameraDevice(DevicePlugin):
     """ Plugin for digital cameras running the CHDK firmware.
 
     """
-
     features = (DeviceFeatures.PREVIEW, DeviceFeatures.IS_CAMERA)
 
     target_page = None
@@ -53,15 +52,24 @@ class CHDKCameraDevice(DevicePlugin):
     @classmethod
     def yield_devices(cls, config):
         """ Search for usable devices, yield one at a time
-        
+
         :param config:  spreads configuration
         :type config:   spreads.confit.ConfigView
         """
+        SPECIAL_CASES = {
+            # (idVendor, idProduct): SpecialClass
+            (0x4a9, 0x322a): CanonA2200CameraDevice,
+        }
         for dev in usb.core.find(find_all=True):
             cfg = dev.get_active_configuration()[(0, 0)]
-            is_match = (hex(cfg.bInterfaceClass) == "0x6"
-                        and hex(cfg.bInterfaceSubClass) == "0x1")
-            if is_match:
+            ids = (dev.idVendor, dev.idProduct)
+            is_ptp = (hex(cfg.bInterfaceClass) == "0x6"
+                      and hex(cfg.bInterfaceSubClass) == "0x1")
+            if not is_ptp:
+                continue
+            if ids in SPECIAL_CASES:
+                yield SPECIAL_CASES[ids](config, dev)
+            else:
                 yield cls(config, dev)
 
     def __init__(self, config, device):
@@ -209,14 +217,16 @@ class CHDKCameraDevice(DevicePlugin):
 
     def show_textbox(self, message):
         messages = message.split("\n")
-        script = "\n".join(
-            ['screen_width = get_gui_screen_width();',
-             'screen_height = get_gui_screen_height();',
-             'draw_rect_filled(0, 0, screen_width, screen_height, 256, 256);'] +
+        script = [
+            'screen_width = get_gui_screen_width();',
+            'screen_height = get_gui_screen_height();',
+            'draw_rect_filled(0, 0, screen_width, screen_height, 256, 256);'
+        ]
+        script.extend(
             ['draw_string(0, 0+(screen_height/10)*{0}, "{1}", 258, 256);'
              .format(idx, msg) for idx, msg in enumerate(messages, 1)]
         )
-        self._execute_lua(script, wait=False, get_result=False)
+        self._execute_lua("\n".join(script), wait=False, get_result=False)
 
     def _run(self, *commands):
         cmd_args = list(chain((unicode(self._chdkptp_path / "chdkptp"),),
@@ -330,17 +340,6 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
         else:
             self.logger = logging.getLogger('CanonA2200CameraDevice')
 
-    @classmethod
-    def yield_devices(cls, config):
-        """ Search for usable devices, yield one at a time
-
-        """
-        for dev in usb.core.find(find_all=True):
-            is_match = (hex(dev.idVendor) == "0x4a9"
-                        and hex(dev.idProduct) == "0x322a")
-            if is_match:
-                yield cls(config, dev)
-
     def finish_capture(self):
         # Putting the device back into play mode crashes the a2200 with
         # chdk 1.3, this is why we stub it out here.
@@ -370,4 +369,3 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
             self._execute_lua("while(get_zoom()>{0}) "
                               "do click(\"zoom_out\") end".format(level+1),
                               wait=True)
-
