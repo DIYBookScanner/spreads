@@ -48,8 +48,8 @@
                 <li><a href="#/workflow/new"><i className="fi-plus"></i> New workflow</a></li>
               </ul>
               <ul className="right">
-                <li><a href="#/preferences"><i className="fi-widget"></i> Preferences</a></li>
-                <li><a onClick={this.handleShutdown}><i className="fi-power"></i> Shut down</a></li>
+                {window.config.standalone_device &&
+                  (<li><a onClick={this.handleShutdown}><i className="fi-power"></i> Shut down</a></li>)}
               </ul>
             </section>
           </nav>

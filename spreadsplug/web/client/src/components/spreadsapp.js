@@ -6,7 +6,6 @@
   var React = require('react/addons'),
       WorkflowForm = require('./workflowform'),
       CaptureInterface = require('./capture'),
-      PreferencesForm = require('./preferences'),
       WorkflowDetails = require('./workflow'),
       WorkflowList = require('./workflowlist'),
       NavigationBar = require('./navbar'),
@@ -39,8 +38,6 @@
         return <WorkflowForm workflow={newWorkflow}/>;
       case "capture":
         return <CaptureInterface workflow={workflows.get(workflowId)}/>;
-      case "preferences":
-        return  <PreferencesForm />;
       case "view":
         return <WorkflowDetails workflow={workflows.get(workflowId)}/>;
       default:
