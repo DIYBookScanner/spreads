@@ -32,13 +32,13 @@
     render: function() {
       return (
         <div className="contain-to-grid fixed">
-          {this.state.shutdownModal ?
+          {this.state.shutdownModal &&
             <confirmModal
               onCancel={function(){this.setState({shutdownModal: false})}.bind(this)}
               onConfirm={this.doShutdown}>
               <h1>Shut down</h1>
               <p>Do you really want to shut down the device?</p>
-            </confirmModal>:''}
+            </confirmModal>}
           <nav className="top-bar" data-topbar>
             <ul className="title-area">
               <li className="name"> <h1><a href="#/">{this.props.title}</a></h1> </li>

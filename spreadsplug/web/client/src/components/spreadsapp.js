@@ -57,12 +57,12 @@
           };
       return (<div>
                 <NavigationBar title={navTitle} />
-                {this.props.messages ?
+                {this.props.messages &&
                   this.props.messages.map(function(message) {
                     return (<fnAlert level={message.get('level')}
                                      message={message.get('message')}
                                      closeCallback={getCloseCallback.bind(this)(message)}/>);
-                  }, this):''}
+                  }, this)}
                 {viewComponent}
               </div>);
     }

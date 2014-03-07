@@ -48,7 +48,7 @@
           <column size='12'>
             {input.props.type === 'checkbox' ? input : label}
             {input.props.type === 'checkbox' ? label : input}
-            {this.props.error ? <small className="error">{this.props.error}</small>: ''}
+            {this.props.error && <small className="error">{this.props.error}</small>}
           </column>
         </row>
       );
@@ -167,7 +167,7 @@
               <input type="text" placeholder="Workflow name"
                      valueLink={this.bindTo(this.props.workflow, 'name')}
               />
-              {this.state.errors.name ? <small className="error">{this.state.errors.name}</small>: ''}
+              {this.state.errors.name && <small className="error">{this.state.errors.name}</small>}
             </column>
           </row>
           <PluginConfiguration workflow={this.props.workflow}

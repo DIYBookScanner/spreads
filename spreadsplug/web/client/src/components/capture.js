@@ -85,11 +85,10 @@
 
       return (
         <div>
-          {this.state.waiting ? <LoadingOverlay message={this.state.waitMessage} />:''}
-          {this.state.lightboxImage ?
-            <lightbox onClose={this.closeLightbox} src={this.state.lightboxImage} />
-            :''}
-          {(oddImage && evenImage) ?
+          {this.state.waiting && <LoadingOverlay message={this.state.waitMessage} />}
+          {this.state.lightboxImage &&
+            <lightbox onClose={this.closeLightbox} src={this.state.lightboxImage} />}
+          {(oddImage && evenImage) &&
           <row>
             <column>
               {/* NOTE: We append a random suffix to the thumbnail URL to force
@@ -121,16 +120,15 @@
                 </li>
               </ul>
             </column>
-          </row>:''
-          }
+          </row>}
           <row className="capture-info">
             <column size="6">
               <span className="pagecount">{workflow.get('images').length} pages</span>
             </column>
-            {speed ?
+            {speed > 0 &&
             <column size="6">
               <span className="capturespeed">{speed} pages/hour</span>
-            </column>:''}
+            </column>}
           </row>
           <row>
             <div className="small-12 capture-controls columns">

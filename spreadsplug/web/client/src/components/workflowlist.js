@@ -37,14 +37,14 @@
           workflowUrl = '#/workflow/' + workflow.get('id');
       return (
         <row>
-          {this.state.deleteModal ?
+          {this.state.deleteModal &&
             <confirmModal
               onCancel={function(){this.setState({deleteModal: false})}.bind(this)}
               onConfirm={this.doRemove}>
               <h1>Remove?</h1>
               <p>Do you really want to permanently remove this workflow and all
                  of its related files?</p>
-            </confirmModal>:''}
+            </confirmModal>}
           <column size={[6, 3]}>
           {workflow.get('images').length > 0 ?
             <a href={workflowUrl}>

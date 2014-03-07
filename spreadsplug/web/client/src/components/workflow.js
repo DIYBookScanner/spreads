@@ -45,9 +45,8 @@
           thumbStop = this.state.thumbStart+this.state.thumbCount;
       return (
         <main>
-          {this.state.lightboxImage ?
-            <lightbox onClose={this.closeLightbox} src={this.state.lightboxImage} />:
-            ''
+          {this.state.lightboxImage &&
+            <lightbox onClose={this.closeLightbox} src={this.state.lightboxImage} />
           }
           <row>
             <column size='12'>
@@ -67,7 +66,7 @@
               </ul>
             </column>
           </row>
-          {workflow.has('images') && workflow.get('images') ?
+          {(workflow.has('images') && workflow.get('images')) &&
           <row>
             <column size='12'>
               <h2>Captured images</h2>
@@ -82,11 +81,10 @@
                     );
                   }.bind(this))}
               </ul>
-              {pageCount > 1 ? <pagination centered={true} pageCount={pageCount} onBrowse={this.browse} />:''}
+              {pageCount > 1 && <pagination centered={true} pageCount={pageCount} onBrowse={this.browse} />}
             </column>
-          </row>
-          :''}
-          {workflow.has('output_files') && workflow.get('output_files').length ?
+          </row>}
+          {(workflow.has('output_files') && workflow.get('output_files').length) &&
           <row>
             <column size='12'>
               <h2>Output files</h2>
@@ -98,8 +96,7 @@
                   })}
               </ul>
             </column>
-          </row>
-          :''}
+          </row>}
         </main>
       );
     }
