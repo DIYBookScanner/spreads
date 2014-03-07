@@ -10,10 +10,9 @@
     getInitialState: function() {
       return {
         shutdownModal: false
-      }
+      };
     },
     doShutdown: function() {
-      // TODO: Ask for confirmation
       // TODO: Show activity indicator until connection has died
       // TODO: Make UI inactive until polling is successful again
       jQuery.ajax({
@@ -34,7 +33,7 @@
         <div className="contain-to-grid fixed">
           {this.state.shutdownModal &&
             <confirmModal
-              onCancel={function(){this.setState({shutdownModal: false})}.bind(this)}
+              onCancel={function(){this.setState({shutdownModal: false});}.bind(this)}
               onConfirm={this.doShutdown}>
               <h1>Shut down</h1>
               <p>Do you really want to shut down the device?</p>

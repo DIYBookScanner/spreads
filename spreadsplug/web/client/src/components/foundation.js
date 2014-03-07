@@ -89,7 +89,7 @@
         render: function() {
           return (
             <li className={this.props.current ? "current": ""}>
-              <a onClick={function() {this.props.onClick(this.props.num)}.bind(this)}>
+              <a onClick={function() {this.props.onClick(this.props.num);}.bind(this)}>
                 {this.props.num}
               </a>
             </li>
@@ -163,5 +163,5 @@
     pagination: pagination,
     modal: modal,
     confirmModal: confirmModal
-  }
+  };
 }());

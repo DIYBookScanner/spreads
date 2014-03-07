@@ -97,12 +97,12 @@
                 *       e.g. after a retake. */}
               <ul className="show-for-landscape small-block-grid-2 capture-preview">
                 <li>
-                  <a onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix)}.bind(this)}>
+                  <a onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
                     <img src={oddImage+"/thumb?"+randomSuffix} />
                   </a>
                 </li>
                 <li>
-                  <a onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix)}.bind(this)}>
+                  <a onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
                     <img src={evenImage+"/thumb?"+randomSuffix} />
                   </a>
                 </li>
@@ -114,7 +114,7 @@
                     </a>
                   </li>
                 <li>
-                  <a onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix)}.bind(this)}>
+                  <a onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
                     <img src={evenImage+"/thumb?"+randomSuffix} />
                   </a>
                 </li>

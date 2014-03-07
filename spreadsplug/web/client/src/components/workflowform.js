@@ -68,7 +68,7 @@
             </row>
             {_.map(template, function(option, key) {
               var path = 'config.' + this.props.plugin + '.' + key;
-              return (<PluginOption name={key} option={option}
+              return (<PluginOption name={key} option={option} key={key}
                                     bindFunc={this.props.bindFunc}
                                     error={this.props.errors[path]} />);
             }, this)}
@@ -101,7 +101,7 @@
             <label>Configure plugin</label>
             <select onChange={this.handleSelect}>
               {_.keys(templates).map(function(plugin) {
-                return <option value={plugin}>{_.capitalize(plugin)}</option>;
+                return <option key={plugin} value={plugin}>{_.capitalize(plugin)}</option>;
               })}
             </select>
             {/* NOTE: This is kind of nasty.... We can't use _'s 'partial',
@@ -135,7 +135,7 @@
         this.setState({errors: errors});
       }, this);
       this.props.workflow.on('sync', function() {
-          this.props.workflow.collection.add(this.props.workflow);
+        this.props.workflow.collection.add(this.props.workflow);
       }, this);
     },
     componentWillUnmount: function() {
