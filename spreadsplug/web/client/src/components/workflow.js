@@ -70,7 +70,7 @@
           <row>
             <column size='12'>
               <h2>Captured images</h2>
-              <ul className="small-block-grid-8">
+              <ul className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
                 {workflow.get('images').slice(thumbStart, thumbStop).map(function(image) {
                     return (
                       <li key={image}>

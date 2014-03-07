@@ -39,7 +39,7 @@
         <row>
           {this.state.deleteModal &&
             <confirmModal
-              onCancel={function(){this.setState({deleteModal: false})}.bind(this)}
+              onCancel={function(){this.setState({deleteModal: false});}.bind(this)}
               onConfirm={this.doRemove}>
               <h1>Remove?</h1>
               <p>Do you really want to permanently remove this workflow and all
