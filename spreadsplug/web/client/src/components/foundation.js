@@ -64,10 +64,14 @@
 
   pagination = React.createClass({
     handleBack: function() {
-      this.handleToPage(this.state.currentPage-1);
+      if (this.state.currentPage !== 1) {
+        this.handleToPage(this.state.currentPage-1);
+      }
     },
     handleForward: function() {
-      this.handleToPage(this.state.currentPage+1);
+      if (this.state.currentPage !== this.props.pageCount) {
+        this.handleToPage(this.state.currentPage+1);
+      }
     },
     handleToPage: function(idx) {
       this.props.onBrowse(idx);
@@ -98,18 +102,19 @@
 
       uncenteredPagination = (
         <ul className="pagination">
-          <li className={"arrow" + (currentPage == 1 ? " unavailable" : '')}>
+          <li className={"arrow" + (currentPage === 1 ? " unavailable" : '')}>
             <a onClick={this.handleBack}>&laquo;</a>
           </li>
-          <pageButton current={currentPage == 1} num={1} onClick={this.handleToPage} />
-          {(currentPage > 3) ? <li className="unavailable"><a>&hellip;</a></li>:''}
-          {lastPage > 2 ? _.range(currentPage-2, currentPage+3).map(function(idx) {
-            if (idx <= 1 || idx >= lastPage) return;
-            return <pageButton current={currentPage == idx} num={idx} onClick={this.handleToPage} />;
-          }.bind(this)):''}
-          {(currentPage < lastPage-2) ? <li className="unavailable"><a>&hellip;</a></li>:''}
-          <pageButton current={currentPage == lastPage} num={lastPage} onClick={this.handleToPage} />
-          <li className={"arrow" + (currentPage == lastPage ? " unavailable" : '')}>
+          <pageButton current={currentPage === 1} num={1} onClick={this.handleToPage} />
+          {(currentPage > 2) && <li className="unavailable"><a>&hellip;</a></li>}
+          {lastPage > 2 &&
+            _.range(currentPage-1, currentPage+2).map(function(idx) {
+              if (idx <= 1 || idx >= lastPage) return;
+              return <pageButton key={"page-"+idx} current={currentPage === idx} num={idx} onClick={this.handleToPage} />;
+            }.bind(this))}
+          {(currentPage < lastPage-1) && <li className="unavailable"><a>&hellip;</a></li>}
+          <pageButton current={currentPage === lastPage} num={lastPage} onClick={this.handleToPage} />
+          <li className={"arrow" + (currentPage === lastPage ? " unavailable" : '')}>
             <a onClick={this.handleForward}>&raquo;</a>
           </li>
         </ul>
