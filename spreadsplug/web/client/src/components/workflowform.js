@@ -1,5 +1,5 @@
 /** @jsx React.DOM */
-/* global module, require, console */
+/* global module, require */
 (function() {
   'use strict';
   var React = require('react/addons'),
@@ -35,9 +35,10 @@
         );
       } else if (_.isArray(option.value)) {
         input = <em>oops</em>;
+      } else if (typeof option.value === "boolean") {
+        input = <input id={name} type={"checkbox"} checkedLink={bindFunc(name)} />;
       } else {
-        var types = { "boolean": "checkbox",
-                      "number": "number",
+        var types = { "number": "number",
                       "string": "text" };
 
         input = <input id={name} type={types[typeof option.value]} valueLink={bindFunc(name)} />;
