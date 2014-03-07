@@ -1,7 +1,9 @@
+import gzip
 import logging
 import os
+from cStringIO import StringIO as IO
 
-from flask import Flask
+from flask import Flask, request
 from spreads.plugin import (HookPlugin, SubcommandHookMixin, PluginOption,
                             get_devices)
 from spreads.vendor.pathlib import Path
@@ -83,6 +85,35 @@ class WebCommands(HookPlugin, SubcommandHookMixin):
                           "scanning (e.g. 'spreadpi').",
                 selectable=False)
         }
+
+
+@app.after_request
+def gzip_response(response):
+    accept_encoding = request.headers.get('Accept-Encoding', '')
+
+    if 'gzip' not in accept_encoding.lower():
+        return response
+
+    response.direct_passthrough = False
+    skip_compress = (response.status_code < 200 or
+                     response.status_code >= 300 or
+                     response.mimetype.startswith("image/") or
+                     response.mimetype == "application/zip" or
+                     'Content-Encoding' in response.headers)
+    if skip_compress:
+        return response
+    gzip_buffer = IO()
+    gzip_file = gzip.GzipFile(mode='wb',
+                              fileobj=gzip_buffer)
+    gzip_file.write(response.data)
+    gzip_file.close()
+
+    response.data = gzip_buffer.getvalue()
+    response.headers['Content-Encoding'] = 'gzip'
+    response.headers['Vary'] = 'Accept-Encoding'
+    response.headers['Content-Length'] = len(response.data)
+
+    return response
 
 
 def setup_app(config):
