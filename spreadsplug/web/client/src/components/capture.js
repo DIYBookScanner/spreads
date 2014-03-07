@@ -43,7 +43,8 @@
     },
     handleFinish: function() {
       console.log("Wrapping up capture process");
-      // TODO: Implement
+      this.props.workflow.finishCapture();
+      window.router.navigate('/', {trigger: true});
     },
     triggerWaiting: function(message) {
       if (!this.state.waiting) {
