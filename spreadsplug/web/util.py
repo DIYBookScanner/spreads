@@ -13,12 +13,14 @@ from werkzeug.routing import BaseConverter, ValidationError
 
 from persistence import get_workflow
 
+
 logger = logging.getLogger('spreadsplug.web.util')
 
 # NOTE: This is a workaround for a known datetime/time race condition, see
 #       this CPython bugreport for more details:
 #       http://bugs.python.org/issue7980
 datetime.strptime("2014", "%Y")
+
 
 def scale_image(img_name, width=None, height=None):
     if width is None and height is None:
@@ -28,6 +30,7 @@ def scale_image(img_name, width=None, height=None):
     width = width if width else int(aspect*height)
     height = height if height else int(width/aspect)
     return img.downscale(width, height).as_blob()
+
 
 class WorkflowConverter(BaseConverter):
     def to_python(self, value):

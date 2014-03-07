@@ -11,7 +11,6 @@ from flask import (abort, jsonify, request, send_file, make_response,
                    render_template, url_for, redirect, Response)
 from werkzeug import secure_filename
 
-import spreads.vendor.confit as confit
 import spreads.plugin as plugin
 from spreads.vendor.pathlib import Path
 from spreads.workflow import Workflow
