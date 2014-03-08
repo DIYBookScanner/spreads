@@ -96,11 +96,11 @@
             </row>
             <row>
               <ul className="button-group">
-                <li><a onClick={this.handleRemove} className="button fi-trash"></a></li>
-                <li><a href={'/workflow/' + workflow.id + '/download'} className="button fi-download"></a></li>
-                <li><a onClick={this.handleContinue} className="button fi-play"></a></li>
+                <li><a onClick={this.handleRemove} className="action-button fi-trash"></a></li>
+                <li><a href={'/workflow/' + workflow.id + '/download'} className="action-button fi-download"></a></li>
+                <li><a onClick={this.handleContinue} className="action-button fi-play"></a></li>
                 {window.config.web.standalone_device &&
-                  <li><a onClick={this.handleTransfer} className="button fi-usb"></a></li>}
+                  <li><a onClick={this.handleTransfer} className="action-button fi-usb"></a></li>}
               </ul>
             </row>
           </column>

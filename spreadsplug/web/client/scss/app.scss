@@ -1,6 +1,14 @@
 @import "settings";
 @import "foundation";
 
+.action-button {
+  @include button(rem-calc(12));
+  font-size: rem-calc(32);
+  line-height: rem-calc(32);
+
+  &.secondary { @include button-style($bg:$secondary-color); }
+}
+
 .overlay {
   display: table;
   position: fixed;
@@ -46,13 +54,13 @@
     margin-bottom: 0;
   }
   li {
-    .button {
+    .action-button {
       width: 20%;
     }
     display: inline;
     list-style-type: none;
   }
-  #trigger-capture .button {
+  #trigger-capture .action-button {
     width: 45%;
   }
 }

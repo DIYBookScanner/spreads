@@ -35,7 +35,7 @@
     render: function() {
       return (<a onClick={this.props.callback}
                   className={(this.props.size || '') +
-                            " button" +
+                            " action-button" +
                             (this.props.secondary ? " secondary" : '') +
                             (this.props.expand ? " expand" : '')}>
                 {this.props.children}
