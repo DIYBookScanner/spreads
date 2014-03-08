@@ -4,9 +4,11 @@
   'use strict';
   var React = require('react/addons'),
       ModelMixin = require('../../lib/backbonemixin.js'),
+      LoadingOverlay = require('./loadingoverlay.js'),
       foundation = require('./foundation.js'),
       row = foundation.row,
       column = foundation.column,
+      modal = foundation.modal,
       confirmModal = foundation.confirmModal,
       WorkflowItem;
 
@@ -32,6 +34,33 @@
       window.router.navigate('/workflow/' + this.props.workflow.id + '/capture',
                              {trigger: true});
     },
+    handleTransfer:  function() {
+      this.props.workflow.transfer(function(xhr, status) {
+        if (status !== 'success') {
+          var data = xhr.responseJSON,
+              errorText;
+          if (data && data.error) {
+            errorText = data.error;
+          } else {
+            errorText = "Check the server logs for details";
+          }
+          this.setState({
+            errorModal: true,
+            errorModalHeading: "Transfer failed",
+            errorModalText: errorText
+          });
+        } else {
+          this.setState({
+            transferWaiting: true
+          });
+          this.props.workflow.on('change:step_done', function() {
+            this.setState({
+              transferWaiting: false
+            });
+          }.bind(this));
+        }
+      }.bind(this));
+    },
     render: function() {
       var workflow = this.props.workflow,
           workflowUrl = '#/workflow/' + workflow.get('id');
@@ -45,10 +74,17 @@
               <p>Do you really want to permanently remove this workflow and all
                  of its related files?</p>
             </confirmModal>}
+          {this.state.errorModal &&
+            <modal onClose={function(){this.setState({errorModal: false});}.bind(this)}>
+              <h1>{this.state.errorModalHeading}</h1>
+              <p>{this.state.errorModalText}</p>
+            </modal>}
           <column size={[6, 3]}>
+          {this.state.transferWaiting &&
+            <LoadingOverlay message="Please wait for the transfer to finish." />}
           {workflow.get('images').length > 0 ?
             <a href={workflowUrl}>
-              <img width="100%" src={workflow.get('images').slice(-1)[0] + '/thumb'} />
+              <img width="100%" src={workflow.get('images').slice(-2)[0] + '/thumb'} />
             </a>:
             'no images'
           }
@@ -63,6 +99,8 @@
                 <li><a onClick={this.handleRemove} className="button fi-trash"></a></li>
                 <li><a href={'/workflow/' + workflow.id + '/download'} className="button fi-download"></a></li>
                 <li><a onClick={this.handleContinue} className="button fi-play"></a></li>
+                {window.config.web.standalone_device &&
+                  <li><a onClick={this.handleTransfer} className="button fi-usb"></a></li>}
               </ul>
             </row>
           </column>

@@ -53,11 +53,11 @@ def mock_dbus(tmpdir):
                              Interface=mock.DEFAULT) as values:
         stickdir = tmpdir.join('stick')
         stickdir.mkdir()
-        mockdevs = [mock.Mock(), mock.Mock()]
+        mockdevs = [mock.Mock(), mock.Mock()]*2
         mockobj = mock.MagicMock()
         mockobj.get_dbus_method.return_value.return_value = unicode(stickdir)
         mockobj.EnumerateDevices.return_value = mockdevs
-        mockobj.Get.side_effect = [True, 'usb', True]
+        mockobj.Get.side_effect = [True, 'usb', True]*2
         values['Interface'].return_value = mockobj
         yield mockobj
 
@@ -192,7 +192,9 @@ def test_download_workflow(client):
 
 def test_transfer_workflow(client, mock_dbus, tmpdir):
     wfid = create_workflow(client, 10)
-    client.post('/workflow/{0}/transfer'.format(wfid))
+    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+        mock_tq.task.return_value = lambda x: x
+        client.post('/workflow/{0}/transfer'.format(wfid))
     assert len([x for x in tmpdir.visit('stick/*/raw/*.jpg')]) == 20
 
 

@@ -128,12 +128,7 @@ def get_thumbnail(img_path):
         return scale_image(unicode(img_path), width=160)
 
 
-@contextmanager
-def mount_stick():
-    """ Context Manager that mounts the first available partition on a USB
-    drive, yields its path and then unmounts it.
-
-    """
+def find_stick():
     import dbus
     bus = dbus.SystemBus()
     iudisks = dbus.Interface(
@@ -147,13 +142,20 @@ def mount_stick():
         istick = next(i for i in idevices if i.Get("", "DeviceIsPartition")
                       and i.Get("", "DriveConnectionInterface") == "usb")
     except StopIteration:
-        yield None
         return
-    stick = dbus.Interface(
+    return dbus.Interface(
         bus.get_object("org.freedesktop.UDisks",
                        iudisks.FindDeviceByDeviceFile(
                            istick.Get("", "DeviceFile"))),
         "org.freedesktop.DBus.UDisks.Device")
+
+
+@contextmanager
+def mount_stick(stick):
+    """ Context Manager that mounts the first available partition on a USB
+    drive, yields its path and then unmounts it.
+
+    """
     mount = stick.get_dbus_method(
         "FilesystemMount", dbus_interface="org.freedesktop.UDisks.Device")
     path = mount('', [])

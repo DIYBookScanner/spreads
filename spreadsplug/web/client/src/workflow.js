@@ -46,18 +46,12 @@
           console.error("Could not submit workflow " + this.id);
         }).complete(callback);
     },
-    queue: function(callback) {
-      jQuery.post('/queue', {id: this.id}, function(data) {
-          this.queueId = data.queue_position;
+    transfer: function(callback) {
+      console.debug("Initiating transfer for workflow " + this.id + "");
+      jQuery.post('/workflow/' + this.id + '/transfer')
+        .fail(function() {
+          console.error("Could not transfer workflow " + this.id);
         }).complete(callback);
-    },
-    dequeue: function(callback) {
-      jQuery.ajax({
-        type: "DELETE",
-        url: '/queue/' + this.queueId,
-      }).fail(function() {
-        console.error("Could not delete workflow " + this.id + " from queue");
-      }).complete(callback);
     },
     prepareCapture: function(callback) {
       jQuery.post(

@@ -3,17 +3,20 @@ import logging
 import os
 from cStringIO import StringIO as IO
 
+from spreads.vendor.huey import SqliteHuey
+from spreads.vendor.huey.consumer import Consumer
+from spreads.vendor.pathlib import Path
 from flask import Flask, request
+
 from spreads.plugin import (HookPlugin, SubcommandHookMixin, PluginOption,
                             get_devices)
-from spreads.vendor.pathlib import Path
 from spreads.util import add_argument_from_option
 
 app = Flask('spreadsplug.web', static_url_path='', static_folder='./client',
             template_folder='./client')
+task_queue = None
 import web
 import persistence
-from worker import ProcessingWorker
 
 logger = logging.getLogger('spreadsplug.web')
 
@@ -142,11 +145,14 @@ def setup_app(config):
             config['web']['postprocessing_server'].get())
 
 
+
 def run_server(config):
     setup_app(config)
-    if app.config['mode'] != 'scanner':
-        worker = ProcessingWorker()
-        worker.start()
+
+    # Initialize huey task queue
+    global task_queue
+    db_location = os.path.join(config.config_dir(), 'queue.db')
+    task_queue = SqliteHuey(location=db_location)
 
     ip_address = get_ip_address()
     if (app.config['standalone'] and ip_address
@@ -160,11 +166,17 @@ def run_server(config):
         except:
             logger.warn("No devices could be found at startup.")
 
+
+    # Start task consumer
+    consumer = Consumer(task_queue)
+    if config['loglevel'] == 'debug':
+        logging.getLogger('huey.consumer').setLevel(logging.INFO)
+        logging.getLogger('huey.consumer.ConsumerThread').setLevel(logging.INFO)
+    consumer.start()
     try:
         import waitress
         waitress.serve(app, port=5000)
     finally:
-        if app.config['mode'] != 'scanner':
-            worker.stop()
+        consumer.shutdown()
         if app.config['DEBUG']:
             logger.info("Waiting for remaining connections to close...")
