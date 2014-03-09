@@ -2,6 +2,7 @@ from __future__ import division
 
 import logging
 import re
+import subprocess
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
@@ -128,8 +129,7 @@ def get_thumbnail(img_path):
         return scale_image(unicode(img_path), width=160)
 
 
-def find_stick():
-    import dbus
+def _find_stick_dbus():
     bus = dbus.SystemBus()
     iudisks = dbus.Interface(
         bus.get_object("org.freedesktop.UDisks", "/org/freedesktop/UDisks"),
@@ -150,8 +150,29 @@ def find_stick():
         "org.freedesktop.DBus.UDisks.Device")
 
 
+def _find_stick_shell():
+    """ Since the 'dbus' module is implemented via CPython's extension API,
+    we cannot use it when running in PyPy. The same goes for GOBject
+    introspection via PyGobject. 'pgi' is not yet mature enough to deal with
+    some of UDisks' interfaces.
+    Thats why we go a very hacky way: Use the 'gdbus' CLI utility, parse
+    its output and return the device path.
+    """
+    out = subprocess.check_output(
+        "gdbus introspect --system --dest org.freedesktop.UDisks "
+        "--object-path /org/freedesktop/UDisks/devices --recurse "
+        "--only-properties".split())
+    devs = zip(*((re.match(r".* = '?(.*?)'?;", x).group(1)
+                  for x in out.splitlines()
+                  if "DriveConnectionInterface =" in x
+                  or "DeviceIsPartition =" in x
+                  or "DeviceFile = " in x),)*3)
+    return next(dev[2] for dev in devs[0] == 'usb' and devs[1] == 'true')
+
+
+
 @contextmanager
-def mount_stick(stick):
+def _mount_stick_dbus(stick):
     """ Context Manager that mounts the first available partition on a USB
     drive, yields its path and then unmounts it.
 
@@ -171,3 +192,26 @@ def mount_stick(stick):
                                   # timeout... unmounting sometimes takes a
                                   # long time, since the device has to be
                                   # synced.
+
+@contextmanager
+def _mount_stick_shell(stick):
+    """ Context Manager that mounts the first available partition on a USB
+    drive, yields its path and then unmounts it.
+
+    """
+    out = subprocess.check_output("udisks --mount {0}".format(stick).split())
+    path = re.match(r"Mounted .* at (.*)", out).group(1)
+    try:
+        yield path
+    except Exception as e:
+        raise e
+    finally:
+        subprocess.check_output("udisks --unmount {0}".format(stick).split())
+
+try:
+    import dbus
+    find_stick = _find_stick_dbus
+    mount_stick = _mount_stick_dbus
+except ImportError:
+    find_stick = _find_stick_shell
+    mount_stick = _mount_stick_shell
