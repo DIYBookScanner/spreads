@@ -2,30 +2,17 @@
 /* global module, require */
 (function() {
   'use strict';
-  var React = require('react/addons'),
-      Spinner = require('spin.js');
+  var React = require('react/addons');
 
   module.exports = React.createClass({
-    getInitialState: function() {
-      return {spinner: this._getSpinner()};
-    },
-    componentDidMount: function() {
-      this.state.spinner.spin(this.getDOMNode());
-    },
-    componentWillUnmount: function() {
-      this.state.spinner.stop();
-    },
-    _getSpinner: function() {
-      return new Spinner();
-    },
     render: function() {
       return (
         <div className="overlay">
-          <div className="circle">
+          <div className="spinner">
+            <div className="double-bounce1"></div>
+            <div className="double-bounce2"></div>
           </div>
-          <p className="text">
-              {this.props.message}
-          </p>
+          <p className="text">{this.props.message}</p>
         </div>
       );
     }

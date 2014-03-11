@@ -21,7 +21,7 @@ module.exports = function(grunt) {
     uglify: {
       spreads: {
         files: {
-            './spreads.min.js': ['./spreads.js']
+          './spreads.min.js': ['./spreads.js']
         }
       }
     },
