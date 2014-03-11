@@ -1,4 +1,4 @@
-import hid
+import hidapi
 import logging
 import threading
 import time
@@ -21,8 +21,6 @@ class HidTrigger(HookPlugin, TriggerHooksMixin):
         self._hid_devs = []
         for dev in self._find_devices():
             self._logger.debug("Found HID device: {0}".format(dev))
-            dev.set_nonblocking(True)
-            # Set device to non-blocking I/O
             self._hid_devs.append(dev)
         if not self._hid_devs:
             raise DeviceException("Could not find any HID devices.")
@@ -53,10 +51,9 @@ class HidTrigger(HookPlugin, TriggerHooksMixin):
                     time.sleep(0.01)
 
     def _find_devices(self):
-        for candidate in {(x['vendor_id'], x['product_id'])
-                          for x in hid.enumerate(0, 0)}:
+        for candidate in hidapi.enumerate()
             try:
-                dev = hid.device(*candidate)
+                dev = hid.device(candidate, blocking=False)
             except IOError:
                 raise DeviceException("Could not open HID device, please check"
                                       " your permissions on /dev/bus/usb.")

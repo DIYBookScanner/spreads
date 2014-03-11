@@ -74,6 +74,7 @@ setup(
     entry_points={
         'spreadsplug.devices': [
             "chdkcamera=spreadsplug.dev.chdkcamera:CHDKCameraDevice",
+            "dummy=spreadsplug.dev.dummy:DummyDevice"
         ],
         'spreadsplug.hooks': [
             "autorotate     =spreadsplug.autorotate:AutoRotatePlugin",
@@ -94,11 +95,11 @@ setup(
         "futures >= 2.1.4",
     ],
     extras_require={
-        "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.3"],
+        "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],
         "autorotate": ["jpegtran-cffi >= 0.4"],
         "colorcorrect": ["Wand >= 0.3.5"],
         "gui": ["PySide >= 1.2.1"],
-        "hidtrigger": ["hidapi >= 0.7"],
+        "hidtrigger": ["hidapi-cffi >= 0.1"],
         "web": [
             "Flask >= 0.10.1",
             "jpegtran-cffi >= 0.4",
