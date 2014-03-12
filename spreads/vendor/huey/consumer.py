@@ -67,7 +67,6 @@ class ConsumerThread(threading.Thread):
 class PeriodicTaskThread(ConsumerThread):
     def loop(self, now=None):
         now = now or self.get_now()
-        self._logger.debug('Checking periodic command registry')
         start = time.time()
         for task in registry.get_periodic_tasks():
             if task.validate_datetime(now):
@@ -110,7 +109,6 @@ class WorkerThread(ConsumerThread):
         self.check_message()
 
     def check_message(self):
-        self._logger.debug('Checking for message')
         task = exc_raised = None
         try:
             task = self.huey.dequeue()
@@ -134,7 +132,6 @@ class WorkerThread(ConsumerThread):
         if self.delay > self.max_delay:
             self.delay = self.max_delay
 
-        self._logger.debug('No messages, sleeping for: %s' % self.delay)
         time.sleep(self.delay)
         self.delay *= self.backoff
 
