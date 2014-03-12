@@ -51,9 +51,9 @@ class HidTrigger(HookPlugin, TriggerHooksMixin):
                     time.sleep(0.01)
 
     def _find_devices(self):
-        for candidate in hidapi.enumerate()
+        for candidate in hidapi.enumerate():
             try:
-                dev = hid.device(candidate, blocking=False)
+                dev = hidapi.Device(candidate, blocking=False)
             except IOError:
                 raise DeviceException("Could not open HID device, please check"
                                       " your permissions on /dev/bus/usb.")
