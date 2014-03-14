@@ -1,66 +1,24 @@
-.. spreads documentation master file, created by
-   sphinx-quickstart on Wed Jun 19 08:48:23 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+About Spreads
+=============
 
-Home Page
-=========
-Introduction
-------------
 *spreads* is a tool that aims to streamline your book scanning workflow.
 It takes care of every step: Setting up your capturing devices, handling
 the capturing process, downloading the images to your machine,
 post-processing them and finally assembling a variety of output formats.
 
-For this, you can make use of one of the three available user interfaces:
-A handy graphical wizard that walks you through the whole process, a
-lightweight command-line wizard or you can control each of the workflow steps
-individually through their respective commands.
+For this, you can make use of one of the four available user interfaces:
+
+* a handy graphical wizard that walks you through the whole process
+* a lightweight command-line wizard
+* a mobile-friendly web-interface
+* control each of the workflow steps individually through their respective
+  subcommands.
 
 *spreads* is meant to be fully customizable. This means, :ref:`adding support
 for new devices <add_devices>` is made as painless as possible. You can also
 hook into any of the *spread* commands by implementing one of the available
 :ref:`workflow hooks <extend_commands>` in a plugin, and you can even add
 completely new commands and/or user interfaces, if you want to.
-
-
-Quickstart
-----------
-*spreads* can be easily installed from PyPi::
-
-    $ pip install spreads
-
-Before you can start scanning books, you will have to configure the application::
-
-    $ spread configure
-
-Here, you can select a device driver, your desired plugins and setup your
-devices.
-
-Once you're done, you can start either the command-line or the GUI wizard::
-
-    $ spread wizard ~/my_scanning_project
-    $ spread gui
-
-Refer to the :doc:`Command-Line Reference <commands>` if you want to explore
-further commands and options.
-
-
-More Documentation
-------------------
-.. toctree::
-   :maxdepth: 2
-
-   self
-   tutorial
-   installation
-   configuring
-   commands
-   plugins
-   extending
-   faq
-   api
-   changelog
 
 .. note::
 
@@ -83,4 +41,44 @@ More Documentation
     .. _Benedictines: http://en.wikipedia.org/wiki/Order_of_Saint_Benedict
     .. _copiers of books: http://en.wikipedia.org/wiki/Scriptorium
 
+Quickstart
+----------
+*spreads* can be easily installed from PyPi::
 
+    $ pip install spreads
+
+Before you can start scanning books, you will have to configure the application::
+
+    $ spread configure
+
+Here, you can select a device driver, your desired plugins and setup your
+devices.
+
+Once you're done, you can start either one of the available interfaces::
+
+    $ spread wizard ~/my_scanning_project # CLI-Wizard
+    $ spread gui # GUI-Wizard
+    $ spread web # Web-Interface
+
+.. TODO: Raspberry Pi instructions
+
+
+Getting Started
+---------------
+To get better acquainted with the software, it is recommended that you first
+read the :doc:`Configuration <configuration>` chapter and consult the
+documentation about the :doc:`available Plugins and Drivers <plugins>`. Then,
+learn about the interface of your choice: :doc:`CLI <cli>`, :doc:`GUI <gui>` or
+:doc:`Web <web>`.
+
+
+General Introduction
+-------------------
+
+.. TODO: Explain the following points:
+   - modular, easily extensible
+   - pipeline principle
+   - multiple interfaces
+   - command-line invokation
+   - currently focused on DIYBookScanner with CHDK cameras, other
+     setups/devices are welcome

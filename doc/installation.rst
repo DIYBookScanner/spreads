@@ -1,13 +1,16 @@
 Installation
 ============
+
 Prerequisites
 -------------
-* Python 2.7 with pip_ installed
+* Python 2.7 with a recent version of pip_ installed
 
-Optional requirements
+Installl requirements
 ---------------------
 To use some of the included plugins, you might want to install the following
 dependencies:
+
+.. TODO: Check with spreadpi/spreadslive
 
 * `chdkptp`_ to use cameras with the CHDK firmware (installed in
   `/usr/local/lib/chdkptp`)
@@ -23,16 +26,25 @@ dependencies:
 .. _djvubind: http://code.google.com/p/djvubind/
 .. _PySide: http://pyside.org
 
-Installing from PyPi
---------------------
+Installing the core from PyPi
+-----------------------------
 This will grab the latest release and install all Python dependencies::
 
     $ sudo pip install spreads
+
+
+Installing plugin dependencies
+------------------------------
+This will grab all Python dependencies for the selected plugins::
+
+  $ sudo pip install spreads[chdkcamera,web,hidtrigger]
+
+Adjust the list of plugins as needed.
 
 Installing from GitHub
 ----------------------
 Like from PyPi, only using the development version from GitHub (might break,
 use with caution!)::
 
-    $ sudo pip install git+git://github.com/jbaiter/spreads.git@master
+    $ sudo pip install git+git://github.com/DIYBookScanner/spreads.git@master
 

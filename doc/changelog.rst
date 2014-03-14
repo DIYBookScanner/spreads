@@ -1,6 +1,16 @@
 Changelog
 =========
 
+0.5 (2014/03/??)
+----------------
+* A web interface that currently supports creating workflows, capturing images
+  and downloading them as a ZIP file.
+* New plugins to trigger capture across all interfaces: 'hidtrigger' for USB
+  HID devices, 'intervaltrigger' to trigger a capture in regular intervals
+* Use new, optimized JPEG processing library
+* Plugin API now useses mixin classes to declare which hooks are implemented
+* Made 'chdkcamera' driver more resilient
+
 0.4.2 (2014/01/05)
 ------------------
 * Fix packaging issues

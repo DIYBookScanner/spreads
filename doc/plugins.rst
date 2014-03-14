@@ -19,6 +19,33 @@ captured image is shown during the capture process. Requires an installation of
 the *PySide* packages. Refer to the :ref:`GUI tutorial <gui_tutorial>` for more
 information.
 
+web
+---
+Launches the spread web interface that offers a REST-ish API with which you
+can control the application from any HTTP client. It also includes a
+client-side JavaScript application that can be used from any recent browser
+(Firefox or Chrome recommended). Fore more details, consult the `Web interface
+documentation <web_doc>` and the `REST API documentation <rest_api>`
+
+.. option:: --database <path>
+
+   Location of workflow database, by default `~/.config/spreads/workflows.db`
+
+.. option:: --standalone-device
+
+   Enable standalone mode. This option can be used for devices that are
+   dedicated to scanning (e.g. a RaspberryPi that runs spreads and nothing
+   else). At the moment the only additional feature it enables is the ability
+   to shutdown the device from the web interface and REST API.
+
+.. option:: --debug
+
+   Run the application debugging mode.
+
+.. option:: --project-dir <path>
+
+   Location where workflow files are stored. By default this is `~/scans`.
+
 .. _postproc_plugs:
 
 *postprocess* plugins
@@ -30,26 +57,7 @@ either modify the captured images or generate a different output.
 
 autorotate
 ----------
-Automatically rotates the images according to their device of origin. By
-default this means -90° for odd pages and 90° for even pages, but these can
-be set to arbitrary values by specifying the :option:`rotate-even<--rotate-even>`
-or :option:`rotate-odd<--rotate-odd>` options. You probably want to stick to
-multiples of 90°.
-
-.. option:: --rotate-even
-
-   Change rotation for images from even book pages (default: 90°)
-
-.. option:: --rotate-odd
-
-   See above, only for odd pages (default: -90°)
-
-
-colorcorrect
-------------
-Automatically fixes white balance for your scanned images. To use it, enable
-it in the configuration, set the RGB values for your grey cards and ensure
-that the first two images you take are of your grey cards.
+Automatically rotates the images according to their device of origin.
 
 .. _plug_scantailor:
 

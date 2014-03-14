@@ -11,14 +11,25 @@ you override and implement the features supported by your device.  Take a look
 at the `plugin for CHDK-based cameras`_ and the `relevant part of spreads'
 setup.py`_ for a reference implementation.
 
-Devices are assigned a :class:`DevicePlugin <spreads.plugin.DevicePlugin>`
-implementation based on their USB device's properties. This means that you
-can support a whole range of devices with a single :class:`DevicePlugin
-<spreads.plugin.DevicePlugin>` implementation, if you know a set of
-attributes that apply to all of them.
+Devices have to implement a
+`yield_devices<spreads.plugin.DevicePlugin.yield_devices>` method that scans
+the system for supported devices and returns fully instantiated device objects
+for those.
 
-.. _plugin for CHDK-based cameras: https://github.com/jbaiter/spreads/blob/master/spreadsplug/dev/chdkcamera.py
-.. _relevant part of spreads' setup.py: https://github.com/jbaiter/spreads/blob/master/setup.py
+
+.. _plugin for CHDK-based cameras: https://github.com/DIYBookScanner/spreads/blob/master/spreadsplug/dev/chdkcamera.py
+.. _relevant part of spreads' setup.py: https://github.com/DIYBookScanner/spreads/blob/master/setup.py
+
+.. _declaring_options:
+
+Declaring available configuration options for plugins
+=====================================================
+Device drivers (as well as all plugins) can implement the
+`configuration_templates<spreads.plugin.SpreadsPlugin.configuration_template>`
+method that returns a dictionary of setting keys and
+`PluginOption<spreads.plugin.PluginOption>` objects.  These options will be
+visible across all supported interfaces and also be read from the configuration
+file and command-line arguments.
 
 .. _extend_commands:
 
@@ -26,14 +37,19 @@ Extending *spreads* built-in commands
 =====================================
 You can extend all of *spread's* built-in commands with your own code. To do,
 you just have to inherit from the :class:`HookPlugin
-<spreads.plugin.HookPlugin>` class and implement one or more of its hooks.
-Furthermore, you have to add an entry point for that class in the
-``spreadsplug.hooks`` namespace in your package's ``setup.py`` file.
-For a list of available hooks and their options, refer to the
-:doc:`API documentation <api>`. Example implementations can be found on
-GitHub_
+<spreads.plugin.HookPlugin>` class and one of the available mixin classes (at
+the moment these are `CaptureHooksMixin<spreads.plugin.CaptureHooksMixin>`,
+`TriggerHooksMixin<spreads.plugin.TriggerHooksMixin>`,
+`ProcessHookMixin<spreads.plugin.ProcessHookMixin>`,
+`OutputHookMixin<spreads.plugin.OutputHookMixin>`). You then have to implement
+each of the required methods for the mixins of your choice.
 
-.. _GitHub: https://github.com/jbaiter/spreads/blob/master/spreadsplug
+Furthermore, you have to add an entry point for that class in the
+``spreadsplug.hooks`` namespace in your package's ``setup.py`` file.  For a
+list of available hooks and their options, refer to the :doc:`API documentation
+<api>`. Example implementations can be found on GitHub_
+
+.. _GitHub: https://github.com/DIYBookScanner/spreads/blob/master/spreadsplug
 
 .. seealso:: module :py:mod:`spreads.plugin`, module :py:mod:`spreads.util`
 
@@ -42,8 +58,12 @@ GitHub_
 Adding new commands
 ===================
 You can also add entirely new commands to the application. Simply subclass
-:class:`HookPlugin <spreads.plugin.HookPlugin>` again,
-implement the ``add_command_parser`` method and add your new class as an
-entry point to the ``spreadsplug.hooks`` namespace. Your plugin class will
-most probably be a very few lines, telling the CLI parser its name, arguments
-and pass a function that will do the main work.
+:class:`HookPlugin <spreads.plugin.HookPlugin>` and
+`SubcommandHookMixin<spreads.plugin.SubcommandHookMixin>`, implement the
+``add_command_parser`` classmethod and add your new class as an entry point to
+the ``spreadsplug.hooks`` namespace. See the web_ and gui_ plugins for examples
+of plugins that add custom subcommands.
+
+
+.. _web: https://github.com/DIYBookScanner/spreads/blob/master/spreadsplug/web/__init__.py
+.. _gui: https://github.com/DIYBookScanner/spreds/blob/master/spreadsplug/gui/__init__.py
