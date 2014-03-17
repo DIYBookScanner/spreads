@@ -149,8 +149,11 @@ if PYPY:
                      if "DriveConnectionInterface =" in x
                      or "DeviceIsPartition =" in x
                      or "DeviceFile = " in x),)*3)
-        return next(dev[2] for dev in devs if dev[0] == 'usb'
-                    and dev[1] == 'true')
+        try:
+            return next(dev[2] for dev in devs if dev[0] == 'usb'
+                        and dev[1] == 'true')
+        except StopIteration:
+            return None
 
     @contextmanager
     def _mount_stick_shell(stick):
