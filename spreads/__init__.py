@@ -22,3 +22,5 @@
 """
 Tool to facilitate book digitization with the DIY BookScanner.
 """
+
+__version__ = "0.5dev"

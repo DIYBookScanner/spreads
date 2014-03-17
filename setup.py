@@ -2,6 +2,8 @@
 import os
 from setuptools import setup
 
+import spreads
+
 if os.path.exists('README.rst'):
     description_long=open('README.rst').read()
 else:
@@ -23,6 +25,7 @@ your own custom sub-commands.
 
 setup(
     name="spreads",
+    version=spreads.__version__,
     author="Johannes Baiter",
     author_email="johannes.baiter@gmail.com",
     url="http://spreads.readthedocs.org",
@@ -74,7 +77,6 @@ setup(
     entry_points={
         'spreadsplug.devices': [
             "chdkcamera=spreadsplug.dev.chdkcamera:CHDKCameraDevice",
-            "dummy=spreadsplug.dev.dummy:DummyDevice"
         ],
         'spreadsplug.hooks': [
             "autorotate     =spreadsplug.autorotate:AutoRotatePlugin",
@@ -97,7 +99,6 @@ setup(
     extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],
         "autorotate": ["jpegtran-cffi >= 0.4"],
-        "colorcorrect": ["Wand >= 0.3.5"],
         "gui": ["PySide >= 1.2.1"],
         "hidtrigger": ["hidapi-cffi >= 0.1"],
         "web": [
