@@ -32,7 +32,9 @@ try:
                          or dev.startswith('br'))
         except StopIteration:
             return None
-        return netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
+        addresses = netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
+        if netifaces.AF_INET in addresses:
+            return addresses[netifaces.AF_INET]
 except ImportError:
     # Solution with built-ins, not as reliable
     import socket
