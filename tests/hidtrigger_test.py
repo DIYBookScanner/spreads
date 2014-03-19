@@ -4,7 +4,7 @@ from itertools import chain, repeat
 import mock
 import pytest
 
-with mock.patch('hidapi.ffi.dlopen'):
+with mock.patch('cffi.FFI'):
     import spreadsplug.hidtrigger as hidtrigger
 
 
