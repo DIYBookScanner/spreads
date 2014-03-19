@@ -155,7 +155,7 @@ def test_capture(jpeg, camera):
     assert camera._run.call_count == 1
     assert camera._run.call_args_list[0][0][0].startswith('remoteshoot')
     assert jpeg.called_once_with('/tmp/000.jpg')
-    assert jpeg.return_value.exif_orientation == 8
+    assert jpeg.return_value.exif_orientation == 6
     assert jpeg.return_value.save.called_once_with('/tmp/000.jpg')
 
 
