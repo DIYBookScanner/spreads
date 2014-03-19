@@ -286,7 +286,7 @@ def test_acquire_focus(sleep, camera):
 
 @mock.patch('spreadsplug.dev.chdkcamera.time.sleep')
 def test_set_focus(sleep, camera):
-    camera._focus_distance = 'auto'
+    camera._focus_distance = 0
     camera._set_focus()
     assert camera._execute_lua.call_count == 1
     camera._focus_distance = 300

@@ -42,7 +42,7 @@ class CHDKCameraDevice(DevicePlugin):
              'zoom_level': PluginOption(3, "The default zoom level"),
              'dpi': PluginOption(300, "The capturing resolution"),
              'shoot_raw': PluginOption(False, "Shoot in RAW format (DNG)"),
-             'focus_distance': PluginOption('auto', "Set focus distance"),
+             'focus_distance': PluginOption(0, "Set focus distance"),
              'chdkptp_path': PluginOption(
                  u"/usr/local/lib/chdkptp",
                  "Path to CHDKPTP binary/libraries"),
@@ -315,7 +315,7 @@ class CHDKCameraDevice(DevicePlugin):
 
     def _set_focus(self):
         self._execute_lua("set_aflock(0)")
-        if self._focus_distance == 'auto':
+        if self._focus_distance == 0:
             return
         self._execute_lua("set_focus({0:.0f})".format(self._focus_distance))
         time.sleep(0.5)
