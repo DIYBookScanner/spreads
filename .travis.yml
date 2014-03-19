@@ -9,6 +9,8 @@ before_install:
     - ln -s /usr/lib/python2.7/dist-packages/PySide /usr/lib/python2.7/dist-packages/*dbus* ~/virtualenv/python2.7/lib/python2.7/site-packages/
     - git clone git://github.com/signal11/hidapi.git /tmp/hidapi
     - cd /tmp/hidapi/linux
+    - ./bootstrap
+    - ./configure
     - make
     - sudo make install
     - "export DISPLAY=:99.0"
