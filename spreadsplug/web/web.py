@@ -1,6 +1,6 @@
 import json
 import logging
-import os
+import logging.handlers
 import shutil
 import subprocess
 import time
@@ -18,7 +18,7 @@ from spreads.workflow import Workflow
 import persistence
 from spreadsplug.web import app
 from util import (cached, get_image_url, workflow_to_dict, WorkflowConverter,
-                  parse_log_lines, get_thumbnail, find_stick, scale_image)
+                  get_log_lines, get_thumbnail, find_stick, scale_image)
 
 logger = logging.getLogger('spreadsplub.web')
 
@@ -172,27 +172,24 @@ def poll_for_updates():
     changed workflows and a field 'messages', containing all errors and
     warnings since the last poll.
     """
-    logfile = Path(os.path.expanduser(
-        app.config['default_config']['logfile'].get()))
+    logbuffer = next(
+        x for x in logging.getLogger().handlers
+        if isinstance(x, logging.handlers.BufferingHandler)).buffer
 
     get_props = lambda x: {k: v for k, v in x.__dict__.iteritems()
                            if not k[0] == '_'}
     old_workflows = {workflow.id: get_props(workflow)
                      for workflow in persistence.get_all_workflows().values()}
 
-    last_logtime = logfile.stat().st_mtime
-    # NOTE: While this might look horribly expensive, it's actually very fast
-    #       with our maximum logsize of 512kiB, even on low-powered devices
-    with logfile.open('r') as fp:
-        last_loglinenum = len(fp.readlines())
+    last_logtime = logbuffer[-1].relativeCreated
 
     start_time = time.time()
-    while (time.time() - start_time) < 35:
+    while (time.time() - start_time) < 5:
         updated_workflows = {workflow.id: get_props(workflow)
                              for workflow
                              in persistence.get_all_workflows().values()}
         workflows_updated = (updated_workflows != old_workflows)
-        log_updated = (logfile.stat().st_mtime != last_logtime)
+        log_updated = (logbuffer[-1].relativeCreated > last_logtime)
 
         if workflows_updated:
             workflows = [workflow_to_dict(persistence.get_workflow(wfid))
@@ -204,10 +201,8 @@ def poll_for_updates():
         else:
             workflows = []
         if log_updated:
-            messages = parse_log_lines(logfile, last_loglinenum)
-            last_logtime = logfile.stat().st_mtime
-            with logfile.open('r') as fp:
-                last_loglinenum = len(fp.readlines())
+            messages = get_log_lines(logbuffer, last_logtime,
+                                     ['WARNING', 'ERROR'])
         else:
             messages = []
         if workflows or messages:

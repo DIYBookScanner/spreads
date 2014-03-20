@@ -1,6 +1,4 @@
 import json
-import logging
-import logging.handlers
 import os
 import random
 import re
@@ -16,28 +14,17 @@ from multiprocessing.pool import ThreadPool
 
 @pytest.yield_fixture
 def app(config, mock_driver_mgr, mock_plugin_mgr, tmpdir):
-    from spreadsplug.web import setup_app, app
+    from spreadsplug.web import setup_app, setup_logging, app
     from spreads.plugin import set_default_config
     set_default_config(config)
-    logger = logging.getLogger()
-    config['loglevel'] = 'debug'
 
-    logfile = tmpdir.join('logfile.txt')
-    logfile.write('')
-    file_handler = logging.handlers.RotatingFileHandler(
-        filename=unicode(logfile), maxBytes=512*1024, backupCount=1)
-    file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
-    file_handler.setLevel(logging.DEBUG)
-    logger.addHandler(file_handler)
-
-    config['logfile'] = unicode(logfile)
     config['web']['mode'] = 'full'
     config['web']['database'] = unicode(tmpdir.join('test.db'))
     config['web']['project_dir'] = unicode(tmpdir)
     config['web']['debug'] = False
     config['web']['standalone_device'] = True
     setup_app(config)
+    setup_logging(config)
     app.config['TESTING'] = True
     yield app
 
@@ -191,12 +178,10 @@ def test_poll_for_updates_workflow(client):
 
 
 def test_poll_for_updates_errors(client):
-    # TODO: Spin up background thread that GETs '/poll'
-    # TODO: Provoke an error logentry on the server, verify that the thread
-    #       finished
     wfid = create_workflow(client)
     pool = ThreadPool(processes=1)
     asyn_result = pool.apply_async(client.get, ('/poll', ))
+    time.sleep(.5)
     with mock.patch('spreadsplug.web.web.shutil.rmtree') as sp:
         sp.side_effect = OSError('foobar')
         client.delete('/workflow/{0}'.format(wfid))

@@ -1,5 +1,6 @@
 import gzip
 import logging
+import logging.handlers
 import os
 from cStringIO import StringIO as IO
 
@@ -122,11 +123,6 @@ def gzip_response(response):
 
 
 def setup_app(config):
-    # Set rootlogger to INFO
-    if config['loglevel'].get() not in ('debug', 'info'):
-        for handler in logging.getLogger().handlers:
-            handler.setLevel(logging.INFO)
-
     mode = config['web']['mode'].get()
     logger.debug("Starting scanning station server in \"{0}\" mode"
                  .format(mode))
@@ -147,6 +143,16 @@ def setup_app(config):
             config['web']['postprocessing_server'].get())
 
 
+def setup_logging(config):
+    # Add in-memory log handler
+    memoryhandler = logging.handlers.BufferingHandler(1024*10)
+    memoryhandler.setLevel(logging.DEBUG)
+    logger.root.addHandler(memoryhandler)
+
+    logging.getLogger('huey.consumer').setLevel(logging.INFO)
+    (logging.getLogger('huey.consumer.ConsumerThread')
+            .setLevel(logging.INFO))
+
 
 def run_server(config):
     setup_app(config)
@@ -155,6 +161,7 @@ def run_server(config):
     global task_queue
     db_location = os.path.join(config.config_dir(), 'queue.db')
     task_queue = SqliteHuey(location=db_location)
+    consumer = Consumer(task_queue)
 
     ip_address = get_ip_address()
     if (app.config['standalone'] and ip_address
@@ -168,12 +175,7 @@ def run_server(config):
         except:
             logger.warn("No devices could be found at startup.")
 
-
     # Start task consumer
-    consumer = Consumer(task_queue)
-    if config['loglevel'] == 'debug':
-        logging.getLogger('huey.consumer').setLevel(logging.INFO)
-        logging.getLogger('huey.consumer.ConsumerThread').setLevel(logging.INFO)
     consumer.start()
     try:
         import waitress
