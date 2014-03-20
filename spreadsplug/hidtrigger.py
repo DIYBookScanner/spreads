@@ -23,7 +23,8 @@ class HidTrigger(HookPlugin, TriggerHooksMixin):
             self._logger.debug("Found HID device: {0}".format(dev))
             self._hid_devs.append(dev)
         if not self._hid_devs:
-            raise DeviceException("Could not find any HID devices.")
+            self._logger.warning("Could not find any HID devices.")
+            return
         self._exit_event = threading.Event()
         self._loop_thread = threading.Thread(target=self._trigger_loop,
                                              args=(capture_callback, ))
@@ -31,6 +32,9 @@ class HidTrigger(HookPlugin, TriggerHooksMixin):
         self._loop_thread.start()
 
     def stop_trigger_loop(self):
+        if self._exit_event is None:
+            # Return if no loop thread is running
+            return
         self._logger.debug("Stopping trigger loop")
         self._exit_event.set()
         self._loop_thread.join()
