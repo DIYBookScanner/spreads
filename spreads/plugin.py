@@ -32,6 +32,8 @@ from stevedore.named import NamedExtensionManager
 from spreads.util import abstractclassmethod, DeviceException
 
 logger = logging.getLogger("spreads.plugin")
+pluginmanager = None
+devices = None
 
 
 class PluginOption(object):
@@ -364,13 +366,15 @@ class OutputHookMixin(object):
 
 
 def get_pluginmanager(config):
-    logger.debug("Creating plugin manager")
-    pluginmanager = SpreadsNamedExtensionManager(
-        namespace='spreadsplug.hooks',
-        names=config['plugins'].as_str_seq(),
-        invoke_on_load=True,
-        invoke_args=[config],
-        name_order=True)
+    global pluginmanager
+    if pluginmanager is None:
+        logger.debug("Creating plugin manager")
+        pluginmanager = SpreadsNamedExtensionManager(
+            namespace='spreadsplug.hooks',
+            names=config['plugins'].as_str_seq(),
+            invoke_on_load=True,
+            invoke_args=[config],
+            name_order=True)
     return pluginmanager
 
 
@@ -379,19 +383,21 @@ def get_driver(driver_name):
                          name=driver_name)
 
 
-def get_devices(config):
+def get_devices(config, force_reload=False):
     """ Initialize configured devices.
     """
+    global devices
     if not 'driver' in config.keys():
         raise DeviceException(
             "No driver has been configured\n"
             "Please run `spread configure` to select a driver.")
-    driver_manager = get_driver(config["driver"].get())
-    driver_class = driver_manager.driver
-    logger.debug("Finding devices for driver \"{0}\"".format(driver_manager))
-    devices = list(driver_class.yield_devices(config['device']))
-    if not devices:
-        raise DeviceException("Could not find any compatible devices!")
+    if force_reload or not devices:
+        driver_manager = get_driver(config["driver"].get())
+        driver_class = driver_manager.driver
+        logger.debug("Finding devices for driver \"{0}\"".format(driver_manager))
+        devices = list(driver_class.yield_devices(config['device']))
+        if not devices:
+            raise DeviceException("Could not find any compatible devices!")
     return devices
 
 

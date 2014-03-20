@@ -26,7 +26,6 @@ spreads workflow object.
 from __future__ import division, unicode_literals
 
 import logging
-import time
 import threading
 
 import spreads.vendor.confit as confit
@@ -76,7 +75,7 @@ class Workflow(object):
     @property
     def devices(self):
         if self._devices is None:
-            self._devices = plugin.get_devices(self.config)
+            self._devices = plugin.get_devices(self.config, force_reload=True)
         if any(not dev.connected() for dev in self._devices):
             self._logger.warning(
                 "At least one of the devices has been disconnected."

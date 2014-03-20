@@ -137,7 +137,7 @@ def _set_device_target_page(config, target_page):
           .format(target_page))
     print("Press any key when ready.")
     getch()
-    devs = plugin.get_devices(config)
+    devs = plugin.get_devices(config, force_reload=True)
     if len(devs) > 1:
         raise DeviceException("Please ensure that only one device is"
                               " turned on!")
@@ -182,7 +182,7 @@ def configure(config):
             print("Please turn on one of your capture devices.\n"
                   "Press any key to continue")
             getch()
-            devs = plugin.get_devices(config)
+            devs = plugin.get_devices(config, force_reload=True)
             print("Please put a book with as little whitespace as possible"
                   "under your cameras.\nPress any button to continue")
             getch()
@@ -205,7 +205,7 @@ def capture(config):
         # Callback to print statistics
         if start_time[0] is not None:
             pages_per_hour = ((3600/(time.time() - start_time[0]))
-                              *workflow.pages_shot)
+                              * workflow.pages_shot)
         else:
             pages_per_hour = 0.0
             start_time[0] = time.time()
@@ -389,8 +389,10 @@ def setup_parser(config):
 
     # Add custom subcommands from plugins
     if config["plugins"].get():
-        for ext in plugin.get_relevant_extensions(pluginmanager,
-                                                  [plugin.SubcommandHookMixin]):
+        exts = plugin.get_relevant_extensions(pluginmanager,
+                                              [plugin.SubcommandHookMixin])
+
+        for ext in exts:
             ext.plugin.add_command_parser(subparsers)
     return rootparser
 
@@ -442,15 +444,15 @@ def main():
     stdout_handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
     logger.addHandler(stdout_handler)
     if 'logfile' in config.keys():
-      logfile = Path(os.path.expanduser(config['logfile'].get()))
-      if not logfile.parent.exists():
-          logfile.parent.mkdir()
-      file_handler = logging.handlers.RotatingFileHandler(
-        filename=unicode(logfile), maxBytes=512*1024, backupCount=1)
-      file_handler.setFormatter(logging.Formatter(
-          "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
-      file_handler.setLevel(loglevel)
-      logger.addHandler(file_handler)
+        logfile = Path(os.path.expanduser(config['logfile'].get()))
+        if not logfile.parent.exists():
+            logfile.parent.mkdir()
+        file_handler = logging.handlers.RotatingFileHandler(
+            filename=unicode(logfile), maxBytes=512*1024, backupCount=1)
+        file_handler.setFormatter(logging.Formatter(
+            "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
+        file_handler.setLevel(loglevel)
+        logger.addHandler(file_handler)
 
     logger.setLevel(logging.DEBUG)
 
