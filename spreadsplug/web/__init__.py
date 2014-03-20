@@ -179,7 +179,10 @@ def run_server(config):
     consumer.start()
     try:
         import waitress
-        waitress.serve(app, port=5000)
+        # NOTE: We spin up this obscene number of threads since we have
+        #       some long-polling going on, which will always block
+        #       one worker thread.
+        waitress.serve(app, port=5000, threads=16)
     finally:
         consumer.shutdown()
         if app.config['DEBUG']:
