@@ -334,3 +334,13 @@ def test_shutdown(client):
         client.post('/system/shutdown')
     sp.assert_called_once_with(['/usr/bin/sudo',
                                 '/sbin/shutdown', '-h', 'now'])
+
+
+def test_get_logs(client):
+    create_workflow(client, num_captures=1)
+    records = json.loads(client.get('/log',
+                                    query_string={'start': 2, 'count': 5,
+                                                  'level': 'debug'}).data)
+    assert len(records['messages']) == 5
+    assert (records['messages'][0]['message']
+            == u'Sending finish_capture command to devices')

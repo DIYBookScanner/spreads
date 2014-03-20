@@ -84,6 +84,39 @@ def get_plugin_templates():
     return rv
 
 
+@app.route('/log')
+def get_logs():
+    start = int(request.args.get('start', '0'))
+    count = int(request.args.get('count', '50'))
+    level = request.args.get('level', 'INFO')
+    poll = 'poll' in request.args and request.args.get('poll') != 'false'
+    logbuffer = next(
+        x for x in logging.getLogger().handlers
+        if isinstance(x, logging.handlers.BufferingHandler)).buffer
+    available_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR']
+    if level.upper() not in available_levels:
+        levels = available_levels[available_levels.index('INFO'):]
+    else:
+        levels = available_levels[available_levels.index(level.upper()):]
+    if not poll:
+        msgs = get_log_lines(logbuffer=logbuffer, levels=levels)
+        return jsonify(total_num=len(msgs),
+                       messages=msgs[start:start+count])
+
+    last_logtime = logbuffer[-1].created
+    start_time = time.time()
+    while (time.time() - start_time) < 35:
+        if logbuffer[-1].created != last_logtime:
+            msgs = get_log_lines(logbuffer=logbuffer,
+                                 since=last_logtime,
+                                 levels=levels)
+            return jsonify(total_num=len(msgs),
+                           messages=msgs)
+        else:
+            time.sleep(0.1)
+    abort(408)
+
+
 # ================== #
 #  Workflow-related  #
 # ================== #
