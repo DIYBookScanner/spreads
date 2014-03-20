@@ -27,6 +27,9 @@
       } else {
         classes += " small-" + (this.props.size || 12) + " columns";
       }
+      if (this.props.offset) {
+        classes += " small-offset-" + this.props.offset;
+      }
       return (<div className={classes}>{this.props.children}</div>);
     }
   });
@@ -56,6 +59,7 @@
       return (<div data-alert
                     className={"alert-box " + classes.join(' ')} >
                 {this.props.message}
+                {this.props.children}
                 <a onClick={this.handleClose} className="close">&times;</a>
               </div>
               );
@@ -148,8 +152,14 @@
       return (
         <modal onClose={this.props.onCancel}>
           {this.props.children}
-          <fnButton callback={this.props.onConfirm}>OK</fnButton>
-          <fnButton callback={this.props.onCancel}>Cancel</fnButton>
+          <row>
+            <column size="6">
+              <fnButton callback={this.props.onConfirm} size="small">OK</fnButton>
+            </column>
+            <column size="6">
+              <fnButton callback={this.props.onCancel} size="small">Cancel</fnButton>
+            </column>
+          </row>
         </modal>
       );
     }

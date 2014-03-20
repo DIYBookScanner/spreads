@@ -20,9 +20,10 @@
     routes: {
       "":                       "root",
       "workflow/new":           "createWorkflow",
-      "workflow/:id":          "viewWorkflow",
-      "workflow/:id/capture":  "startCapture",
-      "preferences":            "editPreferences"
+      "workflow/:id":           "viewWorkflow",
+      "workflow/:id/capture":   "startCapture",
+      "preferences":            "editPreferences",
+      "log":                    "displayLog"
     },
     _renderView: function(view, workflow) {
       React.renderComponent(<SpreadsApp view={view} workflows={this._workflows}
@@ -70,6 +71,9 @@
     },
     editPreferences: function() {
       this._renderView("preferences");
+    },
+    displayLog: function() {
+      this._renderView("log");
     }
   });
 }());

@@ -9,6 +9,7 @@
       WorkflowDetails = require('./workflow'),
       WorkflowList = require('./workflowlist'),
       NavigationBar = require('./navbar'),
+      LogDisplay = require('./logdisplay.js'),
       fnAlert = require('./foundation').alert;
 
   module.exports = React.createClass({
@@ -40,6 +41,8 @@
         return <CaptureInterface workflow={workflows.get(workflowId)}/>;
       case "view":
         return <WorkflowDetails workflow={workflows.get(workflowId)}/>;
+      case "log":
+        return <LogDisplay />;
       default:
         return <WorkflowList workflows={workflows}/>;
       }
@@ -56,9 +59,12 @@
                 <NavigationBar title={navTitle} />
                 {this.props.messages &&
                   this.props.messages.map(function(message) {
-                    return (<fnAlert level={message.get('level')}
-                                     message={message.get('message')}
-                                     closeCallback={getCloseCallback.bind(this)(message)}/>);
+                    return (
+                      <fnAlert level={message.get('level')}
+                               message={message.get('message')}
+                               closeCallback={getCloseCallback.bind(this)(message)}>
+                        <a className="right" href='#/log'>(View detailed log)</a>
+                      </fnAlert>);
                   }, this)}
                 {viewComponent}
               </div>);

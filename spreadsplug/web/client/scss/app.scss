@@ -6,6 +6,18 @@
   font-size: rem-calc(32);
   line-height: rem-calc(32);
 
+  &.small {
+    @include button(rem-calc(10));
+    font-size: rem-calc(24);
+    line-height: rem-calc(24);
+  }
+
+  &.tiny {
+    @include button(rem-calc(8));
+    font-size: rem-calc(14);
+    line-height: rem-calc(14);
+  }
+
   &.secondary { @include button-style($bg:$secondary-color); }
 }
 
@@ -132,4 +144,45 @@
     transform: scale(1.0);
     -webkit-transform: scale(1.0);
   }
+}
+
+.logtable {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.logger-col {
+  width: 25%;
+}
+
+.msg-col {
+  width: 62.5%;
+}
+
+.time-col {
+  width: 12.5%;
+}
+
+.logentry {
+  &.exception {
+    background-color: $alert-color;
+  }
+  &.error, &.warning {
+    background-color: $warning-color;
+  }
+  &.info {
+    background-color: $info-color;
+  }
+  td {
+    overflow-x: auto;
+  }
+}
+
+.reveal-modal {
+  position: fixed;
+}
+
+.traceback {
+  margin-bottom: 1rem;
+  overflow-x: scroll;
 }
