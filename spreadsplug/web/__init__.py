@@ -156,6 +156,7 @@ def setup_logging(config):
 
 def run_server(config):
     setup_app(config)
+    setup_logging(config)
 
     # Initialize huey task queue
     global task_queue
