@@ -57,6 +57,7 @@ setup(
         "spreads",
         "spreads.vendor",
         "spreads.vendor.huey",
+        "spreas.vendor.huey.backends",
         "spreadsplug",
         "spreadsplug.dev",
         "spreadsplug.gui",
@@ -78,6 +79,7 @@ setup(
     entry_points={
         'spreadsplug.devices': [
             "chdkcamera=spreadsplug.dev.chdkcamera:CHDKCameraDevice",
+            "dummy=spreadsplug.dev.dummy:DummyDevice"
         ],
         'spreadsplug.hooks': [
             "autorotate     =spreadsplug.autorotate:AutoRotatePlugin",
