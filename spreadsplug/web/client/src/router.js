@@ -50,7 +50,7 @@
      */
     _renderView: function(view, workflowId) {
       React.renderComponent(<SpreadsApp view={view} workflows={this._workflows}
-                                        workflowId={workflow}
+                                        workflowId={workflowId}
                                         messages={this._messages} />,
                             document.getElementById('content'));
     },
