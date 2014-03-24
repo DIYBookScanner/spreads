@@ -56,6 +56,7 @@ setup(
     packages=[
         "spreads",
         "spreads.vendor",
+        "spreads.vendor.huey",
         "spreadsplug",
         "spreadsplug.dev",
         "spreadsplug.gui",
