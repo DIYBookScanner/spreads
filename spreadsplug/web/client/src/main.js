@@ -9,9 +9,11 @@
   // Assign jQuery to Backbone
   Backbone.$ = $;
   // Assign jQuery to window for Foundation
+  /** @global */
   window.jQuery = $;
 
   // Initialize routing
+  /** @global */
   window.router = new Router();
   Backbone.history.start();
 }());

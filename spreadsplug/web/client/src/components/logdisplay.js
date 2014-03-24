@@ -14,6 +14,14 @@
       modal = foundation.modal,
       LogRecord, BugModal;
 
+  /**
+   * Component that displays a detailed traceback and offers the option
+   * to query GitHub for similar issues and to submit a new issue with
+   * the traceback and Exception name as the title.
+   *
+   * @property {string} traceback - The traceback for the exception
+   * @property {function} onClose - Callback function when modal is closed
+   */
   BugModal = React.createClass({
     render: function() {
       var exception,
@@ -60,13 +68,25 @@
     }
   });
 
+  /**
+   * Display a log entry in a table row
+   *
+   * @property {string} level - Loglevel of entry
+   * @property {string} origin - Origin logger
+   * @property {string} message - Logging message
+   * @property {Date} time - Time of entry
+   * @property {string} [traceback] - Traceback of exception
+   */
   LogRecord = React.createClass({
     getInitialState: function() {
       return {
+        /** Display traceback modal overlay for this entry? */
         displayBugModal: false,
-        loglevel: 'info'
       };
     },
+    /**
+     * Toggle display of traceback modal.
+     */
     toggleBugModal: function() {
       this.setState({displayBugModal: !this.state.displayBugModal});
     },
@@ -90,7 +110,14 @@
     }
   });
 
+  /**
+   * Display log entries in a table
+   */
   module.exports = React.createClass({
+
+    /**
+     * Load log mesages from server
+     */
     loadMessages: function() {
       jQuery.ajax({
         url: "/log",
@@ -110,13 +137,21 @@
     },
     getInitialState: function() {
       return {
+        /** Only display records with this level or higher */
         loglevel: 'info',
+        /** Log messages to display */
         messages: [],
+        /** Index of first log message to display */
         msgStart: 0,
+        /** Number of log messages to display */
         msgCount: 25,
+        /** Total number of log messages */
         totalMessages: 0
       };
     },
+    /**
+     * Load initial messages and start polling for updates.
+     */
     componentWillMount: function() {
       this.loadMessages();
       // Initialize polling
@@ -133,12 +168,14 @@
           }.bind(this),
           dataType: "json",
           complete: function(xhr, status) {
+            // Cancel polling if the component has been unmounted
             if (!this.isMounted()) {
               return;
             }
             else if (_.contains(["timeout", "success"], status)) {
               poll.bind(this)();
             } else {
+              // Back off if there was an error
               _.delay(poll.bind(this), 30*1000);
             }
           }.bind(this),
@@ -146,14 +183,17 @@
         });
       }.bind(this)());
     },
+    /** Callback when loglevel filter is changed */
     handleSetLevel: function(event) {
       this.setState({loglevel: event.target.value}, this.loadMessages);
     },
+    /** Callback when page was changed */
     handleChangePage: function(pageIdx) {
       this.setState({
         msgStart: (pageIdx-1)*this.state.msgCount
       }, this.loadMessages);
     },
+    /** Callback when number of log records to display was changed */
     handleSetCount: function(event) {
       this.setState({
         msgCount: event.target.value

@@ -10,34 +10,57 @@
       column = foundation.column,
       PluginOption, PluginWidget, PluginConfiguration;
 
-  // Some helper mixins for underscore that we're going to need
+  /**
+   * Some helper mixins for underscore that we're going to need
+   *
+   * @mixin
+   */
   _.mixin({
+    /**
+     * Convert the first letter of a given string to uppercase.
+     *
+     * @param {string} string
+     */
     capitalize: function(string) {
         return string.charAt(0).toUpperCase() + string.substring(1).toLowerCase();
       }
   });
 
+  /**
+   * A single option component for the workflow configuration.
+   *
+   * @property {string} name        - Name of the option
+   * @property {object} option
+   * @property {function} bindFunc  - Function that establishes databinding
+   * @property {string} [error]     - Error message for the option
+   */
   PluginOption = React.createClass({
     render: function() {
       var name = this.props.name,
           option = this.props.option,
           bindFunc = this.props.bindFunc,
+          /* If there is a docstring, use it as the label, otherwise use
+           * the capitalized name */
           label =  <label htmlFor={name}>{option.docstring || _.capitalize(name)}</label>,
           input;
       if (option.selectable && _.isArray(option.value)) {
-        // Dropdown
+        /* Use a dropdown to represent selectable values */
         input = (
-          <select id={name} multiple={!option.selectable} valueLink={bindFunc(name)}>
+          <select id={name} multiple={false} valueLink={bindFunc(name)}>
             {_.map(option.value, function(key) {
               return <option value={key}>{key}</option>;
             })}
           </select>
         );
       } else if (_.isArray(option.value)) {
+        /* TODO: Currently we cannot deal with multi-valued options,
+         *       change this! */
         input = <em>oops</em>;
       } else if (typeof option.value === "boolean") {
+        /* Use a checkbox to represent boolean values */
         input = <input id={name} type={"checkbox"} checkedLink={bindFunc(name)} />;
       } else {
+        /* Use a regular input to represent number or string values */
         var types = { "number": "number",
                       "string": "text" };
 
@@ -46,8 +69,10 @@
       return (
         <row>
           <column size='12'>
+            {/* Labels are to the left of all inputs, except for checkboxes */}
             {input.props.type === 'checkbox' ? input : label}
             {input.props.type === 'checkbox' ? label : input}
+            {/* Display error, if it is defined */}
             {this.props.error && <small className="error">{this.props.error}</small>}
           </column>
         </row>
@@ -55,6 +80,13 @@
     }
   });
 
+  /**
+   * Collection of options for a single plugin
+   *
+   * @property {object} template       - Collection of templates for options
+   * @property {string} plugin         - Name of the plugin
+   * @property {function} bindFunc     - Function to call to establish databinding
+   */
   PluginWidget = React.createClass({
     render: function() {
       var template = this.props.template;
@@ -78,20 +110,42 @@
     }
   });
 
+  /**
+   * Container for all plugin configuration widgets.
+   * Offers a dropdown to select a plugin to configure and displays
+   * its configuration widget.
+   *
+   * @property {Workflow} workflow  - Workflow to set configuration for
+   * @property {object} errors      - Validation errors
+   *
+   */
   PluginConfiguration = React.createClass({
+    /** Enables two-way databinding with Backbone model */
     mixins: [ModelMixin],
+
+    /** Activates databinding for `workflow` model property. */
     getBackboneModels: function() {
       return [this.props.workflow];
     },
     getInitialState: function() {
-      return {selectedPlugin: undefined};
+      return {
+        /** Currently selected plugin */
+        selectedPlugin: undefined
+      };
     },
+    /**
+     * Change selected plugin
+     *
+     * @param {React.event} event - Event that triggered the method call
+     */
     handleSelect: function(event) {
       this.setState({selectedPlugin: event.target.value});
     },
     render: function() {
       var templates = window.pluginTemplates,
+          /* If no plugin is explicitely selected, use the first one */
           selectedPlugin = this.state.selectedPlugin || _.keys(templates)[0];
+      /* Don't display anything if there are no templates */
       if (_.isEmpty(templates)) {
         return <row />;
       }
@@ -121,29 +175,44 @@
     }
   });
 
+  /**
+   * View component for workflow creation
+   *
+   * @property {Workflow} workflow - Workflow to display
+   */
   module.exports = React.createClass({
+    /** Enables two-way databinding with Backbone model */
     mixins: [ModelMixin],
+
+    /** Activates databinding for `workflow` model property. */
     getBackboneModels: function() {
       return [this.props.workflow];
     },
     getInitialState: function() {
-      return { errors: {} };
+      return {
+        /** Errors from validation */
+        errors: {}
+      };
     },
     componentDidMount: function() {
-      // Register event handlers
+      /* Update `errors` if there were validation errors. */
       this.props.workflow.on('validated:invalid', function(workflow, errors) {
         this.setState({errors: errors});
       }, this);
+      /* When workflow is saved, add it to the `workflows` collection. */
+      // TODO: Check that the workflow is not already in the collection
+      //       (happens when editing an existing workflow)
       this.props.workflow.on('sync', function() {
         this.props.workflow.collection.add(this.props.workflow);
       }, this);
     },
     componentWillUnmount: function() {
-      // Deregister event handlers
+      /* Deregister event handlers */
       this.props.workflow.off('validated:invalid');
       this.props.workflow.off('all');
     },
     handleSubmit: function() {
+      /* Save workflow and open capture screen when successful */
       this.props.workflow.save().success(function(workflow) {
         window.router.navigate('/workflow/' + workflow.id + '/capture',
                                {trigger: true});

@@ -15,11 +15,6 @@
   /* We extend DeepModel instead of Model so we can listen on changes for
    * nested objects like workflow.config. */
   Workflow = Backbone.DeepModel.extend({
-    // Don't synchronize these with the server
-    blacklist: ['configuration_template'],
-    toJSON: function() {
-        return _.omit(this.attributes, this.blacklist);
-      },
     initialize: function() {
       this._setPluginValidators();
       if (this.isNew()) {
@@ -39,6 +34,13 @@
       // pretends as if validation is always successful...
       return Backbone.Validation.mixin.validate.bind(this)();
     },
+    /**
+     * Initiates the submissiong of the workflow to a remote postprocessing
+     * server for postprocessing and output generation.
+     *
+     * @param {requestCallback} callback Callback to execute after API request
+     *                                   is completed.
+     */
     submit: function(callback) {
       console.debug("Submitting workflow " + this.id + " for postprocessing");
       jQuery.post('/workflow/' + this.id + '/submit')
@@ -46,6 +48,12 @@
           console.error("Could not submit workflow " + this.id);
         }).complete(callback);
     },
+    /**
+     * Initiates the transfer to a removable storage device.
+     *
+     * @param {requestCallback} callback Callback to execute after API request is
+     *                                   completed.
+     */
     transfer: function(callback) {
       console.debug("Initiating transfer for workflow " + this.id + "");
       jQuery.post('/workflow/' + this.id + '/transfer')
@@ -53,6 +61,12 @@
           console.error("Could not transfer workflow " + this.id);
         }).complete(callback);
     },
+    /**
+     * Prepares devices for capture.
+     *
+     * @param {requestCallback} callback Callback to execute after API request is
+     *                                   completed.
+     */
     prepareCapture: function(callback) {
       jQuery.post(
         '/workflow/' + this.id + '/prepare_capture',
@@ -62,20 +76,37 @@
           console.error("Capture preparation failed");
         }).complete(callback);
     },
+    /**
+     * Triggers a capture.
+     *
+     * @param {boolean} retake Discard the previous shot and retake it
+     * @param {requestCallback} callback Callback to execute after API request is
+     *                                   completed.
+     */
     triggerCapture: function(retake, callback) {
       jQuery.post(
         '/workflow/' + this.id + "/capture" + (retake ? '?retake=true' : ''),
         function(data) {
           console.debug("Capture succeeded");
           if (retake) {
+            // Since the model will not change (number of images and names
+            // don't change) we have to manually trigger a 'change' event
+            // to force a re-render of the bound components.
             this.trigger('change');
           } else {
+            // Add image objects from response to the model
             this.set('images', this.get('images').concat(data.images));
           }
         }.bind(this)).fail(function() {
           console.error("Capture failed");
         }).complete(callback);
     },
+    /**
+     * Indicate the end of the capture process to the server.
+     *
+     * @param {requestCallback} callback Callback to execute after API request is
+     *                                   completed.
+     */
     finishCapture: function(callback) {
       jQuery.post('/workflow/' + this.id + "/finish_capture", function() {
         console.debug("Capture successfully finished");
@@ -83,6 +114,11 @@
         console.error("Capture could not be finished.");
       }).complete(callback);
     },
+    /**
+     * Set default configuration from our global `pluginTemplates` object.
+     *
+     * @private
+     */
     _setDefaultConfiguration: function() {
       var templates = window.pluginTemplates;
       _.each(templates, function(template, plugin) {
@@ -96,6 +132,12 @@
         }, this);
       }, this);
     },
+    /**
+     * Auto-generate Backbone validators for our configuration fields from
+     * the global `pluginTemplates` object.
+     *
+     * @private
+     */
     _setPluginValidators: function() {
       var templates = window.pluginTemplates;
       _.each(templates, function(template, plugin) {
@@ -115,6 +157,14 @@
       }, this);
     }
   });
+
+  /**
+   * Callback for API requests. Executed after the request finished, no
+   * matter if successfull or unsuccessful.
+   *
+   * @param {jQuery.xhr} xhr - The XHTTPRequest object
+   * @param {string} xhr - The request tatus
+   */
 
   module.exports = Backbone.Collection.extend({
     model: Workflow,

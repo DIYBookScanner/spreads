@@ -6,12 +6,19 @@
       jQuery = require('jquery'),
       confirmModal = require('./foundation.js').confirmModal;
 
+  /**
+   * Global navigation bar for the application
+   *
+   * @property {string} title - Title to display
+   */
   module.exports = React.createClass({
     getInitialState: function() {
       return {
+        /** Display shutdown modal? */
         shutdownModal: false
       };
     },
+    /** Initiate shutdown of the hosting machine */
     doShutdown: function() {
       // TODO: Show activity indicator until connection has died
       // TODO: Make UI inactive until polling is successful again
@@ -23,6 +30,7 @@
         shutdownModal: false
       });
     },
+    /** Display shutdown modal to ask user to confirm shutdown */
     handleShutdown: function() {
       this.setState({
         shutdownModal: true
@@ -49,6 +57,7 @@
               </ul>
               <ul className="right">
                 <li><a href="#/log"><i className="fi-list"></i> Show log</a></li>
+                {/* Only show shutdown button if the application is running in standalone mode */}
                 {window.config.web.standalone_device &&
                   (<li><a onClick={this.handleShutdown}><i className="fi-power"></i> Shut down</a></li>)}
               </ul>

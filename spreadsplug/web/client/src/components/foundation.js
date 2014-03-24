@@ -6,6 +6,12 @@
       _ = require('underscore'),
       row, column, fnButton, fnAlert, pagination, modal, confirmModal;
 
+  /**
+   * Row component.
+   *
+   * @property {string} className - Additionall CSS classes for the component
+   * @property {React.Component[]} children - Child components
+   */
   row =  React.createClass({
     render: function() {
       var classes = [];
@@ -15,6 +21,16 @@
     }
   });
 
+  /**
+   * Column component
+   *
+   * @property {string|string[]} [size='12'] - Size of the column.
+   *    If specified as a string, the size will be valid for
+   *    all sizes. If specified as an array, the values will be for
+   *    [small, medium, [large]] sizes, depending on their position.
+   * @property {string} [offset='0'] - Horizontal offset of the column.
+   * @property {React.Component[]} children - Child components
+   */
   column = React.createClass({
     render: function() {
       var classes = this.props.className || '';
@@ -34,6 +50,15 @@
     }
   });
 
+  /**
+   * Button component.
+   *
+   * @property {function} onClick - Callback for button click
+   * @property {string|string[]} [size] - Button size
+   * @property {boolean} [secondary] - Button is secondary
+   * @property {boolean} [expand] - Expand button size
+   * @property {React.Component[]} children - Child components
+   */
   fnButton = React.createClass({
     render: function() {
       return (<a onClick={this.props.callback}
@@ -47,6 +72,14 @@
     }
   });
 
+  /**
+   * Display a Foundation "alert" box.
+   *
+   * @property {function} closeCallback - Callback function when alert is closed
+   * @property {string} [level] - Severity level of alert (debug/info/warning/error)
+   * @property {string} message - Message in alert box
+   * @property {React.Component[]} children - Child components
+   */
   fnAlert = React.createClass({
     handleClose: function() {
       this.props.closeCallback();
@@ -66,17 +99,35 @@
     }
   });
 
+  /**
+   * Pagination component.
+   *
+   * @property {function} onBrowse - Callback for page changes
+   * @property {number} pageCount - Total number of pages
+   * @property {boolean} [centered=false] - Center the pagination
+   */
   pagination = React.createClass({
+    /**
+     * Switch to previous page
+     */
     handleBack: function() {
       if (this.state.currentPage !== 1) {
         this.handleToPage(this.state.currentPage-1);
       }
     },
+    /**
+     * Switch to next page
+     */
     handleForward: function() {
       if (this.state.currentPage !== this.props.pageCount) {
         this.handleToPage(this.state.currentPage+1);
       }
     },
+    /**
+     * Change to given page
+     *
+     * @param {number} idx - Page number to switch to
+     */
     handleToPage: function(idx) {
       this.props.onBrowse(idx);
       this.setState({
@@ -135,6 +186,12 @@
     }
   });
 
+  /**
+   * Modal overlay with close button
+   *
+   * @property {function} onClose - Callback function when close button is pressed
+   * @property {React.Component[]} children - Child components
+   */
   modal = React.createClass({
     render: function() {
       return (
@@ -147,6 +204,13 @@
     }
   });
 
+  /**
+   * Modal overlay with 'OK' and 'Cancel' buttons.
+   *
+   * @property {function} onConfirm - Callback function when confirm button is pressed
+   * @property {function} onCancel - Callback when cancel or close button is pressed
+   * @property {React.Component[]} children - Child components
+   */
   confirmModal = React.createClass({
     render: function() {
       return (

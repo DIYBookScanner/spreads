@@ -10,11 +10,25 @@
       Workflows = require('./workflow.js'),
       Messages = require('./messages.js');
 
+  /**
+   * Application Router.
+   * Defines which view names correspond to which route and updates the
+   * `SpreadsApp` root container with the new view and optionally a workflow
+   * id.
+   */
   module.exports = Backbone.Router.extend({
+    /**
+     * Sets up the application.
+     */
     initialize: function() {
+      // Set up model collections
       this._workflows = new Workflows();
       this._messages = new Messages();
+
+      // Get workflows synchronously from server
       this._workflows.fetch({async: false});
+
+      // Start long-polling for updates
       this._startPolling();
     },
     routes: {
@@ -25,12 +39,25 @@
       "preferences":            "editPreferences",
       "log":                    "displayLog"
     },
-    _renderView: function(view, workflow) {
+    /**
+     * Renders `SpreadsApp` component into `content` container and assigns
+     * the passed `view` name and `workflow` id as well as our model
+     * collections (`this._workflows`, `this._messages`).
+     *
+     * @private
+     * @param {string} view
+     * @param {?number} workflowId
+     */
+    _renderView: function(view, workflowId) {
       React.renderComponent(<SpreadsApp view={view} workflows={this._workflows}
                                         workflowId={workflow}
                                         messages={this._messages} />,
                             document.getElementById('content'));
     },
+    /**
+     * Starts long-polling the server for updates on workflow and message
+     * model collections.
+     */
     _startPolling: function() {
       (function poll() {
         jQuery.ajax({
@@ -48,12 +75,14 @@
             dataType: "json",
             complete: function(xhr, status) {
               if (_.contains(["timeout", "success"], status)) {
+                // Restart polling
                 poll.bind(this)();
               } else {
+                // Back off for 30 seconds before polling again
                 _.delay(poll.bind(this), 30*1000);
               }
             }.bind(this),
-            timeout: 30*1000
+            timeout: 30*1000  // Cancel the request after 30 seconds
           });
       }.bind(this)());
     },

@@ -12,28 +12,50 @@
       confirmModal = foundation.confirmModal,
       WorkflowItem;
 
+  /**
+   * Display a single workflow with thumbnail, metadata and available actions.
+   *
+   * @property {Workflow} workflow  - Workflow to set configuration for
+   */
   WorkflowItem = React.createClass({
     getInitialState: function() {
       return {
-        deleteModal: false
+         /** Display deletion confirmation modal? */
+         deleteModal: false
       };
     },
+    /**
+     * Remove associated workflow object from the model collection.
+     */
     doRemove: function() {
       this.props.workflow.destroy({wait: true});
+      // Disable deletion confirmation modal
       this.setState({
         deleteModal: false
       });
     },
+    /**
+     * Enable deletion confirmation modal
+     */
     handleRemove: function() {
       this.setState({
         deleteModal: true
       });
     },
+    /**
+     * Continue to next step in workflow.
+     */
     handleContinue: function() {
       // TODO: Perform next step, depending on mode we're running in
       window.router.navigate('/workflow/' + this.props.workflow.id + '/capture',
                              {trigger: true});
     },
+    /**
+     * Tries to initiate transfer of associated workflow to an external
+     * storage device. Displays an error modal if something goes wrong,
+     * otherwise displays a loading overlay as long as the transfer is not
+     * completed.
+     */
     handleTransfer:  function() {
       this.props.workflow.transfer(function(xhr, status) {
         if (status !== 'success') {
@@ -44,16 +66,20 @@
           } else {
             errorText = "Check the server logs for details";
           }
+          // Display error modal
           this.setState({
             errorModal: true,
             errorModalHeading: "Transfer failed",
             errorModalText: errorText
           });
         } else {
+          // Enable loading overlay
           this.setState({
             transferWaiting: true
           });
+          // Register callback for when the current step (transfer) is completed
           this.props.workflow.on('change:step_done', function() {
+            // Disable loading overlay
             this.setState({
               transferWaiting: false
             });
@@ -66,6 +92,7 @@
           workflowUrl = '#/workflow/' + workflow.get('id');
       return (
         <row>
+          {/* Display deletion confirmation modal? */}
           {this.state.deleteModal &&
             <confirmModal
               onCancel={function(){this.setState({deleteModal: false});}.bind(this)}
@@ -74,14 +101,18 @@
               <p>Do you really want to permanently remove this workflow and all
                  of its related files?</p>
             </confirmModal>}
+          {/* Display error modal? */}
           {this.state.errorModal &&
             <modal onClose={function(){this.setState({errorModal: false});}.bind(this)}>
               <h1>{this.state.errorModalHeading}</h1>
               <p>{this.state.errorModalText}</p>
             </modal>}
           <column size={[6, 3]}>
+          {/* Display loading overlay */}
           {this.state.transferWaiting &&
             <LoadingOverlay message="Please wait for the transfer to finish." />}
+          {/* Display preview image (second-to last page) if there are images
+              in the workflow */}
           {workflow.get('images').length > 0 ?
             <a href={workflowUrl}>
               <img width="100%" src={workflow.get('images').slice(-2)[0] + '/thumb'} />
@@ -109,8 +140,16 @@
     }
   });
 
+  /**
+   * Container component that holds all WorkflowItems
+   *
+   * @property {Backbone.Collection<Workflow>} workflows
+   */
   module.exports = React.createClass({
+    /** Enables two-way databinding with Backbone model */
     mixins: [ModelMixin],
+
+    /** Activates databinding for `workflows` model collection property. */
     getBackboneModels: function() {
       return this.props.workflows;
     },

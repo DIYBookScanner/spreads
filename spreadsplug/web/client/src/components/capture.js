@@ -12,41 +12,76 @@
       column = foundation.column,
       fnButton = foundation.button;
 
+
+  /**
+   * Screen component to control the capture process.
+   *
+   * @property {Workflow} workflow - Workflow to control capture on
+   */
   module.exports = React.createClass({
+    /** Enables two-way databinding with Backbone model */
     mixins: [ModelMixin],
+
+    /** Activates databinding for `workflow` model property. */
     getBackboneModels: function() {
       return [this.props.workflow];
     },
     getInitialState: function() {
-      return {waiting: false,
-              initialPageCount: this.props.workflow.get('images').length,
-              waitMessage: undefined,
-              captureStart: undefined };
+      return {
+        /** Display activity overlay? */
+        waiting: false,
+        /** Initial number of pages shot */
+        initialPageCount: this.props.workflow.get('images').length,
+        /** Message for activity overlay */
+        waitMessage: undefined,
+        /** Time of first capture */
+        captureStart: undefined };
     },
+    /**
+     * Triggers preparation of capture on workflow and displays the activity
+     * overlay until the process is finished.
+     */
     componentWillMount: function() {
-      this.triggerWaiting("Please wait while the devices  are being prepared " +
+      this.toggleWaiting("Please wait while the devices  are being prepared " +
                           "for capture");
-      this.props.workflow.prepareCapture(this.triggerWaiting);
+      this.props.workflow.prepareCapture(this.toggleWaiting);
     },
+    /**
+     * Triggers finish of capture on workflow.
+     */
     componentWillUnmount: function() {
-      this.props.workflow.finishCapture();
-    },
-    handleCapture: function() {
-      console.log("Triggering capture");
-      this.triggerWaiting("Please wait for the capture to finish...");
-      this.props.workflow.triggerCapture(false, this.triggerWaiting);
-    },
-    handleRetake: function() {
-      console.log("Re-taking last shot");
-      this.triggerWaiting("Please wait for the capture to finish...");
-      this.props.workflow.triggerCapture(true, this.triggerWaiting);
-    },
-    handleFinish: function() {
       console.log("Wrapping up capture process");
       this.props.workflow.finishCapture();
+    },
+    /**
+     * Trigger a single capture, display activity overlay until it is finished
+     */
+    handleCapture: function() {
+      console.log("Triggering capture");
+      this.toggleWaiting("Please wait for the capture to finish...");
+      this.props.workflow.triggerCapture(false, this.toggleWaiting);
+    },
+    /**
+     * Trigger a retake (= delete last <num_devices> captures and take new
+     * ones, display activity overlay until it is finished.
+     */
+    handleRetake: function() {
+      console.log("Re-taking last shot");
+      this.toggleWaiting("Please wait for the capture to finish...");
+      this.props.workflow.triggerCapture(true, this.toggleWaiting);
+    },
+    /**
+     * Finish capture and navigate back to workflow list screen
+     */
+    handleFinish: function() {
       window.router.navigate('/', {trigger: true});
     },
-    triggerWaiting: function(message) {
+    /**
+     * Toggle display of activity overlay.
+     *
+     * @param {string} message - Message to display on overlay
+     */
+    toggleWaiting: function(message) {
       if (!this.state.waiting) {
         this.setState({
           waiting: true,
@@ -56,11 +91,19 @@
         this.setState({waiting: false});
       }
     },
+    /**
+     * Open image in lightbox overlay
+     *
+     * @param {url} - Image to display in lightbox
+     */
     openLightbox: function(img) {
       this.setState({
         lightboxImage: img
       });
     },
+    /**
+     * Close the lightbox overlay.
+     */
     closeLightbox: function() {
       this.setState({
         lightboxImage: undefined
@@ -85,9 +128,12 @@
 
       return (
         <div>
+          {/* Display loading overlay? */}
           {this.state.waiting && <LoadingOverlay message={this.state.waitMessage} />}
+          {/* Display lightbox overlay? */}
           {this.state.lightboxImage &&
             <lightbox onClose={this.closeLightbox} src={this.state.lightboxImage} />}
+          {/* Only display review images if there are images on the workflow */}
           {(oddImage && evenImage) &&
           <row>
             <column>
@@ -95,6 +141,7 @@
                 *       the browser to load from the server and not from the cache.
                 *       This is needed since the images might change on the server,
                 *       e.g. after a retake. */}
+              {/* Landscape layout */}
               <ul className="show-for-landscape small-block-grid-2 capture-preview">
                 <li>
                   <a onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
@@ -107,6 +154,7 @@
                   </a>
                 </li>
               </ul>
+              {/* Portrait layout */}
               <ul className="show-for-portrait small-block-grid-1 medium-block-grid-2 capture-preview">
                   <li>
                     <a onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
