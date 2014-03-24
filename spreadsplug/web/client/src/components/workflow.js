@@ -68,7 +68,8 @@
         <main>
           {/* Display image in lightbox overlay? */}
           {this.state.lightboxImage &&
-            <lightbox onClose={this.toggleLightbox} src={this.state.lightboxImage} />
+            <lightbox onClose={function(){this.toggleLightbox();}.bind(this)}
+                      src={this.state.lightboxImage} />
           }
           <row>
             <column size='12'>
@@ -98,7 +99,8 @@
                 {workflow.get('images').slice(thumbStart, thumbStop).map(function(image) {
                     return (
                       <li key={image}>
-                        <a className="th" onClick={function(){this.toggleLightbox(image);}.bind(this)}>
+                        <a className="th" onClick={
+                            function(){this.toggleLightbox(image);}.bind(this)}>
                           <img src={image + '/thumb'} />
                         </a>
                       </li>
