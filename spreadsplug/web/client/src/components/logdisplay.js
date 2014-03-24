@@ -160,6 +160,9 @@
           url: "/log",
           data: {'poll': true, 'level': this.state.loglevel},
           success: function(data) {
+            if (!this.isMounted()) {
+              return;
+            }
             this.setState({
               messages: data.messages.concat(this.state.messages)
                             .slice(0, this.state.msgCount),
