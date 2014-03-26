@@ -98,6 +98,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._dpi = config['dpi'].get(int)
         self._shoot_raw = config['shoot_raw'].get(bool)
         self._focus_distance = config['focus_distance'].get()
+        self._shoot_monochrome = config['monochrome'].get()
 
         self._cli_flags = []
         self._cli_flags.append("-c-d={1:03} -b={0:03}".format(*self._usbport))
@@ -169,7 +170,7 @@ class CHDKCameraDevice(DevicePlugin):
         # Disable ND filter
         self._execute_lua("set_nd_filter(2)")
         self._set_focus()
-        if self.config['monochrome'].get(bool):
+        if self._shoot_monochrome:
             rv = self._execute_lua(
                 "capmode = require(\"capmode\")\n"
                 "return capmode.set(\"SCN_MONOCHROME\")",
