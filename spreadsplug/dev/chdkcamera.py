@@ -43,6 +43,8 @@ class CHDKCameraDevice(DevicePlugin):
              'dpi': PluginOption(300, "The capturing resolution"),
              'shoot_raw': PluginOption(False, "Shoot in RAW format (DNG)"),
              'focus_distance': PluginOption(0, "Set focus distance"),
+             'monochrome': PluginOption(
+                 False, "Shoot in monochrome mode (reduces file size)"),
              'chdkptp_path': PluginOption(
                  u"/usr/local/lib/chdkptp",
                  "Path to CHDKPTP binary/libraries"),
@@ -167,6 +169,15 @@ class CHDKCameraDevice(DevicePlugin):
         # Disable ND filter
         self._execute_lua("set_nd_filter(2)")
         self._set_focus()
+        if self.config['monochrome'].get(bool):
+            rv = self._execute_lua(
+                "capmode = require(\"capmode\")\n"
+                "return capmode.set(\"SCN_MONOCHROME\")",
+                get_result=True
+            )
+            if not rv:
+                logger.warn("Monochrome mode not supported on this device, "
+                            "will be disabled.")
 
     def finish_capture(self):
         # Switch camera back to play mode.
