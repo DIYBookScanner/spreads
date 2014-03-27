@@ -13,7 +13,7 @@ from xml.etree.cElementTree import ElementTree as ET
 
 from spreads.vendor.pathlib import Path
 
-from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
+from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption, progress
 from spreads.util import find_in_path, MissingDependencyException
 
 if not find_in_path('scantailor-cli'):
@@ -118,7 +118,7 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
             splitfiles.append(out_file)
         return splitfiles
 
-    def _generate_output(self, projectfile, out_dir):
+    def _generate_output(self, projectfile, out_dir, num_pages):
         logger.debug("Generating output...")
         temp_dir = Path(tempfile.mkdtemp(prefix="spreads."))
         split_config = self._split_configuration(projectfile, temp_dir)
@@ -126,7 +126,13 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
         processes = [subprocess.Popen(['scantailor-cli', '--start-filter=6',
                                        unicode(cfgfile), unicode(out_dir)])
                      for cfgfile in split_config]
+
+        last_count = 0
         while processes:
+            recent_count = sum(1 for x in out_dir.glob('*.tif'))
+            if recent_count > last_count:
+                progress.send(sender=self,
+                              progress=0.5+(float(recent_count)/num_pages)/2)
             for p in processes[:]:
                 if p.poll() is not None:
                     processes.remove(p)
@@ -145,8 +151,12 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
 
         if not projectfile.exists():
             self._generate_configuration(projectfile, img_dir, out_dir)
+        progress.send(sender=self, progress=0.5)
+
         if not autopilot:
             logger.info("Opening ScanTailor GUI for manual adjustment")
             subprocess.call(['scantailor', unicode(projectfile)])
         logger.info("Generating output images from ScanTailor configuration.")
-        self._generate_output(projectfile, out_dir)
+
+        num_pages = sum(1 for x in img_dir.glob('*.jpg'))
+        self._generate_output(projectfile, out_dir, num_pages)

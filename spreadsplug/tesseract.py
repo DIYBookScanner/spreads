@@ -6,7 +6,7 @@ import subprocess
 import time
 import xml.etree.cElementTree as ET
 
-from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
+from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption, progress
 from spreads.util import find_in_path, MissingDependencyException
 from spreads.vendor.pathlib import Path
 
@@ -47,20 +47,28 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
             self._fix_hocr(fname)
 
     def _perform_ocr(self, img_dir, language):
-        def _clean_processes(procs):
+        images = tuple(img_dir.glob('*.tif'))
+        processes = []
+
+        def _clean_processes():
             for p in processes[:]:
                 if p.poll() is not None:
                     processes.remove(p)
+                    _clean_processes.num_cleaned += 1
+                    progress.send(
+                        sender=self,
+                        progress=float(_clean_processes
+                                       .num_cleaned)/len(images)-0.1)
+        _clean_processes.num_cleaned = 0
 
         language = self.config['language'].get()
         logger.info("Language is \"{0}\"".format(language))
-        processes = []
         max_procs = multiprocessing.cpu_count()
         FNULL = open(os.devnull, 'w')
-        for img in img_dir.glob('*.tif'):
+        for img in images:
             # Wait until another process has finished
             while len(processes) >= max_procs:
-                _clean_processes(processes)
+                _clean_processes()
                 time.sleep(0.01)
             proc = subprocess.Popen(["tesseract", unicode(img),
                                     unicode(img_dir / img.stem), "-l",
@@ -69,7 +77,7 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
             processes.append(proc)
         # Wait for remaining processes to finish
         while processes:
-            _clean_processes(processes)
+            _clean_processes()
 
     def _fix_hocr(self, fpath):
         # NOTE: This modifies the hOCR files to make them compatible with

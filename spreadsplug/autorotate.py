@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import subprocess
 
 from concurrent import futures
 from jpegtran import JPEGImage
 
-from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
+from spreads.plugin import (HookPlugin, ProcessHookMixin, progress)
 
 logger = logging.getLogger('spreadsplug.autorotate')
 
 
 def autorotate_image(path):
-    print "Rotating " + path
     img = JPEGImage(path)
     if img.exif_orientation is None:
         logger.warn("Image {0} did not have any EXIF rotation, did not rotate."
@@ -32,7 +30,13 @@ class AutoRotatePlugin(HookPlugin, ProcessHookMixin):
         img_dir = path / 'raw'
         logger.info("Rotating images in {0}".format(img_dir))
         with futures.ProcessPoolExecutor() as executor:
-            for imgpath in sorted(img_dir.iterdir()):
+            files = sorted(img_dir.iterdir())
+            num_total = len(files)
+            for (idx, imgpath) in enumerate(files):
                 if imgpath.suffix.lower() not in ('.jpg', '.jpeg'):
                     continue
-                executor.submit(autorotate_image, unicode(imgpath))
+                future = executor.submit(autorotate_image, unicode(imgpath))
+                future.add_done_callback(lambda x: progress.send(
+                    sender=self,
+                    progress=float(idx)/num_total
+                ))

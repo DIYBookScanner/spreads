@@ -74,7 +74,7 @@ class Workflow(object):
     _pluginmanager = None
     _capture_lock = threading.Lock()
 
-    def __init__(self, path, config=None, step=None, step_done=None):
+    def __init__(self, path, config=None, step=None, step_done=None, id=None):
         self._logger = logging.getLogger('Workflow')
         self._logger.debug("Initializing workflow {0}".format(path))
         self.step = step
@@ -84,6 +84,7 @@ class Workflow(object):
         self.path = path
         if not self.path.exists():
             self.path.mkdir()
+            self.id = id
         if self.images:
             self.pages_shot = len(self.images)
         # See if supplied `config` is already a valid Configuration object

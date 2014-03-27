@@ -38,7 +38,8 @@ import spreads.vendor.confit as confit
 from spreads.vendor.pathlib import Path
 
 import spreads.plugin as plugin
-from spreads.workflow import Workflow
+from spreads.workflow import (Workflow, created as workflow_created,
+                              progress as workflow_progress)
 from spreads.util import (DeviceException, ColourStreamHandler,
                           add_argument_from_option)
 
@@ -63,6 +64,16 @@ else:
 
 def colorize(text, color):
     return color + text + colorama.Fore.RESET
+
+
+def draw_progress(progress):
+    logging.debug(progress)
+    width = 32
+    num_bars = int(width*progress/1.0)
+    sys.stdout.write('[{0}{1}] {2}%\r'.format(
+        '#'*num_bars,
+        ' '*(width-num_bars), int(progress*100)))
+    sys.stdout.flush()
 
 
 def _select_driver():
@@ -198,6 +209,7 @@ def capture(config):
     start_time = [None]
     path = config['path'].get()
     workflow = Workflow(config=config, path=path)
+    workflow_created.send(sender=workflow)
     capture_keys = workflow.config['capture']['capture_keys'].as_str_seq()
 
     # Some closures
@@ -272,12 +284,22 @@ def capture(config):
 def postprocess(config):
     path = config['path'].get()
     workflow = Workflow(config=config, path=path)
+    draw_progress(0.0)
+    workflow_progress.connect(
+        receiver=lambda **kwargs: draw_progress(kwargs['progress']),
+        sender=workflow,
+        weak=False)
     workflow.process()
 
 
 def output(config):
     path = config['path'].get()
     workflow = Workflow(config=config, path=path)
+    draw_progress(0)
+    workflow_progress.connect(
+        receiver=lambda **kwargs: draw_progress(kwargs['progress']),
+        sender=workflow,
+        weak=False)
     workflow.output()
 
 

@@ -77,7 +77,7 @@ def test_split_configuration(plugin, tmpdir):
 def test_generate_output(popen, plugin):
         plugin._split_configuration = mock.Mock(
             return_value=['foo.st', 'bar.st'])
-        plugin._generate_output('/tmp/foo.st', '/tmp')
+        plugin._generate_output('/tmp/foo.st', Path('/tmp'), 8)
 
 
 @mock.patch('spreadsplug.scantailor.subprocess.call')
