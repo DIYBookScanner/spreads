@@ -9,8 +9,10 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from xml.etree.cElementTree import ElementTree as ET
 
+import psutil
 from spreads.vendor.pathlib import Path
 
 from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
@@ -89,7 +91,32 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
                                    for x in sorted(img_dir.iterdir())])
         generation_cmd.append(unicode(out_dir))
         logger.debug(" ".join(generation_cmd))
-        subprocess.call(generation_cmd)
+        proc = psutil.Process(subprocess.Popen(generation_cmd).pid)
+
+        num_images = sum(1 for x in img_dir.iterdir())
+        num_steps = end_filter - start_filter
+        last_filenum = 0
+        recent_filenum = 0
+        finished_steps = 0
+        while proc.is_running():
+            try:
+                recent_filenum = next(int(Path(x.path).name.split('.')[0])
+                                      for x in proc.open_files()
+                                      if unicode(img_dir) in x.path)
+            except StopIteration:
+                pass
+            except psutil.AccessDenied:
+                # This means the process is no longer running
+                break
+            if recent_filenum == last_filenum:
+                time.sleep(.1)
+                continue
+            if recent_filenum < last_filenum:
+                finished_steps += 1
+            last_filenum = recent_filenum
+            progress = 0.5*((finished_steps*num_images+last_filenum) /
+                            float(num_steps*num_images))
+            self.on_progressed.send(self, progress=progress)
 
     def _split_configuration(self, projectfile, temp_dir):
         num_pieces = multiprocessing.cpu_count()
@@ -151,12 +178,12 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
 
         if not projectfile.exists():
             self._generate_configuration(projectfile, img_dir, out_dir)
-        self._on_progressed.send(self, progress=0.5)
 
         if not autopilot:
             logger.info("Opening ScanTailor GUI for manual adjustment")
             subprocess.call(['scantailor', unicode(projectfile)])
         logger.info("Generating output images from ScanTailor configuration.")
 
-        num_pages = sum(1 for x in img_dir.glob('*.jpg'))
+        num_pages = sum(1 for x in img_dir.iterdir()
+                        if x.suffix.lower() in ('.jpeg', '.jpg'))
         self._generate_output(projectfile, out_dir, num_pages)
