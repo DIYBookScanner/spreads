@@ -8,3 +8,4 @@ graft spreadsplug/web/client/foundation
 prune spreadsplug/web/client/foundation/js/foundation
 prune spreadsplug/web/client/foundation/js/vendor
 graft spreadsplug/web/client/img
+graft spreadsplug/web/client/fonts
