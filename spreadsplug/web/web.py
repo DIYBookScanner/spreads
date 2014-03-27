@@ -217,7 +217,7 @@ def poll_for_updates():
     last_logtime = logbuffer[-1].relativeCreated
 
     start_time = time.time()
-    while (time.time() - start_time) < 5:
+    while (time.time() - start_time) < 35:
         updated_workflows = {workflow.id: get_props(workflow)
                              for workflow
                              in persistence.get_all_workflows().values()}
