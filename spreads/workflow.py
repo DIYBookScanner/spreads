@@ -28,6 +28,7 @@ from __future__ import division, unicode_literals
 import logging
 import threading
 
+import dispatch
 import spreads.vendor.confit as confit
 from concurrent.futures import ThreadPoolExecutor
 from spreads.vendor.pathlib import Path
@@ -35,6 +36,30 @@ from spreads.vendor.pathlib import Path
 import spreads.plugin as plugin
 from spreads.util import (check_futures_exceptions, get_free_space,
                           DeviceException)
+
+# Signals
+
+# Workflow was created. Sent by the creator, not the workflow itself.
+created = dispatch.Signal()
+
+# Progress for a single step
+progress = dispatch.Signal(providing_args=[
+    "current_plugin",   # The name of the currently running plugin
+    "progress"          # Progress value (>0, <=1.0)
+])
+
+# Workflow configuration was modified
+modified = dispatch.Signal(providing_args=[
+    "changes"   # Dictionary of modified keys
+])
+
+# Workflow was removed. Sent by the remover.
+removed = dispatch.Signal()
+
+# Capture was successful.
+capture = dispatch.Signal(providing_args=[
+    "images"  # List of image paths that were captures
+])
 
 
 class Workflow(object):
@@ -116,8 +141,21 @@ class Workflow(object):
 
     def _run_hook(self, hook_name, *args):
         self._logger.debug("Running '{0}' hooks".format(hook_name))
-        for plugin in [x for x in self.plugins if hasattr(x, hook_name)]:
-            getattr(plugin, hook_name)(*args)
+        plugins = [x for x in self.plugins if hasattr(x, hook_name)]
+        self._logger.debug(plugins)
+        for (idx, plug) in enumerate(plugins):
+            plugin.progress.connect(
+                receiver=lambda **kwargs: progress.send(
+                    sender=self, plugin_name=kwargs['sender'].__name__,
+                    progress=(float(idx)/len(plugins) +
+                              kwargs['progress']*1.0/len(plugins))),
+                weak=False,  # Needed for lambda receivers
+                dispatch_uid='run_hook'
+            )
+            getattr(plug, hook_name)(*args)
+            plugin.progress.disconnect(dispatch_uid='run_hook')
+            progress.send(sender=self, plugin_name=plug.__name__,
+                          progress=float(idx+1)/len(plugins))
 
     def _get_next_filename(self, target_page=None):
         """ Get next filename that a capture should be stored as.
@@ -178,24 +216,30 @@ class Workflow(object):
         parallel_capture = ('parallel_capture' in self.config['device'].keys()
                             and self.config['device']['parallel_capture'].get()
                             )
+        num_devices = len(self.devices)
+
         # Abort when there is little free space
         if get_free_space(self.path) < 50*(1024**2):
             raise IOError("Insufficient disk space to take a capture.")
 
         if retake:
             # Remove last n images, where n == len(self.devices)
-            map(lambda x: x.unlink(), self.images[-len(self.devices):])
+            map(lambda x: x.unlink(), self.images[-num_devices:])
 
-        with ThreadPoolExecutor(2 if parallel_capture else 1) as executor:
-            futures = []
+        futures = []
+        with ThreadPoolExecutor(num_devices
+                                if parallel_capture else 1) as executor:
             self._logger.debug("Sending capture command to devices")
             for dev in self.devices:
                 img_path = self._get_next_filename(dev.target_page)
                 futures.append(executor.submit(dev.capture, img_path))
         check_futures_exceptions(futures)
+
         self._run_hook('capture', self.devices, self.path)
         if not retake:
             self.pages_shot += len(self.devices)
+
+        capture.send(sender=self, images=self.images[-num_devices:])
         self._capture_lock.release()
 
     def finish_capture(self):

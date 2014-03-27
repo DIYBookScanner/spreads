@@ -77,8 +77,8 @@ def test_capture_noparallel(workflow):
         dev.delay = 0.25
     workflow.capture()
     assert workflow.pages_shot == 2
-    assert (workflow.images[1].stat().st_ctime -
-            workflow.images[0].stat().st_ctime) >= 0.25
+    assert round(workflow.images[1].stat().st_ctime -
+                 workflow.images[0].stat().st_ctime, 2) >= 0.25
 
 
 def test_capture_flip_target_pages(workflow):

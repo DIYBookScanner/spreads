@@ -25,11 +25,18 @@ import abc
 import itertools
 import logging
 
+import dispatch
 import stevedore
 from stevedore.driver import DriverManager
 from stevedore.named import NamedExtensionManager
 
 from spreads.util import abstractclassmethod, DeviceException
+
+# Signals
+progress = dispatch.Signal(providing_args=[
+    "progress"      # Progress value (>0, <=1.0)
+])
+progress._debugging = True
 
 logger = logging.getLogger("spreads.plugin")
 pluginmanager = None
