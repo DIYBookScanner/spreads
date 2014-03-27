@@ -28,8 +28,8 @@ from __future__ import division, unicode_literals
 import logging
 import threading
 
-import dispatch
 import spreads.vendor.confit as confit
+from blinker import Namespace
 from concurrent.futures import ThreadPoolExecutor
 from spreads.vendor.pathlib import Path
 
@@ -37,29 +37,7 @@ import spreads.plugin as plugin
 from spreads.util import (check_futures_exceptions, get_free_space,
                           DeviceException)
 
-# Signals
-
-# Workflow was created. Sent by the creator, not the workflow itself.
-created = dispatch.Signal()
-
-# Progress for a single step
-progress = dispatch.Signal(providing_args=[
-    "current_plugin",   # The name of the currently running plugin
-    "progress"          # Progress value (>0, <=1.0)
-])
-
-# Workflow configuration was modified
-modified = dispatch.Signal(providing_args=[
-    "changes"   # Dictionary of modified keys
-])
-
-# Workflow was removed. Sent by the remover.
-removed = dispatch.Signal()
-
-# Capture was successful.
-capture = dispatch.Signal(providing_args=[
-    "images"  # List of image paths that were captures
-])
+signals = Namespace()
 
 
 class Workflow(object):
@@ -128,6 +106,43 @@ class Workflow(object):
         else:
             return sorted(out_path.iterdir())
 
+    on_created = signals.signal('workflow-created', doc="""\
+    Sent by the creating code when a new workflow was created.
+
+    :keyword :class:`Workflow` workflow: the Workflow that was created
+    """)
+
+    on_step_progressed = signals.signal('workflow-progress', doc="""\
+    Sent by a :class:`Workflow` after it has made progress on a running step
+    like 'postprocess' or 'output'.
+
+    :argument :class:`Workflow`:      the Workflow that has made progress
+    :keyword unicode current_plugin:  the name of the currently running plugin
+    :keyword float progress:          the progress of the current step as a
+                                      value between 0 and 1.
+    """)
+
+    on_modified = signals.signal('workflow-modified', doc="""\
+    Sent by a :class:`Workflow` after modifications to its configuration were
+    made.
+
+    :argument :class:`Workflow`:  the Workflow whose configuration was modified
+    :keyword dict changes:        the changed configuration items.
+    """)
+
+    on_removed = signals.signal('workflow-removed', doc="""\
+    Sent by the removing code when a workflow was deleted.
+
+    :keyword int workflow_id: the ID of the :class:`Workflow` that was removed
+    """)
+
+    on_capture_executed = signals.signal('workflow-capture', doc="""\
+    Sent by a :class:`Workflow` after a capture was successfully executed.
+
+    :argument :class:`Workflow`:  the Workflow a capture was executed on
+    :keyword list<Path>:          the images that were captured
+    """)
+
     def _load_config(self, value):
         # Load default configuration
         config = confit.Configuration('spreads')
@@ -145,18 +160,16 @@ class Workflow(object):
         plugins = [x for x in self.plugins if hasattr(x, hook_name)]
         self._logger.debug(plugins)
         for (idx, plug) in enumerate(plugins):
-            plugin.progress.connect(
-                receiver=lambda **kwargs: progress.send(
-                    sender=self, plugin_name=kwargs['sender'].__name__,
+            plug.on_progressed.connect(
+                lambda sender, **kwargs: self.on_step_progressed.send(
+                    self, plugin_name=sender.__name__,
                     progress=(float(idx)/len(plugins) +
                               kwargs['progress']*1.0/len(plugins))),
-                weak=False,  # Needed for lambda receivers
-                dispatch_uid='run_hook'
+                sender=plug, weak=False
             )
             getattr(plug, hook_name)(*args)
-            plugin.progress.disconnect(dispatch_uid='run_hook')
-            progress.send(sender=self, plugin_name=plug.__name__,
-                          progress=float(idx+1)/len(plugins))
+            self.on_step_progressed.send(self, plugin_name=plug.__name__,
+                                         progress=float(idx+1)/len(plugins))
 
     def _get_next_filename(self, target_page=None):
         """ Get next filename that a capture should be stored as.
@@ -240,7 +253,7 @@ class Workflow(object):
         if not retake:
             self.pages_shot += len(self.devices)
 
-        capture.send(sender=self, images=self.images[-num_devices:])
+        self.on_capture_executed.send(self, images=self.images[-num_devices:])
         self._capture_lock.release()
 
     def finish_capture(self):

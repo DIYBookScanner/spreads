@@ -98,7 +98,7 @@ setup(
         "PyYAML>=3.10",
         "stevedore >= 0.9.1, < 0.14",
         "futures >= 2.1.4",
-        "dispatcher==1.0"
+        "blinker == 1.3",
     ],
     extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],

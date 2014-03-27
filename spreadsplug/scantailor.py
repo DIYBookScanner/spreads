@@ -13,7 +13,7 @@ from xml.etree.cElementTree import ElementTree as ET
 
 from spreads.vendor.pathlib import Path
 
-from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption, progress
+from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
 from spreads.util import find_in_path, MissingDependencyException
 
 if not find_in_path('scantailor-cli'):
@@ -131,8 +131,8 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
         while processes:
             recent_count = sum(1 for x in out_dir.glob('*.tif'))
             if recent_count > last_count:
-                progress.send(sender=self,
-                              progress=0.5+(float(recent_count)/num_pages)/2)
+                self.on_progressed.send(
+                    self, progress=0.5+(float(recent_count)/num_pages)/2)
             for p in processes[:]:
                 if p.poll() is not None:
                     processes.remove(p)
@@ -151,7 +151,7 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
 
         if not projectfile.exists():
             self._generate_configuration(projectfile, img_dir, out_dir)
-        progress.send(sender=self, progress=0.5)
+        self._on_progressed.send(self, progress=0.5)
 
         if not autopilot:
             logger.info("Opening ScanTailor GUI for manual adjustment")

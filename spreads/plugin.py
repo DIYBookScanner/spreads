@@ -25,18 +25,14 @@ import abc
 import itertools
 import logging
 
-import dispatch
 import stevedore
+from blinker import Namespace
 from stevedore.driver import DriverManager
 from stevedore.named import NamedExtensionManager
 
 from spreads.util import abstractclassmethod, DeviceException
 
-# Signals
-progress = dispatch.Signal(providing_args=[
-    "progress"      # Progress value (>0, <=1.0)
-])
-progress._debugging = True
+signals = Namespace()
 
 logger = logging.getLogger("spreads.plugin")
 pluginmanager = None
@@ -92,6 +88,14 @@ class SpreadsPlugin(object):  # pragma: no cover
     """ Plugin base class.
 
     """
+    on_progressed = signals.signal('plugin-progressed', doc="""\
+    Sent by a :class:`SpreadsPlugin` when it has progressed in a long-running
+    operation.
+
+    :argument :class:`SpreadsPlugin`:   the SpreadsPlugin that progressed
+    :keyword float progress:            the progress as a value between 0 and 1
+    """)
+
     @classmethod
     def configuration_template(cls):
         """ Allows a plugin to define its configuration keys.

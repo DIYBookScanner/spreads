@@ -5,7 +5,7 @@ import logging
 from concurrent import futures
 from jpegtran import JPEGImage
 
-from spreads.plugin import (HookPlugin, ProcessHookMixin, progress)
+from spreads.plugin import HookPlugin, ProcessHookMixin
 
 logger = logging.getLogger('spreadsplug.autorotate')
 
@@ -26,6 +26,11 @@ def autorotate_image(path):
 class AutoRotatePlugin(HookPlugin, ProcessHookMixin):
     __name__ = 'autorotate'
 
+    def _get_progress_callback(self, idx, num_total):
+        return lambda x: self.on_progressed.send(
+            self,
+            progress=float(idx)/num_total)
+
     def process(self, path):
         img_dir = path / 'raw'
         logger.info("Rotating images in {0}".format(img_dir))
@@ -36,7 +41,6 @@ class AutoRotatePlugin(HookPlugin, ProcessHookMixin):
                 if imgpath.suffix.lower() not in ('.jpg', '.jpeg'):
                     continue
                 future = executor.submit(autorotate_image, unicode(imgpath))
-                future.add_done_callback(lambda x: progress.send(
-                    sender=self,
-                    progress=float(idx)/num_total
-                ))
+                future.add_done_callback(
+                    self._get_progress_callback(idx, num_total)
+                )

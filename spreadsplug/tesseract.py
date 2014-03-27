@@ -6,7 +6,7 @@ import subprocess
 import time
 import xml.etree.cElementTree as ET
 
-from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption, progress
+from spreads.plugin import HookPlugin, ProcessHookMixin, PluginOption
 from spreads.util import find_in_path, MissingDependencyException
 from spreads.vendor.pathlib import Path
 
@@ -55,10 +55,9 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
                 if p.poll() is not None:
                     processes.remove(p)
                     _clean_processes.num_cleaned += 1
-                    progress.send(
-                        sender=self,
-                        progress=float(_clean_processes
-                                       .num_cleaned)/len(images)-0.1)
+                    self.on_progressed.send(
+                        self, progress=float(_clean_processes
+                                             .num_cleaned)/len(images))
         _clean_processes.num_cleaned = 0
 
         language = self.config['language'].get()

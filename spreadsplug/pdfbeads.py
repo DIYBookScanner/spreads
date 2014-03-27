@@ -7,7 +7,7 @@ import os
 import subprocess
 import time
 
-from spreads.plugin import HookPlugin, OutputHookMixin, progress
+from spreads.plugin import HookPlugin, OutputHookMixin
 from spreads.util import MissingDependencyException, find_in_path
 
 if not find_in_path('pdfbeads'):
@@ -16,8 +16,6 @@ if not find_in_path('pdfbeads'):
                                      " package(s)!")
 
 logger = logging.getLogger('spreadsplug.pdfbeads')
-
-progress.connect(receiver=lambda **kwargs: logger.debug("WAT"), weak=False)
 
 
 class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
@@ -41,8 +39,7 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
             current_count = sum(1 for x in img_dir.glob('*.jbig2'))
             if current_count > last_count:
                 last_count = current_count
-                logger.debug("Sending...")
-                progress.send(sender=self,
-                              progress=float(current_count)/len(img_files))
+                self.on_progressed.send(
+                    self, progress=float(current_count)/len(img_files))
             time.sleep(.1)
         logger.debug("Output:\n{0}".format(proc.stdout.read()))

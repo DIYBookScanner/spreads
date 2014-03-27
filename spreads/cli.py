@@ -38,8 +38,7 @@ import spreads.vendor.confit as confit
 from spreads.vendor.pathlib import Path
 
 import spreads.plugin as plugin
-from spreads.workflow import (Workflow, created as workflow_created,
-                              progress as workflow_progress)
+from spreads.workflow import Workflow
 from spreads.util import (DeviceException, ColourStreamHandler,
                           add_argument_from_option)
 
@@ -204,27 +203,25 @@ def configure(config):
 
 
 def capture(config):
-    # NOTE: We have to use a 1-item list to work around the lack of a
-    #       'nonlocal' keyword in Python 2...
-    start_time = [None]
     path = config['path'].get()
     workflow = Workflow(config=config, path=path)
-    workflow_created.send(sender=workflow)
+    workflow.on_created.send(workflow=workflow)
     capture_keys = workflow.config['capture']['capture_keys'].as_str_seq()
 
     # Some closures
     def refresh_stats():
         # Callback to print statistics
-        if start_time[0] is not None:
-            pages_per_hour = ((3600/(time.time() - start_time[0]))
+        if refresh_stats.start_time is not None:
+            pages_per_hour = ((3600/(time.time() - refresh_stats.start_time))
                               * workflow.pages_shot)
         else:
             pages_per_hour = 0.0
-            start_time[0] = time.time()
+            refresh_stats.start_time = time.time()
         status = ("\rShot {0: >3} pages [{1: >4.0f}/h] "
                   .format(unicode(workflow.pages_shot), pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
+    refresh_stats.start_time = None
 
     def trigger_loop():
         is_posix = sys.platform != 'win32'
@@ -285,10 +282,9 @@ def postprocess(config):
     path = config['path'].get()
     workflow = Workflow(config=config, path=path)
     draw_progress(0.0)
-    workflow_progress.connect(
-        receiver=lambda **kwargs: draw_progress(kwargs['progress']),
-        sender=workflow,
-        weak=False)
+    workflow.on_step_progressed.connect(
+        lambda x, **kwargs: draw_progress(kwargs['progress']),
+        sender=workflow, weak=False)
     workflow.process()
 
 
@@ -296,10 +292,9 @@ def output(config):
     path = config['path'].get()
     workflow = Workflow(config=config, path=path)
     draw_progress(0)
-    workflow_progress.connect(
-        receiver=lambda **kwargs: draw_progress(kwargs['progress']),
-        sender=workflow,
-        weak=False)
+    workflow.on_step_progressed.connect(
+        lambda x, **kwargs: draw_progress(kwargs['progress']),
+        sender=workflow, weak=False)
     workflow.output()
 
 
