@@ -105,6 +105,7 @@ setup(
         "autorotate": ["jpegtran-cffi >= 0.4"],
         "gui": ["PySide >= 1.2.1"],
         "hidtrigger": ["hidapi-cffi >= 0.1"],
+        "scantailor": ["psutil == 2.0.0"],
         "web": [
             "Flask >= 0.10.1",
             "jpegtran-cffi >= 0.4",
