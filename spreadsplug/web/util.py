@@ -90,18 +90,23 @@ def get_image_url(workflow, img_path):
     return url_for('.get_workflow_image', workflow=workflow, img_num=img_num)
 
 
+def logrecord_to_dict(record):
+    return {
+        'time': datetime.fromtimestamp(record.created),
+        'message': record.getMessage(),
+        'origin': record.name,
+        'level': record.levelname,
+        'traceback': ("".join(traceback.format_exception(*record.exc_info))
+                      if record.exc_info else None)
+    }
+
+
 def get_log_lines(logbuffer=None, since=0, levels=['WARNING', 'ERROR']):
     if not logbuffer:
         logbuffer = next(
             x for x in logging.getLogger().handlers
             if isinstance(x, logging.handlers.BufferingHandler)).buffer
-    messages = [{'time': datetime.fromtimestamp(msg.created),
-                 'message': msg.getMessage(),
-                 'origin': msg.name,
-                 'level': msg.levelname,
-                 'traceback': ("".join(traceback
-                                       .format_exception(*msg.exc_info))
-                               if msg.exc_info else None)}
+    messages = [logrecord_to_dict(msg)
                 for msg in sorted(logbuffer, key=lambda x: x.relativeCreated,
                                   reverse=True)
                 if msg.levelname in levels and msg.relativeCreated > since]

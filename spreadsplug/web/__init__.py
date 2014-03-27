@@ -191,5 +191,4 @@ def run_server(config):
         waitress.serve(app, port=5000, threads=16)
     finally:
         consumer.shutdown()
-        if app.config['DEBUG']:
-            logger.info("Waiting for remaining connections to close...")
+        ws_server.stop()
