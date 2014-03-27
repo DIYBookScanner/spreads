@@ -326,13 +326,13 @@ class CapturePage(QtGui.QWizardPage):
 
 
 class PostprocessPage(QtGui.QWizardPage):
+    done = False
+
     def initializePage(self):
         self.setTitle("Postprocessing")
 
-        self.done = False
-
         self.progressbar = QtGui.QProgressBar(self)
-        self.progressbar.setRange(0, 0)
+        self.progressbar.setRange(0, 100)
         self.progressbar.setAlignment(QtCore.Qt.AlignCenter)
         self.logbox = QtGui.QTextEdit()
         self.log_handler = LogBoxHandler(self.logbox)
@@ -349,11 +349,13 @@ class PostprocessPage(QtGui.QWizardPage):
         QtCore.QTimer.singleShot(0, self.doPostprocess)
 
     def doPostprocess(self):
+        self.wizard().workflow.on_step_progressed.connect(
+            lambda x, **kwargs: self.progressbar.setValue(
+                int(kwargs['progress']*100)), weak=False)
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(self.wizard().workflow.process)
             while not future.done():
                 QtGui.qApp.processEvents()
-                self.progressbar.setValue(0)
                 time.sleep(0.01)
             if future.exception():
                 raise future.exception()
@@ -370,14 +372,14 @@ class PostprocessPage(QtGui.QWizardPage):
 
 
 class OutputPage(QtGui.QWizardPage):
+    done = False
+
     def initializePage(self):
         self.setTitle("Generating output files")
         self.setFinalPage(True)
 
-        self.done = False
-
         self.progressbar = QtGui.QProgressBar(self)
-        self.progressbar.setRange(0, 0)
+        self.progressbar.setRange(0, 100)
         self.progressbar.setAlignment(QtCore.Qt.AlignCenter)
         self.logbox = QtGui.QTextEdit()
         self.log_handler = LogBoxHandler(self.logbox)
@@ -394,12 +396,14 @@ class OutputPage(QtGui.QWizardPage):
         QtCore.QTimer.singleShot(0, self.doGenerateOutput)
 
     def doGenerateOutput(self):
+        self.wizard().workflow.on_step_progressed.connect(
+            lambda x, **kwargs: self.progressbar.setValue(
+                int(kwargs['progress']*100)), weak=False)
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(self.wizard().workflow.output)
             while not future.done():
                 QtGui.qApp.processEvents()
-                self.progressbar.setValue(0)
-                time.sleep(0.001)
+                time.sleep(0.01)
         self.progressbar.hide()
         self.done = True
         self.completeChanged.emit()
