@@ -39,7 +39,7 @@ from spreads.vendor.pathlib import Path
 
 import spreads.plugin as plugin
 from spreads.workflow import Workflow
-from spreads.util import (DeviceException, ColourStreamHandler,
+from spreads.util import (DeviceException, ColourStreamHandler, EventHandler,
                           add_argument_from_option)
 
 if sys.platform == 'win32':
@@ -460,6 +460,7 @@ def main():
                             else logging.WARNING)
     stdout_handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
     logger.addHandler(stdout_handler)
+    logger.addHandler(EventHandler())
     if 'logfile' in config.keys():
         logfile = Path(os.path.expanduser(config['logfile'].get()))
         if not logfile.parent.exists():

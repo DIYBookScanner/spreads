@@ -26,9 +26,10 @@ from __future__ import division, unicode_literals
 
 import abc
 import itertools
+import logging
 import os
-from logging import StreamHandler
 
+import blinker
 from colorama import Fore, Back, Style
 
 
@@ -114,8 +115,8 @@ class abstractclassmethod(_classmethod):
         super(abstractclassmethod, self).__init__(func)
 
 
-class ColourStreamHandler(StreamHandler):
-    """ A colorized output SteamHandler
+class ColourStreamHandler(logging.StreamHandler):
+    """ A colorized output StreamHandler
     Kudos to Leigh MacDonald:
     http://leigh.cudd.li/article/Cross_Platform_Colorized_Logger_Output_Using_Pythons_logging_Module_And_Colorama
     """
@@ -158,6 +159,17 @@ class ColourStreamHandler(StreamHandler):
             raise
         except:
             self.handleError(record)
+
+
+class EventHandler(logging.Handler):
+    on_log_emit = blinker.NamedSignal('logrecord', doc="""\
+    Sent when a log record was emitted.
+
+    :keyword :class:`logging.LogRecord` record: the LogRecord
+    """)
+
+    def emit(self, record):
+        self.on_log_emit.send(record=record)
 
 
 def add_argument_from_option(extname, key, option, parser):
