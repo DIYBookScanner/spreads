@@ -178,6 +178,11 @@ def run_server(config):
 
     # Start task consumer
     consumer.start()
+    # Start websocket server
+    from websockets import WebSocketServer
+    ws_server = WebSocketServer(port=5001)
+    ws_server.start()
+
     try:
         import waitress
         # NOTE: We spin up this obscene number of threads since we have
