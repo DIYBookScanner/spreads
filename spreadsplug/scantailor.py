@@ -61,7 +61,7 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
                       for x in ('rotate', 'split_pages', 'deskew', 'content',
                                 'auto_margins')]
         start_filter = filterconf.index(True)+1
-        end_filter = len(filterconf) - list(reversed(filterconf)).index(True)+1
+        end_filter = len(filterconf) - list(reversed(filterconf)).index(True)
         marginconf = self.config['margins'].as_str_seq()
         generation_cmd = ['scantailor-cli',
                           '--start-filter={0}'.format(start_filter),
