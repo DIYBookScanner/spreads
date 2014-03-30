@@ -7,8 +7,8 @@ import time
 
 import requests
 import zipstream
-from flask import (abort, jsonify, request, send_file, make_response,
-                   render_template, url_for, redirect, Response)
+from flask import (abort, json, jsonify, request, send_file, render_template,
+                   url_for, redirect, make_response, Response)
 from werkzeug import secure_filename
 
 import spreads.plugin as plugin
@@ -143,23 +143,23 @@ def create_workflow():
                         step=data.get('step', None),
                         step_done=data.get('step_done', None))
     workflow.id = persistence.save_workflow(workflow)
-    return jsonify(workflow_to_dict(workflow))
+    return make_response(json.dumps(workflow),
+                         200, {'Content-Type': 'application/json'})
 
 
 @app.route('/workflow', methods=['GET'])
 def list_workflows():
     """ Return a list of all workflows. """
     workflows = persistence.get_all_workflows()
-    return make_response(
-        json.dumps([workflow_to_dict(workflow)
-                   for workflow in workflows.values()]),
-        200, {'Content-Type': 'application/json'})
+    return make_response(json.dumps(workflows.values()),
+                         200, {'Content-Type': 'application/json'})
 
 
 @app.route('/workflow/<workflow:workflow>', methods=['GET'])
 def get_workflow(workflow):
     """ Return a single workflow. """
-    return jsonify(workflow_to_dict(workflow))
+    return make_response(json.dumps(workflow),
+                         200, {'Content-Type': 'application/json'})
 
 
 @app.route('/workflow/<workflow:workflow>', methods=['PUT'])
@@ -179,7 +179,8 @@ def update_workflow(workflow):
     workflow.config.set(config)
     # Persist to disk
     persistence.update_workflow_config(workflow.id, workflow.config)
-    return jsonify(workflow_to_dict(workflow))
+    return make_response(json.dumps(workflow),
+                         200, {'Content-Type': 'application/json'})
 
 
 @app.route('/workflow/<workflow:workflow>', methods=['DELETE'])
@@ -357,7 +358,7 @@ def add_to_queue():
 @app.route('/queue', methods=['GET'])
 def list_jobs():
     """ List all items in the processing queue. """
-    return json.dumps({jobid: workflow_to_dict(wf)
+    return json.dumps({jobid: wf
                        for jobid, wf in persistence.get_queue().iteritems()})
 
 

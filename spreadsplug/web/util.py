@@ -10,9 +10,13 @@ from datetime import datetime
 from functools import wraps
 
 from flask import request, url_for, abort
+from flask.json import JSONEncoder
 from jpegtran import JPEGImage
 from werkzeug.contrib.cache import SimpleCache
 from werkzeug.routing import BaseConverter, ValidationError
+
+from spreads.workflow import Workflow
+from spreads.util import EventHandler
 
 from persistence import get_workflow
 
@@ -42,6 +46,54 @@ class Event(object):
         if emitted is None:
             emitted = time.time()
         self.emitted = emitted
+
+
+class CustomJSONEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Workflow):
+            return self._workflow_to_dict(obj)
+        elif isinstance(obj, logging.LogRecord):
+            return self._logrecord_to_dict(obj)
+        elif isinstance(obj, Event):
+            return self._event_to_dict(obj)
+        else:
+            return JSONEncoder.default(self, obj)
+
+    def _workflow_to_dict(self, workflow):
+        return {
+            'id': workflow.id,
+            'name': workflow.path.name,
+            'step': workflow.step,
+            'step_done': workflow.step_done,
+            'images': [get_image_url(workflow, x)
+                       for x in workflow.images] if workflow.images else [],
+            'out_files': ([unicode(path) for path in workflow.out_files]
+                          if workflow.out_files else []),
+            'config': workflow.config.flatten()
+        }
+
+    def _logrecord_to_dict(self, record):
+        return {
+            'time': datetime.fromtimestamp(record.created),
+            'message': record.getMessage(),
+            'origin': record.name,
+            'level': record.levelname,
+            'traceback': ("".join(traceback.format_exception(*record.exc_info))
+                          if record.exc_info else None)
+        }
+
+    def _event_to_dict(self, event):
+        name = event.signal.name
+        data = event.data
+        if event.signal in Workflow.signals.values():
+            if 'id' not in data:
+                data['id'] = event.sender.id
+            if 'images' in data:
+                data['images'] = [get_image_url(event.sender, imgpath)
+                                  for imgpath in data['images']]
+        elif event.signal is EventHandler.on_log_emit:
+            data = data['record']
+        return {'name': name, 'data': data}
 
 
 class WorkflowConverter(BaseConverter):
@@ -79,34 +131,9 @@ def cached(timeout=5 * 60, key='view/%s'):
     return decorator
 
 
-def workflow_to_dict(workflow):
-    out_dict = dict()
-    out_dict['id'] = workflow.id
-    out_dict['name'] = workflow.path.name
-    out_dict['step'] = workflow.step
-    out_dict['step_done'] = workflow.step_done
-    out_dict['images'] = [get_image_url(workflow, x)
-                          for x in workflow.images] if workflow.images else []
-    out_dict['out_files'] = ([unicode(path) for path in workflow.out_files]
-                             if workflow.out_files else [])
-    out_dict['config'] = workflow.config.flatten()
-    return out_dict
-
-
 def get_image_url(workflow, img_path):
     img_num = int(img_path.stem)
     return url_for('.get_workflow_image', workflow=workflow, img_num=img_num)
-
-
-def logrecord_to_dict(record):
-    return {
-        'time': datetime.fromtimestamp(record.created),
-        'message': record.getMessage(),
-        'origin': record.name,
-        'level': record.levelname,
-        'traceback': ("".join(traceback.format_exception(*record.exc_info))
-                      if record.exc_info else None)
-    }
 
 
 def get_log_lines(logbuffer=None, since=0, levels=['WARNING', 'ERROR']):

@@ -20,7 +20,10 @@ app = Flask('spreadsplug.web', static_url_path='', static_folder='./client',
 task_queue = None
 import web
 import persistence
+import util
+app.json_encoder = util.CustomJSONEncoder
 from websockets import WebSocketServer
+
 
 logger = logging.getLogger('spreadsplug.web')
 
