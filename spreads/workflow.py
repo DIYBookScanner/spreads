@@ -154,7 +154,6 @@ class Workflow(object):
     def _run_hook(self, hook_name, *args):
         self._logger.debug("Running '{0}' hooks".format(hook_name))
         plugins = [x for x in self.plugins if hasattr(x, hook_name)]
-        self._logger.debug(plugins)
         for (idx, plug) in enumerate(plugins):
             plug.on_progressed.connect(
                 lambda sender, **kwargs: self.on_step_progressed.send(
@@ -221,36 +220,37 @@ class Workflow(object):
         self.active = True
 
     def capture(self, retake=False):
-        self._capture_lock.acquire()
-        self._logger.info("Triggering capture.")
-        parallel_capture = ('parallel_capture' in self.config['device'].keys()
-                            and self.config['device']['parallel_capture'].get()
-                            )
-        num_devices = len(self.devices)
+        with self._capture_lock:
+            self._logger.info("Triggering capture.")
+            parallel_capture = (
+                'parallel_capture' in self.config['device'].keys()
+                and self.config['device']['parallel_capture'].get()
+            )
+            num_devices = len(self.devices)
 
-        # Abort when there is little free space
-        if get_free_space(self.path) < 50*(1024**2):
-            raise IOError("Insufficient disk space to take a capture.")
+            # Abort when there is little free space
+            if get_free_space(self.path) < 50*(1024**2):
+                raise IOError("Insufficient disk space to take a capture.")
 
-        if retake:
-            # Remove last n images, where n == len(self.devices)
-            map(lambda x: x.unlink(), self.images[-num_devices:])
+            if retake:
+                # Remove last n images, where n == len(self.devices)
+                map(lambda x: x.unlink(), self.images[-num_devices:])
 
-        futures = []
-        with ThreadPoolExecutor(num_devices
-                                if parallel_capture else 1) as executor:
-            self._logger.debug("Sending capture command to devices")
-            for dev in self.devices:
-                img_path = self._get_next_filename(dev.target_page)
-                futures.append(executor.submit(dev.capture, img_path))
-        check_futures_exceptions(futures)
+            futures = []
+            with ThreadPoolExecutor(num_devices
+                                    if parallel_capture else 1) as executor:
+                self._logger.debug("Sending capture command to devices")
+                for dev in self.devices:
+                    img_path = self._get_next_filename(dev.target_page)
+                    futures.append(executor.submit(dev.capture, img_path))
+            check_futures_exceptions(futures)
 
-        self._run_hook('capture', self.devices, self.path)
-        if not retake:
-            self.pages_shot += len(self.devices)
+            self._run_hook('capture', self.devices, self.path)
+            if not retake:
+                self.pages_shot += len(self.devices)
 
-        self.on_capture_executed.send(self, images=self.images[-num_devices:])
-        self._capture_lock.release()
+            self.on_capture_executed.send(self,
+                                          images=self.images[-num_devices:])
 
     def finish_capture(self):
         self.step_done = True
