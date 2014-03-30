@@ -37,20 +37,9 @@ import spreads.plugin as plugin
 from spreads.util import (check_futures_exceptions, get_free_space,
                           DeviceException)
 
-signals = Namespace()
-
 
 class Workflow(object):
-    path = None
-    step = None
-    step_done = False
-    pages_shot = 0
-    active = False
-    prepared = False
-
-    _devices = None
-    _pluginmanager = None
-    _capture_lock = threading.Lock()
+    signals = Namespace()
 
     def __init__(self, path, config=None, step=None, step_done=None, id=None):
         self._logger = logging.getLogger('Workflow')
@@ -62,18 +51,25 @@ class Workflow(object):
         self.path = path
         if not self.path.exists():
             self.path.mkdir()
-            self.id = id
+        self.id = id
         if self.images:
             self.pages_shot = len(self.images)
+        else:
+            self.pages_shot = 0
         # See if supplied `config` is already a valid Configuration object
         if isinstance(config, confit.Configuration):
             self.config = config
         else:
             self.config = self._load_config(config)
-        self._pluginmanager = plugin.get_pluginmanager(self.config)
+        self._capture_lock = threading.RLock()
+        self.active = False
+        self._devices = None
+        self._pluginmanager = None
 
     @property
     def plugins(self):
+        if self._pluginmanager is None:
+            self._pluginmanager = plugin.get_pluginmanager(self.config)
         return [ext.obj for ext in self._pluginmanager]
 
     @property
