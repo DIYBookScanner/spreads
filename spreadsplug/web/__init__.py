@@ -3,6 +3,7 @@ import logging
 import logging.handlers
 import os
 from cStringIO import StringIO as IO
+from itertools import chain
 
 from spreads.vendor.huey import SqliteHuey
 from spreads.vendor.huey.consumer import Consumer
@@ -11,13 +12,15 @@ from flask import Flask, request
 
 from spreads.plugin import (HookPlugin, SubcommandHookMixin, PluginOption,
                             get_devices)
-from spreads.util import add_argument_from_option
+from spreads.util import add_argument_from_option, EventHandler
+from spreads.workflow import Workflow
 
 app = Flask('spreadsplug.web', static_url_path='', static_folder='./client',
             template_folder='./client')
 task_queue = None
 import web
 import persistence
+from websockets import WebSocketServer
 
 logger = logging.getLogger('spreadsplug.web')
 
@@ -154,9 +157,32 @@ def setup_logging(config):
             .setLevel(logging.INFO))
 
 
+def setup_signals(ws_server=None):
+    def get_signal_callback_http(signal):
+        def signal_callback(sender, **kwargs):
+            web.event_queue.append(util.Event(signal, sender, kwargs))
+        return signal_callback
+
+    def get_signal_callback_websockets(signal):
+        def signal_callback(sender, **kwargs):
+            ws_server.send_event(util.Event(signal, sender, kwargs))
+        return signal_callback
+
+    # Register event handlers
+    signals = chain(*(x.signals.values()
+                      for x in (Workflow, EventHandler, web)))
+
+    for signal in signals:
+        signal.connect(get_signal_callback_http(signal), weak=False)
+        if ws_server:
+            signal.connect(get_signal_callback_websockets(signal), weak=False)
+
+
 def run_server(config):
+    ws_server = WebSocketServer(port=5001)
     setup_app(config)
     setup_logging(config)
+    setup_signals(ws_server)
 
     # Initialize huey task queue
     global task_queue
@@ -179,8 +205,6 @@ def run_server(config):
     # Start task consumer
     consumer.start()
     # Start websocket server
-    from websockets import WebSocketServer
-    ws_server = WebSocketServer(port=5001)
     ws_server.start()
 
     try:

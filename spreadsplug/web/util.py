@@ -26,14 +26,22 @@ logger = logging.getLogger('spreadsplug.web.util')
 datetime.strptime("2014", "%Y")
 
 
-def scale_image(img_name, width=None, height=None):
-    if width is None and height is None:
-        raise ValueError("Please specify either width or height")
-    img = JPEGImage(img_name)
-    aspect = img.width/img.height
-    width = width if width else int(aspect*height)
-    height = height if height else int(width/aspect)
-    return img.downscale(width, height).as_blob()
+class Event(object):
+    """ Wrapper class for emitted events.
+
+    :param :class:`blinker.NamedSignal` signal: The emitted signal
+    :param sender:      The object that emitted the signal or None
+    :param dict data:   Parameters the signal was emitted with
+    """
+    __slots__ = ['signal', 'sender', 'data', 'emitted']
+
+    def __init__(self, signal, sender, data, emitted=None):
+        self.signal = signal
+        self.sender = sender
+        self.data = data
+        if emitted is None:
+            emitted = time.time()
+        self.emitted = emitted
 
 
 class WorkflowConverter(BaseConverter):
