@@ -74,6 +74,7 @@ setup(
                             'client/foundation/css/*', 'client/foundation/fonts/*',
                             'client/foundation/js/foundation.js',
                             'client/foundation/js/foundation.min.js',
+                            'client/fonts/*',
                             ]
     },
     entry_points={
