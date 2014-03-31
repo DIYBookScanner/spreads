@@ -59,7 +59,12 @@
     handleCapture: function() {
       console.log("Triggering capture");
       this.toggleWaiting("Please wait for the capture to finish...");
-      this.props.workflow.triggerCapture(false, this.toggleWaiting);
+      this.props.workflow.triggerCapture(false, function() {
+        this.toggleWaiting();
+        if (this.state.refreshReview) {
+          this.setState({refreshReview: false});
+        }
+      }.bind(this));
     },
     /**
      * Trigger a retake (= delete last <num_devices> captures and take new
@@ -68,7 +73,12 @@
     handleRetake: function() {
       console.log("Re-taking last shot");
       this.toggleWaiting("Please wait for the capture to finish...");
-      this.props.workflow.triggerCapture(true, this.toggleWaiting);
+      this.props.workflow.triggerCapture(true, function() {
+        this.toggleWaiting();
+        if (!this.state.refreshReview) {
+          this.setState({refreshReview: true});
+        }
+      }.bind(this));
     },
     /**
      * Finish capture and navigate back to workflow list screen
@@ -106,12 +116,13 @@
      */
     closeLightbox: function() {
       this.setState({
-        lightboxImage: undefined
+        lightboxImage: undefined,
+        refreshReview: false,
       });
     },
     render: function() {
       var workflow = this.props.workflow || {},
-          randomSuffix = Math.random()*10e3 | 0,
+          randomSuffix = this.state.refreshReview ? '?'+(Math.random()*10e3 | 0) : '',
           speed, oddImage, evenImage;
       if (workflow && this.state.captureStart) {
         var elapsed = (new Date().getTime()/1000) - this.state.captureStart,
