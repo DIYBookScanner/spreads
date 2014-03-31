@@ -4,6 +4,7 @@
   'use strict';
 
   var React = require('react/addons'),
+      _ = require('underscore'),
       WorkflowForm = require('./workflowform'),
       CaptureInterface = require('./capture'),
       WorkflowDetails = require('./workflow'),
@@ -25,6 +26,14 @@
     /** Register message change listeners */
     componentDidMount: function() {
       // TODO: Listen for logging events, filter by level
+      window.router.events.on('logrecord', function(record) {
+        if (_.contains(["WARNING", "ERROR"], record.level)) {
+          this.setState({messages: this.state.messages.concat([record])});
+        }
+      }, this);
+    },
+    componentWillUnmount: function() {
+      window.router.events.off('logrecord', null, this);
     },
     getInitialState: function() {
       return {
@@ -81,7 +90,7 @@
      */
     getCloseMessageCallback: function(message) {
       return function() {
-        this.state.messages.remove([message]);
+        this.setState({messages: _.without(this.state.messages, message)});
       }.bind(this);
     },
     render: function() {
@@ -92,12 +101,13 @@
           <NavigationBar title={navTitle} />
           {this.state.messages &&
               this.state.messages.map(function(message) {
-              return (
-                  <fnAlert level={message.get('level')}
-                          message={message.get('message')}
-                          closeCallback={this.getCloseMessageCallback.bind(this)(message)}>
-                  <a className="right" href='#/log'>(View detailed log)</a>
-                  </fnAlert>);
+                return (
+                    <fnAlert level={message.level}
+                             message={message.message}
+                             key={new Date(message.time).getTime()}
+                             closeCallback={this.getCloseMessageCallback(message)}>
+                      <a className="right" href='#/log'>(View detailed log)</a>
+                    </fnAlert>);
               }, this)}
           {viewComponent}
         </div>
