@@ -16,7 +16,6 @@ def wizard(config, mock_plugin_mgr, mock_driver_mgr):
     plugin.set_default_config(config)
 
     wizard = gui.SpreadsWizard(config)
-    print config.flatten()
     wizard.show()
     return wizard
 

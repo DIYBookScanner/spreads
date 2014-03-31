@@ -66,7 +66,6 @@ def colorize(text, color):
 
 
 def draw_progress(progress):
-    logging.debug(progress)
     width = 32
     num_bars = int(width*progress/1.0)
     sys.stdout.write('[{0}{1}] {2}%\r'.format(

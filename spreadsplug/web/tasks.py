@@ -43,8 +43,6 @@ def transfer_to_stick(workflow_id):
                 target.mkdir()
             else:
                 shutil.copyfile(unicode(path), unicode(target))
-        import time
-        time.sleep(120)
     finally:
         if 'mount_point' in locals():
             on_transfer_progressed.send(workflow, progress=0.8,
