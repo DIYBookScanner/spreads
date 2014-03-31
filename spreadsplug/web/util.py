@@ -1,9 +1,6 @@
 from __future__ import division
 
 import logging
-import platform
-import re
-import subprocess
 import traceback
 from datetime import datetime
 
@@ -16,8 +13,6 @@ from spreads.workflow import Workflow
 from spreads.util import EventHandler
 
 from persistence import get_workflow
-
-PYPY = platform.python_implementation() == "PyPy"
 
 logger = logging.getLogger('spreadsplug.web.util')
 
@@ -143,89 +138,24 @@ def get_thumbnail(img_path):
         return scale_image(unicode(img_path), width=160)
 
 
-if PYPY:
-    def find_stick():
-        """ Since the 'dbus' module is implemented via CPython's extension API,
-        we cannot use it when running in PyPy. The same goes for GOBject
-        introspection via PyGobject. 'pgi' is not yet mature enough to deal
-        with some of UDisks' interfaces.  Thats why we go a very hacky way: Use
-        the 'gdbus' CLI utility, parse its output and return the device path.
-
-        """
-        out = subprocess.check_output(
-            "gdbus introspect --system --dest org.freedesktop.UDisks "
-            "--object-path /org/freedesktop/UDisks/devices --recurse "
-            "--only-properties".split())
-        devs = zip(*((re.match(r".* = '?(.*?)'?;", x).group(1)
-                     for x in out.splitlines()
-                     if "DriveConnectionInterface =" in x
-                     or "DeviceIsPartition =" in x
-                     or "DeviceFile = " in x),)*3)
-        try:
-            return next(dev[2] for dev in devs if dev[0] == 'usb'
-                        and dev[1] == 'true')
-        except StopIteration:
-            return None
-
-    @contextmanager
-    def _mount_stick_shell(stick):
-        """ Context Manager that mounts the first available partition on a USB
-        drive, yields its path and then unmounts it.
-
-        """
-        out = subprocess.check_output("udisks --mount {0}"
-                                      .format(stick).split())
-        path = re.match(r"Mounted .* at (.*)", out).group(1)
-        try:
-            yield path
-        except Exception as e:
-            raise e
-        finally:
-            subprocess.check_output("udisks --unmount {0}"
-                                    .format(stick).split())
-
-else:
+def find_stick():
     import dbus
-
-    def find_stick():
-        bus = dbus.SystemBus()
-        iudisks = dbus.Interface(
-            bus.get_object("org.freedesktop.UDisks",
-                           "/org/freedesktop/UDisks"),
-            "org.freedesktop.UDisks")
-        devices = [bus.get_object("org.freedesktop.UDisks", dev)
-                   for dev in iudisks.EnumerateDevices()]
-        idevices = [dbus.Interface(dev, "org.freedesktop.DBus.Properties")
-                    for dev in devices]
-        try:
-            istick = next(i for i in idevices if i.Get("", "DeviceIsPartition")
-                          and i.Get("", "DriveConnectionInterface") == "usb")
-        except StopIteration:
-            return
-        return dbus.Interface(
-            bus.get_object("org.freedesktop.UDisks",
-                           iudisks.FindDeviceByDeviceFile(
-                               istick.Get("", "DeviceFile"))),
-            "org.freedesktop.DBus.UDisks.Device")
-
-    @contextmanager
-    def mount_stick(stick):
-        """ Context Manager that mounts the first available partition on a USB
-        drive, yields its path and then unmounts it.
-
-        """
-        mount = stick.get_dbus_method(
-            "FilesystemMount", dbus_interface="org.freedesktop.UDisks.Device")
-        path = mount('', [])
-        try:
-            yield path
-        except Exception as e:
-            raise e
-        finally:
-            unmount = stick.get_dbus_method(
-                "FilesystemUnmount",
-                dbus_interface="org.freedesktop.UDisks.Device")
-            unmount([], timeout=1e6)  # dbus-python doesn't know an infinite
-                                    # timeout... unmounting sometimes takes a
-                                    # long time, since the device has to be
-                                    # synced.
+    bus = dbus.SystemBus()
+    iudisks = dbus.Interface(
+        bus.get_object("org.freedesktop.UDisks",
+                       "/org/freedesktop/UDisks"),
+        "org.freedesktop.UDisks")
+    devices = [bus.get_object("org.freedesktop.UDisks", dev)
+               for dev in iudisks.EnumerateDevices()]
+    idevices = [dbus.Interface(dev, "org.freedesktop.DBus.Properties")
+                for dev in devices]
+    try:
+        istick = next(i for i in idevices if i.Get("", "DeviceIsPartition")
+                      and i.Get("", "DriveConnectionInterface") == "usb")
+    except StopIteration:
+        return
+    return dbus.Interface(
+        bus.get_object("org.freedesktop.UDisks",
+                       iudisks.FindDeviceByDeviceFile(
+                           istick.Get("", "DeviceFile"))),
+        "org.freedesktop.DBus.UDisks.Device")
