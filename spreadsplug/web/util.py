@@ -5,14 +5,11 @@ import platform
 import re
 import subprocess
 import traceback
-from contextlib import contextmanager
 from datetime import datetime
-from functools import wraps
 
-from flask import request, url_for, abort
+from flask import url_for, abort
 from flask.json import JSONEncoder
 from jpegtran import JPEGImage
-from werkzeug.contrib.cache import SimpleCache
 from werkzeug.routing import BaseConverter, ValidationError
 
 from spreads.workflow import Workflow
@@ -110,25 +107,6 @@ class WorkflowConverter(BaseConverter):
 
     def to_url(self, value):
         return unicode(value.id)
-
-
-# NOTE: The cache object is global
-cache = SimpleCache()
-
-
-def cached(timeout=5 * 60, key='view/%s'):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            cache_key = key % request.path
-            rv = cache.get(cache_key)
-            if rv is not None:
-                return rv
-            rv = f(*args, **kwargs)
-            cache.set(cache_key, rv, timeout=timeout)
-            return rv
-        return decorated_function
-    return decorator
 
 
 def get_image_url(workflow, img_path):

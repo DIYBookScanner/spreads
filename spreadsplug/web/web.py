@@ -10,6 +10,7 @@ import zipstream
 from flask import (abort, json, jsonify, request, send_file, render_template,
                    url_for, redirect, make_response, Response)
 from werkzeug import secure_filename
+from werkzeug.contrib.cache import SimpleCache
 
 import spreads.plugin as plugin
 from spreads.vendor.pathlib import Path
@@ -17,10 +18,10 @@ from spreads.workflow import Workflow
 
 import persistence
 from spreadsplug.web import app
-from util import (cached, get_image_url, workflow_to_dict, WorkflowConverter,
-                  get_log_lines, get_thumbnail, find_stick, scale_image)
+from util import (get_image_url, WorkflowConverter,
+                  get_thumbnail, find_stick, scale_image)
 
-logger = logging.getLogger('spreadsplub.web')
+logger = logging.getLogger('spreadsplug.web')
 
 
 # Register custom workflow converter for URL routes
@@ -409,7 +410,6 @@ def get_workflow_image(workflow, img_num):
         return send_file(unicode(img_path))
 
 
-@cached
 @app.route('/workflow/<workflow:workflow>/image/<int:img_num>/thumb',
            methods=['GET'])
 def get_workflow_image_thumb(workflow, img_num):
@@ -418,8 +418,13 @@ def get_workflow_image_thumb(workflow, img_num):
         img_path = workflow.images[img_num]
     except IndexError:
         abort(404)
-
-    thumbnail = get_thumbnail(img_path)
+    cache_key = "{0}.{1}".format(workflow, img_num)
+    thumbnail = None
+    if not request.args:
+        thumbnail = cache.get(cache_key)
+    if thumbnail is None:
+        thumbnail = get_thumbnail(img_path)
+        cache.set(cache_key, thumbnail)
     return Response(thumbnail, mimetype='image/jpeg')
 
 
