@@ -5,7 +5,7 @@ import time
 import traceback
 from datetime import datetime
 
-from flask import url_for, abort
+from flask import abort
 from flask.json import JSONEncoder
 from jpegtran import JPEGImage
 from werkzeug.routing import BaseConverter, ValidationError
@@ -107,7 +107,7 @@ class WorkflowConverter(BaseConverter):
 
 def get_image_url(workflow, img_path):
     img_num = int(img_path.stem)
-    return url_for('.get_workflow_image', workflow=workflow, img_num=img_num)
+    return "/workflow/{0}/image/{1}".format(workflow.id, img_num)
 
 
 def scale_image(img_name, width=None, height=None):
