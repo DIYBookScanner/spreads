@@ -88,14 +88,13 @@
         '/workflow/' + this.id + "/capture" + (retake ? '?retake=true' : ''),
         function(data) {
           console.debug("Capture succeeded");
+          this.addImages(data.images);
+          // Since no 'real' update of the images takes place during a
+          // retake, but we would like to update the dependant views anyway
+          // to get the latest versions of the images, we force a 'change'
+          // event.
           if (retake) {
-            // Since the model will not change (number of images and names
-            // don't change) we have to manually trigger a 'change' event
-            // to force a re-render of the bound components.
             this.trigger('change');
-          } else {
-            // Add image objects from response to the model
-            this.set('images', this.get('images').concat(data.images));
           }
         }.bind(this)).fail(function() {
           console.error("Capture failed");
@@ -113,6 +112,18 @@
       }).fail(function() {
         console.error("Capture could not be finished.");
       }).complete(callback);
+    },
+    addImages: function(images) {
+      var modified = false;
+      _.each(images, function(img) {
+        if (!_.contains(this.get('images'), img)) {
+          this.get('images').push(img);
+          modified = true;
+        }
+      }, this);
+      if (modified) {
+        this.trigger('change');
+      }
     },
     /**
      * Set default configuration from our global `pluginTemplates` object.
@@ -181,6 +192,6 @@
           this.remove(workflow);
         }
       }, this);
-    url: '/workflow'
+    }
   });
 }());
