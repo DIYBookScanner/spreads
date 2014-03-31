@@ -1,6 +1,7 @@
 from __future__ import division
 
 import logging
+import time
 import traceback
 from datetime import datetime
 
@@ -109,16 +110,14 @@ def get_image_url(workflow, img_path):
     return url_for('.get_workflow_image', workflow=workflow, img_num=img_num)
 
 
-def get_log_lines(logbuffer=None, since=0, levels=['WARNING', 'ERROR']):
-    if not logbuffer:
-        logbuffer = next(
-            x for x in logging.getLogger().handlers
-            if isinstance(x, logging.handlers.BufferingHandler)).buffer
-    messages = [logrecord_to_dict(msg)
-                for msg in sorted(logbuffer, key=lambda x: x.relativeCreated,
-                                  reverse=True)
-                if msg.levelname in levels and msg.relativeCreated > since]
-    return messages
+def scale_image(img_name, width=None, height=None):
+    if width is None and height is None:
+        raise ValueError("Please specify either width or height")
+    img = JPEGImage(img_name)
+    aspect = img.width/img.height
+    width = width if width else int(aspect*height)
+    height = height if height else int(width/aspect)
+    return img.downscale(width, height).as_blob()
 
 
 def get_thumbnail(img_path):

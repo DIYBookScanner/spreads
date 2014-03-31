@@ -32,7 +32,6 @@ from stevedore.named import NamedExtensionManager
 
 from spreads.util import abstractclassmethod, DeviceException
 
-signals = Namespace()
 
 logger = logging.getLogger("spreads.plugin")
 pluginmanager = None
@@ -88,7 +87,8 @@ class SpreadsPlugin(object):  # pragma: no cover
     """ Plugin base class.
 
     """
-    on_progressed = signals.signal('plugin-progressed', doc="""\
+    signals = Namespace()
+    on_progressed = signals.signal('plugin:progressed', doc="""\
     Sent by a :class:`SpreadsPlugin` when it has progressed in a long-running
     operation.
 

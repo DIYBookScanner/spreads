@@ -168,6 +168,19 @@
 
   module.exports = Backbone.Collection.extend({
     model: Workflow,
+    url: '/workflow',
+    connectEvents: function(eventDispatcher) {
+      eventDispatcher.on('workflow:created', function(workflow) {
+        if (!this.contains(workflow)) {
+          this.add(workflow);
+        }
+      }, this);
+      eventDispatcher.on('workflow:removed', function(workflowId) {
+        var workflow = this.get(workflowId);
+        if (workflow) {
+          this.remove(workflow);
+        }
+      }, this);
     url: '/workflow'
   });
 }());

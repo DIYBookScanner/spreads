@@ -20,13 +20,16 @@
    * @property {Backbone.Collection<Workflow>} [workflows] - Associated workflows
    * @property {number} [workflowId] - Associated workflow ID
    * @property {string} view - Name of view to display
-   * @property {Backbone.Collection<Message>} messages - Messages to display
    */
   module.exports = React.createClass({
     /** Register message change listeners */
     componentDidMount: function() {
-      this.props.messages.on('add change remove',
-                             this.forceUpdate.bind(this, null));
+      // TODO: Listen for logging events, filter by level
+    },
+    getInitialState: function() {
+      return {
+        messages: []
+      };
     },
     /**
      * Get title for navigation bar.
@@ -78,7 +81,7 @@
      */
     getCloseMessageCallback: function(message) {
       return function() {
-        this.props.messages.remove([message]);
+        this.state.messages.remove([message]);
       }.bind(this);
     },
     render: function() {
@@ -87,8 +90,8 @@
       return (
         <div>
           <NavigationBar title={navTitle} />
-          {this.props.messages &&
-              this.props.messages.map(function(message) {
+          {this.state.messages &&
+              this.state.messages.map(function(message) {
               return (
                   <fnAlert level={message.get('level')}
                           message={message.get('message')}

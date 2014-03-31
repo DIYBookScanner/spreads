@@ -8,7 +8,7 @@
       jQuery = require('jquery'),
       SpreadsApp = require('./components/spreadsapp'),
       Workflows = require('./workflow.js'),
-      Messages = require('./messages.js');
+      events = require('./events.js');
 
   /**
    * Application Router.
@@ -21,15 +21,14 @@
      * Sets up the application.
      */
     initialize: function() {
+      this.events = events;
+
       // Set up model collections
       this._workflows = new Workflows();
-      this._messages = new Messages();
+      this._workflows.connectEvents(this.events);
 
       // Get workflows synchronously from server
       this._workflows.fetch({async: false});
-
-      // Start long-polling for updates
-      this._startPolling();
     },
     routes: {
       "":                       "root",
@@ -42,7 +41,7 @@
     /**
      * Renders `SpreadsApp` component into `content` container and assigns
      * the passed `view` name and `workflow` id as well as our model
-     * collections (`this._workflows`, `this._messages`).
+     * collection (`this._workflows`).
      *
      * @private
      * @param {string} view
@@ -50,41 +49,8 @@
      */
     _renderView: function(view, workflowId) {
       React.renderComponent(<SpreadsApp view={view} workflows={this._workflows}
-                                        workflowId={workflowId}
-                                        messages={this._messages} />,
+                                        workflowId={workflowId} />,
                             document.getElementById('content'));
-    },
-    /**
-     * Starts long-polling the server for updates on workflow and message
-     * model collections.
-     */
-    _startPolling: function() {
-      (function poll() {
-        jQuery.ajax({
-            url: "/poll",
-            success: function(data){
-              if (data.messages.length) {
-                console.debug("Updating messages.");
-                this._messages.set(data.messages);
-              }
-              if (data.workflows.length) {
-                console.debug("Updating workflows.");
-                this._workflows.add(data.workflows, {merge: true});
-              }
-            }.bind(this),
-            dataType: "json",
-            complete: function(xhr, status) {
-              if (_.contains(["timeout", "success"], status)) {
-                // Restart polling
-                poll.bind(this)();
-              } else {
-                // Back off for 30 seconds before polling again
-                _.delay(poll.bind(this), 30*1000);
-              }
-            }.bind(this),
-            timeout: 30*1000  // Cancel the request after 30 seconds
-          });
-      }.bind(this)());
     },
     root: function() {
       this._renderView("root");

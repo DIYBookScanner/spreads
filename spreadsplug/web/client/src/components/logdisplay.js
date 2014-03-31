@@ -7,12 +7,30 @@
       jQuery = require('jquery'),
       _ = require('underscore'),
       foundation = require('./foundation'),
+      events = require('../events'),
       column = foundation.column,
       row = foundation.row,
       pagination = foundation.pagination,
       fnButton = foundation.button,
       modal = foundation.modal,
       LogRecord, BugModal;
+
+  /**
+   * Helper function to compare the verbosity of two log levels.
+   *
+   * @param {string} levelA - the level to compare
+   * @param {string} levelB - the level to compare with
+   */
+  function isMoreVerbose(levelA, levelB) {
+    var levels = {
+      'DEBUG': 10,
+      'INFO': 20,
+      'WARNING': 30,
+      'ERROR': 40,
+      'CRITICAL': 50
+    };
+    return levels[levelA] < levels[levelB];
+  }
 
   /**
    * Component that displays a detailed traceback and offers the option
@@ -155,36 +173,21 @@
     componentWillMount: function() {
       this.loadMessages();
       // Initialize polling
-      (function poll() {
-        jQuery.ajax({
-          url: "/log",
-          data: {'poll': true, 'level': this.state.loglevel},
-          success: function(data) {
-            if (!this.isMounted()) {
-              return;
-            }
-            this.setState({
-              messages: data.messages.concat(this.state.messages)
-                            .slice(0, this.state.msgCount),
-              totalMessages: this.state.totalMessages += data.total_num
-            });
-          }.bind(this),
-          dataType: "json",
-          complete: function(xhr, status) {
-            // Cancel polling if the component has been unmounted
-            if (!this.isMounted()) {
-              return;
-            }
-            else if (_.contains(["timeout", "success"], status)) {
-              poll.bind(this)();
-            } else {
-              // Back off if there was an error
-              _.delay(poll.bind(this), 30*1000);
-            }
-          }.bind(this),
-          timeout: 30*1000
-        });
-      }.bind(this)());
+      events.on('logrecord', function(message) {
+        if (!this.isMounted()) {
+          return;
+        }
+        if (!isMoreVerbose(message.level, this.state.loglevel)) {
+          this.setState({
+            messages: [message].concat(this.state.messages)
+                              .slice(0, this.state.msgCount),
+            totalMessages: this.state.totalMessages + 1
+          });
+        }
+      }, this);
+    },
+    componentWillUnmount: function() {
+      events.off('logrecord', null, this);
     },
     /** Callback when loglevel filter is changed */
     handleSetLevel: function(event) {

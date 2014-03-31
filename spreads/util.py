@@ -162,7 +162,8 @@ class ColourStreamHandler(logging.StreamHandler):
 
 
 class EventHandler(logging.Handler):
-    on_log_emit = blinker.NamedSignal('logrecord', doc="""\
+    signals = blinker.Namespace()
+    on_log_emit = signals.signal('logrecord', doc="""\
     Sent when a log record was emitted.
 
     :keyword :class:`logging.LogRecord` record: the LogRecord

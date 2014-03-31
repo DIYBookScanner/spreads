@@ -1,9 +1,11 @@
-import json
+import copy
+import itertools
 import logging
 import logging.handlers
 import shutil
 import subprocess
 import time
+from collections import deque
 
 import requests
 import zipstream
@@ -23,6 +25,11 @@ from util import (get_image_url, WorkflowConverter,
 
 logger = logging.getLogger('spreadsplug.web')
 
+# Event Queue for polling endpoints
+event_queue = deque(maxlen=2048)
+
+# Simple dictionary-based cache for expensive calculations
+cache = SimpleCache()
 
 # Register custom workflow converter for URL routes
 app.url_map.converters['workflow'] = WorkflowConverter
@@ -90,7 +97,6 @@ def get_logs():
     start = int(request.args.get('start', '0'))
     count = int(request.args.get('count', '50'))
     level = request.args.get('level', 'INFO')
-    poll = 'poll' in request.args and request.args.get('poll') != 'false'
     logbuffer = next(
         x for x in logging.getLogger().handlers
         if isinstance(x, logging.handlers.BufferingHandler)).buffer
@@ -99,23 +105,11 @@ def get_logs():
         levels = available_levels[available_levels.index('INFO'):]
     else:
         levels = available_levels[available_levels.index(level.upper()):]
-    if not poll:
-        msgs = get_log_lines(logbuffer=logbuffer, levels=levels)
-        return jsonify(total_num=len(msgs),
-                       messages=msgs[start:start+count])
-
-    last_logtime = logbuffer[-1].created
-    start_time = time.time()
-    while (time.time() - start_time) < 35:
-        if logbuffer[-1].created != last_logtime:
-            msgs = get_log_lines(logbuffer=logbuffer,
-                                 since=last_logtime,
-                                 levels=levels)
-            return jsonify(total_num=len(msgs),
-                           messages=msgs)
-        else:
-            time.sleep(0.1)
-    abort(408)
+    msgs = [msg for msg in sorted(logbuffer, key=lambda x: x.relativeCreated,
+                                  reverse=True)
+            if msg.levelname in levels]
+    return jsonify(total_num=len(msgs),
+                   messages=msgs[start:start+count])
 
 
 # ================== #
@@ -198,52 +192,61 @@ def delete_workflow(workflow):
     return jsonify({})
 
 
-@app.route('/poll', methods=['GET'])
-def poll_for_updates():
-    """ Stall until one of the workflows has changed or an error message
-    or a warning was logged.
+@app.route('/events', methods=['GET'])
+def get_events():
+    """ Get a list of all events that were emitted on the server.
 
-    Returns a JSON object with a field 'workflows', containing a list of all
-    changed workflows and a field 'messages', containing all errors and
-    warnings since the last poll.
+    :param int count:   Number of events to return, default is all in the queue
+    :param float since: Only return events that were emitted after the
+                        (epoch) timestamp
     """
-    logbuffer = next(
-        x for x in logging.getLogger().handlers
-        if isinstance(x, logging.handlers.BufferingHandler)).buffer
+    count = request.args.get('count', None, int)
+    since = request.args.get('since', None, float)
+    events = None
+    if count:
+        events = tuple(itertools.islice(reversed(event_queue), count))[::-1]
+    elif since is not None:
+        events = tuple([event for event in event_queue
+                        if event.emitted > since])
+    else:
+        events = tuple(event_queue)
+    return make_response(
+        json.dumps(events),
+        200, {'Content-Type': 'application/json'})
 
-    get_props = lambda x: {k: v for k, v in x.__dict__.iteritems()
-                           if not k[0] == '_'}
-    old_workflows = {workflow.id: get_props(workflow)
-                     for workflow in persistence.get_all_workflows().values()}
 
-    last_logtime = logbuffer[-1].relativeCreated
+@app.route('/poll', methods=['GET'])
+def poll_for_events():
+    """ Wait for events to be emitted on the server.
 
+    If there is a `last_polled` field in the request cookie, it will return
+    all events that were emitted since that timestamp. This ensures that no
+    events will be missed in a long-polling scenario.
+    """
+    events = None
     start_time = time.time()
-    while (time.time() - start_time) < 35:
-        updated_workflows = {workflow.id: get_props(workflow)
-                             for workflow
-                             in persistence.get_all_workflows().values()}
-        workflows_updated = (updated_workflows != old_workflows)
-        log_updated = (logbuffer[-1].relativeCreated > last_logtime)
-
-        if workflows_updated:
-            workflows = [workflow_to_dict(persistence.get_workflow(wfid))
-                         for wfid in updated_workflows
-                         if (wfid not in old_workflows) or
-                            (old_workflows[wfid] != updated_workflows[wfid])]
-            old_workflows = updated_workflows
-            logger.debug("Workflows updated")
+    last_polled = request.cookies.get('last_polled', start_time, float)
+    # Only record debug logging events when the app is running in
+    # debug mode
+    if app.config['DEBUG']:
+        skip = lambda event: (
+            event.signal.name == 'logrecord'
+            and event.data['record'].levelno == logging.DEBUG)
+    else:
+        skip = lambda event: False
+    while time.time() - start_time < 35:
+        # NOTE: We need to iterate over a copy of the event queue, since
+        #       it might change its content while we iterate
+        events = tuple(event for event in copy.copy(event_queue)
+                       if event.emitted > last_polled and not skip(event))
+        if events:
+            resp = make_response(
+                json.dumps(events),
+                200, {'Content-Type': 'application/json'})
+            resp.set_cookie('last_polled', str(events[-1].emitted))
+            return resp
         else:
-            workflows = []
-        if log_updated:
-            messages = get_log_lines(logbuffer, last_logtime,
-                                     ['WARNING', 'ERROR'])
-        else:
-            messages = []
-        if workflows or messages:
-            return jsonify(workflows=workflows, messages=messages)
-        else:
-            time.sleep(0.1)
+            time.sleep(.1)
     abort(408)  # Request Timeout
 
 
