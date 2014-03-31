@@ -6,7 +6,7 @@
   var React = require('react/addons'),
       ModelMixin = require('../workflow.js'),
       foundation = require('./foundation.js'),
-      lightbox = require('./lightbox.js'),
+      lightbox = require('./overlays.js').LightBox,
       row = foundation.row,
       column = foundation.column,
       pagination = foundation.pagination;

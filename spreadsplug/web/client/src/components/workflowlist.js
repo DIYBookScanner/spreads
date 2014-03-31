@@ -4,7 +4,8 @@
   'use strict';
   var React = require('react/addons'),
       ModelMixin = require('../../lib/backbonemixin.js'),
-      LoadingOverlay = require('./loadingoverlay.js'),
+      LoadingOverlay = require('./overlays.js').Activity,
+      ProgressOverlay = require('./overlays.js').Progress,
       foundation = require('./foundation.js'),
       row = foundation.row,
       column = foundation.column,
@@ -75,10 +76,21 @@
         } else {
           // Enable loading overlay
           this.setState({
-            transferWaiting: true
+            transferWaiting: true,
+            transferProgress: 0,
+            transferCurrentFile: undefined
           });
-          // Register callback for when the current step (transfer) is completed
-          this.props.workflow.on('change:step_done', function() {
+          // Bind progress events
+          window.router.events.on('transfer:progressed', function(data) {
+            if (this.isMounted()) {
+              this.setState({
+                transferProgress: data.progress*100 | 0,
+                transferCurrentFile: data.status
+              });
+            }
+          }.bind(this));
+          // Register callback for when the transfer is completed
+          window.router.events.on('transfer:completed', function() {
             // Disable loading overlay
             this.setState({
               transferWaiting: false
@@ -110,7 +122,8 @@
           <column size={[6, 3]}>
           {/* Display loading overlay */}
           {this.state.transferWaiting &&
-            <LoadingOverlay message="Please wait for the transfer to finish." />}
+            <ProgressOverlay progress={this.state.transferProgress}
+                             statusMessage={this.state.transferCurrentFile || "Preparing transfer..."}/>}
           {/* Display preview image (second-to last page) if there are images
               in the workflow */}
           {workflow.get('images').length > 0 ?

@@ -6,8 +6,8 @@
   var React = require('react/addons'),
       foundation = require('./foundation.js'),
       ModelMixin = require('../../lib/backbonemixin.js'),
-      LoadingOverlay = require('./loadingoverlay.js'),
-      lightbox = require('./lightbox.js'),
+      LoadingOverlay = require('./overlays.js').Activity,
+      lightbox = require('./overlays.js').LightBox,
       row = foundation.row,
       column = foundation.column,
       fnButton = foundation.button;

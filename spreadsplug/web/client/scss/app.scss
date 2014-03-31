@@ -1,6 +1,28 @@
 @import "settings";
 @import "foundation";
 
+@mixin animation ($animation, $duration, $iteration-count, $timing-function, $delay) {
+  -webkit-animation: $animation $duration $iteration-count $timing-function $delay;
+  -moz-animation: $animation $duration $iteration-count $timing-function $delay;
+  -o-animation: $animation $duration $iteration-count $timing-function $delay;
+  animation: $animation $duration $iteration-count $timing-function $delay;
+}
+
+@mixin keyframes($name) {
+    @-webkit-keyframes #{$name} { @content; };
+    @-moz-keyframes #{$name} { @content; };
+    @-o-keyframes #{$name} { @content; };
+    @keyframes #{$name} { @content; };
+}
+
+@mixin transform($transformation) {
+  -webkit-transform: $transformation;
+  -moz-transform: $transformation;
+  -ms-transform: $transformation;
+  -o-transform: $transformation;
+  transform: $transformation;
+}
+
 .action-button {
   @include button(rem-calc(12));
   font-size: rem-calc(32);
@@ -19,31 +41,6 @@
   }
 
   &.secondary { @include button-style($bg:$secondary-color); }
-}
-
-.overlay {
-  display: table;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255,255,255,0.8);
-  z-index:1000;
-  text-align: center;
-
-  .text {
-    display: table-cell;
-    vertical-align: middle;
-    padding-top: 8em;
-  }
-
-  .spinner {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    margin: 0;
-  }
 }
 
 .capture-preview {
@@ -81,68 +78,6 @@
   }
   #trigger-capture .action-button {
     width: 45%;
-  }
-}
-
-
-.lightbox {
-  position: fixed;
-  z-index: 9999;
-  width: 100%;
-  height: 100%;
-  text-align: center;
-  top: 0;
-  left: 0;
-  background: white;
-  background: rgba(255,255,255,0.8);
-  outline: none;
-
-  img {
-    max-width: 90%;
-    max-height: 80%;
-    margin-top: 2%;
-  }
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-
-  position: relative;
-  margin: 100px auto;
-}
-
-.double-bounce1, .double-bounce2 {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background-color: #000;
-  opacity: 0.6;
-  position: absolute;
-  top: 0;
-  left: 0;
-
-  -webkit-animation: bounce 2.0s infinite ease-in-out;
-  animation: bounce 2.0s infinite ease-in-out;
-}
-
-.double-bounce2 {
-  -webkit-animation-delay: -1.0s;
-  animation-delay: -1.0s;
-}
-
-@-webkit-keyframes bounce {
-  0%, 100% { -webkit-transform: scale(0.0) }
-  50% { -webkit-transform: scale(1.0) }
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: scale(0.0);
-    -webkit-transform: scale(0.0);
-  } 50% {
-    transform: scale(1.0);
-    -webkit-transform: scale(1.0);
   }
 }
 
@@ -185,6 +120,89 @@
 .traceback {
   margin-bottom: 1rem;
   overflow-x: scroll;
+}
+
+/* ===== Overlays ===== */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255,255,255,0.8);
+  z-index: 1000;
+  text-align: center;
+
+  &.lightbox {
+    outline: none;
+
+    img {
+      max-width: 90%;
+      max-height: 80%;
+      margin-top: 2%;
+    }
+  }
+
+  &.activity {
+    display: table;
+
+    .text {
+      display: table-cell;
+      vertical-align: middle;
+      padding-top: 8em;
+    }
+
+    .animation {
+      position: absolute;
+      left: 50%-40px;
+      top: 50%-40px;
+      margin: 0;
+      width: 40px;
+      height: 40px;
+      //margin: 0 auto;
+
+      .bounce {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background-color: #000;
+        opacity: 0.6;
+        position: absolute;
+        top: 0;
+        left: 0;
+
+        &:first-child {
+          @include animation(bounce, 2.0s, infinite, ease-in-out, 0s);
+        }
+        &:last-child {
+          @include animation(bounce, 2.0s, infinite, ease-in-out, -1.0s);
+        }
+      }
+    }
+  }
+
+  &.spreads-progress {
+    .progress {
+      width: 50%;
+      left: 25%;
+      top: 45%;
+      position: absolute;
+      .status {
+        display: block;
+        margin-top: 1em;
+      }
+    }
+  }
+}
+
+/* ======= Animations ======== */
+@include keyframes(bounce) {
+  0%, 100% {
+    @include transform(scale(0.0));
+  }
+  50% {
+    @include transform(scale(1.0));
+  }
 }
 
 @font-face {

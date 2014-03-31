@@ -7,6 +7,7 @@ import subprocess
 import time
 from collections import deque
 
+import blinker
 import requests
 import zipstream
 from flask import (abort, json, jsonify, request, send_file, render_template,
@@ -24,6 +25,11 @@ from util import (get_image_url, WorkflowConverter,
                   get_thumbnail, find_stick, scale_image)
 
 logger = logging.getLogger('spreadsplug.web')
+
+signals = blinker.Namespace()
+on_transfer_started = signals.signal('transfer:started')
+on_transfer_progressed = signals.signal('transfer:progressed')
+on_transfer_completed = signals.signal('transfer:completed')
 
 # Event Queue for polling endpoints
 event_queue = deque(maxlen=2048)
