@@ -61,7 +61,7 @@
     },
     render: function() {
       var workflow = this.props.workflow,
-          pageCount = (workflow.get('images').length / this.state.thumbCount) | 0,
+          pageCount = Math.ceil(workflow.get('images').length / this.state.thumbCount),
           thumbStart = this.state.thumbStart,
           thumbStop = this.state.thumbStart+this.state.thumbCount;
       return (
