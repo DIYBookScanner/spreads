@@ -11,11 +11,14 @@ import mock
 import pytest
 from multiprocessing.pool import ThreadPool
 
+from spreads.workflow import Workflow
+
 
 @pytest.yield_fixture
 def app(config, mock_driver_mgr, mock_plugin_mgr, tmpdir):
     import spreadsplug.web.persistence as persistence
-    from spreadsplug.web import setup_app, setup_logging, app
+    from spreadsplug.web import setup_app, setup_logging, setup_signals, app
+    from spreadsplug.web.web import event_queue
     from spreads.plugin import set_default_config
     set_default_config(config)
 
@@ -26,7 +29,9 @@ def app(config, mock_driver_mgr, mock_plugin_mgr, tmpdir):
     config['web']['standalone_device'] = True
     setup_app(config)
     setup_logging(config)
+    setup_signals()
     app.config['TESTING'] = True
+    event_queue.clear()
     persistence.WorkflowCache = {}
     yield app
 
@@ -166,32 +171,16 @@ def test_delete_workflow(client):
     assert len(data) == 0
 
 
-def test_poll_for_updates_workflow(client):
-    wfid = create_workflow(client)
+def test_poll(client):
     pool = ThreadPool(processes=1)
     asyn_result = pool.apply_async(client.get, ('/poll', ))
-    client.post('/workflow/{0}/prepare_capture'.format(wfid))
-    client.post('/workflow/{0}/capture'.format(wfid))
+    time.sleep(.1)
+    Workflow.on_removed.send(None, id=1)
     rv = asyn_result.get()
     assert rv.status_code == 200
     data = json.loads(rv.data)
-    assert len(data['workflows']) == 1
-    # TODO: Be more thorough
-
-
-def test_poll_for_updates_errors(client):
-    wfid = create_workflow(client)
-    pool = ThreadPool(processes=1)
-    asyn_result = pool.apply_async(client.get, ('/poll', ))
-    time.sleep(.5)
-    with mock.patch('spreadsplug.web.web.shutil.rmtree') as sp:
-        sp.side_effect = OSError('foobar')
-        client.delete('/workflow/{0}'.format(wfid))
-    rv = asyn_result.get()
-    assert rv.status_code == 200
-    data = json.loads(rv.data)
-    assert len(data['messages']) == 1
-    # TODO: Be more thorough
+    assert data == [{'name': 'workflow:removed',
+                     'data': {'id': 1}}]
 
 
 def test_download_workflow(client):

@@ -182,7 +182,7 @@ def test_wizard(capture, postprocess, output, config):
     output.assert_called_with(config)
 
 
-def test_setup_parser(mock_plugin_mgr, config):
+def test_setup_parser(mock_plugin_mgr, mock_driver_mgr, config):
     parser = cli.setup_parser(config)
     subparsers = next(x._name_parser_map for x in parser._actions
                       if hasattr(x, '_name_parser_map'))

@@ -35,17 +35,24 @@ def plugin(pluginclass, config):
         return pluginclass(config)
 
 
-@mock.patch('spreadsplug.scantailor.subprocess.call')
-def test_generate_configuration(call, plugin):
+@mock.patch('spreadsplug.scantailor.psutil.Process')
+@mock.patch('spreadsplug.scantailor.subprocess.Popen')
+def test_generate_configuration(popen, proc, plugin):
+    proc.return_value.is_running.return_value = False
     # TODO: Setup up some config variables
+    imgdir = mock.MagicMock(wraps=Path('/tmp/raw'))
+    imgs = [imgdir/"foo.jpg", imgdir/"bar.jpg"]
+    imgdir.iterdir.return_value = imgs
     plugin._generate_configuration(Path('/tmp/foo.st'),
-                                   Path('/tmp/raw'),
+                                   imgdir,
                                    Path('/tmp/out'))
     # TODO: Check the sp.call for the correct parameters
 
 
-@mock.patch('spreadsplug.scantailor.subprocess.call')
-def test_generate_configuration_noenhanced(call, config, pluginclass):
+@mock.patch('spreadsplug.scantailor.psutil.Process')
+@mock.patch('spreadsplug.scantailor.subprocess.Popen')
+def test_generate_configuration_noenhanced(popen, proc, config, pluginclass):
+    proc.return_value.is_running.return_value = False
     # TODO: Setup up some config variables
     with mock.patch('subprocess.check_output') as mock_co:
         mock_co.return_value = "".join(chain(
@@ -59,7 +66,7 @@ def test_generate_configuration_noenhanced(call, config, pluginclass):
     imgdir.iterdir.return_value = imgs
     plugin._generate_configuration(Path('/tmp/foo.st'), imgdir,
                                    Path('/tmp/out'))
-    assert (unicode(imgs[0]) in call.call_args[0][0])
+    assert (unicode(imgs[0]) in popen.call_args[0][0])
 
 
 def test_split_configuration(plugin, tmpdir):
@@ -85,8 +92,11 @@ def test_process(call, plugin):
     plugin._generate_configuration = mock.Mock()
     plugin._generate_output = mock.Mock()
     plugin.config['autopilot'] = True
-    plugin.process(Path('/tmp'))
+    imgdir = mock.MagicMock(wraps=Path('/tmp'))
+    imgs = [imgdir/"foo.jpg", imgdir/"bar.jpg"]
+    (imgdir/"raw").iterdir.return_value = imgs
+    plugin.process(imgdir)
     assert call.call_count == 0
     plugin.config['autopilot'] = False
-    plugin.process(Path('/tmp'))
-    call.assert_called_with(['scantailor', '/tmp/tmp.ScanTailor'])
+    plugin.process(imgdir)
+    assert call.call_count == 1

@@ -3,9 +3,13 @@ import shutil
 import time
 from random import randint
 
+import blinker
 import mock
 import pytest
 from spreads.vendor.confit import Configuration
+from spreads.workflow import Workflow
+from spreads.plugin import SpreadsPlugin
+from spreads.util import EventHandler
 
 import spreads.plugin
 
@@ -146,7 +150,7 @@ def mock_plugin_mgr(config):
         yield get_pm
 
 
-@pytest.yield_fixture(scope='module')
+@pytest.yield_fixture
 def mock_driver_mgr():
     with mock.patch('spreads.plugin.get_driver') as get_driver:
         ext = mock.Mock(plugin=TestDriver)
@@ -174,3 +178,13 @@ def mock_findinpath():
     with mock.patch('spreads.util.find_in_path') as find:
         find.return_value = True
         yield find
+
+
+@pytest.yield_fixture(autouse=True)
+def fix_blinker():
+    yield
+    for signal in (Workflow.on_created, Workflow.on_removed,
+                   Workflow.on_modified, Workflow.on_step_progressed,
+                   Workflow.on_capture_executed, SpreadsPlugin.on_progressed,
+                   EventHandler.on_log_emit):
+        signal._clear_state()
