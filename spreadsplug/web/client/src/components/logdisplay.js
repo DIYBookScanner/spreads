@@ -255,9 +255,9 @@
                   </tr>
                 </thead>
                 <tbody>
-                {this.state.messages.map(function(msg) {
+                {this.state.messages.map(function(msg, idx) {
                   return <LogRecord time={new Date(msg.time)} level={msg.level.toLowerCase()}
-                                    origin={msg.origin}
+                                    origin={msg.origin} key={'record-'+idx}
                                     message={msg.message} traceback={msg.traceback} />;
                 })}
                 </tbody>
