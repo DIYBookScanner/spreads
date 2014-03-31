@@ -14,6 +14,7 @@ from multiprocessing.pool import ThreadPool
 
 @pytest.yield_fixture
 def app(config, mock_driver_mgr, mock_plugin_mgr, tmpdir):
+    import spreadsplug.web.persistence as persistence
     from spreadsplug.web import setup_app, setup_logging, app
     from spreads.plugin import set_default_config
     set_default_config(config)
@@ -26,6 +27,7 @@ def app(config, mock_driver_mgr, mock_plugin_mgr, tmpdir):
     setup_app(config)
     setup_logging(config)
     app.config['TESTING'] = True
+    persistence.WorkflowCache = {}
     yield app
 
 

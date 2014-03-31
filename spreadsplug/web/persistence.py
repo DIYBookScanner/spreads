@@ -27,19 +27,11 @@ CREATE TABLE queue (
 # NOTE: This is a global dictionary that caches workflow instances, so we
 #       do not have to hit the database each time we want to get a workflow
 #       object.
-WorkflowCache = None
+WorkflowCache = {}
 
 DbWorkflow = namedtuple('DbWorkflow', ['id', 'name', 'step', 'step_done',
                                        'config'])
 logger = logging.getLogger('spreadsplug.web.database')
-
-
-@app.before_first_request
-def initialize_workflow_cache():
-    global WorkflowCache
-    logger.debug(id(WorkflowCache))
-    logger.info("Initializing workflow cache")
-    WorkflowCache = get_all_workflows()
 
 
 def initialize_database():
@@ -47,12 +39,6 @@ def initialize_database():
     db_path = app.config['database']
     with sqlite3.connect(unicode(db_path)) as con:
         con.executescript(SCHEMA)
-    # NOTE: We set the WorkflowCache to an empty dict since during our tests,
-    # this module is only loaded once, hence the cache is valid across all
-    # tests. This is a hacky workaround until I can get to the bottom of this
-    # addmitedly weird behaviour...
-    global WorkflowCache
-    WorkflowCache = {}
 
 
 def open_connection():
@@ -107,22 +93,19 @@ def get_workflow(workflow_id):
         path=Path(app.config['base_path'])/db_workflow.name,
         config=config,
         step=db_workflow.step,
-        step_done=bool(db_workflow.step_done))
-    # NOTE: For convenience, we store the workflow_id directly in the object
-    workflow.id = workflow_id
-    WorkflowCache[workflow.id] = workflow
+        step_done=bool(db_workflow.step_done),
+        id=workflow_id)
+    WorkflowCache[workflow_id] = workflow
     return workflow
 
 
 def get_all_workflows():
-    global WorkflowCache
-    if WorkflowCache is not None:
+    if WorkflowCache:
         return WorkflowCache
     logger.debug("Obtaining all workflows from database.")
     with open_connection() as con:
         result = con.execute(
             "SELECT id FROM workflow").fetchall()
-    WorkflowCache = {}
     workflows = {x[0]: get_workflow(x[0]) for x in result}
     return workflows
 
