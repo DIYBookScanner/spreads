@@ -3,6 +3,7 @@
 (function() {
   'use strict';
   var React = require('react/addons'),
+      classSet = React.addons.classSet,
       _ = require('underscore'),
       row, column, fnButton, fnAlert, pagination, modal, confirmModal;
 
@@ -53,22 +54,25 @@
   /**
    * Button component.
    *
-   * @property {function} onClick - Callback for button click
-   * @property {string|string[]} [size] - Button size
+   * @property {function} callback - Callback for button click
+   * @property {string} [size] - Button size
    * @property {boolean} [secondary] - Button is secondary
    * @property {boolean} [expand] - Expand button size
+   * @property {boolean} [disabled] - Disable the button
    * @property {React.Component[]} children - Child components
    */
   fnButton = React.createClass({
     render: function() {
-      return (<a onClick={this.props.callback}
-                  className={(this.props.size || '') +
-                            " action-button" +
-                            (this.props.secondary ? " secondary" : '') +
-                            (this.props.expand ? " expand" : '')}>
+      var classes = classSet({
+        'action-button': true,
+        'secondary': this.props.secondary,
+        'expand': this.props.expand,
+        'disabled': this.props.disabled
+      });
+      classes += " " + this.props.size;
+      return (<a onClick={this.props.callback} className={classes}>
                 {this.props.children}
-              </a>
-              );
+              </a>);
     }
   });
 
