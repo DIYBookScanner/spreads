@@ -21,15 +21,15 @@
   WorkflowItem = React.createClass({
     getInitialState: function() {
       return {
-         /** Display deletion confirmation modal? */
-         deleteModal: false
+        /** Display deletion confirmation modal? */
+        deleteModal: false
       };
     },
     /**
      * Remove associated workflow object from the model collection.
      */
     doRemove: function() {
-      this.props.workflow.destroy({wait: true});
+      this.props.workflow.destroy();
       // Disable deletion confirmation modal
       this.setState({
         deleteModal: false
