@@ -143,7 +143,11 @@ def create_workflow():
     workflow = Workflow(config=config, path=path,
                         step=data.get('step', None),
                         step_done=data.get('step_done', None))
-    workflow.id = persistence.save_workflow(workflow)
+    try:
+        workflow.id = persistence.save_workflow(workflow)
+    except persistence.ValidationError as e:
+        return make_response(json.dumps(dict(errors=e.errors)), 400,
+                             {'Content-Type': 'application/json'})
     return make_response(json.dumps(workflow),
                          200, {'Content-Type': 'application/json'})
 

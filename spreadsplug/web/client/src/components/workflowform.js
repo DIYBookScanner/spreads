@@ -4,6 +4,7 @@
   'use strict';
   var React = require('react/addons'),
       _ = require('underscore'),
+      merge = require('react/lib/merge'),
       foundation = require('./foundation.js'),
       ModelMixin = require('../../lib/backbonemixin.js'),
       row = foundation.row,
@@ -191,7 +192,9 @@
     getInitialState: function() {
       return {
         /** Errors from validation */
-        errors: {}
+        errors: {},
+        /** Whether we are currently submitting */
+        submitting: false
       };
     },
     componentDidMount: function() {
@@ -208,16 +211,27 @@
     },
     componentWillUnmount: function() {
       /* Deregister event handlers */
-      this.props.workflow.off('validated:invalid');
-      this.props.workflow.off('all');
+      this.props.workflow.off('all', null, this);
     },
     handleSubmit: function() {
       /* Save workflow and open capture screen when successful */
-      this.props.workflow.save().success(function(workflow) {
-        window.router.navigate('/workflow/' + workflow.id + '/capture',
-                               {trigger: true});
-      });
-      // TODO: Error handling
+      this.setState({submitting: true});
+      var rv = this.props.workflow.save();
+      if (!rv) {
+        this.setState({submitting: false});
+        return;
+      }
+      rv.success(function(workflow) {
+          window.router.navigate('/workflow/' + workflow.id + '/capture',
+                                  {trigger: true});
+        }).error(function(xhr) {
+          this.setState({errors: merge(this.state.errors, xhr.responseJSON.errors)});
+        }.bind(this))
+        .complete(function() {
+          if (this.isMounted()) {
+            this.setState({submitting: false});
+          }
+        }.bind(this));
     },
     render: function() {
       return (
