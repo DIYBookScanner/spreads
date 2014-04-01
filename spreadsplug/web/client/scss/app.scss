@@ -40,6 +40,10 @@
     line-height: rem-calc(14);
   }
 
+  &.disabled {
+    @include button-style($disabled:true);
+  }
+
   &.secondary { @include button-style($bg:$secondary-color); }
 }
 
