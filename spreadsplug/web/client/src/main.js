@@ -1,4 +1,5 @@
 /* global require */
+React = require('react');
 (function() {
   'use strict';
 
