@@ -19,6 +19,8 @@
    * @property {Workflow} workflow - Workflow to control capture on
    */
   module.exports = React.createClass({
+    displayName: "CaptureScreen",
+
     /** Enables two-way databinding with Backbone model */
     mixins: [ModelMixin],
 

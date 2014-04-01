@@ -1,7 +1,7 @@
 /* global require */
-React = require('react');
 (function() {
   'use strict';
+
 
   var Backbone = require('backbone'),
       $ = require('jquery'),
@@ -12,6 +12,8 @@ React = require('react');
   // Assign jQuery to window for Foundation
   /** @global */
   window.jQuery = $;
+
+  window.React = require('react');
 
   // Initialize routing
   /** @global */

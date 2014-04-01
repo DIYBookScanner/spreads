@@ -15,10 +15,7 @@
    */
   row =  React.createClass({
     render: function() {
-      var classes = [];
-      if (this.props.className) classes.push(this.props.className);
-      classes.push('row');
-      return (<div className={classes.join(" ")}>{this.props.children}</div>);
+      return this.transferPropsTo(<div className="row">{this.props.children}</div>);
     }
   });
 

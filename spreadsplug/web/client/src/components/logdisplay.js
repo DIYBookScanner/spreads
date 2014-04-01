@@ -132,6 +132,7 @@
    * Display log entries in a table
    */
   module.exports = React.createClass({
+    displayname: "LogDisplay",
 
     /**
      * Load log mesages from server

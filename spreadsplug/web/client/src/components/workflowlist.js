@@ -159,6 +159,8 @@
    * @property {Backbone.Collection<Workflow>} workflows
    */
   module.exports = React.createClass({
+    displayName: "WorkflowList",
+
     /** Enables two-way databinding with Backbone model */
     mixins: [ModelMixin],
 

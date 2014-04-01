@@ -23,6 +23,8 @@
    * @property {string} view - Name of view to display
    */
   module.exports = React.createClass({
+    displayName: "SpreadsApp",
+
     /** Register message change listeners */
     componentDidMount: function() {
       // TODO: Listen for logging events, filter by level

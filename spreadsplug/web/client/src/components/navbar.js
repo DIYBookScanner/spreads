@@ -12,6 +12,8 @@
    * @property {string} title - Title to display
    */
   module.exports = React.createClass({
+    displayName: "NavigationBar",
+
     getInitialState: function() {
       return {
         /** Display shutdown modal? */

@@ -19,6 +19,8 @@
    * @property {Workflow} workflow - Workflow to display
    */
   module.exports = React.createClass({
+    displayName: "WorkflowDisplay",
+
     /** Enables two-way databinding with Backbone model */
     mixins: [ModelMixin],
 
