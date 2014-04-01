@@ -5,3 +5,4 @@ coveralls >= 0.2
 sphinxcontrib-fulltoc==1.0
 mock>=1.0.1
 coverage>=3.6
+psutil==2.0.0
