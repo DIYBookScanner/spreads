@@ -26,7 +26,7 @@
         required: true,
         // All printable ASCII characters, except '/'
         pattern: /^[\x20-\x2E\x30-\x7E]*$/,
-        msg: 'Non-ASCII characters and "/" are not permitted.'
+        msg: 'Please enter a valid name (ASCII only and no "/")'
       }
     },
     validate: function() {

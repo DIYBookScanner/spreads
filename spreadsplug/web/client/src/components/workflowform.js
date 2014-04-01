@@ -9,6 +9,7 @@
       ModelMixin = require('../../lib/backbonemixin.js'),
       row = foundation.row,
       column = foundation.column,
+      fnButton = foundation.button,
       PluginOption, PluginWidget, PluginConfiguration;
 
   /**
@@ -257,7 +258,10 @@
                                errors={this.state.errors} />
           <row>
             <column size='12'>
-              <a onClick={this.handleSubmit} className="button small fi-tick"> Submit</a>
+              <fnButton callback={this.state.submitting ? undefined : this.handleSubmit}
+                        size="small" disabled={this.state.submitting}>
+                <i className="fi-check"/> Submit
+              </fnButton>
             </column>
           </row>
         </section>
