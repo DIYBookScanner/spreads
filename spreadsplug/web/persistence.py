@@ -34,6 +34,11 @@ DbWorkflow = namedtuple('DbWorkflow', ['id', 'name', 'step', 'step_done',
 logger = logging.getLogger('spreadsplug.web.database')
 
 
+class ValidationError(Exception):
+    def __init__(self, **kwargs):
+        self.errors = kwargs
+
+
 def initialize_database():
     logger.info("Initializing database.")
     db_path = app.config['database']
@@ -52,8 +57,14 @@ def save_workflow(workflow):
     data = DbWorkflow(id=None, name=workflow.path.name,
                       step=workflow.step, step_done=workflow.step_done,
                       config=json.dumps(workflow.config.flatten()))
-    logger.debug("Writing workflow to database:\n{0}".format(data))
     with open_connection() as con:
+        exists = bool(next(
+            con.execute("SELECT COUNT(*) FROM  workflow WHERE name=?",
+                        (workflow.path.name,)))[0])
+        if exists:
+            raise ValidationError(name="A workflow with that name already "
+                                       "exists.")
+        logger.debug("Writing workflow to database:\n{0}".format(data))
         workflow_id = con.execute("INSERT INTO workflow VALUES (?,?,?,?,?)",
                                   data).lastrowid
     logger.debug("Workflow written to database with id {0}"
