@@ -61,15 +61,28 @@ def save_workflow(workflow):
         exists = bool(next(
             con.execute("SELECT COUNT(*) FROM  workflow WHERE name=?",
                         (workflow.path.name,)))[0])
-        if exists:
-            raise ValidationError(name="A workflow with that name already "
-                                       "exists.")
-        logger.debug("Writing workflow to database:\n{0}".format(data))
-        workflow_id = con.execute("INSERT INTO workflow VALUES (?,?,?,?,?)",
-                                  data).lastrowid
-    logger.debug("Workflow written to database with id {0}"
-                 .format(workflow_id))
-    WorkflowCache[workflow_id] = workflow
+        # Create workflow
+        if workflow.id is None:
+            if exists:
+                raise ValidationError(name="A workflow with that name already "
+                                           "exists.")
+            logger.debug("Writing workflow to database:\n{0}".format(data))
+            workflow_id = con.execute(
+                "INSERT INTO workflow VALUES (?,?,?,?,?)",
+                data).lastrowid
+            logger.debug("Workflow created in database with id {0}"
+                        .format(workflow_id))
+            WorkflowCache[workflow_id] = workflow
+        # Update workflow
+        else:
+            con.execute(
+                "UPDATE workflow SET name=:name, config=:config "
+                "WHERE id=:id",
+                dict(id=workflow.id,
+                    config=json.dumps(workflow.config.flatten()),
+                    name=workflow.path.name))
+            logger.debug("Workflow {0} updated in database"
+                         .format(workflow.id))
     return workflow_id
 
 

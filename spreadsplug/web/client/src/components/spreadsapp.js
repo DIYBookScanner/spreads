@@ -73,11 +73,13 @@
       switch (viewName) {
       case "create":
         var newWorkflow = new workflows.model(null, {collection: workflows});
-        return <WorkflowForm workflow={newWorkflow}/>;
+        return <WorkflowForm workflow={newWorkflow} isNew={true}/>;
       case "capture":
         return <CaptureInterface workflow={workflows.get(workflowId)}/>;
       case "view":
         return <WorkflowDetails workflow={workflows.get(workflowId)}/>;
+      case "edit":
+        return <WorkflowForm workflow={workflows.get(workflowId)} isNew={false} />;
       case "log":
         return <LogDisplay />;
       default:

@@ -183,6 +183,8 @@
    * @property {Workflow} workflow - Workflow to display
    */
   module.exports = React.createClass({
+    displayName: "WorkflowForm",
+
     /** Enables two-way databinding with Backbone model */
     mixins: [ModelMixin],
 
@@ -206,9 +208,11 @@
       /* When workflow is saved, add it to the `workflows` collection. */
       // TODO: Check that the workflow is not already in the collection
       //       (happens when editing an existing workflow)
-      this.props.workflow.on('sync', function() {
-        this.props.workflow.collection.add(this.props.workflow);
-      }, this);
+      if (this.props.isNew) {
+        this.props.workflow.on('sync', function() {
+            this.props.workflow.collection.add(this.props.workflow);
+        }, this);
+      }
     },
     componentWillUnmount: function() {
       /* Deregister event handlers */
@@ -223,9 +227,14 @@
         return;
       }
       rv.success(function(workflow) {
-          window.router.navigate('/workflow/' + workflow.id + '/capture',
-                                  {trigger: true});
-        }).error(function(xhr) {
+          var route;
+          if (this.props.isNew) {
+            route = '/workflow/' + workflow.id + '/capture';
+          } else {
+            route = '/';
+          }
+          window.router.navigate(route, {trigger: true});
+        }.bind(this)).error(function(xhr) {
           this.setState({errors: merge(this.state.errors, xhr.responseJSON.errors)});
         }.bind(this))
         .complete(function() {
@@ -239,9 +248,9 @@
         <section>
           <row>
             <column size='12'>
-              <h2>{this.props.workflow.get('id') ?
-                    'Edit workflow ' + this.props.workflow.get('name'):
-                    'Create workflow'}
+              <h2>{this.props.isNew ?
+                    'Create workflow' :
+                    'Edit workflow ' + this.props.workflow.get('name')}
               </h2>
             </column>
           </row>

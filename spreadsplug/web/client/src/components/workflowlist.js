@@ -46,8 +46,7 @@
     /**
      * Continue to next step in workflow.
      */
-    handleContinue: function() {
-      // TODO: Perform next step, depending on mode we're running in
+    handleCapture: function() {
       window.router.navigate('/workflow/' + this.props.workflow.id + '/capture',
                              {trigger: true});
     },
@@ -140,9 +139,11 @@
             </row>
             <row>
               <ul className="button-group">
+                <li><a href={'/#/workflow/' + workflow.id + '/edit'} className="action-button fi-pencil"></a></li>
                 <li><a onClick={this.handleRemove} className="action-button fi-trash"></a></li>
                 <li><a href={'/workflow/' + workflow.id + '/download'} className="action-button fi-download"></a></li>
-                <li><a onClick={this.handleContinue} className="action-button fi-play"></a></li>
+                {window.config.web.mode !== 'postprocessor' &&
+                  <li><a onClick={this.handleCapture} className="action-button fi-camera"></a></li>}
                 {window.config.web.standalone_device &&
                   <li><a onClick={this.handleTransfer} className="action-button fi-usb"></a></li>}
               </ul>

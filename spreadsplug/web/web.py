@@ -179,7 +179,13 @@ def update_workflow(workflow):
     Returns the updated workflow as a JSON object.
     """
     # TODO: Support renaming a workflow, i.e. rename directory as well
-    config = json.loads(request.data).get('config', None)
+    data = json.loads(request.data)
+    name = data.get('name')
+    if workflow.path.name != name:
+        new_path = workflow.path.parent/name
+        workflow.path.rename(new_path)
+        workflow.path = new_path
+    config = data.get('config')
     # Update workflow configuration
     workflow.config.set(config)
     # Persist to disk

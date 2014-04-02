@@ -34,6 +34,7 @@
       "":                       "root",
       "workflow/new":           "createWorkflow",
       "workflow/:id":           "viewWorkflow",
+      "workflow/:id/edit":      "editWorkflow",
       "workflow/:id/capture":   "startCapture",
       "preferences":            "editPreferences",
       "log":                    "displayLog"
@@ -60,6 +61,9 @@
     },
     viewWorkflow: function(workflowId) {
       this._renderView("view", workflowId);
+    },
+    editWorkflow: function(workflowId) {
+      this._renderView("edit", workflowId);
     },
     startCapture: function(workflowId) {
       this._renderView("capture", workflowId);
