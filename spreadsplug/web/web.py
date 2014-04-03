@@ -189,7 +189,7 @@ def update_workflow(workflow):
     # Update workflow configuration
     workflow.config.set(config)
     # Persist to disk
-    persistence.update_workflow_config(workflow.id, workflow.config)
+    persistence.save_workflow(workflow)
     return make_response(json.dumps(workflow),
                          200, {'Content-Type': 'application/json'})
 
@@ -457,11 +457,12 @@ def prepare_capture(workflow):
     """
     if app.config['mode'] not in ('scanner', 'full'):
         abort(404)
+
     # Check if any other workflow is active and finish, if neccessary
     logger.debug("Finishing previous workflows")
     for wfid, wf in persistence.get_all_workflows().iteritems():
         if wf.active:
-            if wfid == workflow.id:
+            if wfid == workflow.id and not 'reset' in request.args:
                 return 'OK'
             wf.finish_capture()
     workflow.prepare_capture()

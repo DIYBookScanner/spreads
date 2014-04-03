@@ -67,12 +67,11 @@ def save_workflow(workflow):
                 raise ValidationError(name="A workflow with that name already "
                                            "exists.")
             logger.debug("Writing workflow to database:\n{0}".format(data))
-            workflow_id = con.execute(
-                "INSERT INTO workflow VALUES (?,?,?,?,?)",
-                data).lastrowid
+            workflow.id = con.execute(
+                "INSERT INTO workflow VALUES (?,?,?,?,?)", data).lastrowid
             logger.debug("Workflow created in database with id {0}"
-                        .format(workflow_id))
-            WorkflowCache[workflow_id] = workflow
+                        .format(workflow.id))
+            WorkflowCache[workflow.id] = workflow
         # Update workflow
         else:
             con.execute(
@@ -83,7 +82,7 @@ def save_workflow(workflow):
                     name=workflow.path.name))
             logger.debug("Workflow {0} updated in database"
                          .format(workflow.id))
-    return workflow_id
+    return workflow.id
 
 
 def update_workflow_config(id, config):

@@ -8,9 +8,11 @@
       ModelMixin = require('../../lib/backbonemixin.js'),
       LoadingOverlay = require('./overlays.js').Activity,
       lightbox = require('./overlays.js').LightBox,
+      PluginWidget = require('./config.js').PluginWidget,
       row = foundation.row,
       column = foundation.column,
-      fnButton = foundation.button;
+      fnButton = foundation.button,
+      confirmModal = foundation.confirmModal;
 
 
   /**
@@ -37,7 +39,10 @@
         /** Message for activity overlay */
         waitMessage: undefined,
         /** Time of first capture */
-        captureStart: undefined };
+        captureStart: undefined,
+        /** Validation errors for device configuration */
+        validationErrors: {}
+      };
     },
     /**
      * Triggers preparation of capture on workflow and displays the activity
@@ -103,6 +108,25 @@
         this.setState({waiting: false});
       }
     },
+    toggleConfigModal: function() {
+      this.setState({
+        displayConfig: !this.state.displayConfig
+      });
+    },
+    saveConfig: function() {
+      this.props.workflow.on('validated:invalid', function(workflow, errors) {
+        this.setState({validationErrors: errors});
+      }, this);
+      var xhr = this.props.workflow.save();
+      if (xhr) {
+        xhr.done(function() {
+          this.toggleConfigModal();
+          this.toggleWaiting("Configuring cameras.")
+          this.props.workflow.prepareCapture(this.toggleWaiting, true);
+          this.props.workflow.off('validated:invalid', null, this);
+        }.bind(this))
+      };
+    },
     /**
      * Open image in lightbox overlay
      *
@@ -146,6 +170,15 @@
           {/* Display lightbox overlay? */}
           {this.state.lightboxImage &&
             <lightbox onClose={this.closeLightbox} src={this.state.lightboxImage} />}
+          {this.state.displayConfig &&
+            <confirmModal onConfirm={this.saveConfig} onCancel={this.toggleConfigModal}>
+              <PluginWidget plugin="device" template={window.pluginTemplates.device}
+                            bindFunc={function(key) {
+                              return this.bindTo(this.props.workflow,
+                                                  'config.device.' + key);
+                            }.bind(this)} errors={[]}/>
+            </confirmModal>
+          }
           {/* Only display review images if there are images on the workflow */}
           {(oddImage && evenImage) &&
           <row>
@@ -205,12 +238,16 @@
                   </fnButton>
                 </li>
                 <li>
-                  <fnButton callback={this.handleFinish} secondary='true' size='large'>
-                      <i className="fi-check"></i>
+                  <fnButton callback={this.toggleConfigModal} secondary='true' size='large'>
+                    <i className="fi-widget"></i>
                   </fnButton>
                 </li>
               </ul>
             </div>
+          </row>
+          <row>
+            <column size="1" offset="5">
+            </column>
           </row>
         </div>
       );

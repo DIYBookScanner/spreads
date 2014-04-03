@@ -67,9 +67,9 @@
      * @param {requestCallback} callback Callback to execute after API request is
      *                                   completed.
      */
-    prepareCapture: function(callback) {
+    prepareCapture: function(callback, reset) {
       jQuery.post(
-        '/workflow/' + this.id + '/prepare_capture',
+        '/workflow/' + this.id + '/prepare_capture' + (reset ? '?reset=true' : ''),
         function() {
           console.debug("Preparation successful");
         }.bind(this)).fail(function() {
