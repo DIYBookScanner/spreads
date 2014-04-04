@@ -146,9 +146,10 @@ def mock_iter_entry_points():
         yield
 
 
-@pytest.fixture
-def mock_driver():
-    return TestDriver
+@pytest.fixture(autouse=True)
+def empty_device_cache():
+    import spreads.plugin
+    spreads.plugin.devices = None
 
 
 @pytest.fixture

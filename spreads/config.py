@@ -1,8 +1,8 @@
 import copy
 import logging
-import os
 
 import spreads.vendor.confit as confit
+from spreads.vendor.pathlib import Path
 
 
 class OptionTemplate(object):
@@ -49,7 +49,7 @@ class Configuration(object):
     def __init__(self, appname='spreads'):
         self._config = confit.LazyConfig(appname, __name__)
         self._config.read()
-        if not 'plugins' in self._config.keys():
+        if 'plugins' not in self._config.keys():
             self['plugins'] = []
         self.load_defaults(overwrite=False)
 
@@ -93,8 +93,7 @@ class Configuration(object):
 
     @property
     def cfg_path(self):
-        return os.path.join(self._config.config_dir(),
-                            confit.CONFIG_FILENAME)
+        return Path(self._config.config_dir()) / confit.CONFIG_FILENAME
 
     def with_overlay(self, overlay):
         """ Get a new configuration that overlays the provided configuration
@@ -110,10 +109,8 @@ class Configuration(object):
         new_config.set(overlay)
         return new_config
 
-
     def as_view(self):
         return self._config
-
 
     def load_defaults(self, overwrite=True):
         """ Load default settings from option templates.

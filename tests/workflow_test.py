@@ -6,6 +6,7 @@ import pytest
 
 import spreads.util as util
 import spreads.workflow
+from conftest import TestDriver
 
 
 @pytest.fixture
@@ -29,11 +30,11 @@ def test_get_devices(workflow):
     # TODO: Verify
 
 
-def test_get_devices_no_device(workflow, mock_driver):
-    mock_driver.num_devices = 0
+def test_get_devices_no_device(workflow):
+    TestDriver.num_devices = 0
     with pytest.raises(util.DeviceException):
         _ = workflow.devices
-    mock_driver.num_devices = 2
+    TestDriver.num_devices = 2
 
 
 def test_get_next_filename(workflow):

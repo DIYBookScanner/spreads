@@ -146,7 +146,7 @@ class DevicePlugin(SpreadsPlugin):  # pragma: no cover
         :type device:   `usb.core.Device <http://github.com/walac/pyusb>`_
 
         """
-        super(DevicePlugin, self).__init__(config['device'])
+        self.config = config
         self._device = device
 
     @abc.abstractmethod
@@ -382,7 +382,7 @@ def get_devices(config, force_reload=False):
     """ Initialize configured devices.
     """
     global devices
-    if not devices:
+    if not devices or force_reload:
         if 'driver' not in config.keys():
             raise DeviceException(
                 "No driver has been configured\n"
@@ -390,7 +390,7 @@ def get_devices(config, force_reload=False):
         driver = get_driver(config["driver"].get())
         logger.debug("Finding devices for driver \"{0}\""
                      .format(driver.__name__))
+        devices = list(driver.yield_devices(config['device']))
         if not devices:
             raise DeviceException("Could not find any compatible devices!")
-        devices = list(driver.yield_devices(config['device']))
     return devices

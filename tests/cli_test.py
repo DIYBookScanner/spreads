@@ -79,7 +79,7 @@ def test_set_device_target_page(config, mock_getch):
     TestDriver.num_devices = 2
 
 
-def test_configure(config, mock_input, mock_getch, mock_driver):
+def test_configure(config, mock_input, mock_getch):
     config["plugins"] = []
     # We need to mock out all methods that touch the filesystem
     config.config_dir = Mock(return_value='/tmp/foo')
@@ -95,11 +95,11 @@ def test_configure(config, mock_input, mock_getch, mock_driver):
         "y",  # Confirm focus setting
     )
 
-    mock_driver.num_devices = 1
+    TestDriver.num_devices = 1
 
     cli.configure(config)
 
-    mock_driver.num_devices = 2
+    TestDriver.num_devices = 2
 
     print config['plugins'].get()
     assert config['driver'].get() == 'testdriver'
@@ -122,20 +122,20 @@ def test_capture(tty, termios, stdin, select, config, capsys, tmpdir):
     assert " 6 pages " in last_status
 
 
-def test_capture_nodevices(config, mock_driver, tmpdir):
+def test_capture_nodevices(config, tmpdir):
     config['path'] = unicode(tmpdir)
-    mock_driver.num_devices = 0
+    TestDriver.num_devices = 0
     with pytest.raises(DeviceException):
         cli.capture(config)
-    mock_driver.num_devices = 2
+    TestDriver.num_devices = 2
 
 
-def test_capture_no_target_page(config, mock_driver, tmpdir):
+def test_capture_no_target_page(config, tmpdir):
     config['path'] = unicode(tmpdir)
-    mock_driver.target_pages = False
+    TestDriver.target_pages = False
     with pytest.raises(DeviceException):
         cli.capture(config)
-    mock_driver.target_pages = True
+    TestDriver.target_pages = True
 
 
 def test_postprocess(config, tmpdir):

@@ -19,8 +19,7 @@ def app(config, tmpdir):
     import spreadsplug.web.persistence as persistence
     from spreadsplug.web import setup_app, setup_logging, setup_signals, app
     from spreadsplug.web.web import event_queue
-    from spreads.plugin import set_default_config
-    set_default_config(config)
+    config.load_defaults(overwrite=False)
 
     config['web']['mode'] = 'full'
     config['web']['database'] = unicode(tmpdir.join('test.db'))

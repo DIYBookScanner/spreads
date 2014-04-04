@@ -158,8 +158,8 @@ def run_server(config):
 
     # Initialize huey task queue
     global task_queue
-    db_location = os.path.join(config.config_dir(), 'queue.db')
-    task_queue = SqliteHuey(location=db_location)
+    db_location = config.cfg_path.parent / 'queue.db'
+    task_queue = SqliteHuey(location=unicode(db_location))
     consumer = Consumer(task_queue)
 
     ip_address = get_ip_address()

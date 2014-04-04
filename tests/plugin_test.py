@@ -3,8 +3,8 @@ import pytest
 import spreads.plugin as plugin
 
 
-def test_get_devices(config, mock_driver):
-    devices = plugin.get_devices(plugin.get_driver('testdriver'), config)
+def test_get_devices(config):
+    devices = plugin.get_devices(config)
     assert len(devices) == 2
     assert devices[0].__name__ == 'testdriver'
     assert devices[0]._id != devices[1]._id

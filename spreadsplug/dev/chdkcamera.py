@@ -43,7 +43,7 @@ class CHDKCameraDevice(DevicePlugin):
              'zoom_level': OptionTemplate(3, "The default zoom level"),
              'dpi': OptionTemplate(300, "The capturing resolution"),
              'shoot_raw': OptionTemplate(False, "Shoot in RAW format (DNG)"),
-             'focus_distance': OptionTemplate('auto', "Set focus distance"),
+             'focus_distance': OptionTemplate(0, "Set focus distance"),
              'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
              'chdkptp_path': OptionTemplate(
