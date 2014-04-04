@@ -90,15 +90,7 @@ class CHDKCameraDevice(DevicePlugin):
             .strip('\x00'))
         self.logger.debug("Device has serial number {0}"
                           .format(self._serial_number))
-        self._chdkptp_path = Path(config["chdkptp_path"].get(unicode))
-        self._sensitivity = config["sensitivity"].get(int)
-        self._shutter_speed = float(Fraction(config["shutter_speed"]
-                                    .get(unicode)))
-        self._zoom_level = config['zoom_level'].get(int)
-        self._dpi = config['dpi'].get(int)
-        self._shoot_raw = config['shoot_raw'].get(bool)
-        self._focus_distance = config['focus_distance'].get()
-        self._shoot_monochrome = config['monochrome'].get()
+        self.config = config
 
         self._cli_flags = []
         self._cli_flags.append("-c-d={1:03} -b={0:03}".format(*self._usbport))
@@ -156,6 +148,7 @@ class CHDKCameraDevice(DevicePlugin):
         os.remove(tmp_handle[1])
 
     def prepare_capture(self, path):
+        shoot_monochrome = self.config['monochrome'].get(bool)
         # Try to go into alt mode to prevent weird behaviour
         self._execute_lua("enter_alt()")
         # Try to put into record mode
@@ -164,21 +157,21 @@ class CHDKCameraDevice(DevicePlugin):
         except CHDKPTPException as e:
             self.logger.debug(e)
             self.logger.info("Camera already seems to be in recording mode")
-        self._set_zoom(self._zoom_level)
+        self._set_zoom(int(self.config['zoom_level'].get()))
         # Disable flash
         self._execute_lua("while(get_flash_mode()<2) do click(\"right\") end")
         # Disable ND filter
         self._execute_lua("set_nd_filter(2)")
         self._set_focus()
-        if self._shoot_monochrome:
+        if shoot_monochrome:
             rv = self._execute_lua(
                 "capmode = require(\"capmode\")\n"
                 "return capmode.set(\"SCN_MONOCHROME\")",
                 get_result=True
             )
             if not rv:
-                logger.warn("Monochrome mode not supported on this device, "
-                            "will be disabled.")
+                self.logger.warn("Monochrome mode not supported on this "
+                                 "device, will be disabled.")
 
     def finish_capture(self):
         # Switch camera back to play mode.
@@ -198,14 +191,18 @@ class CHDKCameraDevice(DevicePlugin):
         # NOTE: To obtain the "real" Canon ISO value, we multiply the
         #       "market" value from the config by 0.65.
         #       See core/shooting.c#~l150 in the CHDK source for more details
+        sensitivity = int(self.config["sensitivity"].get())
+        shutter_speed = float(Fraction(self.config["shutter_speed"]
+                              .get(unicode)))
+        shoot_raw = self.config['shoot_raw'].get(bool)
         if self._can_remote:
             cmd = ("remoteshoot -tv={0} -sv={1} {2} \"{3}\""
-                   .format(self._shutter_speed, self._sensitivity*0.65,
-                           "-dng" if self._shoot_raw else "", path))
+                   .format(shutter_speed, sensitivity*0.65,
+                           "-dng" if shoot_raw else "", path))
         else:
             cmd = ("shoot -tv={0} -sv={1} -dng={2} -rm -dl \"{3}\""
-                   .format(self._shutter_speed, self._sensitivity*0.65,
-                           int(self._shoot_raw), path))
+                   .format(shutter_speed, sensitivity*0.65,
+                           int(shoot_raw), path))
         try:
             self._run(cmd)
         except CHDKPTPException as e:
@@ -216,7 +213,7 @@ class CHDKCameraDevice(DevicePlugin):
                 self.logger.warn("Capture command failed.")
                 raise e
 
-        extension = 'dng' if self._shoot_raw else 'jpg'
+        extension = 'dng' if shoot_raw else 'jpg'
         local_path = "{0}.{1}".format(path, extension)
         # Set EXIF orientation
         self.logger.debug("Setting EXIF orientation on captured image")
@@ -241,10 +238,11 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("\n".join(script), wait=False, get_result=False)
 
     def _run(self, *commands):
-        cmd_args = list(chain((unicode(self._chdkptp_path / "chdkptp"),),
+        chdkptp_path = Path(self.config["chdkptp_path"].get(unicode))
+        cmd_args = list(chain((unicode(chdkptp_path / "chdkptp"),),
                               self._cli_flags,
                               ("-e{0}".format(cmd) for cmd in commands)))
-        env = {'LUA_PATH': unicode(self._chdkptp_path / "lua/?.lua")}
+        env = {'LUA_PATH': unicode(chdkptp_path / "lua/?.lua")}
         self.logger.debug("Calling chdkptp with arguments: {0}"
                           .format(cmd_args))
         output = (subprocess.check_output(cmd_args, env=env,
@@ -317,7 +315,7 @@ class CHDKCameraDevice(DevicePlugin):
         except CHDKPTPException as e:
             self.logger.debug(e)
             self.logger.info("Camera already seems to be in recording mode")
-        self._set_zoom(self._zoom_level)
+        self._set_zoom(int(self.config['zoom_level'].get()))
         self._execute_lua("set_aflock(0)")
         self._execute_lua("press('shoot_half')")
         time.sleep(0.8)
@@ -326,10 +324,11 @@ class CHDKCameraDevice(DevicePlugin):
         return self._execute_lua("get_focus()", get_result=True)
 
     def _set_focus(self):
+        focus_distance = int(self.config['focus_distance'].get())
         self._execute_lua("set_aflock(0)")
-        if self._focus_distance == 0:
+        if focus_distance == 0:
             return
-        self._execute_lua("set_focus({0:.0f})".format(self._focus_distance))
+        self._execute_lua("set_focus({0:.0f})".format(focus_distance))
         time.sleep(0.5)
         self._execute_lua("press('shoot_half')")
         time.sleep(0.25)

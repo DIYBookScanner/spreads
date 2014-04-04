@@ -162,7 +162,7 @@ def test_capture(jpeg, camera):
 @mock.patch('spreadsplug.dev.chdkcamera.JPEGImage')
 def test_capture_raw(jpeg, camera):
     jpeg.return_value = mock.Mock()
-    camera._shoot_raw = True
+    camera.config['shoot_raw'] = True
     camera.capture('/tmp/000')
     assert camera._run.call_count == 1
     assert "-dng " in camera._run.call_args_list[0][0][0]
