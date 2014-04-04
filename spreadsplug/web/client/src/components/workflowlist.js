@@ -107,14 +107,15 @@
           {this.state.deleteModal &&
             <confirmModal
               onCancel={function(){this.setState({deleteModal: false});}.bind(this)}
-              onConfirm={this.doRemove}>
+              onConfirm={this.doRemove} fixed={true}>
               <h1>Remove?</h1>
               <p>Do you really want to permanently remove this workflow and all
                  of its related files?</p>
             </confirmModal>}
           {/* Display error modal? */}
           {this.state.errorModal &&
-            <modal onClose={function(){this.setState({errorModal: false});}.bind(this)}>
+            <modal onClose={function(){this.setState({errorModal: false});}.bind(this)}
+                   fixed={true}>
               <h1>{this.state.errorModalHeading}</h1>
               <p>{this.state.errorModalText}</p>
             </modal>}

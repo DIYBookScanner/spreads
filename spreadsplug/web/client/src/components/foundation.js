@@ -195,8 +195,13 @@
    */
   modal = React.createClass({
     render: function() {
+      var classes = classSet({
+        'reveal-modal': true,
+        'open': true,
+        'fixed': this.props.fixed
+      });
       return (
-        <div className="reveal-modal open"
+        <div className={classes}
               style={{visibility: 'visible', display: 'block'}}>
           {this.props.children}
           <a className="close-reveal-modal" onClick={this.props.onClose}>&#215;</a>
@@ -215,7 +220,7 @@
   confirmModal = React.createClass({
     render: function() {
       return (
-        <modal onClose={this.props.onCancel}>
+        <modal onClose={this.props.onCancel} fixed={this.props.fixed}>
           {this.props.children}
           <row>
             <column size="6">

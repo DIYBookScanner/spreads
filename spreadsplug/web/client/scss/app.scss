@@ -118,7 +118,15 @@
 }
 
 .reveal-modal {
-  position: fixed;
+    width: 50%;
+    margin-left: -25%;
+
+  &.fixed {
+    position: fixed;
+    margin-left: 0;
+    top: 10%;
+    left: 25%;
+  }
 }
 
 .traceback {

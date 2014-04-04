@@ -44,7 +44,7 @@
           {this.state.shutdownModal &&
             <confirmModal
               onCancel={function(){this.setState({shutdownModal: false});}.bind(this)}
-              onConfirm={this.doShutdown}>
+              onConfirm={this.doShutdown} fixed={true}>
               <h1>Shut down</h1>
               <p>Do you really want to shut down the device?</p>
             </confirmModal>}
