@@ -47,11 +47,19 @@ app.url_map.converters['workflow'] = WorkflowConverter
 @app.route('/')
 def index():
     """ Deliver static landing page that launches the client-side app. """
+    default_config = cache.get('default-config')
+    if default_config is None:
+        default_config = app.config['default_config'].flatten()
+        cache.set('default-config', default_config)
+    templates = cache.get('plugin-templates')
+    if templates is None:
+        templates = get_plugin_templates()
+        cache.set('plugin-templates', templates)
     return render_template(
         "index.html",
         debug=app.config['DEBUG'],
-        default_config=app.config['default_config'].flatten(),
-        plugin_templates=get_plugin_templates()
+        default_config=default_config,
+        plugin_templates=templates
     )
 
 
@@ -221,8 +229,8 @@ def get_events():
     if count:
         events = tuple(itertools.islice(reversed(event_queue), count))[::-1]
     elif since is not None:
-        events = tuple([event for event in event_queue
-                        if event.emitted > since])
+        events = tuple(event for event in event_queue
+                       if event.emitted > since)
     else:
         events = tuple(event_queue)
     return make_response(
