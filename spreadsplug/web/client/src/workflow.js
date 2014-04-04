@@ -192,6 +192,12 @@
           this.remove(workflow);
         }
       }, this);
+      eventDispatcher.on('workflow:captured', function(data) {
+        var workflow = this.get(data.id);
+        if (workflow) {
+          workflow.addImages(data.images)
+        }
+      }, this);
     }
   });
 }());
