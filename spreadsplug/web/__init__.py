@@ -164,11 +164,10 @@ def run_server(config):
 
     ip_address = get_ip_address()
     if (app.config['standalone'] and ip_address
-            and config['driver'].get() in ['chdkcamera', 'a2200']):
+            and config['driver'].get() == 'chdkcamera'):
         # Display the address of the web interface on the camera displays
         try:
-            driver = plugin.get_driver(config['driver'].get())
-            for cam in plugin.get_devices(driver, config):
+            for cam in plugin.get_devices(config):
                 cam.show_textbox(
                     "\n    You can now access the web interface at:"
                     "\n\n\n         http://{0}:5000".format(ip_address))
