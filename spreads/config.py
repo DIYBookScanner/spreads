@@ -65,7 +65,7 @@ class Configuration(object):
         return self._config.keys()
 
     def dump(self, filename=None, full=True):
-        return self._config.dump(filename, full)
+        return self._config.dump(unicode(filename), full)
 
     def flatten(self):
         return self._config.flatten()
