@@ -159,8 +159,6 @@ class CHDKCameraDevice(DevicePlugin):
             self.logger.debug(e)
             self.logger.info("Camera already seems to be in recording mode")
         self._set_zoom(int(self.config['zoom_level'].get()))
-        # Disable flash
-        self._execute_lua("while(get_flash_mode()<2) do click(\"right\") end")
         # Disable ND filter
         self._execute_lua("set_nd_filter(2)")
         self._set_focus()
@@ -173,6 +171,9 @@ class CHDKCameraDevice(DevicePlugin):
             if not rv:
                 self.logger.warn("Monochrome mode not supported on this "
                                  "device, will be disabled.")
+        # Disable flash
+        self._execute_lua("while(get_flash_mode()<2) do click(\"right\") end")
+                                 
 
     def finish_capture(self):
         # Switch camera back to play mode.
