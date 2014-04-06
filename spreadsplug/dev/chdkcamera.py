@@ -33,6 +33,9 @@ class CHDKCameraDevice(DevicePlugin):
     _can_remote = False
     _zoom_steps = 0
 
+    MAX_RESOLUTION = 0
+    MAX_QUALITY = 0
+
     @classmethod
     def configuration_template(cls):
         conf = super(CHDKCameraDevice, cls).configuration_template()
@@ -61,7 +64,18 @@ class CHDKCameraDevice(DevicePlugin):
         """
         SPECIAL_CASES = {
             # (idVendor, idProduct): SpecialClass
-            (0x4a9, 0x322a): CanonA2200CameraDevice,
+            (0x4a9, 0x31ef): QualityFix,  # not r47, but has the same bug
+            (0x4a9, 0x3218): QualityFix,
+            (0x4a9, 0x3223): QualityFix,
+            (0x4a9, 0x3224): QualityFix,
+            (0x4a9, 0x3225): QualityFix,
+            (0x4a9, 0x3226): QualityFix,
+            (0x4a9, 0x3227): QualityFix,
+            (0x4a9, 0x3228): QualityFix,
+            (0x4a9, 0x3229): QualityFix,
+            (0x4a9, 0x322a): A2200,
+            (0x4a9, 0x322b): QualityFix,
+            (0x4a9, 0x322c): QualityFix,
         }
         for dev in usb.core.find(find_all=True):
             cfg = dev.get_active_configuration()[(0, 0)]
@@ -108,6 +122,7 @@ class CHDKCameraDevice(DevicePlugin):
         except:
             self.target_page = None
 
+        # Set camera to highest quality
         self._execute_lua('exit_alt(); set_config_value(291, 0);'
                           'enter_alt();')
         self.logger = logging.getLogger('ChdkCamera[{0}]'
@@ -173,7 +188,10 @@ class CHDKCameraDevice(DevicePlugin):
                                  "device, will be disabled.")
         # Disable flash
         self._execute_lua("while(get_flash_mode()<2) do click(\"right\") end")
-                                 
+        self._execute_lua("set_prop(require('propcase').QUALITY, {0})"
+                          .format(self.MAX_QUALITY))
+        self._execute_lua("set_prop(require('propcase').RESOLUTION, {0})"
+                          .format(self.MAX_RESOLUTION))
 
     def finish_capture(self):
         # Switch camera back to play mode.
@@ -339,19 +357,22 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("set_aflock(1)")
 
 
-class CanonA2200CameraDevice(CHDKCameraDevice):
+class A2200(CHDKCameraDevice):
     """ Canon A2200 driver.
 
         Works around some quirks of that CHDK port.
 
     """
+    MAX_RESOLUTION = 0
+    MAX_QUALITY = 1
+
     def __init__(self, config, device):
-        super(CanonA2200CameraDevice, self).__init__(config, device)
+        super(A2200, self).__init__(config, device)
         if self.target_page is not None:
             self.logger = logging.getLogger(
-                'CanonA2200CameraDevice[{0}]'.format(self.target_page))
+                'A2200Device[{0}]'.format(self.target_page))
         else:
-            self.logger = logging.getLogger('CanonA2200CameraDevice')
+            self.logger = logging.getLogger('A2200Device')
 
     def finish_capture(self):
         # Putting the device back into play mode crashes the a2200 with
@@ -382,3 +403,20 @@ class CanonA2200CameraDevice(CHDKCameraDevice):
             self._execute_lua("while(get_zoom()>{0}) "
                               "do click(\"zoom_out\") end".format(level+1),
                               wait=True)
+
+
+class QualityFix(CHDKCameraDevice):
+    """ Fixes a bug that prevents remote capture with the highest resolution
+    and quality from succeeding.  See this CHDK forum post for more details:
+    http://chdk.setepontos.com/index.php?topic=4338.msg111318#msg111318
+    """
+    MAX_RESOLUTION = 0
+    MAX_QUALITY = 1
+
+    def __init__(self, config, device):
+        super(QualityFix, self).__init__(config, device)
+        if self.target_page is not None:
+            self.logger = logging.getLogger(
+                'QualityFixDevice[{0}]'.format(self.target_page))
+        else:
+            self.logger = logging.getLogger('QualityFixDevice')

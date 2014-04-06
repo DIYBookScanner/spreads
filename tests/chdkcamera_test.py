@@ -43,14 +43,14 @@ def camera(camera_nomock):
 
 
 @pytest.fixture
-@mock.patch('spreadsplug.dev.chdkcamera.CanonA2200CameraDevice._execute_lua')
+@mock.patch('spreadsplug.dev.chdkcamera.A2200._execute_lua')
 @mock.patch('spreadsplug.dev.chdkcamera.usb')
 def a2200(usb, lua, config):
     usbdev = mock.Mock()
     usbdev.bus, usbdev.address = 1, 2
     lua.return_value = {'build_revision': 3000}
     usb.util.get_string.return_value = b'12345678\x00\x00\x00'
-    return chdkcamera.CanonA2200CameraDevice(config, usbdev)
+    return chdkcamera.A2200(config, usbdev)
 
 
 def test_configuration_template():
@@ -294,7 +294,7 @@ def test_set_focus(sleep, camera):
     assert camera._execute_lua.call_count > 1
 
 
-@mock.patch('spreadsplug.dev.chdkcamera.CanonA2200CameraDevice._execute_lua')
+@mock.patch('spreadsplug.dev.chdkcamera.A2200._execute_lua')
 @mock.patch('spreadsplug.dev.chdkcamera.usb')
 def test_a2200_yield_devices(usb, lua, config):
     match_cfg = mock.Mock()
@@ -317,7 +317,7 @@ def test_a2200_yield_devices(usb, lua, config):
     usb.util.get_string.side_effect = (b'12345678\x00\x00\x00',
                                        b'87654321\x00\x00\x00')
     devs = list(chdkcamera.CHDKCameraDevice.yield_devices(config))
-    assert not any(not isinstance(dev, chdkcamera.CanonA2200CameraDevice)
+    assert not any(not isinstance(dev, chdkcamera.A2200)
                    for dev in devs)
     assert len(devs) == 2
     assert devs[0]._serial_number == '12345678'
