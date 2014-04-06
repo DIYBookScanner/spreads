@@ -33,8 +33,8 @@ from spreads.util import abstractclassmethod, DeviceException
 
 
 logger = logging.getLogger("spreads.plugin")
-pluginmanager = None
 devices = None
+extensions = None
 
 
 class ExtensionException(Exception):
@@ -340,10 +340,14 @@ def available_plugins():
 
 
 def get_plugins(*names):
-    logger.debug("Creating plugin manager")
-    extensions = OrderedDict()
+    global extensions
+    if extensions is None:
+        extensions = OrderedDict()
     for name in names:
+        if name in extensions:
+            continue
         try:
+            logger.debug("Looking for extension \"{0}\"".format(name))
             ext = next(pkg_resources.iter_entry_points('spreadsplug.hooks',
                                                        name=name))
         except StopIteration:
