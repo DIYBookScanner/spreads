@@ -78,7 +78,7 @@ def get_plugin_templates():
     if app.config['mode'] == 'scanner':
         templates = {section: config.templates[section]
                      for section in config.templates
-                     if section in scanner_exts or section == 'driver'}
+                     if section in scanner_exts or section == 'device'}
     elif app.config['mode'] == 'processor':
         templates = {section: config.templates[section]
                      for section in config.templates
