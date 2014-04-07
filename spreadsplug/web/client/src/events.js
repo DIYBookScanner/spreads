@@ -20,7 +20,7 @@
 
   function longPoll() {
     jQuery.ajax({
-      url: "/poll",
+      url: "/api/poll",
       success: function(data){
         _.each(data, emitEvent);
       },

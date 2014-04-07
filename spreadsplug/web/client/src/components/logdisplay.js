@@ -64,12 +64,14 @@
           <row>
             <column size="6">
               <a className="action-button fi-magnifying-glass"
-                  href={"https://github.com/DIYBookScanner/spreads/search?q=" +
-                        exception + "&type=Issues"}
+                 data-bypass={true}
+                 href={"https://github.com/DIYBookScanner/spreads/search?q=" +
+                       exception + "&type=Issues"}
                   target="_blank"> Search for open issues</a>
             </column>
             <column size="6">
               <a className="action-button fi-social-github"
+                 data-bypass={true}
                   href={"https://github.com/DIYBookScanner/spreads/issues/new" +
                         "?title=" + encodeURIComponent(exception) +
                         "&body=" + encodeURIComponent(bugreportTemplate) }
@@ -78,7 +80,7 @@
           </row>
           <row>
             <column size="6" offset="6">
-              <a href="http://github.com/join" target="_blank">Don't have an account?</a>
+              <a data-bypass={true} href="http://github.com/join" target="_blank">Don't have an account?</a>
             </column>
           </row>
         </modal>
@@ -139,7 +141,7 @@
      */
     loadMessages: function() {
       jQuery.ajax({
-        url: "/log",
+        url: "/api/log",
         data: {
           'level': this.state.loglevel,
           'start': this.state.msgStart,
@@ -242,7 +244,7 @@
               </select>
             </column>
             <column size="2">
-              <a className="action-button tiny fi-download" href={"/log?level=debug&count=100"} download="spreadslog.json"> Download log</a>
+              <a className="action-button tiny fi-download" data-bypass={true} href={"/log?level=debug&count=100"} download="spreadslog.json"> Download log</a>
             </column>
           </row>
           <row>

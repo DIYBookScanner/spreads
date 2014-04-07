@@ -13,7 +13,7 @@ from spreads.config import OptionTemplate
 from spreads.cli import add_argument_from_template
 from spreads.workflow import Workflow
 
-app = Flask('spreadsplug.web', static_url_path='', static_folder='./client',
+app = Flask('spreadsplug.web', static_url_path='/static', static_folder='./client',
             template_folder='./client')
 task_queue = None
 import web

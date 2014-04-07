@@ -102,21 +102,21 @@ def create_workflow(client, num_captures='random'):
     workflow = {
         'name': 'test{0}'.format(random.randint(0, 8192)),
     }
-    data = json.loads(client.post('/workflow',
+    data = json.loads(client.post('/api/workflow',
                       data=json.dumps(workflow)).data)
     if num_captures:
-        client.post('/workflow/{0}/prepare_capture'.format(data['id']))
+        client.post('/api/workflow/{0}/prepare_capture'.format(data['id']))
         for _ in xrange(random.randint(1, 4)
                         if num_captures == 'random' else num_captures):
-            client.post('/workflow/{0}/capture'.format(data['id']))
-        client.post('/workflow/{0}/finish_capture'.format(data['id']))
+            client.post('/api/workflow/{0}/capture'.format(data['id']))
+        client.post('/api/workflow/{0}/finish_capture'.format(data['id']))
     return data['id']
 
 
 def test_index(client):
     rv = client.get('/')
     assert "<title>spreads</title>" in rv.data
-    assert "<script src=\"spreads.min.js\"></script>" in rv.data
+    assert "<script src=\"/static/spreads.min.js\"></script>" in rv.data
 
     cfg = json.loads(re.findall(r"window.config = ({.*});", rv.data)[0])
     assert cfg['plugins'] == ['test_output', 'test_process', 'test_process2']
@@ -130,9 +130,9 @@ def test_index(client):
 
 
 def test_create_workflow(client, jsonworkflow):
-    data = json.loads(client.post('/workflow', data=jsonworkflow).data)
+    data = json.loads(client.post('/api/workflow', data=jsonworkflow).data)
     workflow_id = data['id']
-    data = json.loads(client.get('/workflow/{0}'.format(workflow_id)).data)
+    data = json.loads(client.get('/api/workflow/{0}'.format(workflow_id)).data)
     assert data['name'] == 'foobar'
     assert data['id'] == 1
 
@@ -140,7 +140,7 @@ def test_create_workflow(client, jsonworkflow):
 def test_list_workflows(client):
     for _ in xrange(5):
         create_workflow(client)
-    data = json.loads(client.get('/workflow').data)
+    data = json.loads(client.get('/api/workflow').data)
     assert isinstance(data, list)
     assert len(data) == 5
     assert 'config' in data[0]
@@ -148,31 +148,31 @@ def test_list_workflows(client):
 
 def test_get_workflow(client):
     wfid = create_workflow(client)
-    data = json.loads(client.get('/workflow/{0}'.format(wfid)).data)
+    data = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)
     assert 'test_output' in data['config']['plugins']
     assert data['step'] == 'capture'
 
 
 def test_update_workflow(client):
     wfid = create_workflow(client)
-    workflow = json.loads(client.get('/workflow/{0}'.format(wfid)).data)
+    workflow = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)
     workflow['config']['foo'] = 'bar'
     data = json.loads(
-        client.put('/workflow/{0}'.format(wfid), data=json.dumps(workflow))
+        client.put('/api/workflow/{0}'.format(wfid), data=json.dumps(workflow))
         .data)
     assert data['config']['foo'] == 'bar'
 
 
 def test_delete_workflow(client):
     wfid = create_workflow(client)
-    client.delete('/workflow/{0}'.format(wfid))
-    data = json.loads(client.get('/workflow').data)
+    client.delete('/api/workflow/{0}'.format(wfid))
+    data = json.loads(client.get('/api/workflow').data)
     assert len(data) == 0
 
 
 def test_poll(client):
     pool = ThreadPool(processes=1)
-    asyn_result = pool.apply_async(client.get, ('/poll', ))
+    asyn_result = pool.apply_async(client.get, ('/api/poll', ))
     time.sleep(.1)
     Workflow.on_removed.send(None, id=1)
     rv = asyn_result.get()
@@ -184,7 +184,7 @@ def test_poll(client):
 
 def test_download_workflow(client):
     wfid = create_workflow(client, 10)
-    resp = client.get('/workflow/{0}/download'.format(wfid),
+    resp = client.get('/api/workflow/{0}/download'.format(wfid),
                       follow_redirects=True)
     zfile = zipfile.ZipFile(StringIO.StringIO(resp.data))
     assert len([x for x in zfile.namelist()
@@ -195,7 +195,7 @@ def test_transfer_workflow(client, mock_dbus, tmpdir):
     wfid = create_workflow(client, 10)
     with mock.patch('spreadsplug.web.task_queue') as mock_tq:
         mock_tq.task.return_value = lambda x: x
-        client.post('/workflow/{0}/transfer'.format(wfid))
+        client.post('/api/workflow/{0}/transfer'.format(wfid))
     assert len([x for x in tmpdir.visit('stick/*/raw/*.jpg')]) == 20
 
 
@@ -206,55 +206,23 @@ def test_submit_workflow(app, tmpdir):
     wfid = create_workflow(client)
     with mock.patch('spreadsplug.web.web.requests.post') as post:
         post.return_value.json = {'id': 1}
-        client.post('/workflow/{0}/submit'.format(wfid))
-    wfname = json.loads(client.get('/workflow/{0}'.format(wfid)).data)['name']
+        client.post('/api/workflow/{0}/submit'.format(wfid))
+    wfname = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)['name']
     for img in tmpdir.join(wfname, 'raw').listdir():
-        post.assert_any_call('http://127.0.0.1:5000/workflow/{0}/image'
+        post.assert_any_call('http://127.0.0.1:5000/api/workflow/{0}/image'
                              .format(wfid),
                              files={'file': {
                                  img.basename: img.open('rb').read()}})
-    post.assert_any_call('http://127.0.0.1:5000/queue',
-                         data=json.dumps({'id': wfid}))
-
-
-def test_add_to_queue(client, tmpdir, worker):
-    wfid = create_workflow(client)
-    rv = client.post('/queue', data=json.dumps({'id': wfid}))
-    assert json.loads(rv.data)['queue_position'] == 1
-    wfname = json.loads(client.get('/workflow/{0}'.format(wfid)).data)['name']
-    time.sleep(1)
-    assert tmpdir.join(wfname, 'processed_a.txt').exists()
-    assert tmpdir.join(wfname, 'processed_b.txt').exists()
-    assert tmpdir.join(wfname, 'output.txt').exists()
-    assert len(json.loads(client.get('/queue').data)) == 0
-
-
-def test_list_jobs(client, worker):
-    wfids = [create_workflow(client) for x in xrange(3)]
-    for wfid in wfids:
-        client.post('/queue', data=json.dumps({'id': wfid}))
-    jobs = json.loads(client.get('/queue').data)
-    assert len(jobs) == 3
-
-
-def test_remove_from_queue(client):
-    wfids = [create_workflow(client) for x in xrange(3)]
-    jobids = [json.loads(client.post('/queue', data=json.dumps({'id': wfid}))
-                         .data)['queue_position']
-              for wfid in wfids]
-    client.delete('/queue/{0}'.format(jobids[0]))
-    jobs = json.loads(client.get('/queue').data)
-    assert len(jobs) == 2
 
 
 def test_upload_workflow_image(client, tmpdir):
     wfid = create_workflow(client, num_captures=None)
-    client.post('/workflow/{0}/image'.format(wfid),
+    client.post('/api/workflow/{0}/image'.format(wfid),
                 data={'file': ('./tests/data/even.jpg', '000.jpg')})
-    wfdata = json.loads(client.get('/workflow/{0}'.format(wfid)).data)
+    wfdata = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)
     assert len(wfdata['images']) == 1
     assert tmpdir.join(wfdata['name'], 'raw', '000.jpg').exists()
-    resp = client.post('/workflow/{0}/image'.format(wfid),
+    resp = client.post('/api/workflow/{0}/image'.format(wfid),
                        data={'file': ('./tests/data/even.jpg', '000.png')})
     assert resp.status_code == 500
 
@@ -263,28 +231,28 @@ def test_get_workflow_image(client):
     wfid = create_workflow(client)
     with open(os.path.abspath('./tests/data/even.jpg'), 'rb') as fp:
         orig = fp.read()
-    fromapi = client.get('/workflow/{0}/image/0'.format(wfid)).data
+    fromapi = client.get('/api/workflow/{0}/image/0'.format(wfid)).data
     assert orig == fromapi
 
 
 def test_get_workflow_image_scaled(client):
     wfid = create_workflow(client)
     img = jpegtran.JPEGImage(blob=client.get(
-        '/workflow/{0}/image/0?width=300'.format(wfid)).data)
+        '/api/workflow/{0}/image/0?width=300'.format(wfid)).data)
     assert img.width == 300
 
 
 def test_get_workflow_image_thumb(client):
     # TODO: Use test images that actually have an EXIF thumbnail...
     wfid = create_workflow(client)
-    rv = client.get('/workflow/{0}/image/1/thumb'.format(wfid))
+    rv = client.get('/api/workflow/{0}/image/1/thumb'.format(wfid))
     assert rv.status_code == 200
     assert jpegtran.JPEGImage(blob=rv.data).width
 
 
 def test_prepare_capture(client):
     wfid = create_workflow(client, num_captures=None)
-    rv = client.post('/workflow/{0}/prepare_capture'.format(wfid))
+    rv = client.post('/api/workflow/{0}/prepare_capture'.format(wfid))
     assert rv.status_code == 200
     # TODO: Verify workflow was prepared, verify right data
     #       was returned
@@ -292,18 +260,18 @@ def test_prepare_capture(client):
 
 def test_prepare_capture_when_other_active(client):
     wfid = create_workflow(client, num_captures=None)
-    client.post('/workflow/{0}/prepare_capture'.format(wfid))
-    client.post('/workflow/{0}/capture'.format(wfid))
+    client.post('/api/workflow/{0}/prepare_capture'.format(wfid))
+    client.post('/api/workflow/{0}/capture'.format(wfid))
     wfid = create_workflow(client, num_captures=None)
-    assert (client.post('/workflow/{0}/prepare_capture'.format(wfid))
+    assert (client.post('/api/workflow/{0}/prepare_capture'.format(wfid))
             .status_code) == 200
 
 
 def test_capture(client):
     wfid = create_workflow(client, num_captures=None)
-    assert (client.post('/workflow/{0}/prepare_capture'.format(wfid))
+    assert (client.post('/api/workflow/{0}/prepare_capture'.format(wfid))
             .status_code) == 200
-    assert (client.post('/workflow/{0}/capture'.format(wfid))
+    assert (client.post('/api/workflow/{0}/capture'.format(wfid))
             .status_code) == 200
     # TODO: Verify it was triggered on the workflow, verify
     #       the right data was returned
@@ -311,24 +279,24 @@ def test_capture(client):
 
 def test_finish_capture(client):
     wfid = create_workflow(client, num_captures=None)
-    assert (client.post('/workflow/{0}/prepare_capture'.format(wfid))
+    assert (client.post('/api/workflow/{0}/prepare_capture'.format(wfid))
             .status_code) == 200
-    assert (client.post('/workflow/{0}/capture'.format(wfid))
+    assert (client.post('/api/workflow/{0}/capture'.format(wfid))
             .status_code) == 200
-    assert (client.post('/workflow/{0}/finish_capture'.format(wfid))
+    assert (client.post('/api/workflow/{0}/finish_capture'.format(wfid))
             .status_code) == 200
 
 
 def test_shutdown(client):
     with mock.patch('spreadsplug.web.web.subprocess.call') as sp:
-        client.post('/system/shutdown')
+        client.post('/api/system/shutdown')
     sp.assert_called_once_with(['/usr/bin/sudo',
                                 '/sbin/shutdown', '-h', 'now'])
 
 
 def test_get_logs(client):
     create_workflow(client, num_captures=1)
-    records = json.loads(client.get('/log',
+    records = json.loads(client.get('/api/log',
                                     query_string={'start': 2, 'count': 5,
                                                   'level': 'debug'}).data)
     assert len(records['messages']) == 5

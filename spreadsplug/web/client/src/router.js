@@ -37,7 +37,7 @@
       "workflow/:id/edit":      "editWorkflow",
       "workflow/:id/capture":   "startCapture",
       "preferences":            "editPreferences",
-      "log":                    "displayLog"
+      "logging":                "displayLog"
     },
     /**
      * Renders `SpreadsApp` component into `content` container and assigns

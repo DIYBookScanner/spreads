@@ -43,7 +43,7 @@
      */
     submit: function(callback) {
       console.debug("Submitting workflow " + this.id + " for postprocessing");
-      jQuery.post('/workflow/' + this.id + '/submit')
+      jQuery.post('/api/workflow/' + this.id + '/submit')
         .fail(function() {
           console.error("Could not submit workflow " + this.id);
         }).complete(callback);
@@ -56,7 +56,7 @@
      */
     transfer: function(callback) {
       console.debug("Initiating transfer for workflow " + this.id + "");
-      jQuery.post('/workflow/' + this.id + '/transfer')
+      jQuery.post('/api/workflow/' + this.id + '/transfer')
         .fail(function() {
           console.error("Could not transfer workflow " + this.id);
         }).complete(callback);
@@ -69,7 +69,7 @@
      */
     prepareCapture: function(callback, reset) {
       jQuery.post(
-        '/workflow/' + this.id + '/prepare_capture' + (reset ? '?reset=true' : ''),
+        '/api/workflow/' + this.id + '/prepare_capture' + (reset ? '?reset=true' : ''),
         function() {
           console.debug("Preparation successful");
         }.bind(this)).fail(function() {
@@ -85,7 +85,7 @@
      */
     triggerCapture: function(retake, callback) {
       jQuery.post(
-        '/workflow/' + this.id + "/capture" + (retake ? '?retake=true' : ''),
+        '/api/workflow/' + this.id + "/capture" + (retake ? '?retake=true' : ''),
         function(data) {
           console.debug("Capture succeeded");
           this.addImages(data.images);
@@ -107,7 +107,7 @@
      *                                   completed.
      */
     finishCapture: function(callback) {
-      jQuery.post('/workflow/' + this.id + "/finish_capture", function() {
+      jQuery.post('/api/workflow/' + this.id + "/finish_capture", function() {
         console.debug("Capture successfully finished");
       }).fail(function() {
         console.error("Capture could not be finished.");
@@ -179,7 +179,7 @@
 
   module.exports = Backbone.Collection.extend({
     model: Workflow,
-    url: '/workflow',
+    url: '/api/workflow',
     connectEvents: function(eventDispatcher) {
       eventDispatcher.on('workflow:created', function(workflow) {
         if (!this.contains(workflow)) {

@@ -109,7 +109,7 @@
     },
     render: function() {
       var workflow = this.props.workflow,
-          workflowUrl = '#/workflow/' + workflow.get('id');
+          workflowUrl = '/workflow/' + workflow.get('id');
       return (
         <row>
           {/* Display waiting for download overlay? */}
@@ -153,9 +153,9 @@
             </row>
             <row>
               <ul className="button-group">
-                <li><a href={'/#/workflow/' + workflow.id + '/edit'} className="action-button fi-pencil"></a></li>
+                <li><a href={'/workflow/' + workflow.id + '/edit'} className="action-button fi-pencil"></a></li>
                 <li><a onClick={this.handleRemove} className="action-button fi-trash"></a></li>
-                <li><a onClick={this.waitForDownload} href={'/workflow/' + workflow.id + '/download'} className="action-button fi-download"></a></li>
+                <li><a data-bypass={true} onClick={this.waitForDownload} href={'/api/workflow/' + workflow.id + '/download'} className="action-button fi-download"></a></li>
                 {window.config.web.mode !== 'postprocessor' &&
                   <li><a onClick={this.handleCapture} className="action-button fi-camera"></a></li>}
                 {window.config.web.standalone_device &&

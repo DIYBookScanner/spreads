@@ -106,7 +106,7 @@ def get_plugin_templates():
     return rv
 
 
-@app.route('/log')
+@app.route('/api/log')
 def get_logs():
     start = int(request.args.get('start', '0'))
     count = int(request.args.get('count', '50'))
@@ -129,7 +129,7 @@ def get_logs():
 # ================== #
 #  Workflow-related  #
 # ================== #
-@app.route('/workflow', methods=['POST'])
+@app.route('/api/workflow', methods=['POST'])
 def create_workflow():
     """ Create a new workflow.
 
@@ -160,7 +160,7 @@ def create_workflow():
                          200, {'Content-Type': 'application/json'})
 
 
-@app.route('/workflow', methods=['GET'])
+@app.route('/api/workflow', methods=['GET'])
 def list_workflows():
     """ Return a list of all workflows. """
     workflows = persistence.get_all_workflows()
@@ -168,14 +168,14 @@ def list_workflows():
                          200, {'Content-Type': 'application/json'})
 
 
-@app.route('/workflow/<workflow:workflow>', methods=['GET'])
+@app.route('/api/workflow/<workflow:workflow>', methods=['GET'])
 def get_workflow(workflow):
     """ Return a single workflow. """
     return make_response(json.dumps(workflow),
                          200, {'Content-Type': 'application/json'})
 
 
-@app.route('/workflow/<workflow:workflow>', methods=['PUT'])
+@app.route('/api/workflow/<workflow:workflow>', methods=['PUT'])
 def update_workflow(workflow):
     """ Update a single workflow.
 
@@ -202,7 +202,7 @@ def update_workflow(workflow):
                          200, {'Content-Type': 'application/json'})
 
 
-@app.route('/workflow/<workflow:workflow>', methods=['DELETE'])
+@app.route('/api/workflow/<workflow:workflow>', methods=['DELETE'])
 def delete_workflow(workflow):
     """ Delete a single workflow from database and disk. """
     # Remove directory
@@ -216,7 +216,7 @@ def delete_workflow(workflow):
     return jsonify({})
 
 
-@app.route('/events', methods=['GET'])
+@app.route('/api/events', methods=['GET'])
 def get_events():
     """ Get a list of all events that were emitted on the server.
 
@@ -239,7 +239,7 @@ def get_events():
         200, {'Content-Type': 'application/json'})
 
 
-@app.route('/poll', methods=['GET'])
+@app.route('/api/poll', methods=['GET'])
 def poll_for_events():
     """ Wait for events to be emitted on the server.
 
@@ -274,9 +274,9 @@ def poll_for_events():
     abort(408)  # Request Timeout
 
 
-@app.route('/workflow/<workflow:workflow>/download', methods=['GET'],
+@app.route('/api/workflow/<workflow:workflow>/download', methods=['GET'],
            defaults={'fname': None})
-@app.route('/workflow/<workflow:workflow>/download/<fname>',
+@app.route('/api/workflow/<workflow:workflow>/download/<fname>',
            methods=['GET'])
 def download_workflow(workflow, fname):
     """ Return a ZIP archive of the current workflow.
@@ -310,7 +310,7 @@ def download_workflow(workflow, fname):
     return response
 
 
-@app.route('/workflow/<workflow:workflow>/transfer', methods=['POST'])
+@app.route('/api/workflow/<workflow:workflow>/transfer', methods=['POST'])
 def transfer_workflow(workflow):
     """ Transfer workflow to an attached USB storage device.
 
@@ -327,7 +327,7 @@ def transfer_workflow(workflow):
     return 'OK'
 
 
-@app.route('/workflow/<workflow:workflow>/submit', methods=['POST'])
+@app.route('/api/workflow/<workflow:workflow>/submit', methods=['POST'])
 def submit_workflow(workflow):
     """ Submit the requested workflow to the postprocessing server.
 
@@ -343,7 +343,7 @@ def submit_workflow(workflow):
                      "'postprocessing_server' value in your configuration!")
         abort(500)
     logger.debug("Creating new workflow on postprocesing server")
-    resp = requests.post(server+'/workflow', data=json.dumps(
+    resp = requests.post(server+'/api/workflow', data=json.dumps(
         {'name': workflow.path.stem,
          'step': 'capture',
          'step_done': True}))
@@ -355,7 +355,7 @@ def submit_workflow(workflow):
     for imgpath in workflow.images:
         logger.debug("Uploading image {0} to postprocessing server"
                      .format(imgpath))
-        resp = requests.post("{0}/workflow/{1}/image"
+        resp = requests.post("{0}/api/workflow/{1}/image"
                              .format(server, remote_id),
                              files={'file': {
                                  imgpath.name: imgpath.open('rb').read()}}
@@ -404,7 +404,7 @@ def remove_from_queue(pos_idx):
 # =============== #
 #  Image-related  #
 # =============== #
-@app.route('/workflow/<workflow:workflow>/image', methods=['POST'])
+@app.route('/api/workflow/<workflow:workflow>/image', methods=['POST'])
 def upload_workflow_image(workflow):
     """ Obtain an image for the requested workflow.
 
@@ -425,7 +425,7 @@ def upload_workflow_image(workflow):
         return "OK"
 
 
-@app.route('/workflow/<workflow:workflow>/image/<int:img_num>',
+@app.route('/api/workflow/<workflow:workflow>/image/<int:img_num>',
            methods=['GET'])
 def get_workflow_image(workflow, img_num):
     """ Return image from requested workflow. """
@@ -441,7 +441,7 @@ def get_workflow_image(workflow, img_num):
         return send_file(unicode(img_path))
 
 
-@app.route('/workflow/<workflow:workflow>/image/<int:img_num>/thumb',
+@app.route('/api/workflow/<workflow:workflow>/image/<int:img_num>/thumb',
            methods=['GET'])
 def get_workflow_image_thumb(workflow, img_num):
     """ Return thumbnail for image from requested workflow. """
@@ -462,7 +462,7 @@ def get_workflow_image_thumb(workflow, img_num):
 # ================= #
 #  Capture-related  #
 # ================= #
-@app.route('/workflow/<workflow:workflow>/prepare_capture', methods=['POST'])
+@app.route('/api/workflow/<workflow:workflow>/prepare_capture', methods=['POST'])
 def prepare_capture(workflow):
     """ Prepare capture for the requested workflow.
 
@@ -481,7 +481,7 @@ def prepare_capture(workflow):
     return 'OK'
 
 
-@app.route('/workflow/<workflow:workflow>/capture', methods=['POST'])
+@app.route('/api/workflow/<workflow:workflow>/capture', methods=['POST'])
 def trigger_capture(workflow):
     """ Trigger a capture on the requested workflow.
 
@@ -507,7 +507,7 @@ def trigger_capture(workflow):
     })
 
 
-@app.route('/workflow/<workflow:workflow>/finish_capture', methods=['POST'])
+@app.route('/api/workflow/<workflow:workflow>/finish_capture', methods=['POST'])
 def finish_capture(workflow):
     """ Wrap up capture process on the requested workflow. """
     if app.config['mode'] not in ('scanner', 'full'):
@@ -519,7 +519,7 @@ def finish_capture(workflow):
 # ================== #
 #   System-related   #
 # ================== #
-@app.route('/system/shutdown', methods=['POST'])
+@app.route('/api/system/shutdown', methods=['POST'])
 def shutdown():
     if not app.config['standalone']:
         abort(404)
@@ -528,3 +528,8 @@ def shutdown():
     logger.info("Shutting device down")
     subprocess.call("/usr/bin/sudo /sbin/shutdown -h now".split())
     return ''
+
+
+@app.route('/<path:path>')
+def redirect_pushstate(path):
+    return redirect("/#{0}".format(path))

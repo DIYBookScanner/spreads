@@ -107,7 +107,7 @@ class WorkflowConverter(BaseConverter):
 
 def get_image_url(workflow, img_path):
     img_num = int(img_path.stem)
-    return "/workflow/{0}/image/{1}".format(workflow.id, img_num)
+    return "/api/workflow/{0}/image/{1}".format(workflow.id, img_num)
 
 
 def scale_image(img_name, width=None, height=None):

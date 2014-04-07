@@ -27,7 +27,7 @@
       // TODO: Make UI inactive until polling is successful again
       jQuery.ajax({
         type: "POST",
-        url: "/system/shutdown"
+        url: "/api/system/shutdown"
       });
       this.setState({
         shutdownModal: false
@@ -51,12 +51,12 @@
             </confirmModal>}
           <nav className="top-bar" data-topbar>
             <ul className="title-area">
-              <li className="name"> <h1><a href="#/">{this.props.title}</a></h1> </li>
-              <li className="toggle-topbar"><a href="#" className="fi-list"></a></li>
+              <li className="name"> <h1><a href="/" className="fi-home"> {this.props.title}</a></h1> </li>
+              <li className="toggle-topbar"><a className="fi-list"></a></li>
             </ul>
             <section className="top-bar-section">
               <ul className="left">
-                <li><a href="#/workflow/new"><i className="fi-plus"></i> New workflow</a></li>
+                <li><a href="/workflow/new"><i className="fi-plus"></i> New workflow</a></li>
               </ul>
               <ul className="right">
                 <li>
