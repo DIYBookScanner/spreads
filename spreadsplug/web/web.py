@@ -364,41 +364,7 @@ def submit_workflow(workflow):
             logger.error("Error uploading image {0} to postprocessing server:"
                          " \n{1}".format(imgpath, resp.content))
             abort(resp.code)
-    resp = requests.post(server+'/queue', data=json.dumps({'id': remote_id}))
-    if not resp:
-        logger.error("Error putting remote workflow {1} into job queue:: \n{1}"
-                     .format(imgpath, resp.content))
-        abort(resp.code)
     return ''
-
-
-# =============== #
-#  Queue-related  #
-# =============== #
-@app.route('/queue', methods=['POST'])
-def add_to_queue():
-    """ Add a workflow to the processing queue.
-
-    Requires the payload to be a workflow object in JSON notation.
-    Returns the queue id.
-    """
-    data = json.loads(request.data)
-    pos = persistence.append_to_queue(data['id'])
-    return jsonify({'queue_position': pos})
-
-
-@app.route('/queue', methods=['GET'])
-def list_jobs():
-    """ List all items in the processing queue. """
-    return json.dumps({jobid: wf
-                       for jobid, wf in persistence.get_queue().iteritems()})
-
-
-@app.route('/queue/<int:pos_idx>', methods=['DELETE'])
-def remove_from_queue(pos_idx):
-    """ Remove the requested workflow from the processing queue. """
-    persistence.delete_from_queue(pos_idx)
-    return 'OK'
 
 
 # =============== #
