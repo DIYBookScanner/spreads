@@ -4,7 +4,8 @@
   'use strict';
   var React = require('react/addons'),
       jQuery = require('jquery'),
-      confirmModal = require('./foundation.js').confirmModal;
+      confirmModal = require('./foundation.js').confirmModal,
+      fnLabel = require('./foundation.js').label;
 
   /**
    * Global navigation bar for the application
@@ -58,7 +59,12 @@
                 <li><a href="#/workflow/new"><i className="fi-plus"></i> New workflow</a></li>
               </ul>
               <ul className="right">
-                <li><a href="#/log"><i className="fi-list"></i> Show log</a></li>
+                <li>
+                  <a href="/logging">
+                    <i className="fi-list"></i> Show log
+                    {this.props.numUnreadErrors > 0 &&<fnLabel level='alert' round={true}> {this.props.numUnreadErrors}</fnLabel>}
+                  </a>
+                </li>
                 {/* Only show shutdown button if the application is running in standalone mode */}
                 {window.config.web.standalone_device &&
                   (<li><a onClick={this.handleShutdown}><i className="fi-power"></i> Shut down</a></li>)}

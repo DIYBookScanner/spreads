@@ -5,7 +5,7 @@
   var React = require('react/addons'),
       classSet = React.addons.classSet,
       _ = require('underscore'),
-      row, column, fnButton, fnAlert, pagination, modal, confirmModal;
+      row, column, fnButton, fnAlert, pagination, modal, confirmModal, fnLabel;
 
   /**
    * Row component.
@@ -91,10 +91,11 @@
         classes.push('warning');
       }
       return (<div data-alert
-                    className={"alert-box " + classes.join(' ')} >
+                   className={"alert-box " + classes.join(' ')}
+                   onClick={this.handleClose}>
                 {this.props.message}
                 {this.props.children}
-                <a onClick={this.handleClose} className="close">&times;</a>
+                <a className="close">&times;</a>
               </div>
               );
     }
@@ -235,6 +236,23 @@
     }
   });
 
+  fnLabel = React.createClass({
+    displayname: 'fnLabel',
+    render: function() {
+      var classes = {
+        'label': true,
+        'round': this.props.round,
+        'success': this.props.level === 'success',
+        'alert': this.props.level === 'alert',
+        'secondary': this.props.level === 'secondary',
+        'regular': !this.props.level
+      };
+      return (
+        <span className={classSet(classes)}>{this.props.children}</span>
+      );
+    }
+  });
+
   module.exports = {
     row: row,
     column: column,
@@ -242,6 +260,7 @@
     alert: fnAlert,
     pagination: pagination,
     modal: modal,
-    confirmModal: confirmModal
+    confirmModal: confirmModal,
+    label: fnLabel
   };
 }());

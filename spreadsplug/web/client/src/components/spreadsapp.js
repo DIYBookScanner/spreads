@@ -30,8 +30,14 @@
       // TODO: Listen for logging events, filter by level
       window.router.events.on('logrecord', function(record) {
         if (_.contains(["WARNING", "ERROR"], record.level)) {
-          this.setState({messages: this.state.messages.concat([record])});
+          this.setState({
+            messages: this.state.messages.concat([record]).slice(-3),
+            numUnreadErrors: this.state.numUnreadErrors + 1
+          });
         }
+      }, this);
+      window.router.on('route:displayLog', function() {
+        this.setState(this.getInitialState());
       }, this);
     },
     componentWillUnmount: function() {
@@ -39,7 +45,8 @@
     },
     getInitialState: function() {
       return {
-        messages: []
+        messages: [],
+        numUnreadErrors: 0
       };
     },
     /**
@@ -94,7 +101,10 @@
      */
     getCloseMessageCallback: function(message) {
       return function() {
-        this.setState({messages: _.without(this.state.messages, message)});
+        this.setState({
+          messages: _.without(this.state.messages, message),
+          numUnreadErrors: this.state.numUnreadErrors - 1
+        });
       }.bind(this);
     },
     render: function() {
@@ -102,7 +112,7 @@
           viewComponent = this.getViewComponent(this.props.view);
       return (
         <div>
-          <NavigationBar title={navTitle} />
+          <NavigationBar title={navTitle} numUnreadErrors={this.state.numUnreadErrors}/>
           {this.state.messages &&
               this.state.messages.map(function(message) {
                 return (
@@ -110,7 +120,6 @@
                              message={message.message}
                              key={new Date(message.time).getTime()}
                              closeCallback={this.getCloseMessageCallback(message)}>
-                      <a className="right" href='#/log'>(View detailed log)</a>
                     </fnAlert>);
               }, this)}
           {viewComponent}

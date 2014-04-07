@@ -206,6 +206,10 @@
   }
 }
 
+.alert-box {
+  margin-bottom: 0;
+}
+
 /* ======= Animations ======== */
 @include keyframes(bounce) {
   0%, 100% {
