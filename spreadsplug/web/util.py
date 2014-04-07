@@ -1,5 +1,6 @@
 from __future__ import division
 
+import calendar
 import logging
 import time
 import traceback
@@ -49,6 +50,11 @@ class CustomJSONEncoder(JSONEncoder):
             return self._logrecord_to_dict(obj)
         elif isinstance(obj, Event):
             return self._event_to_dict(obj)
+        elif isinstance(obj, datetime):
+            # Return datetime as an epoch timestamp with microsecond-resolution
+            ts = (calendar.timegm(obj.timetuple())*1000
+                  + obj.microsecond)/1000.0
+            return ts
         else:
             return JSONEncoder.default(self, obj)
 
