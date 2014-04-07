@@ -22,7 +22,8 @@
     getInitialState: function() {
       return {
         /** Display deletion confirmation modal? */
-        deleteModal: false
+        deleteModal: false,
+        downloadWaiting: false
       };
     },
     /**
@@ -98,11 +99,23 @@
         }
       }.bind(this));
     },
+    waitForDownload: function() {
+      this.setState({
+        downloadWaiting: true
+      });
+      window.router.events.on('download:prepared', function() {
+        this.setState({downloadWaiting: false});
+      }, this);
+    },
     render: function() {
       var workflow = this.props.workflow,
           workflowUrl = '#/workflow/' + workflow.get('id');
       return (
         <row>
+          {/* Display waiting for download overlay? */}
+          {this.state.downloadWaiting &&
+            <LoadingOverlay message="Download is being prepared" />
+          }
           {/* Display deletion confirmation modal? */}
           {this.state.deleteModal &&
             <confirmModal
@@ -142,7 +155,7 @@
               <ul className="button-group">
                 <li><a href={'/#/workflow/' + workflow.id + '/edit'} className="action-button fi-pencil"></a></li>
                 <li><a onClick={this.handleRemove} className="action-button fi-trash"></a></li>
-                <li><a href={'/workflow/' + workflow.id + '/download'} className="action-button fi-download"></a></li>
+                <li><a onClick={this.waitForDownload} href={'/workflow/' + workflow.id + '/download'} className="action-button fi-download"></a></li>
                 {window.config.web.mode !== 'postprocessor' &&
                   <li><a onClick={this.handleCapture} className="action-button fi-camera"></a></li>}
                 {window.config.web.standalone_device &&

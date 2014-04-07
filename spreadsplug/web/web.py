@@ -30,6 +30,7 @@ signals = blinker.Namespace()
 on_transfer_started = signals.signal('transfer:started')
 on_transfer_progressed = signals.signal('transfer:progressed')
 on_transfer_completed = signals.signal('transfer:completed')
+on_download_prepared = signals.signal('download:prepared')
 
 # Event Queue for polling endpoints
 event_queue = deque(maxlen=2048)
@@ -301,7 +302,11 @@ def download_workflow(workflow, fname):
         logger.debug("Adding {0} to archive as {1}"
                      .format(fpath, extract_path))
         zstream.write(unicode(fpath), extract_path)
+    zstream_copy = copy.deepcopy(zstream)
+    zipsize = sum(len(data) for data in zstream_copy)
+    on_download_prepared.send()
     response = Response(zstream, mimetype='application/zip')
+    response.headers['Content-length'] = int(zipsize)
     return response
 
 
