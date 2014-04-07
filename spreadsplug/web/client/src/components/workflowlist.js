@@ -193,10 +193,28 @@
           </row>
           <div>
             {this.props.workflows.length > 0 ?
-                this.props.workflows.map(function(workflow) {
-                  return <WorkflowItem key={workflow.id} workflow={workflow} />;
-                }):
-            <row><column><h2>No workflows yet!</h2></column></row>}
+              this.props.workflows.map(function(workflow) {
+                return <WorkflowItem key={workflow.id} workflow={workflow} />;
+              }):
+              <row>
+                <column><h2>No workflows yet!</h2>
+                <p>
+                  Once you have scanned a book, you can see it (and all
+                  other books you have scanned so far) and do the following
+                  things with it:
+                  <ul>
+                    <li>Open its detailed view</li>
+                    <li>Edit its configuration</li>
+                    <li>Delete it</li>
+                    <li>Download it</li>
+                    <li>Open its capture view</li>
+                    <li>Transfer it to a removable storage device</li>
+                  </ul>
+                </p>
+                <p>
+                  <a className="button" href="/workflow/new">Create a new workflow</a>
+                </p></column>
+              </row>}
           </div>
         </main>
       );
