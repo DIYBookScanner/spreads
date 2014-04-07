@@ -63,6 +63,7 @@
       var classes = classSet({
         'action-button': true,
         'secondary': this.props.secondary,
+        'complete': this.props.complete,
         'expand': this.props.expand,
         'disabled': this.props.disabled
       });

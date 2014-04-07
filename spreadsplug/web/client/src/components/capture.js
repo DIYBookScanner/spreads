@@ -227,19 +227,24 @@
           <row>
             <div className="small-12 capture-controls columns">
               <ul>
-                <li>
-                  <fnButton callback={this.handleRetake} secondary='true' size='large'>
+                <li id="retake-capture">
+                  <fnButton callback={this.handleRetake} secondary='true'>
                       <i className="fi-refresh"></i>
                   </fnButton>
                 </li>
                 <li id="trigger-capture">
-                  <fnButton callback={this.handleCapture} size='large'>
+                  <fnButton callback={this.handleCapture}>
                     <i className="fi-camera"></i>
                   </fnButton>
                 </li>
                 <li>
-                  <fnButton callback={this.toggleConfigModal} secondary='true' size='large'>
+                  <fnButton callback={this.toggleConfigModal} secondary='true'>
                     <i className="fi-widget"></i>
+                  </fnButton>
+                </li>
+                <li>
+                  <fnButton callback={this.handleFinish} complete={true}>
+                    <i className="fi-check"></i>
                   </fnButton>
                 </li>
               </ul>

@@ -45,6 +45,8 @@
   }
 
   &.secondary { @include button-style($bg:$secondary-color); }
+
+  &.complete { @include button-style($bg:$success-color); }
 }
 
 .capture-preview {
@@ -75,10 +77,13 @@
   }
   li {
     .action-button {
-      width: 20%;
+      width: 10%;
     }
     display: inline;
     list-style-type: none;
+  }
+  #retake-capture .action-button {
+    width: 20%;
   }
   #trigger-capture .action-button {
     width: 45%;
