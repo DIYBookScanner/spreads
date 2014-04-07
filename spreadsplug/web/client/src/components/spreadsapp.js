@@ -60,7 +60,9 @@
         create:       "spreads: new workflow",
         capture:      "spreads: capture",
         preferences:  "spreads: preferences",
-        view:         "spreads: details"
+        view:         "spreads: workflow details",
+        edit:         "spreads: edit workflow",
+        root:         "spreads: workflow list"
       };
       if (mappings[viewName] !== undefined) {
         return mappings[viewName];
@@ -110,6 +112,7 @@
     render: function() {
       var navTitle = this.getNavTitle(this.props.view),
           viewComponent = this.getViewComponent(this.props.view);
+      document.title = navTitle;
       return (
         <div>
           <NavigationBar title={navTitle} numUnreadErrors={this.state.numUnreadErrors}/>
