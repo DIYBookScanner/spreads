@@ -51,6 +51,10 @@
     componentWillMount: function() {
       this.toggleWaiting("Please wait while the devices  are being prepared " +
                           "for capture");
+      this.props.workflow.on('capture-triggered', function(){
+        this.toggleWaiting("Please wait for the capture to finish...");
+      }, this);
+      this.props.workflow.on('capture-succeeded', this.toggleWaiting);
       this.props.workflow.prepareCapture(this.toggleWaiting);
     },
     /**
@@ -65,9 +69,7 @@
      */
     handleCapture: function() {
       console.log("Triggering capture");
-      this.toggleWaiting("Please wait for the capture to finish...");
       this.props.workflow.triggerCapture(false, function() {
-        this.toggleWaiting();
         if (this.state.refreshReview) {
           this.setState({refreshReview: false});
         }
@@ -79,9 +81,7 @@
      */
     handleRetake: function() {
       console.log("Re-taking last shot");
-      this.toggleWaiting("Please wait for the capture to finish...");
       this.props.workflow.triggerCapture(true, function() {
-        this.toggleWaiting();
         if (!this.state.refreshReview) {
           this.setState({refreshReview: true});
         }

@@ -139,7 +139,15 @@ class Workflow(object):
     :keyword int workflow_id: the ID of the :class:`Workflow` that was removed
     """)
 
-    on_capture_executed = signals.signal('workflow:captured', doc="""\
+    on_capture_triggered = signals.signal('workflow:capture-triggered',
+                                          doc="""\
+    Sent by a :class:`Workflow` after a capture was triggered.
+
+    :argument :class:`Workflow`:  the Workflow a capture was triggered on
+    """)
+
+    on_capture_succeeded = signals.signal('workflow:capture-succeeded',
+                                          doc="""\
     Sent by a :class:`Workflow` after a capture was successfully executed.
 
     :argument :class:`Workflow`:  the Workflow a capture was executed on
@@ -229,6 +237,7 @@ class Workflow(object):
     def capture(self, retake=False):
         with self._capture_lock:
             self._logger.info("Triggering capture.")
+            self.on_capture_triggered.send(self)
             parallel_capture = (
                 'parallel_capture' in self.config['device'].keys()
                 and self.config['device']['parallel_capture'].get()
@@ -256,8 +265,8 @@ class Workflow(object):
             if not retake:
                 self.pages_shot += len(self.devices)
 
-            self.on_capture_executed.send(self,
-                                          images=self.images[-num_devices:])
+            self.on_capture_succeeded.send(self,
+                                           images=self.images[-num_devices:])
 
     def finish_capture(self):
         self.step_done = True

@@ -2,6 +2,7 @@ import itertools
 import os.path
 import shutil
 import time
+from itertools import chain
 from random import randint
 
 import mock
@@ -11,6 +12,8 @@ from spreads.plugin import SpreadsPlugin
 from spreads.util import EventHandler
 
 import spreads.plugin as plugin
+import spreads.util as util
+import spreadsplug.web.web as web
 from spreads.config import Configuration, OptionTemplate
 
 class TestPluginProcess(plugin.HookPlugin,
@@ -182,8 +185,7 @@ def mock_findinpath():
 @pytest.yield_fixture(autouse=True)
 def fix_blinker():
     yield
-    for signal in (Workflow.on_created, Workflow.on_removed,
-                   Workflow.on_modified, Workflow.on_step_progressed,
-                   Workflow.on_capture_executed, SpreadsPlugin.on_progressed,
-                   EventHandler.on_log_emit):
+    signals = chain(*(x.signals.values()
+                      for x in (Workflow, util.EventHandler, web)))
+    for signal in signals:
         signal._clear_state()

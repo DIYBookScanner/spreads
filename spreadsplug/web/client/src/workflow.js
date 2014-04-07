@@ -192,10 +192,17 @@
           this.remove(workflow);
         }
       }, this);
-      eventDispatcher.on('workflow:captured', function(data) {
+      eventDispatcher.on('workflow:capture-triggered', function(data) {
+        var workflow = this.get(data.id);
+        if (workflow) {
+          workflow.trigger('capture-triggered');
+        }
+      }, this);
+      eventDispatcher.on('workflow:capture-succeeded', function(data) {
         var workflow = this.get(data.id);
         if (workflow) {
           workflow.addImages(data.images)
+          workflow.trigger('capture-succeeded');
         }
       }, this);
     }
