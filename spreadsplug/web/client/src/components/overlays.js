@@ -34,9 +34,11 @@
   LightBox = React.createClass({
     render: function() {
       return (
-        <a onClick={this.props.onClose} className="overlay lightbox">
-          <img src={this.props.src} />
-        </a>
+        <div onClick={this.props.onClose} className="overlay lightbox">
+          <a href={this.props.src} target='_blank'>
+            <img src={this.props.src} />
+          </a>
+        </div>
       );
     }
   });
