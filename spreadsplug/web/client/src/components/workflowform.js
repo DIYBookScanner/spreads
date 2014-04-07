@@ -81,33 +81,34 @@
     render: function() {
       return (
         <section>
-          <row>
-            <column size='12'>
-              <h2>{this.props.isNew ?
-                    'Create workflow' :
-                    'Edit workflow ' + this.props.workflow.get('name')}
-              </h2>
-            </column>
-          </row>
-          <row>
-            <column size={[12, 9]}>
-              <label>Workflow name</label>
-              <input type="text" placeholder="Workflow name"
-                     valueLink={this.bindTo(this.props.workflow, 'name')}
-              />
-              {this.state.errors.name && <small className="error">{this.state.errors.name}</small>}
-            </column>
-          </row>
-          <PluginConfiguration workflow={this.props.workflow}
-                               errors={this.state.errors} />
-          <row>
-            <column size='12'>
-              <fnButton callback={this.state.submitting ? undefined : this.handleSubmit}
-                        size="small" disabled={this.state.submitting}>
-                <i className="fi-check"/> Submit
-              </fnButton>
-            </column>
-          </row>
+          <form onSubmit={this.handleSubmit}>
+            <row>
+                <column size='12'>
+                <h2>{this.props.isNew ?
+                        'Create workflow' :
+                        'Edit workflow ' + this.props.workflow.get('name')}
+                </h2>
+                </column>
+            </row>
+            <row>
+                <column size={[12, 9]}>
+                <label>Workflow name</label>
+                <input type="text" placeholder="Workflow name"
+                        valueLink={this.bindTo(this.props.workflow, 'name')}
+                />
+                {this.state.errors.name && <small className="error">{this.state.errors.name}</small>}
+                </column>
+            </row>
+            <PluginConfiguration workflow={this.props.workflow}
+                                errors={this.state.errors} />
+            <row>
+                <column size='12'>
+                <fnButton onClick={this.handleSubmit} size="small" disabled={this.state.submitting}>
+                    <i className="fi-check"/> Submit
+                </fnButton>
+                </column>
+            </row>
+          </form>
         </section>
       );
     }

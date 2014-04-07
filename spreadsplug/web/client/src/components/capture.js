@@ -171,13 +171,15 @@
           {this.state.lightboxImage &&
             <lightbox onClose={this.closeLightbox} src={this.state.lightboxImage} />}
           {this.state.displayConfig &&
-            <confirmModal onConfirm={this.saveConfig} onCancel={this.toggleConfigModal}>
-              <PluginWidget plugin="device" template={window.pluginTemplates.device}
-                            bindFunc={function(key) {
-                              return this.bindTo(this.props.workflow,
-                                                  'config.device.' + key);
-                            }.bind(this)} errors={[]}/>
-            </confirmModal>
+            <form onSubmit={this.saveConfig}>
+              <confirmModal onCancel={this.toggleConfigModal}>
+                <PluginWidget plugin="device" template={window.pluginTemplates.device}
+                              bindFunc={function(key) {
+                                return this.bindTo(this.props.workflow,
+                                                    'config.device.' + key);
+                              }.bind(this)} errors={[]}/>
+              </confirmModal>
+            </form>
           }
           {/* Only display review images if there are images on the workflow */}
           {(oddImage && evenImage) &&

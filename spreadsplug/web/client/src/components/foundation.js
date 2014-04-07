@@ -68,9 +68,9 @@
         'disabled': this.props.disabled
       });
       classes += " " + this.props.size;
-      return (<a onClick={this.props.callback} className={classes}>
+      return (<button onClick={this.props.callback} className={classes}>
                 {this.props.children}
-              </a>);
+              </button>);
     }
   });
 
