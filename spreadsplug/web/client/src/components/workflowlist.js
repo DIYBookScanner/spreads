@@ -23,7 +23,10 @@
       return {
         /** Display deletion confirmation modal? */
         deleteModal: false,
-        downloadWaiting: false
+        downloadWaiting: false,
+        transferWaiting: false,
+        transferProgress: 0,
+        transferCurrentFile: undefined
       };
     },
     /**
@@ -124,6 +127,7 @@
               <h1>Remove?</h1>
               <p>Do you really want to permanently remove this workflow and all
                  of its related files?</p>
+              <p><strong>Do not remove workflows that you are currently downloading!</strong></p>
             </confirmModal>}
           {/* Display error modal? */}
           {this.state.errorModal &&
