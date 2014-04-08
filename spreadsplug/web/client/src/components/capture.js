@@ -4,6 +4,8 @@
   'use strict';
 
   var React = require('react/addons'),
+      _ = require('underscore'),
+      Mousetrap = require('mousetrap'),
       foundation = require('./foundation.js'),
       ModelMixin = require('../../lib/backbonemixin.js'),
       LoadingOverlay = require('./overlays.js').Activity,
@@ -55,6 +57,12 @@
         this.toggleWaiting("Please wait for the capture to finish...");
       }, this);
       this.props.workflow.on('capture-succeeded', this.toggleWaiting);
+      _.each(window.config.core.capture_keys, function(key) {
+        if (key === ' ') key = 'space';
+        Mousetrap.bind(key, this.handleCapture);
+      }, this);
+      Mousetrap.bind('r', this.handleRetake);
+      Mousetrap.bind('f', this.handleFinish);
       this.props.workflow.prepareCapture(this.toggleWaiting);
     },
     /**
@@ -62,6 +70,12 @@
      */
     componentWillUnmount: function() {
       console.log("Wrapping up capture process");
+      _.each(window.config.core.capture_key, function(key) {
+        if (key === ' ') key = 'space';
+        Mousetrap.unbind(key);
+      });
+      Mousetrap.unbind('r');
+      Mousetrap.unbind('f');
       this.props.workflow.finishCapture();
     },
     /**
@@ -149,7 +163,12 @@
     render: function() {
       var workflow = this.props.workflow || {},
           randomSuffix = this.state.refreshReview ? '?'+(Math.random()*10e3 | 0) : '',
-          speed, oddImage, evenImage;
+          speed, oddImage, evenImage, captureKeys;
+      captureKeys = [] ;
+      _.each(window.config.core.capture_keys, function(key) {
+        if (key === ' ') captureKeys.push('<spacebar>');
+        else captureKeys.push(key);
+      });
       if (workflow && this.state.captureStart) {
         var elapsed = (new Date().getTime()/1000) - this.state.captureStart,
             shot = workflow.get('images').length - this.state.initialPageCount;
@@ -256,8 +275,17 @@
               </ul>
             </div>
           </row>
-          <row>
-            <column size="1" offset="5">
+          <row className="hide-for-touch">
+            <column size="4" offset="4" className="shortcuts">
+              <strong>Keyboard shortcuts:</strong>
+              <ul>
+                <li>Capture:
+                  {_.map(captureKeys, function(key) {
+                    return (<span>{' '}<kbd>{key.toUpperCase()}</kbd></span>);
+                  })}</li>
+                <li>Retake: <kbd>R</kbd></li>
+                <li>Finish: <kbd>F</kbd></li>
+              </ul>
             </column>
           </row>
         </div>
