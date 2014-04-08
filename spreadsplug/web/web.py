@@ -31,6 +31,7 @@ on_transfer_started = signals.signal('transfer:started')
 on_transfer_progressed = signals.signal('transfer:progressed')
 on_transfer_completed = signals.signal('transfer:completed')
 on_download_prepared = signals.signal('download:prepared')
+on_download_finished = signals.signal('download:finished')
 
 # Event Queue for polling endpoints
 event_queue = deque(maxlen=2048)
@@ -305,7 +306,17 @@ def download_workflow(workflow, fname):
     zstream_copy = copy.deepcopy(zstream)
     zipsize = sum(len(data) for data in zstream_copy)
     on_download_prepared.send()
-    response = Response(zstream, mimetype='application/zip')
+
+    def zstream_wrapper():
+        """ Wrapper around our zstream so we can emit a signal when all data
+        has been streamed to the client.
+        """
+        for data in zstream:
+            yield data
+            time.sleep(.01)
+        on_download_finished.send()
+
+    response = Response(zstream_wrapper(), mimetype='application/zip')
     response.headers['Content-length'] = int(zipsize)
     return response
 

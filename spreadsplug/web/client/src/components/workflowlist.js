@@ -24,6 +24,7 @@
         /** Display deletion confirmation modal? */
         deleteModal: false,
         downloadWaiting: false,
+        downloadInProgress: false,
         transferWaiting: false,
         transferProgress: 0,
         transferCurrentFile: undefined
@@ -102,17 +103,22 @@
         }
       }.bind(this));
     },
-    waitForDownload: function() {
+    handleDownload: function() {
       this.setState({
-        downloadWaiting: true
+        downloadWaiting: true,
+        downloadInProgress: true
       });
       window.router.events.on('download:prepared', function() {
         this.setState({downloadWaiting: false});
       }, this);
+      window.router.events.on('download:finished', function() {
+        this.setState({downloadInProgress: false});
+      }, this);
     },
     render: function() {
       var workflow = this.props.workflow,
-          workflowUrl = '/workflow/' + workflow.get('id');
+          workflowUrl = '/workflow/' + workflow.get('id'),
+          removalBlocked = (this.state.downloadInProgress || this.state.transferWaiting);
       return (
         <row>
           {/* Display waiting for download overlay? */}
@@ -127,7 +133,6 @@
               <h1>Remove?</h1>
               <p>Do you really want to permanently remove this workflow and all
                  of its related files?</p>
-              <p><strong>Do not remove workflows that you are currently downloading!</strong></p>
             </confirmModal>}
           {/* Display error modal? */}
           {this.state.errorModal &&
@@ -158,7 +163,7 @@
             <row>
               <ul className="button-group">
                 <li><a href={'/workflow/' + workflow.id + '/edit'} className="action-button fi-pencil"></a></li>
-                <li><a onClick={this.handleRemove} className="action-button fi-trash"></a></li>
+                <li><a onClick={removalBlocked ? null : this.handleRemove} className={"action-button fi-trash" + (removalBlocked ? " disabled" : "")}></a></li>
                 <li><a data-bypass={true} onClick={this.waitForDownload} href={'/api/workflow/' + workflow.id + '/download'} className="action-button fi-download"></a></li>
                 {window.config.web.mode !== 'postprocessor' &&
                   <li><a onClick={this.handleCapture} className="action-button fi-camera"></a></li>}
