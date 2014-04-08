@@ -156,19 +156,44 @@
           }
           </column>
           <column size={[6, 9]}>
-            <row><h3><a href={workflowUrl}>{workflow.get('name')}</a></h3></row>
+            <row>
+              <h3><a title="View details"
+                  href={workflowUrl}>{workflow.get('name')}</a></h3>
+            </row>
             <row>
               <p>{workflow.has('images') ? workflow.get('images').length : 0} pages</p>
             </row>
             <row>
               <ul className="button-group">
-                <li><a href={'/workflow/' + workflow.id + '/edit'} className="action-button fi-pencil"></a></li>
-                <li><a onClick={removalBlocked ? null : this.handleRemove} className={"action-button fi-trash" + (removalBlocked ? " disabled" : "")}></a></li>
-                <li><a data-bypass={true} onClick={this.waitForDownload} href={'/api/workflow/' + workflow.id + '/download'} className="action-button fi-download"></a></li>
+                <li>
+                  <a title="Edit the workflow"
+                     href={'/workflow/' + workflow.id + '/edit'}
+                     className="action-button fi-pencil"></a>
+                </li>
+                <li>
+                  <a onClick={removalBlocked ? null : this.handleRemove}
+                     title="Remove workflow and all associated files"
+                     className={"action-button fi-trash" + (removalBlocked ? " disabled" : "")}></a>
+                </li>
+                <li>
+                  <a data-bypass={true}
+                     title="Download workflow as a ZIP archive"
+                     onClick={this.handleDownload}
+                     href={'/api/workflow/' + workflow.id + '/download'}
+                     className="action-button fi-download"></a>
+                </li>
                 {window.config.web.mode !== 'postprocessor' &&
-                  <li><a onClick={this.handleCapture} className="action-button fi-camera"></a></li>}
+                  <li>
+                    <a onClick={this.handleCapture}
+                    title="Capture images"
+                    className="action-button fi-camera"></a>
+                  </li>}
                 {window.config.web.standalone_device &&
-                  <li><a onClick={this.handleTransfer} className="action-button fi-usb"></a></li>}
+                  <li>
+                    <a onClick={this.handleTransfer}
+                    title="Transfer workflow directory to a removable storage device"
+                    className="action-button fi-usb"></a>
+                  </li>}
               </ul>
             </row>
           </column>

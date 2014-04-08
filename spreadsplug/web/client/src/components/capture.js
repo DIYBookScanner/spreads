@@ -192,12 +192,12 @@
               {/* Landscape layout */}
               <ul className="show-for-landscape small-block-grid-2 capture-preview">
                 <li>
-                  <a onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
+                  <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
                     <img src={oddImage+"/thumb?"+randomSuffix} />
                   </a>
                 </li>
                 <li>
-                  <a onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
+                  <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
                     <img src={evenImage+"/thumb?"+randomSuffix} />
                   </a>
                 </li>
@@ -205,12 +205,12 @@
               {/* Portrait layout */}
               <ul className="show-for-portrait small-block-grid-1 medium-block-grid-2 capture-preview">
                   <li>
-                    <a onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
+                    <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
                       <img src={oddImage+"/thumb?"+randomSuffix} />
                     </a>
                   </li>
                 <li>
-                  <a onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
+                  <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
                     <img src={evenImage+"/thumb?"+randomSuffix} />
                   </a>
                 </li>
@@ -230,22 +230,26 @@
             <div className="small-12 capture-controls columns">
               <ul>
                 <li id="retake-capture">
-                  <fnButton callback={this.handleRetake} secondary='true'>
+                  <fnButton title="Discard last capture and take a new one"
+                            callback={this.handleRetake} secondary='true'>
                       <i className="fi-refresh"></i>
                   </fnButton>
                 </li>
                 <li id="trigger-capture">
-                  <fnButton callback={this.handleCapture}>
+                  <fnButton title="Trigger capture"
+                            callback={this.handleCapture}>
                     <i className="fi-camera"></i>
                   </fnButton>
                 </li>
                 <li>
-                  <fnButton callback={this.toggleConfigModal} secondary='true'>
+                  <fnButton title="Configure devices"
+                            callback={this.toggleConfigModal} secondary='true'>
                     <i className="fi-widget"></i>
                   </fnButton>
                 </li>
                 <li>
-                  <fnButton callback={this.handleFinish} complete={true}>
+                  <fnButton title="Finish capture and return to workflow list"
+                            callback={this.handleFinish} complete={true}>
                     <i className="fi-check"></i>
                   </fnButton>
                 </li>

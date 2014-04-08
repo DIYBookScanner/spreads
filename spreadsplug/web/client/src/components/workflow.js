@@ -101,7 +101,7 @@
                 {workflow.get('images').slice(thumbStart, thumbStop).map(function(image) {
                     return (
                       <li key={image}>
-                        <a className="th" onClick={
+                        <a className="th" title="Open full resolution image in lightbox" onClick={
                             function(){this.toggleLightbox(image);}.bind(this)}>
                           <img src={image + '/thumb'} />
                         </a>

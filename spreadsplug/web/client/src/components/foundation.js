@@ -68,9 +68,10 @@
         'disabled': this.props.disabled
       });
       classes += " " + this.props.size;
-      return (<button onClick={this.props.callback} className={classes}>
-                {this.props.children}
-              </button>);
+      return (this.transferPropsTo(
+          <button onClick={this.props.callback} className={classes}>
+              {this.props.children}
+          </button>));
     }
   });
 
@@ -238,7 +239,7 @@
   });
 
   fnLabel = React.createClass({
-    displayname: 'fnLabel',
+    displayName: 'fnLabel',
     render: function() {
       var classes = {
         'label': true,

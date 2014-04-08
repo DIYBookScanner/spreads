@@ -34,8 +34,8 @@
   LightBox = React.createClass({
     render: function() {
       return (
-        <div onClick={this.props.onClose} className="overlay lightbox">
-          <a href={this.props.src} target='_blank'>
+        <div title="Close lightbox" onClick={this.props.onClose} className="overlay lightbox">
+          <a data-bypass={true} title="Open full resolution image in new tab" href={this.props.src} target='_blank'>
             <img src={this.props.src} />
           </a>
         </div>

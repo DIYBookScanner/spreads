@@ -51,7 +51,7 @@
             </confirmModal>}
           <nav className="top-bar" data-topbar>
             <ul className="title-area">
-              <li className="name"> <h1><a href="/" className="fi-home"> {this.props.title}</a></h1> </li>
+              <li className="name"> <h1><a href="/" title="Return to workflow list" className="fi-home"> {this.props.title}</a></h1> </li>
               <li className="toggle-topbar"><a className="fi-list"></a></li>
             </ul>
             <section className="top-bar-section">
