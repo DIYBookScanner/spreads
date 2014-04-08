@@ -14,7 +14,10 @@
       row = foundation.row,
       column = foundation.column,
       fnButton = foundation.button,
-      confirmModal = foundation.confirmModal;
+      confirmModal = foundation.confirmModal,
+      placeholderImg;
+
+  placeholderImg = "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4AQMAAABPbGssAAAAA1BMVEWZmZl86KQWAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gQIFjciiRhnwgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAZSURBVEjH7cEBDQAAAMKg909tDwcUAAAPBgnYAAHW6F1SAAAAAElFTkSuQmCC";
 
 
   /**
@@ -200,8 +203,6 @@
               </confirmModal>
             </form>
           }
-          {/* Only display review images if there are images on the workflow */}
-          {(oddImage && evenImage) &&
           <row>
             <column>
               {/* NOTE: We append a random suffix to the thumbnail URL to force
@@ -211,31 +212,39 @@
               {/* Landscape layout */}
               <ul className="show-for-landscape small-block-grid-2 capture-preview">
                 <li>
-                  <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
-                    <img src={oddImage+"/thumb?"+randomSuffix} />
-                  </a>
+                  {oddImage ?
+                    <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
+                      <img src={oddImage+"/thumb?"+randomSuffix} />
+                    </a>:
+                    <img className="placeholder" src={placeholderImg}/>}
                 </li>
                 <li>
+                  {evenImage ?
                   <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
                     <img src={evenImage+"/thumb?"+randomSuffix} />
-                  </a>
+                  </a>:
+                  <img className="placeholder" src={placeholderImg}/>}
                 </li>
               </ul>
               {/* Portrait layout */}
               <ul className="show-for-portrait small-block-grid-1 medium-block-grid-2 capture-preview">
                   <li>
+                  {oddImage ?
                     <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
                       <img src={oddImage+"/thumb?"+randomSuffix} />
-                    </a>
+                    </a>:
+                    <img className="placeholder" src={placeholderImg}/>}
                   </li>
                 <li>
+                  {evenImage ?
                   <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
                     <img src={evenImage+"/thumb?"+randomSuffix} />
-                  </a>
+                  </a>:
+                  <img className="placeholder" src={placeholderImg}/>}
                 </li>
               </ul>
             </column>
-          </row>}
+          </row>
           <row className="capture-info">
             <column size="6">
               <span className="pagecount">{workflow.get('images').length} pages</span>
