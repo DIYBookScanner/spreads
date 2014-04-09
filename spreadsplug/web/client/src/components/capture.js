@@ -195,6 +195,7 @@
           {this.state.displayConfig &&
             <form onSubmit={this.saveConfig}>
               <confirmModal onCancel={this.toggleConfigModal}>
+                <h2>Configure Devices</h2>
                 <PluginWidget plugin="device" template={window.pluginTemplates.device}
                               bindFunc={function(key) {
                                 return this.bindTo(this.props.workflow,
