@@ -33,6 +33,7 @@ import platform
 import blinker
 import psutil
 from colorama import Fore, Back, Style
+from spreads.vendor.pathlib import Path
 
 
 class SpreadsException(Exception):
@@ -171,3 +172,31 @@ class EventHandler(logging.Handler):
 
     def emit(self, record):
         self.on_log_emit.send(record=record)
+
+
+def get_data_dir(create=False):
+    UNIX_DIR_VAR = 'XDG_DATA_DIRS'
+    UNIX_DIR_FALLBACK = '~/.config'
+    WINDOWS_DIR_VAR = 'APPDATA'
+    WINDOWS_DIR_FALLBACK = '~\\AppData\\Roaming'
+    MAC_DIR = '~/Library/Application Support'
+    base_dir = None
+    if platform.system() == 'Darwin':
+        if Path(UNIX_DIR_FALLBACK).exists:
+            base_dir = UNIX_DIR_FALLBACK
+        else:
+            base_dir = MAC_DIR
+    elif platform.system() == 'Windows':
+        if WINDOWS_DIR_VAR in os.environ:
+            base_dir = os.environ[WINDOWS_DIR_VAR]
+        else:
+            base_dir = WINDOWS_DIR_FALLBACK
+    else:
+        if UNIX_DIR_VAR in os.environ:
+            base_dir = os.environ[UNIX_DIR_VAR]
+        else:
+            base_dir = UNIX_DIR_FALLBACK
+    app_path = Path(base_dir)/'spreads'
+    if create and not app_path.exists():
+        app_path.mkdir()
+    return unicode(app_path)

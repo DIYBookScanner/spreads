@@ -1,6 +1,7 @@
 import logging
 import logging.handlers
 import os
+import platform
 from itertools import chain
 
 from spreads.vendor.huey import SqliteHuey
@@ -10,11 +11,12 @@ from flask import Flask
 
 import spreads.plugin as plugin
 from spreads.config import OptionTemplate
-from spreads.cli import add_argument_from_template
+from spreads.main import add_argument_from_template
+from spreads.util import get_data_dir
 from spreads.workflow import Workflow
 
-app = Flask('spreadsplug.web', static_url_path='/static', static_folder='./client',
-            template_folder='./client')
+app = Flask('spreadsplug.web', static_url_path='/static',
+            static_folder='./client', template_folder='./client')
 task_queue = None
 import web
 import persistence
@@ -81,7 +83,7 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
                 docstring="Directory for project folders",
                 selectable=False),
             'database': OptionTemplate(
-                value=u"~/.config/spreads/workflows.db",
+                value=os.path.join(get_data_dir(), 'workflows.db'),
                 docstring="Path to application database file",
                 selectable=False),
             'postprocessing_server': OptionTemplate(
@@ -158,7 +160,7 @@ def run_server(config):
 
     # Initialize huey task queue
     global task_queue
-    db_location = config.cfg_path.parent / 'queue.db'
+    db_location = get_data_dir() / 'queue.db'
     task_queue = SqliteHuey(location=unicode(db_location))
     consumer = Consumer(task_queue)
 
