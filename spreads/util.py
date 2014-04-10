@@ -28,8 +28,10 @@ import abc
 import itertools
 import logging
 import os
+import platform
 
 import blinker
+import psutil
 from colorama import Fore, Back, Style
 
 
@@ -65,9 +67,7 @@ def check_futures_exceptions(futures):
 
 
 def get_free_space(path):
-    # TODO: Add path for windows
-    st = os.statvfs(unicode(path))
-    return (st.f_bavail * st.f_frsize)
+    return psutil.disk_usage(unicode(path)).free
 
 
 class _instancemethodwrapper(object):

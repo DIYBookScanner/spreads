@@ -2,6 +2,7 @@ import copy
 import itertools
 import logging
 import logging.handlers
+import platform
 import shutil
 import subprocess
 import time
@@ -21,8 +22,12 @@ from spreads.workflow import Workflow
 
 import persistence
 from spreadsplug.web import app
-from util import (get_image_url, WorkflowConverter,
-                  get_thumbnail, find_stick, scale_image)
+from util import get_image_url, WorkflowConverter, get_thumbnail, scale_image
+
+if platform.system() == "Windows":
+    from util import find_stick
+else:
+    from util import find_stick_win as find_stick
 
 logger = logging.getLogger('spreadsplug.web')
 

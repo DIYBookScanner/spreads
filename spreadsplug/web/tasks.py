@@ -1,15 +1,21 @@
 from __future__ import division
 
 import logging
+import platform
 import shutil
 
 from spreads.vendor.pathlib import Path
 
 from spreadsplug.web import task_queue
 from persistence import get_workflow
-from util import find_stick
 from web import (on_transfer_started, on_transfer_progressed,
                  on_transfer_completed)
+
+IS_WIN = platform.system() == "Windows"
+if IS_WIN:
+    from util import find_stick_win as find_stick
+else:
+    from util import find_stick
 
 logger = logging.getLogger('spreadsplug.web.tasks')
 
@@ -26,10 +32,14 @@ def transfer_to_stick(workflow_id):
     workflow.step = 'transfer'
     workflow.step_done = False
     try:
-        mount = stick.get_dbus_method(
-            "FilesystemMount", dbus_interface="org.freedesktop.UDisks.Device")
-        mount_point = mount('', [])
-        target_path = Path(mount_point)/clean_name
+        if IS_WIN:
+            mount = stick.get_dbus_method(
+                "FilesystemMount",
+                dbus_interface="org.freedesktop.UDisks.Device")
+            mount_point = mount('', [])
+            target_path = Path(mount_point)/clean_name
+        else:
+            target_path = Path(stick)/clean_name
         if target_path.exists():
             shutil.rmtree(unicode(target_path))
         target_path.mkdir()

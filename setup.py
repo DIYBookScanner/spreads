@@ -98,13 +98,13 @@ setup(
         "PyYAML>=3.10",
         "futures >= 2.1.4",
         "blinker == 1.3",
+        "psutil == 2.1.0",
     ],
     extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],
         "autorotate": ["jpegtran-cffi >= 0.4"],
         "gui": ["PySide >= 1.2.1"],
         "hidtrigger": ["hidapi-cffi >= 0.1"],
-        "scantailor": ["psutil == 2.0.0"],
         "web": [
             "Flask >= 0.10.1",
             "jpegtran-cffi >= 0.4",

@@ -8,13 +8,21 @@ from datetime import datetime
 
 from flask import abort
 from flask.json import JSONEncoder
-from jpegtran import JPEGImage
 from werkzeug.routing import BaseConverter, ValidationError
 
 from spreads.workflow import Workflow
 from spreads.util import EventHandler
 
 from persistence import get_workflow
+
+HAS_JPEGTRAN = False
+try:
+    from jpegtran import JPEGImage
+    HAS_JPEGTRAN = True
+except ImportError:
+    import StringIO
+    import pyexiv2
+    import PIL
 
 logger = logging.getLogger('spreadsplug.web.util')
 
@@ -119,11 +127,21 @@ def get_image_url(workflow, img_path):
 def scale_image(img_name, width=None, height=None):
     if width is None and height is None:
         raise ValueError("Please specify either width or height")
-    img = JPEGImage(img_name)
-    aspect = img.width/img.height
+    img, aspect = None, None
+    if HAS_JPEGTRAN:
+        img = JPEGImage(img_name)
+        aspect = img.width/img.height
+    else:
+        img = PIL.Image.open(img_name)
     width = width if width else int(aspect*height)
     height = height if height else int(width/aspect)
-    return img.downscale(width, height).as_blob()
+    if HAS_JPEGTRAN:
+        return img.downscale(width, height).as_blob()
+    else:
+        buf = StringIO.StringIO()
+        img.resize((width, height), PIL.Image.ANTIALIAS)
+        img.save(buf, format='JPEG')
+        return buf.getvalue()
 
 
 def get_thumbnail(img_path):
@@ -134,7 +152,15 @@ def get_thumbnail(img_path):
     :return:          The thumbnail
     :rtype:           bytestring
     """
-    thumb = JPEGImage(unicode(img_path)).exif_thumbnail.as_blob()
+
+    thumb = None
+    if not HAS_JPEGTRAN:
+        logger.debug("Extracting EXIF thumbnail for {0}".format(img_path))
+        metadata = pyexiv2.ImageMetadata(unicode(img_path))
+        metadata.read()
+        thumb = metadata.previews[0].data
+    else:
+        thumb = JPEGImage(unicode(img_path)).exif_thumbnail.as_blob()
     if thumb:
         logger.debug("Using EXIF thumbnail for {0}".format(img_path))
         return thumb
@@ -164,3 +190,11 @@ def find_stick():
                        iudisks.FindDeviceByDeviceFile(
                            istick.Get("", "DeviceFile"))),
         "org.freedesktop.DBus.UDisks.Device")
+
+
+def find_stick_win():
+    import win32api
+    import win32file
+    for drive in win32api.GetLogicalDriveStrings().split("\x00")[:-1]:
+        if win32file.GetDriveType(drive) == win32file.DRIVE_REMOVABLE:
+            return drive
