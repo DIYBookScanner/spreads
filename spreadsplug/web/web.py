@@ -313,7 +313,6 @@ def download_workflow(workflow, fname):
         """
         for data in zstream:
             yield data
-            time.sleep(.01)
         on_download_finished.send()
 
     response = Response(zstream_wrapper(), mimetype='application/zip')
