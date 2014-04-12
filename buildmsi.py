@@ -20,6 +20,13 @@ Run:
 When complete, MSIs can be found under 'build/msi{32,64}/spreads_{version}.exe'
 """
 
+# TODO:
+#   - Add installer for ScanTailor
+#   - Add installer for tesseract plus zip for languages
+#   - Add installer for pyexiv2 (really neccesary?)
+#   - Add installer/zip for chdkptp
+#   - Add rubyinstaller, pdfbeads-gem and jbig2-compressor for pdfbeads
+
 import os
 import shutil
 import sys
@@ -142,17 +149,24 @@ def build_msi(bitness=32):
     nsist.all_steps(
         appname="spreads",
         version=spreads.__version__,
-        script=None,
-        entry_point="spreads.main:main",
-        icon=icon,
-        console=False,
         packages=[x.module_name for x in SOURCE_PACKAGES],
         extra_files=extra_files,
         py_version="2.7.6",
         py_bitness=bitness,
         build_dir='msi{0}'.format(bitness),
         installer_name=None,
-        nsi_template=nsi_template
+        nsi_template=nsi_template,
+        icon=icon,
+        shortcuts={
+            'Configure spreads': {
+                'entry_point': 'spreads.main:run_config_windows',
+                'icon': icon,
+                'console': False},
+            'Spreads Web Service': {
+                'entry_point': 'spreads.main:run_service_windows',
+                'icon': icon,
+                'console': False}
+        }
     )
     os.chdir('..')
 
