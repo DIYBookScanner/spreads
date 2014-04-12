@@ -3,6 +3,7 @@ import logging.handlers
 import os
 import platform
 from itertools import chain
+from threading import Thread
 
 from spreads.vendor.huey import SqliteHuey
 from spreads.vendor.huey.consumer import Consumer
@@ -61,9 +62,19 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
         cmdparser = rootparser.add_parser(
             'web', help="Start the web interface")
         cmdparser.set_defaults(subcommand=run_server)
+
+        if platform.system() == "Windows":
+            wincmdparser = rootparser.add_parser(
+                'web-service', help="Start the web interface as a service."
+            )
+            wincmdparser.set_defaults(subcommand=run_windows_service)
+
         for key, option in cls.configuration_template().iteritems():
             try:
                 add_argument_from_template('web', key, option, cmdparser)
+                if platform.system() == "Windows":
+                    add_argument_from_template('web', key, option,
+                                               wincmdparser)
             except:
                 continue
 
@@ -160,7 +171,7 @@ def run_server(config):
 
     # Initialize huey task queue
     global task_queue
-    db_location = get_data_dir() / 'queue.db'
+    db_location = os.path.join(get_data_dir(), 'queue.db')
     task_queue = SqliteHuey(location=unicode(db_location))
     consumer = Consumer(task_queue)
 
@@ -190,3 +201,43 @@ def run_server(config):
     finally:
         consumer.shutdown()
         ws_server.stop()
+
+
+def run_windows_service(config):
+    import waitress
+    import webbrowser
+    from winservice import SysTrayIcon
+    ws_server = WebSocketServer(port=5001)
+    setup_app(config)
+    setup_logging(config)
+    setup_signals(ws_server)
+
+    # Initialize huey task queue
+    global task_queue
+    db_location = os.path.join(get_data_dir(), 'queue.db')
+    task_queue = SqliteHuey(location=unicode(db_location))
+    consumer = Consumer(task_queue)
+
+    def on_quit(systray):
+        consumer.shutdown()
+        ws_server.stop()
+
+    # Start task consumer
+    consumer.start()
+    # Start websocket server
+    ws_server.start()
+    server_thread = Thread(target=waitress.serve, args=(app,),
+                           kwargs=dict(port=5000, threads=16))
+    server_thread.daemon = True
+    server_thread.start()
+
+    open_browser = lambda x: webbrowser.open_new_tab("http://127.0.0.1:5000")
+    menu_options = (('Open in browser', None, open_browser),)
+
+    SysTrayIcon(
+        icon='spreads.ico',
+        hover_text="Spreads Web Service",
+        menu_options=menu_options,
+        on_quit=on_quit,
+        default_menu_index=1,
+        on_click=open_browser)

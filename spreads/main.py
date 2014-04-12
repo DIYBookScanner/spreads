@@ -140,6 +140,7 @@ def setup_parser(config):
             cls.add_command_parser(subparsers)
     return rootparser
 
+
 def run_config_windows():
     logging.basicConfig(loglevel=logging.ERROR)
     logger = logging.getLogger()
@@ -148,6 +149,14 @@ def run_config_windows():
     from spreads.tkconfigure import configure
     configure(config)
 
+
+def run_service_windows():
+    logging.basicConfig(loglevel=logging.ERROR)
+    logger = logging.getLogger()
+    config = Configuration()
+    logger.addHandler(EventHandler())
+    from spreadsplug.web import run_windows_service
+    run_windows_service(config)
 
 
 def run():
