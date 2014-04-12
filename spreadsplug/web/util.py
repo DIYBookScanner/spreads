@@ -21,8 +21,7 @@ try:
     HAS_JPEGTRAN = True
 except ImportError:
     import StringIO
-    import pyexiv2
-    import PIL
+    from PIL import Image
 
 logger = logging.getLogger('spreadsplug.web.util')
 
@@ -132,15 +131,18 @@ def scale_image(img_name, width=None, height=None):
         img = JPEGImage(img_name)
         aspect = img.width/img.height
     else:
-        img = PIL.Image.open(img_name)
+        img = Image.open(img_name)
+        src_width, src_height = img.size
+        aspect = src_width/src_height
     width = width if width else int(aspect*height)
     height = height if height else int(width/aspect)
     if HAS_JPEGTRAN:
         return img.downscale(width, height).as_blob()
     else:
         buf = StringIO.StringIO()
-        img.resize((width, height), PIL.Image.ANTIALIAS)
+        img.thumbnail((width, height), Image.NEAREST)
         img.save(buf, format='JPEG')
+        print img.size
         return buf.getvalue()
 
 
@@ -154,17 +156,14 @@ def get_thumbnail(img_path):
     """
 
     thumb = None
-    if not HAS_JPEGTRAN:
-        logger.debug("Extracting EXIF thumbnail for {0}".format(img_path))
-        metadata = pyexiv2.ImageMetadata(unicode(img_path))
-        metadata.read()
-        thumb = metadata.previews[0].data
-    else:
+    if HAS_JPEGTRAN:
         thumb = JPEGImage(unicode(img_path)).exif_thumbnail.as_blob()
     if thumb:
         logger.debug("Using EXIF thumbnail for {0}".format(img_path))
         return thumb
     else:
+        # NOTE: Due to a bug where pyexiv2 crashes on Windows, we have to
+        #       resort to scaling to get a thumbnail.
         logger.debug("Generating thumbnail for {0}".format(img_path))
         return scale_image(unicode(img_path), width=160)
 
