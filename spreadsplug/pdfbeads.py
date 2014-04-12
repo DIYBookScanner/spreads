@@ -11,9 +11,9 @@ from spreads.plugin import HookPlugin, OutputHookMixin
 from spreads.util import MissingDependencyException, find_in_path
 
 if not find_in_path('pdfbeads'):
-    raise MissingDependencyException("Could not find executable `pdfbeads` in"
-                                     " $PATH. Please install the appropriate"
-                                     " package(s)!")
+    raise MissingDependencyException("Could not find executable `pdfbeads`."
+                                     "Please install the appropriate "
+                                     "package(s)!")
 
 logger = logging.getLogger('spreadsplug.pdfbeads')
 

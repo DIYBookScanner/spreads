@@ -56,6 +56,8 @@ def find_in_path(name):
     :returns:     bool -- True if *name* is found or False
 
     """
+    # TODO: Use registry on win32, match with a static dictionary of
+    #       keys and verifying that the file exists.
     return name in itertools.chain(*tuple(os.listdir(x)
                                    for x in os.environ.get('PATH').split(':')
                                    if os.path.exists(x)))

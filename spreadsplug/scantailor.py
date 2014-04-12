@@ -21,8 +21,8 @@ from spreads.util import find_in_path, MissingDependencyException
 
 if not find_in_path('scantailor-cli'):
     raise MissingDependencyException("Could not find executable"
-                                     " `scantailor-cli` in $PATH. Please"
-                                     " install the appropriate package(s)!")
+                                     " `scantailor-cli`. Please" " install the"
+                                     " appropriate package(s)!")
 
 logger = logging.getLogger('spreadsplug.scantailor')
 

@@ -12,9 +12,9 @@ from spreads.util import find_in_path, MissingDependencyException
 from spreads.vendor.pathlib import Path
 
 if not find_in_path('tesseract'):
-    raise MissingDependencyException("Could not find executable `tesseract`"
-                                     " in $PATH. Please install the"
-                                     " appropriate package(s)!")
+    raise MissingDependencyException("Could not find executable `tesseract`."
+                                     "Please install the appropriate "
+                                     "package(s)!")
 
 logger = logging.getLogger('spreadsplug.tesseract')
 try:

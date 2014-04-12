@@ -10,6 +10,7 @@ from spreads.vendor.pathlib import Path
 
 import spreads.cli as cli
 import spreads.plugin as plugin
+import spreads.tkconfigure as tkconfigure
 from spreads.config import Configuration
 from spreads.util import (ColourStreamHandler, EventHandler, DeviceException,
                           MissingDependencyException)
@@ -70,6 +71,10 @@ def setup_parser(config):
     config_parser = subparsers.add_parser(
         'configure', help="Perform initial configuration")
     config_parser.set_defaults(subcommand=cli.configure)
+
+    guiconfig_parser = subparsers.add_parser(
+        'guiconfigure', help="Perform initial configuration with a GUI")
+    guiconfig_parser.set_defaults(subcommand=tkconfigure.configure)
 
     capture_parser = subparsers.add_parser(
         'capture', help="Start the capturing workflow")
@@ -134,6 +139,15 @@ def setup_parser(config):
         for cls in classes:
             cls.add_command_parser(subparsers)
     return rootparser
+
+def run_config_windows():
+    logging.basicConfig(loglevel=logging.ERROR)
+    logger = logging.getLogger()
+    config = Configuration()
+    logger.addHandler(EventHandler())
+    from spreads.tkconfigure import configure
+    configure(config)
+
 
 
 def run():

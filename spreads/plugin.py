@@ -29,7 +29,8 @@ import pkg_resources
 from blinker import Namespace
 
 from spreads.config import OptionTemplate
-from spreads.util import abstractclassmethod, DeviceException
+from spreads.util import (abstractclassmethod, DeviceException,
+                          MissingDependencyException)
 
 
 logger = logging.getLogger("spreads.plugin")
@@ -38,7 +39,9 @@ extensions = None
 
 
 class ExtensionException(Exception):
-    pass
+    def __init__(self, message=None, extension=None):
+        super(ExtensionException, self).__init__(message)
+        self.extension = extension
 
 
 class SpreadsPlugin(object):  # pragma: no cover
@@ -335,8 +338,8 @@ class OutputHookMixin(object):
 
 
 def available_plugins():
-    return [ext.name
-            for ext in pkg_resources.iter_entry_points('spreadsplug.hooks')]
+    return sorted([ext.name for ext in
+                   pkg_resources.iter_entry_points('spreadsplug.hooks')])
 
 
 def get_plugins(*names):
@@ -352,13 +355,18 @@ def get_plugins(*names):
                                                        name=name))
         except StopIteration:
             raise ExtensionException("Could not locate extension '{0}'"
-                                     .format(name))
+                                     .format(name), name)
         try:
             extensions[name] = ext.load()
         except ImportError as err:
             raise ExtensionException(
-                "Missing dependency for extension '{0}': {1}"
-                .format(name, err.message[16:]))
+                "Missing Python dependency for extension '{0}': {1}"
+                .format(name, err.message[16:]), name)
+        except MissingDependencyException as err:
+            raise ExtensionException(
+                "Error while locating external application dependency for "
+                "extension '{0}':\n{1}".format(err.message), name
+                )
     return extensions
 
 
@@ -373,13 +381,13 @@ def get_driver(driver_name):
                                                    name=driver_name))
     except StopIteration:
         raise ExtensionException("Could not locate driver '{0}'"
-                                 .format(driver_name))
+                                 .format(driver_name), driver_name)
     try:
         return ext.load()
     except ImportError as err:
         raise ExtensionException(
             "Missing dependency for driver '{0}': {1}"
-            .format(driver_name, err.message[16:]))
+            .format(driver_name, err.message[16:]), driver_name)
 
 
 def get_devices(config, force_reload=False):
