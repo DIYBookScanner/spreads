@@ -249,7 +249,7 @@ class CapturePage(QtGui.QWizardPage):
     def initializePage(self):
         self.setTitle("Capturing from devices")
         self.start_time = None
-        self.shot_count = None
+        self.shot_count = 0
 
         # TODO: Add horizontally scrolling box with thumbnails of all
         #       previously shot images
@@ -321,16 +321,16 @@ class CapturePage(QtGui.QWizardPage):
                 time.sleep(0.001)
         self.capture_btn.setEnabled(True)
         self.capture_btn.setFocus()
-        pages_shot = self.wizard().workflow._pages_shot
+        self.shot_count += len(self.wizard().workflow.devices)
         if hasattr(self, '_start_time'):
             capture_speed = ((3600 / (time.time() - self._start_time))
-                             * pages_shot)
+                             * self.shot_count)
         else:
             self._start_time = start_time
             capture_speed = 0.0
         self.status.setText(
             "Shot {0} pages in {1:.0f} minutes ({2:.0f} pages/hour)"
-            .format(pages_shot, (time.time() - self._start_time) / 60,
+            .format(self.shot_count, (time.time() - self._start_time) / 60,
                     capture_speed))
         self.updateControl()
 
