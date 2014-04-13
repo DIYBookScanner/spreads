@@ -80,6 +80,7 @@ setup(
     entry_points={
         'spreadsplug.devices': [
             "chdkcamera=spreadsplug.dev.chdkcamera:CHDKCameraDevice",
+            "gphoto2camera=spreadsplug.dev.gphoto2camera:GPhoto2CameraDevice",
         ],
         'spreadsplug.hooks': [
             "autorotate     =spreadsplug.autorotate:AutoRotatePlugin",
@@ -101,6 +102,7 @@ setup(
     ],
     extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],
+        "gphoto2camera": ["piggyphoto >= 0.1"],
         "autorotate": ["jpegtran-cffi >= 0.4"],
         "gui": ["PySide >= 1.2.1"],
         "hidtrigger": ["hidapi-cffi >= 0.1"],
