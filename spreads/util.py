@@ -56,11 +56,31 @@ def find_in_path(name):
     :returns:     bool -- True if *name* is found or False
 
     """
-    # TODO: Use registry on win32, match with a static dictionary of
-    #       keys and verifying that the file exists.
-    return name in itertools.chain(*tuple(os.listdir(x)
-                                   for x in os.environ.get('PATH').split(':')
-                                   if os.path.exists(x)))
+    candidates = None
+    if platform.system() == "Windows":
+        import winreg
+        if name == 'scantailor':
+            try:
+                cmd = winreg.QueryValue(
+                    winreg.HKEY_CLASSES_ROOT,
+                    'Scan Tailor Project\\shell\\open\\command')
+                return cmd.split('" "')[0][1:]
+            except OSError:
+                return None
+        else:
+            path_dirs = os.environ.get('PATH').split(';')
+            path_dirs.append(os.getcwd())
+            path_exts = os.environ.get('PATHEXT').split(';')
+            candidates = (os.path.join(p, name + e)
+                          for p in path_dirs
+                          for e in path_exts)
+    else:
+        candidates = (os.path.join(p, name)
+                      for p in os.environ.get('PATH').split(':'))
+    try:
+        return next(c for c in candidates if os.path.exists(c))
+    except StopIteration:
+        return None
 
 
 def check_futures_exceptions(futures):
