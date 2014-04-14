@@ -19,8 +19,6 @@ class GPhoto2CameraDevice(DevicePlugin):
     features = (DeviceFeatures.PREVIEW, DeviceFeatures.IS_CAMERA)
 
     target_page = None
-    _cli_flags = None
-    _gphoto2_buildnum = None
 
     @classmethod
     def configuration_template(cls):
@@ -46,6 +44,8 @@ class GPhoto2CameraDevice(DevicePlugin):
         pil = pp.portInfoList()
         for name, path in pp.cameraList(autodetect=True).toList():
             pi = pil.get_info(pil.lookup_path(path))
+            logger = logging.getLogger('GPhoto2Camera')
+            logger.debug("Connecting to camera {} at {}".format(name, path))
             cam = pp.camera(autoInit=False)
             cam.port_info = pi
             cam.init()
@@ -65,7 +65,8 @@ class GPhoto2CameraDevice(DevicePlugin):
         self.config = config
 
         try:
-            self.target_page = config['target_page'][self._camera.config['status']['serialnumber'].value].get()
+            serialnumber = self._camera.config['status']['serialnumber'].value
+            self.target_page = config['target_page'][serialnumber].get()
         except:
             self.target_page = None
 
@@ -74,9 +75,12 @@ class GPhoto2CameraDevice(DevicePlugin):
 
     def connected(self):
         try:
+            # check if we're connected by accessing the config, which is backed 
+            # by a getter function that attempts to retrieve the config from the
+            # camera (and throws libgphoto2error if unable to communicate with it).
             self._camera.config
             return True
-        except:
+        except pp.libgphoto2error:
             return False
 
     def set_target_page(self, target_page):
@@ -92,16 +96,20 @@ class GPhoto2CameraDevice(DevicePlugin):
         self.config['target_page'][self._camera.config['status']['serialnumber'].value].set(target_page)
 
     def prepare_capture(self, path):
-        shutter_speed = self.config["shutter_speed"].get()
+        iso = str(self.config['iso'].get())
         shoot_raw = self.config['shoot_raw'].get(bool)
-        aperture = self.config['aperture'].get()
-
-        print "setting ", self.config['iso'].get(), self.config['shutter_speed'].get(), self.config['aperture'].get()
+        shutter_speed = str(self.config["shutter_speed"].get())
+        aperture = str(self.config['aperture'].get())
 
         cfg = self._camera.config
-        cfg['imgsettings']['iso'].value = str(self.config['iso'].get())
+        mode = cfg['capturesettings']['autoexposuremode']
 
-        if self.config['shoot_raw'].get(bool):
+        self.logger.debug("Camera mode: {}".format(mode))
+        self.logger.debug("Setting iso={}, shutter_speed={}, aperture={}, raw={}".format(iso, shutter_speed, aperture, shoot_raw))
+
+        cfg['imgsettings']['iso'].value = iso
+
+        if shoot_raw:
             format = 'RAW'
         else:
             format = 'Large Fine JPEG'
@@ -109,14 +117,14 @@ class GPhoto2CameraDevice(DevicePlugin):
         cfg['imgsettings']['imageformatsd'].value = format
 
         if cfg['capturesettings']['shutterspeed']:
-            cfg['capturesettings']['shutterspeed'].value = str(self.config['shutter_speed'].get())
+            cfg['capturesettings']['shutterspeed'].value = shutter_speed
         else:
-            print("Skipping shutter_speed config due to camera mode ({})".format(cfg['capturesettings']['autoexposuremode']))
+            self.logger.debug("Skipping shutter_speed config due to camera mode ({})".format(mode))
 
         if cfg['capturesettings']['aperture']:
-            cfg['capturesettings']['aperture'].value = str(self.config['aperture'].get())
+            cfg['capturesettings']['aperture'].value = aperture
         else:
-            print("Skipping aperture config due to camera mode ({})".format(cfg['capturesettings']['autoexposuremode']))
+            self.logger.debug("Skipping aperture config due to camera mode ({})".format(mode))
 
         self._camera.config = cfg
 
@@ -153,7 +161,4 @@ class GPhoto2CameraDevice(DevicePlugin):
         img.save(local_path)
 
     def _acquire_focus(self):
-        return 'not supported yet'
-
-    def _set_focus(self):
-        pass
+        raise NotImplementedError
