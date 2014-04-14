@@ -20,13 +20,6 @@ Run:
 When complete, MSIs can be found under 'build/msi{32,64}/spreads_{version}.exe'
 """
 
-# TODO:
-#   - Add installer for ScanTailor
-#   - Add installer for tesseract plus zip for languages
-#   - Add installer for pyexiv2 (really neccesary?)
-#   - Add installer/zip for chdkptp
-#   - Add rubyinstaller, pdfbeads-gem and jbig2-compressor for pdfbeads
-
 import os
 import shutil
 import sys
@@ -40,40 +33,53 @@ from spreads.vendor.pathlib import Path
 
 import spreads
 
+class SourceDep(namedtuple('SourceDep', ['project_name', 'module_name'])):
+    def __new__(cls, project_name, module_name=None):
+        if module_name is None:
+            module_name = project_name
+        return super(SourceDep, cls).__new__(cls, project_name, module_name)
+
 BINARY_PACKAGES = {
-    "cffi": "cffi-0.8.2.{arch}-py2.7.exe",
     "MarkupSafe": "MarkupSafe-0.19.{arch}-py2.7.exe",
     "PIL": "Pillow-2.4.0.{arch}-py2.7.exe",
     "psutil": "psutil-2.1.0.{arch}-py2.7.exe",
-    "pyexiv2": "pyexiv2-0.3.2.{arch}-py2.7.exe",
     "PySide": "PySide-1.2.1.{arch}-py2.7.exe",
     "PyYAML": "PyYAML-3.11.{arch}-py2.7.exe",
     "tornado": "tornado-3.2.{arch}-py2.7.exe",
     "setuptools": "setuptools-3.4.1.{arch}-py2.7.exe"
 }
 
-SourceDep = namedtuple("SourceDep", ("project_name", "module_name"))
+
 SOURCE_PACKAGES = [
-    # project   module
-    SourceDep(*("spreads",)*2),
-    SourceDep(*(None, "spreadsplug")),
-    SourceDep(*("Flask", "flask")),
-    SourceDep(*("Jinja2", "jinja2")),
-    SourceDep(*("Werkzeug", "werkzeug")),
-    SourceDep(*("backports.ssl-match-hostname", "backports")),
-    SourceDep(*("blinker",)*2),
-    SourceDep(*("colorama",)*2),
-    SourceDep(*("futures", "concurrent")),
-    SourceDep(*("itsdangerous",)*2),
-    SourceDep(*("pyusb", "usb")),
-    SourceDep(*("requests",)*2),
-    SourceDep(*("waitress",)*2),
-    SourceDep(*("zipstream",)*2),
+    SourceDep("spreads"),
+    SourceDep(None, "spreadsplug"),
+    SourceDep("Flask", "flask"),
+    SourceDep("Jinja2", "jinja2"),
+    SourceDep("Werkzeug", "werkzeug"),
+    SourceDep("backports.ssl-match-hostname", "backports"),
+    SourceDep("blinker"),
+    SourceDep("colorama"),
+    SourceDep("futures", "concurrent"),
+    SourceDep("itsdangerous"),
+    SourceDep("pyusb", "usb"),
+    SourceDep("requests"),
+    SourceDep("waitress"),
+    SourceDep("zipstream"),
+]
+
+EXTRA_FILES = [
+    "ImageMagick-6.5.6-8-Q8-windows-dll.exe",
+    "pyexiv2-0.3.2{arch}.exe",
+    "pywin32-2.7.6{arch}.exe",
+    "scantailor-enhanced-20140214-32bit-install.exe",
+    "tesseract-ocr-setup-3.02.02.exe",
+    "chdkptp",
+    "pdfbeads.exe",
 ]
 
 
 def extract_native_pkg(fname, pkg_dir):
-    zf = zipfile.ZipFile(unicode(Path('win_deps')/fname))
+    zf = zipfile.ZipFile(unicode(Path('win_deps')/'python'/fname))
     tmpdir = Path(tempfile.mkdtemp())
     zf.extractall(unicode(tmpdir))
     fpaths = []
@@ -132,11 +138,9 @@ def build_msi(bitness=32):
         copy_info(pkg, pkg_dir)
 
     icon = os.path.abspath("spreads.ico")
-    extra_files = [
-        os.path.join(os.path.abspath('win_deps'),
-                     'pywin32-2.7.6{0}.exe'
-                     .format('.amd64' if bitness == 64 else '')
-                     )]
+    extra_files = [unicode((Path('win_deps')/'extra'/
+                            x.format(arch='.amd64' if bitness == 64 else ''))
+                           .absolute()) for x in EXTRA_FILES]
     nsi_template = os.path.abspath("template.nsi")
 
     # NOTE: We need to remove the working directory from sys.path to force
@@ -171,7 +175,5 @@ def build_msi(bitness=32):
     os.chdir('..')
 
 if __name__ == '__main__':
-    if os.path.exists('spreads.egg-info'):
-        shutil.rmtree('spreads.egg-info')
-    for bitness in (32, 64):
+    for bitness in (32,64):
         build_msi(bitness)

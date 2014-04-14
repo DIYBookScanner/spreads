@@ -42,6 +42,31 @@ Section "pywin32" sec_pywin32
   Delete $INSTDIR\pywin32-${PY_VERSION}${ARCH_TAG}.exe
 SectionEnd
 
+Section "pyexiv2" sec_pyexiv2
+  File "pyexiv2-0.3.2${ARCH_TAG}.exe"
+  ExecWait "pyexiv2-0.3.2${ARCH_TAG}.exe"
+  Delete $INSTDIR\pyexiv2-0.3.2${ARCH_TAG}.exe
+SectionEnd
+
+Section "ImageMagick" sec_imagemagick
+  File  "ImageMagick-6.5.6-8-Q8-windows-dll.exe"
+  ExecWait "$INSTDIR\ImageMagick-6.5.6-8-Q8-windows-dll.exe"
+  Delete $INSTDIR\ImageMagick-6.5.6-8-Q8-windows-dll.exe
+SectionEnd
+
+Section "ScanTailor" sec_scantailor
+  File "scantailor-enhanced-20140214-32bit-install.exe"
+  ExecWait "$INSTDIR\scantailor-enhanced-20140214-32bit-install.exe"
+  Delete $INSTDIR\scantailor-enhanced-20140214-32bit-install.exe
+SectionEnd
+
+Section "Tesseract" sec_tesseract
+  File "tesseract-ocr-setup-3.02.02.exe"
+  ExecWait "$INSTDIR\tesseract-ocr-setup-3.02.02.exe"
+  Delete $INSTDIR\tesseract-ocr-setup-3.02.02.exe
+SectionEnd
+
+
 Section "!${PRODUCT_NAME}" sec_app
   SectionIn RO
   File ${PRODUCT_ICON}
