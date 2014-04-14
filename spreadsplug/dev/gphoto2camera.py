@@ -2,7 +2,6 @@
 import logging
 import os
 import tempfile
-import hashlib
 
 from jpegtran import JPEGImage
 
@@ -75,9 +74,10 @@ class GPhoto2CameraDevice(DevicePlugin):
 
     def connected(self):
         try:
-            # check if we're connected by accessing the config, which is backed 
-            # by a getter function that attempts to retrieve the config from the
-            # camera (and throws libgphoto2error if unable to communicate with it).
+            # check if we're connected by accessing the config, which is
+            # backed by a getter function that attempts to retrieve the
+            # config from the camera (and throws libgphoto2error if unable
+            # to communicate with it).
             self._camera.config
             return True
         except pp.libgphoto2error:
@@ -91,9 +91,10 @@ class GPhoto2CameraDevice(DevicePlugin):
 
         """
         # Map this in the spreads config keyed by the camera serial number.
-        # We can't use the approach taken by CHDKCameraDevice, because most PTP cameras don't support writing
-        # files via PTP.
-        self.config['target_page'][self._camera.config['status']['serialnumber'].value].set(target_page)
+        # We can't use the approach taken by CHDKCameraDevice, because most
+        # PTP cameras don't support writing files via PTP.
+        serialnumber = self._camera.config['status']['serialnumber'].value
+        self.config['target_page'][serialnumber].set(target_page)
 
     def prepare_capture(self, path):
         iso = str(self.config['iso'].get())
@@ -105,7 +106,9 @@ class GPhoto2CameraDevice(DevicePlugin):
         mode = cfg['capturesettings']['autoexposuremode']
 
         self.logger.debug("Camera mode: {}".format(mode))
-        self.logger.debug("Setting iso={}, shutter_speed={}, aperture={}, raw={}".format(iso, shutter_speed, aperture, shoot_raw))
+        self.logger.debug(
+            "Setting iso={}, shutter_speed={}, aperture={}, raw={}"
+            .format(iso, shutter_speed, aperture, shoot_raw))
 
         cfg['imgsettings']['iso'].value = iso
 
@@ -119,12 +122,16 @@ class GPhoto2CameraDevice(DevicePlugin):
         if cfg['capturesettings']['shutterspeed']:
             cfg['capturesettings']['shutterspeed'].value = shutter_speed
         else:
-            self.logger.debug("Skipping shutter_speed config due to camera mode ({})".format(mode))
+            self.logger.debug(
+                "Skipping shutter_speed config due to camera mode ({})"
+                .format(mode))
 
         if cfg['capturesettings']['aperture']:
             cfg['capturesettings']['aperture'].value = aperture
         else:
-            self.logger.debug("Skipping aperture config due to camera mode ({})".format(mode))
+            self.logger.debug(
+                "Skipping aperture config due to camera mode ({})"
+                .format(mode))
 
         self._camera.config = cfg
 
@@ -145,8 +152,9 @@ class GPhoto2CameraDevice(DevicePlugin):
         # TODO: support choosing jpg size
         # TODO: support choosing sraw vs raw
         # TODO: support capturing raw + jpeg
+        # TODO: choose raw extension based on camera vendor
 
-        extension = 'cr2' if shoot_raw else 'jpg' # TODO: choose raw extension based on camera vendor
+        extension = 'cr2' if shoot_raw else 'jpg'
         local_path = "{0}.{1}".format(path, extension)
 
         self._camera.capture_image(local_path)
