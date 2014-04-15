@@ -84,3 +84,59 @@ The following configuration keys/command-line flags are available:
 .. _CHDK: http://chdk.wikia.com
 .. _chdkptp: http://www.assembla.com/spaces/chdkptp
 .. _open an issue on Github: http://github.com/DIYBookScanner/spreads/issues
+
+
+gphoto2camera
+-------------
+This driver works with many PTP compatible camera.  The full list of
+compatible cameras can be found here: http://www.gphoto.org/doc/remote/
+
+For it to work, the following must be installed:
+
+* libgphoto2: http://www.gphoto.org/ 
+  This provides the low-level PTP interface.
+
+  You can either build from source (http://sourceforge.net/projects/gphoto/files/)
+  or install via your local package manager (apt, brew, etc).
+
+  For example, on Mac OS X with brew installed:
+    $ brew install gphoto2 libgphoto2
+
+* piggyphoto: https://github.com/YesVideo/piggyphoto
+  This is the python interface to libgphoto2.  The original source is
+  https://github.com/alexdu/piggyphoto (our pull request to merge is pending).
+  
+  The easiest way to install is:
+    $ pip install -e git://github.com/YesVideo/piggyphoto#egg=piggyphoto
+
+The following cameras have been tested and confirmed to work:
+
+* Canon T2i
+* Canon 5D mk2
+
+If you own another libgphoto2-supported camera and have problems getting it to run
+with this driver, please `open an issue on GitHub`_, we would love to make
+it work.
+
+The following configuration keys/command-line flags are available:
+
+.. option:: --iso <string>
+
+   The ISO value.  Default is 'Auto'.
+
+.. option:: --shutter-speed <fraction>
+
+   The desired shutter speed as a fractional value. Default is 1/25.
+   The equivalent key in the configuration file is `shutter_speed`.
+
+.. option:: --aperture <float>
+
+   The desired aperture expressed as an f-stop (without the 'f/' prefix). Default is 5.6.
+   The equivalent key in the configuration file is `aperture`.
+
+.. option:: --shoot-raw
+
+   Shoot RAW images instead of JPEG. Please note that this setting is
+   **highly experimental** at the moment and RAW files are not supported
+   by the postprocessing and output plugins as of now.
+   The equivalent key in the configuration file is `shoot_raw`.
