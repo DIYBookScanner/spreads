@@ -187,7 +187,10 @@ class CHDKCameraDevice(DevicePlugin):
                 self.logger.warn("Monochrome mode not supported on this "
                                  "device, will be disabled.")
         # Disable flash
-        self._execute_lua("while(get_flash_mode()<2) do click(\"right\") end")
+        self._execute_lua(
+            "props = require(\"propcase\")\n"
+            "if(get_flash_mode()~=2) then set_prop(props.FLASH_MODE, 2) end")
+        # Set Quality
         self._execute_lua("set_prop(require('propcase').QUALITY, {0})"
                           .format(self.MAX_QUALITY))
         self._execute_lua("set_prop(require('propcase').RESOLUTION, {0})"
