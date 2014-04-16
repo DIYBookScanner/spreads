@@ -49,6 +49,11 @@ class CHDKCameraDevice(DevicePlugin):
              'focus_distance': OptionTemplate(0, "Set focus distance"),
              'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
+             'wb_mode': OptionTemplate(value=["0:Auto", "1:Daylight", "2:Cloudy", 
+                                              "3:Tungsten", "4:Fluorescent", 
+                                              "5:Fluorescent H", "7:Custom"],
+                                       docstring='White balance mode',
+                                       selectable=True),
              'chdkptp_path': OptionTemplate(
                  u"/usr/local/lib/chdkptp",
                  "Path to CHDKPTP binary/libraries"),
@@ -186,6 +191,8 @@ class CHDKCameraDevice(DevicePlugin):
             if not rv:
                 self.logger.warn("Monochrome mode not supported on this "
                                  "device, will be disabled.")
+        # Set White Balance mode
+        self._set_wb()
         # Disable flash
         self._execute_lua(
             "props = require(\"propcase\")\n"
@@ -358,7 +365,12 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("release('shoot_half')")
         time.sleep(0.25)
         self._execute_lua("set_aflock(1)")
-
+        
+    def _set_wb(self):
+        wb_mode_name   = self.config['wb_mode'].get()
+        wb_mode_number = int(wb_mode_name[0])
+        self._execute_lua("set_prop(require('propcase').WB_MODE, {0})"
+                          .format(wb_mode_number))
 
 class A2200(CHDKCameraDevice):
     """ Canon A2200 driver.
