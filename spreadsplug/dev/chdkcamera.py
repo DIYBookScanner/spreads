@@ -17,6 +17,9 @@ from spreads.plugin import DevicePlugin, DeviceFeatures
 from spreads.util import DeviceException
 
 
+wb_modes={ 'Auto':0, 'Daylight':1, 'Cloudy':2, 'Tungsten':3, 'Fluorescent':4, 
+           'Fluorescent H':5, 'Custom':7 }
+
 class CHDKPTPException(Exception):
     pass
 
@@ -49,9 +52,7 @@ class CHDKCameraDevice(DevicePlugin):
              'focus_distance': OptionTemplate(0, "Set focus distance"),
              'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
-             'wb_mode': OptionTemplate(value=["0:Auto", "1:Daylight", "2:Cloudy", 
-                                              "3:Tungsten", "4:Fluorescent", 
-                                              "5:Fluorescent H", "7:Custom"],
+             'wb_mode': OptionTemplate(value=sorted(wb_modes),
                                        docstring='White balance mode',
                                        selectable=True),
              'chdkptp_path': OptionTemplate(
@@ -367,10 +368,8 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("set_aflock(1)")
         
     def _set_wb(self):
-        wb_mode_name   = self.config['wb_mode'].get()
-        wb_mode_number = int(wb_mode_name[0])
         self._execute_lua("set_prop(require('propcase').WB_MODE, {0})"
-                          .format(wb_mode_number))
+                          .format(wb_modes.get(self.config['wb_mode'].get())))
 
 class A2200(CHDKCameraDevice):
     """ Canon A2200 driver.
