@@ -17,8 +17,8 @@ from spreads.plugin import DevicePlugin, DeviceFeatures
 from spreads.util import DeviceException
 
 
-WHITEBALANCE_MODES={ 'Auto':0, 'Daylight':1, 'Cloudy':2, 'Tungsten':3, 'Fluorescent':4, 
-           'Fluorescent H':5, 'Custom':7 }
+WHITEBALANCE_MODES={ 'Auto': 0, 'Daylight': 1, 'Cloudy': 2, 'Tungsten': 3,
+           'Fluorescent': 4, 'Fluorescent H': 5, 'Custom': 7 }
 
 class CHDKPTPException(Exception):
     pass
