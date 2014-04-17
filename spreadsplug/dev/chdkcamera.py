@@ -17,7 +17,7 @@ from spreads.plugin import DevicePlugin, DeviceFeatures
 from spreads.util import DeviceException
 
 
-wb_modes={ 'Auto':0, 'Daylight':1, 'Cloudy':2, 'Tungsten':3, 'Fluorescent':4, 
+WHITEBALANCE_MODES={ 'Auto':0, 'Daylight':1, 'Cloudy':2, 'Tungsten':3, 'Fluorescent':4, 
            'Fluorescent H':5, 'Custom':7 }
 
 class CHDKPTPException(Exception):
@@ -52,7 +52,7 @@ class CHDKCameraDevice(DevicePlugin):
              'focus_distance': OptionTemplate(0, "Set focus distance"),
              'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
-             'wb_mode': OptionTemplate(value=sorted(wb_modes),
+             'wb_mode': OptionTemplate(value=sorted(WHITEBALANCE_MODES),
                                        docstring='White balance mode',
                                        selectable=True),
              'chdkptp_path': OptionTemplate(
@@ -369,7 +369,7 @@ class CHDKCameraDevice(DevicePlugin):
         
     def _set_wb(self):
         self._execute_lua("set_prop(require('propcase').WB_MODE, {0})"
-                          .format(wb_modes.get(self.config['wb_mode'].get())))
+                  .format(WHITEBALANCE_MODES.get(self.config['wb_mode'].get())))
 
 class A2200(CHDKCameraDevice):
     """ Canon A2200 driver.
