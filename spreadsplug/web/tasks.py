@@ -109,3 +109,15 @@ def upload_workflow(workflow_id, endpoint):
         logger.error("Upload failed: {0}".format(resp.content))
     else:
         signals['submit:completed'].send(workflow, remote_id=resp.json()['id'])
+
+
+@task_queue.task()
+def process_workflow(workflow_id):
+    workflow = get_workflow(workflow_id)
+    workflow.process()
+
+
+@task_queue.task()
+def output_workflow(workflow_id):
+    workflow = get_workflow(workflow_id)
+    workflow.output()

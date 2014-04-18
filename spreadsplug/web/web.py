@@ -13,6 +13,7 @@ import zipfile
 from collections import deque
 
 import blinker
+import pkg_resources
 import zipstream
 from flask import (abort, json, jsonify, request, send_file, render_template,
                    url_for, redirect, make_response, Response)
@@ -110,6 +111,24 @@ def get_plugin_templates():
                                      selectable=option.selectable,
                                      advanced=option.advanced)
     return rv
+
+
+@app.route('/api/plugins')
+def get_available_plugins():
+    exts = list(pkg_resources.iter_entry_points('spreadsplug.hooks'))
+    activated = app.config['default_config']['plugins'].get()
+    return jsonify({
+        'postprocessing': [ext.name for ext in exts if ext.name in activated
+                           and issubclass(ext.load(),
+                                          plugin.ProcessHookMixin)],
+        'output': [ext.name for ext in exts if ext.name in activated
+                   and issubclass(ext.load(), plugin.OutputHookMixin)]
+    })
+
+
+@app.route('/api/plugins/templates')
+def template_endpoint():
+    return jsonify(get_plugin_templates())
 
 
 @app.route('/api/log')
@@ -512,6 +531,20 @@ def finish_capture(workflow):
     if app.config['mode'] not in ('scanner', 'full'):
         abort(404)
     workflow.finish_capture()
+    return 'OK'
+
+
+@app.route('/api/workflow/<workflow:workflow>/process', methods=['POST'])
+def start_processing(workflow):
+    from tasks import process_workflow
+    process_workflow(workflow.id)
+    return 'OK'
+
+
+@app.route('/api/workflow/<workflow:workflow>/output', methods=['POST'])
+def start_output_generation(workflow):
+    from tasks import output_workflow
+    output_workflow(workflow.id)
     return 'OK'
 
 

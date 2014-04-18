@@ -12,6 +12,7 @@ import pytest
 from multiprocessing.pool import ThreadPool
 
 from spreads.workflow import Workflow
+from conftest import TestPluginOutput, TestPluginProcess, TestPluginProcessB
 
 
 @pytest.yield_fixture
@@ -125,6 +126,30 @@ def test_index(client):
     assert cfg['web']['mode'] == 'full'
     templates = json.loads(re.findall(r"window.pluginTemplates = ({.*});",
                                       rv.data)[0])
+    assert 'a_boolean' in templates['test_process']
+    assert 'flip_target_pages' in templates['device']
+    assert 'string' in templates['test_output']
+
+
+def test_get_plugins(client):
+    exts = [mock.Mock(), mock.Mock(), mock.Mock()]
+    exts[0].name = "test_output"
+    exts[0].load.return_value = TestPluginOutput
+    exts[1].name = "test_process"
+    exts[1].load.return_value = TestPluginProcess
+    exts[2].name = "test_process2"
+    exts[2].load.return_value = TestPluginProcessB
+    with mock.patch('spreadsplug.web.web.pkg_resources') as pkgr:
+        pkgr.iter_entry_points.return_value = exts
+        rv = client.get('/api/plugins')
+    plugins = json.loads(rv.data)
+    assert plugins['output'] == ["test_output"]
+    assert plugins['postprocessing'] == ["test_process", "test_process2"]
+
+
+def test_get_plugin_templates(client):
+    rv = client.get('/api/plugins/templates')
+    templates = json.loads(rv.data)
     assert 'a_boolean' in templates['test_process']
     assert 'flip_target_pages' in templates['device']
     assert 'string' in templates['test_output']
@@ -284,6 +309,30 @@ def test_shutdown(client):
         client.post('/api/system/shutdown')
     sp.assert_called_once_with(['/usr/bin/sudo',
                                 '/sbin/shutdown', '-h', 'now'])
+
+
+def test_start_processing(client):
+    wfid = create_workflow(client, num_captures=None)
+    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+        mock_tq.task.return_value = lambda x: x
+        client.post('/api/workflow/{0}/process'.format(wfid))
+    time.sleep(.1)
+    events = json.loads(client.get('/api/events').data)
+    assert all(e['name'] == 'workflow:progressed' for e in events)
+    assert [e['data']['plugin_name'] for e in events] == ['test_process',
+                                                          'test_process2']
+    # TODO: Verify generation was completed (files?)
+
+
+def test_start_outputting(client):
+    wfid = create_workflow(client, num_captures=None)
+    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+        mock_tq.task.return_value = lambda x: x
+        client.post('/api/workflow/{0}/output'.format(wfid))
+    time.sleep(.1)
+    events = json.loads(client.get('/api/events').data)
+    assert all(e['name'] == 'workflow:progressed' for e in events)
+    assert [e['data']['plugin_name'] for e in events] == ['test_output']
 
 
 def test_get_logs(client):
