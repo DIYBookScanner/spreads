@@ -71,23 +71,28 @@ def _select_driver():
     print(colorize("Please select a device driver from the following list:",
                    colorama.Fore.BLUE))
     available_drivers = plugin.available_drivers()
+    print("  [0]: None")
     for pos, ext in enumerate(plugin.available_drivers(), 1):
         print("  [{0}]: {1}".format(pos, ext))
     while True:
         selection = raw_input("Select a driver: ")
         if not selection.isdigit() or int(selection) > len(available_drivers):
-            print(colorize("Please select a number in the range of 1 to {0}"
+            print(colorize("Please select a number in the range of 0 to {0}"
                            .format(len(available_drivers)), colorama.Fore.RED))
             continue
+        if int(selection) == 0:
+            return None
         driver = unicode(available_drivers[int(selection)-1])
         print(colorize("Selected \"{0}\" as device driver".format(driver),
                        colorama.Fore.GREEN))
         return driver
 
 
-def _select_plugins(selected_plugins=None):
-    if selected_plugins is None:
+def _select_plugins(preselected=None):
+    if preselected is None:
         selected_plugins = []
+    else:
+        selected_plugins = preselected[:]
     print("Please select your desired plugins from the following list:")
     available_plugins = plugin.available_plugins()
     while True:
@@ -150,20 +155,26 @@ def _set_device_target_page(config, target_page):
 
 def configure(config):
     old_plugins = config["plugins"].get()
-    config["driver"] = _select_driver()
+    driver_name = _select_driver()
+    if driver_name:
+        config["driver"] = driver_name
+        driver = plugin.get_driver(config["driver"].get())
+    else:
+        driver = None
     config["plugins"] = _select_plugins(old_plugins)
     _setup_processing_pipeline(config)
 
     # Load default configuration for newly added plugins
     new_plugins = [x for x in config["plugins"].get() if x not in old_plugins]
     for name in new_plugins:
+        if not name in config.templates:
+            continue
         config.set_from_template(name, config.templates[name])
 
-    driver = plugin.get_driver(config["driver"].get())
 
     # We only need to set the device target_page if the driver supports
     # shooting with two devices
-    if plugin.DeviceFeatures.IS_CAMERA in driver.features:
+    if driver and plugin.DeviceFeatures.IS_CAMERA in driver.features:
         answer = raw_input(
             "Do you want to configure the target_page of your devices?\n"
             "(Required for shooting with two devices) [y/n]: ")
