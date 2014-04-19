@@ -45,6 +45,26 @@ cache = SimpleCache()
 # Register custom workflow converter for URL routes
 app.url_map.converters['workflow'] = WorkflowConverter
 
+class ApiException(Exception):
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
+
+
+@app.errorhandler(ApiException)
+def handle_apiexception(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
+
 
 # ========= #
 #  General  #
@@ -380,13 +400,15 @@ def submit_workflow(workflow):
     option is set to the address of a server with the server in 'processor'
     or 'full' mode running.
     """
-    if app.config['mode'] not in ('scanner'):
-        abort(404)
+    if app.config['mode'] != 'scanner':
+        raise ApiException("Submission only possible when running in 'scanner'"
+                           " mode.", 503)
     server = app.config['postproc_server']
     if not server:
-        logger.error("Remote server was not configured, please set the"
+        error_msg = ("Remote server was not configured, please set the"
                      "'postprocessing_server' value in your configuration!")
-        abort(500)
+        logger.error(error_msg)
+        raise ApiException(error_msg, 500)
     from tasks import upload_workflow
     # TODO: Read config from request
     upload_workflow(workflow.id, server+'/api/workflow')
@@ -396,6 +418,30 @@ def submit_workflow(workflow):
 # =============== #
 #  Image-related  #
 # =============== #
+<<<<<<< HEAD
+=======
+@app.route('/api/workflow/<workflow:workflow>/image', methods=['POST'])
+def upload_workflow_image(workflow):
+    """ Obtain an image for the requested workflow.
+
+    Image must be sent as an attachment with a valid filename and be in either
+    JPG or DNG format. Image will be stored in the 'raw' subdirectory of the
+    workflow directory.
+    """
+    allowed = lambda x: x.rsplit('.', 1)[1].lower() in ('jpg', 'jpeg', 'dng')
+    file = request.files['file']
+    if not allowed(file.filename):
+        raise ApiException("Only JPG or DNG files are permitted", 400)
+    save_path = workflow.path/'raw'
+    if not save_path.exists():
+        save_path.mkdir()
+    if file and allowed(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(unicode(save_path/filename))
+        return "OK"
+
+
+>>>>>>> web: Use proper Exceptions for API errors
 @app.route('/api/workflow/<workflow:workflow>/image/<int:img_num>',
            methods=['GET'])
 def get_workflow_image(workflow, img_num):
@@ -485,7 +531,8 @@ def prepare_capture(workflow):
 
     """
     if app.config['mode'] not in ('scanner', 'full'):
-        abort(404)
+        raise ApiException("Only possible when running in 'scanner' or 'full'"
+                           " mode.", 503)
 
     # Check if any other workflow is active and finish, if neccessary
     logger.debug("Finishing previous workflows")
@@ -508,7 +555,8 @@ def trigger_capture(workflow):
     this call in JSON notation.
     """
     if app.config['mode'] not in ('scanner', 'full'):
-        abort(404)
+        raise ApiException("Only possible when running in 'scanner' or 'full'"
+                           " mode.", 503)
     if workflow.step != 'capture':
         # TODO: Abort with error, since capture has to be prepared first
         workflow.prepare_capture()
@@ -516,7 +564,7 @@ def trigger_capture(workflow):
         workflow.capture(retake=('retake' in request.args))
     except IOError as e:
         logger.error(e)
-        abort(500)
+        raise ApiException("Error during capture: {0}".format(e.message), 500)
     return jsonify({
         'pages_shot': len(workflow.images),
         'images': [get_image_url(workflow, x)
@@ -529,13 +577,17 @@ def trigger_capture(workflow):
 def finish_capture(workflow):
     """ Wrap up capture process on the requested workflow. """
     if app.config['mode'] not in ('scanner', 'full'):
-        abort(404)
+        raise ApiException("Only possible when running in 'scanner' or 'full'"
+                           " mode.", 503)
     workflow.finish_capture()
     return 'OK'
 
 
 @app.route('/api/workflow/<workflow:workflow>/process', methods=['POST'])
 def start_processing(workflow):
+    if app.config['mode'] not in ('processor', 'full'):
+        raise ApiException("Only possible when running in 'processor' or"
+                           " 'full' mode.", 503)
     from tasks import process_workflow
     process_workflow(workflow.id)
     return 'OK'
@@ -543,6 +595,9 @@ def start_processing(workflow):
 
 @app.route('/api/workflow/<workflow:workflow>/output', methods=['POST'])
 def start_output_generation(workflow):
+    if app.config['mode'] not in ('processor', 'full'):
+        raise ApiException("Only possible when running in 'processor' or"
+                           " 'full' mode.", 503)
     from tasks import output_workflow
     output_workflow(workflow.id)
     return 'OK'
@@ -554,7 +609,7 @@ def start_output_generation(workflow):
 @app.route('/api/system/shutdown', methods=['POST'])
 def shutdown():
     if not app.config['standalone']:
-        abort(404)
+        abort(503)
     # NOTE: This requires that the user running spreads can execute
     #       /sbin/shutdown via sudo.
     logger.info("Shutting device down")
