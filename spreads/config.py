@@ -106,11 +106,11 @@ class Configuration(object):
             driver_name = self["driver"].get()
             templates['device'] = (spreads.plugin.get_driver(driver_name)
                                    .configuration_template())
-            plugins = spreads.plugin.get_plugins(*self["plugins"].get())
-            for name, plugin in plugins.iteritems():
-                tmpl = plugin.configuration_template()
-                if tmpl:
-                    templates[name] = tmpl
+        plugins = spreads.plugin.get_plugins(*self["plugins"].get())
+        for name, plugin in plugins.iteritems():
+            tmpl = plugin.configuration_template()
+            if tmpl:
+                templates[name] = tmpl
         return templates
 
     @property
