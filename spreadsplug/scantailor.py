@@ -48,7 +48,7 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
     @classmethod
     def configuration_template(cls):
         conf = {
-            'autopilot': OptionTemplate(value=False,
+            'autopilot': OptionTemplate(value=True,
                                         docstring="Skip manual correction"),
             'rotate': OptionTemplate(value=False, docstring="Rotate pages"),
             'split_pages': OptionTemplate(value=True,
