@@ -30,7 +30,7 @@ from spreads.util import abstractclassmethod, DeviceException
 
 logger = logging.getLogger("spreads.plugin")
 devices = None
-extensions = None
+extensions = dict()
 
 
 class ExtensionException(Exception):
@@ -337,10 +337,10 @@ def available_plugins():
 
 def get_plugins(*names):
     global extensions
-    if extensions is None:
-        extensions = OrderedDict()
+    plugins = OrderedDict()
     for name in names:
         if name in extensions:
+            plugins[name] = extensions[name]
             continue
         try:
             logger.debug("Looking for extension \"{0}\"".format(name))
@@ -350,12 +350,14 @@ def get_plugins(*names):
             raise ExtensionException("Could not locate extension '{0}'"
                                      .format(name))
         try:
-            extensions[name] = ext.load()
+            plugin = ext.load()
+            plugins[name] = plugin
+            extensions[name] = plugin
         except ImportError as err:
             raise ExtensionException(
                 "Missing dependency for extension '{0}': {1}"
                 .format(name, err.message[16:]))
-    return extensions
+    return plugins
 
 
 def available_drivers():
