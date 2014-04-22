@@ -53,7 +53,7 @@
         input = (
           <select id={name} multiple={false} valueLink={bindFunc(name)}>
             {_.map(option.value, function(key) {
-              return <option value={key}>{key}</option>;
+              return <option key={key} value={key}>{key}</option>;
             })}
           </select>
         );
@@ -154,11 +154,18 @@
       this.forceUpdate();
     },
     render: function() {
-      var templates = window.pluginTemplates,
+      var templates = this.props.templates,
+          plugins = _.filter(this.props.workflow.get('config').plugins, function(plugin) {
+            return !_.isEmpty(templates[plugin]);
+          }),
           /* If no plugin is explicitely selected, use the first one */
-          selectedPlugin = this.state.selectedPlugin || _.keys(templates)[0];
-      /* Don't display anything if there are no templates */
-      if (_.isEmpty(templates)) {
+          selectedPlugin = this.state.selectedPlugin;
+
+      if (!selectedPlugin || !_.contains(plugins, selectedPlugin)){
+        selectedPlugin = plugins[0];
+      }
+      /* Don't display anything if there are no plugins */
+      if (_.isEmpty(plugins)) {
         return <row />;
       }
       return (
@@ -166,8 +173,8 @@
           <column size='12'>
             <label>Configure plugin</label>
             <select onChange={this.handleSelect}>
-              {_.keys(templates).map(function(plugin) {
-                return <option key={plugin} value={plugin}>{capitalize(plugin)}</option>;
+              {plugins.map(function(plugin) {
+                return <option key={plugin} value={plugin}>{_.capitalize(plugin)}</option>;
               })}
             </select>
             <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}

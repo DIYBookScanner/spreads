@@ -117,7 +117,8 @@
                 </column>
             </row>
             <PluginConfiguration workflow={this.props.workflow}
-                                errors={this.state.errors} />
+                                 errors={this.state.errors}
+                                 templates={window.pluginTemplates}/>
             <row>
                 <column size='12'>
                   <button className={"action-button small" + (this.state.submitting ? 'disabled' : '')}>

@@ -99,6 +99,14 @@
                     {this.props.smallDisplay && " Transfer"}
                   </a>
                 </li>}
+              {window.config.web.postprocessing_server && window.config.web.mode === 'scanner' &&
+                <li>
+                  <a title="Submit for postprocessing"
+                      href={'/workflow/' + this.props.workflowId + '/submit'}
+                      className="action-button small fi-cloud">
+                    {this.props.smallDisplay && " Submit"}
+                  </a>
+                </li>}
             </ul>}
           </div>
         </row>
@@ -339,6 +347,7 @@
                     <li>Download it</li>
                     <li>Open its capture view</li>
                     <li>Transfer it to a removable storage device</li>
+                    <li>Upload it to a remote postprocessing server</li>
                   </ul>
                 </p>
                 <p>

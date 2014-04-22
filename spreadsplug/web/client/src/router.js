@@ -53,6 +53,7 @@
       "workflow/:id":           "viewWorkflow",
       "workflow/:id/edit":      "editWorkflow",
       "workflow/:id/capture":   "startCapture",
+      "workflow/:id/submit":    "submitWorkflow",
       "logging":                "displayLog"
     },
     /**
@@ -83,6 +84,9 @@
     },
     startCapture: function(workflowId) {
       this._renderView("capture", workflowId);
+    },
+    submitWorkflow: function(workflowId) {
+      this._renderView("submit", workflowId);
     },
     displayLog: function() {
       this._renderView("log");

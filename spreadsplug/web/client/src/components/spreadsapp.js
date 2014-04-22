@@ -26,6 +26,7 @@
       CaptureInterface = require('./capture'),
       WorkflowDetails = require('./workflow'),
       WorkflowList = require('./workflowlist'),
+      SubmissionForm = require('./submission'),
       NavigationBar = require('./navbar'),
       LogDisplay = require('./logdisplay.js'),
       fnAlert = require('./foundation').alert;
@@ -105,6 +106,8 @@
         return <WorkflowDetails workflow={workflows.get(workflowId)}/>;
       case "edit":
         return <WorkflowForm workflow={workflows.get(workflowId)} isNew={false} />;
+      case "submit":
+        return <SubmissionForm workflow={workflows.get(workflowId)} />;
       case "log":
         return <LogDisplay />;
       default:
