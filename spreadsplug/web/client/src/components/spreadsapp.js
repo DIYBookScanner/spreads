@@ -76,7 +76,6 @@
       var mappings = {
         create:       "spreads: new workflow",
         capture:      "spreads: capture",
-        preferences:  "spreads: preferences",
         view:         "spreads: workflow details",
         edit:         "spreads: edit workflow",
         root:         "spreads: workflow list"
