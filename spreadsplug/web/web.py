@@ -14,6 +14,7 @@ from collections import deque
 
 import blinker
 import pkg_resources
+import requests
 import zipstream
 from flask import (abort, json, jsonify, request, send_file, render_template,
                    url_for, redirect, make_response, Response)
@@ -44,6 +45,7 @@ cache = SimpleCache()
 
 # Register custom workflow converter for URL routes
 app.url_map.converters['workflow'] = WorkflowConverter
+
 
 class ApiException(Exception):
     def __init__(self, message, status_code=None, payload=None):
@@ -149,6 +151,38 @@ def get_available_plugins():
 @app.route('/api/plugins/templates')
 def template_endpoint():
     return jsonify(get_plugin_templates())
+
+
+@app.route('/api/remote/plugins')
+def get_remote_plugins():
+    if app.config['mode'] != 'scanner':
+        raise ApiException("Submission only possible when running in 'scanner'"
+                           " mode.", 503)
+    server = app.config['postproc_server']
+    if not server:
+        error_msg = ("Remote server was not configured, please set the"
+                     "'postprocessing_server' value in your configuration!")
+        logger.error(error_msg)
+        raise ApiException(error_msg, 500)
+    resp = requests.get(server + '/api/plugins')
+    return make_response(resp.content, resp.status_code,
+                         {'Content-Type': 'application/json'})
+
+
+@app.route('/api/remote/plugins/templates')
+def get_remote_templates():
+    if app.config['mode'] != 'scanner':
+        raise ApiException("Submission only possible when running in 'scanner'"
+                           " mode.", 503)
+    server = app.config['postproc_server']
+    if not server:
+        error_msg = ("Remote server was not configured, please set the"
+                     "'postprocessing_server' value in your configuration!")
+        logger.error(error_msg)
+        raise ApiException(error_msg, 500)
+    resp = requests.get(server + '/api/plugins/templates')
+    return make_response(resp.content, resp.status_code,
+                         {'Content-Type': 'application/json'})
 
 
 @app.route('/api/log')
@@ -409,39 +443,19 @@ def submit_workflow(workflow):
                      "'postprocessing_server' value in your configuration!")
         logger.error(error_msg)
         raise ApiException(error_msg, 500)
+    data = json.loads(request.data)
+    user_config = data.get('config', {})
     from tasks import upload_workflow
-    # TODO: Read config from request
-    upload_workflow(workflow.id, server+'/api/workflow')
-    return ''
+    # TODO: Pass config to this function
+    upload_workflow(workflow.id, server+'/api/workflow', user_config,
+                    start_process=data.get('start_process', False),
+                    start_output=data.get('start_output', False))
+    return 'OK'
 
 
 # =============== #
 #  Image-related  #
 # =============== #
-<<<<<<< HEAD
-=======
-@app.route('/api/workflow/<workflow:workflow>/image', methods=['POST'])
-def upload_workflow_image(workflow):
-    """ Obtain an image for the requested workflow.
-
-    Image must be sent as an attachment with a valid filename and be in either
-    JPG or DNG format. Image will be stored in the 'raw' subdirectory of the
-    workflow directory.
-    """
-    allowed = lambda x: x.rsplit('.', 1)[1].lower() in ('jpg', 'jpeg', 'dng')
-    file = request.files['file']
-    if not allowed(file.filename):
-        raise ApiException("Only JPG or DNG files are permitted", 400)
-    save_path = workflow.path/'raw'
-    if not save_path.exists():
-        save_path.mkdir()
-    if file and allowed(file.filename):
-        filename = secure_filename(file.filename)
-        file.save(unicode(save_path/filename))
-        return "OK"
-
-
->>>>>>> web: Use proper Exceptions for API errors
 @app.route('/api/workflow/<workflow:workflow>/image/<int:img_num>',
            methods=['GET'])
 def get_workflow_image(workflow, img_num):

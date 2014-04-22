@@ -83,8 +83,9 @@ def transfer_to_stick(workflow_id):
 
 
 @task_queue.task()
-def upload_workflow(workflow_id, endpoint):
-    # TODO: Obtain config and dump into data/config.yaml inside of zstream
+def upload_workflow(workflow_id, endpoint, user_config, start_process=False,
+                    start_output=False):
+    # TODO: Dump user_config into data/config.yaml inside of zstream
     logger.debug("Uploading workflow to postprocessing server")
     workflow = get_workflow(workflow_id)
     zstream = workflow.bag.package_as_zipstream(compression=None)
@@ -105,10 +106,18 @@ def upload_workflow(workflow_id, endpoint):
     resp = requests.post(endpoint, data=zstream_wrapper(),
                          headers={'Content-Type': 'application/zip'})
     if not resp:
-        signals['submit:completed'].send(workflow, error=resp.content)
-        logger.error("Upload failed: {0}".format(resp.content))
+        error_msg = "Upload failed: {0}".format(resp.content)
+        signals['submit:error'].send(workflow, message=error_msg,
+                                     data=resp.content)
+        logger.error(error_msg)
     else:
-        signals['submit:completed'].send(workflow, remote_id=resp.json()['id'])
+        wfid = resp.json()['id']
+        signals['submit:completed'].send(workflow, remote_id=wfid)
+        if start_process:
+            requests.post(endpoint + "{0}/process".format(wfid))
+        if start_output:
+            requests.post(endpoint + "{0}/output".format(wfid))
+        signals['submit:completed'].send(workflow, remote_id=wfid)
 
 
 @task_queue.task()
