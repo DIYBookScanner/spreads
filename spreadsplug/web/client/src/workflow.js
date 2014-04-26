@@ -41,9 +41,9 @@
     validation: {
       name: {
         required: true,
-        // All printable ASCII characters, except '/'
-        pattern: /^[\x20-\x2E\x30-\x7E]*$/,
-        msg: 'Please enter a valid name (ASCII only and no "/")'
+        // All printable ASCII characters, except '/' and '''
+        pattern: /^[\x20-\x27\x29-\x2E\x30-\x7E]*$/,
+        msg: 'Please enter a valid name (ASCII only and no "/" or "\'")'
       }
     },
     validate: function() {

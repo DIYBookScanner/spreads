@@ -1,3 +1,5 @@
+from __future__ import division
+
 import copy
 import itertools
 import logging
@@ -30,6 +32,7 @@ signals = blinker.Namespace()
 on_transfer_started = signals.signal('transfer:started')
 on_transfer_progressed = signals.signal('transfer:progressed')
 on_transfer_completed = signals.signal('transfer:completed')
+on_download_prepare_progressed = signals.signal('download:prepare-progressed')
 on_download_prepared = signals.signal('download:prepared')
 on_download_finished = signals.signal('download:finished')
 
@@ -73,10 +76,12 @@ def get_plugin_templates():
     plugins = plugin.get_plugins(*config['plugins'].get())
     scanner_exts = [name for name, cls in plugins.iteritems()
                     if any(issubclass(cls, mixin) for mixin in
-                    (plugin.CaptureHooksMixin, plugin.TriggerHooksMixin))]
+                           (plugin.CaptureHooksMixin,
+                            plugin.TriggerHooksMixin))]
     processor_exts = [name for name, cls in plugins.iteritems()
                       if any(issubclass(cls, mixin) for mixin in
-                      (plugin.ProcessHookMixin, plugin.OutputHookMixin))]
+                             (plugin.ProcessHookMixin,
+                              plugin.OutputHookMixin))]
     if app.config['mode'] == 'scanner':
         templates = {section: config.templates[section]
                      for section in config.templates
@@ -296,16 +301,21 @@ def download_workflow(workflow, fname):
     workflow.config.dump(unicode(workflow.path/'config.yaml'))
     # Find all files within up to two levels deep, relative to the
     # workflow base path
-    for fpath in workflow.path.glob('**/*'):
+    files = tuple(workflow.path.glob('**/*'))
+    num_files = len(files)
+    for num, fpath in enumerate(files):
         extract_path = '/'.join((workflow.path.stem,
                                  unicode(fpath.relative_to(workflow.path)))
                                 )
         logger.debug("Adding {0} to archive as {1}"
                      .format(fpath, extract_path))
         zstream.write(unicode(fpath), extract_path)
+        on_download_prepare_progressed.send(workflow,
+                                            progress=(num/num_files),
+                                            status=fpath.name)
     zstream_copy = copy.deepcopy(zstream)
     zipsize = sum(len(data) for data in zstream_copy)
-    on_download_prepared.send()
+    on_download_prepared.send(workflow)
 
     def zstream_wrapper():
         """ Wrapper around our zstream so we can emit a signal when all data
@@ -438,7 +448,8 @@ def get_workflow_image_thumb(workflow, img_num):
 # ================= #
 #  Capture-related  #
 # ================= #
-@app.route('/api/workflow/<workflow:workflow>/prepare_capture', methods=['POST'])
+@app.route('/api/workflow/<workflow:workflow>/prepare_capture',
+           methods=['POST'])
 def prepare_capture(workflow):
     """ Prepare capture for the requested workflow.
 
@@ -483,7 +494,8 @@ def trigger_capture(workflow):
     })
 
 
-@app.route('/api/workflow/<workflow:workflow>/finish_capture', methods=['POST'])
+@app.route('/api/workflow/<workflow:workflow>/finish_capture',
+           methods=['POST'])
 def finish_capture(workflow):
     """ Wrap up capture process on the requested workflow. """
     if app.config['mode'] not in ('scanner', 'full'):
