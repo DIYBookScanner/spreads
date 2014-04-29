@@ -206,9 +206,10 @@
      *
      * @param {url} - Image to display in lightbox
      */
-    openLightbox: function(img) {
+    openLightbox: function(img, targetPage) {
       this.setState({
-        lightboxImage: img
+        lightboxImage: img,
+        lightboxImageTarget: targetPage
       });
     },
     /**
@@ -217,6 +218,7 @@
     closeLightbox: function() {
       this.setState({
         lightboxImage: undefined,
+        lightboxImageTarget: undefined,
         refreshReview: false,
       });
     },
@@ -253,8 +255,8 @@
         speed = 0.0;
       }
       if (workflow.get('images').length) {
-        oddImage = workflow.get('images').slice(-2)[0];
-        evenImage = workflow.get('images').slice(-2)[1];
+        evenImage = workflow.get('images').slice(-2)[0];
+        oddImage = workflow.get('images').slice(-2)[1];
       }
       return (
         <div>
@@ -262,7 +264,8 @@
           {this.state.waiting && <LoadingOverlay message={this.state.waitMessage} />}
           {/* Display lightbox overlay? */}
           {this.state.lightboxImage &&
-            <lightbox onClose={this.closeLightbox} src={this.state.lightboxImage} />}
+            <lightbox onClose={this.closeLightbox} src={this.state.lightboxImage}
+                      targetPage={this.state.lightboxImageTarget} />}
           {this.state.displayConfig &&
             <form onSubmit={this.saveConfig}>
               <confirmModal onCancel={this.toggleConfigModal}>
@@ -294,53 +297,27 @@
                 *       the browser to load from the server and not from the cache.
                 *       This is needed since the images might change on the server,
                 *       e.g. after a retake. */}
-              {/* Landscape layout */}
-              <ul className="show-for-landscape small-block-grid-2 capture-preview">
+              <ul className="small-block-grid-2 capture-preview">
+                <li>
+                  <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('even');}.bind(this)}> Crop</a>
+                  {evenImage ?
+                    <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix, 'even');}.bind(this)}>
+                      <img className="even" src={evenImage+"/thumb?"+randomSuffix} />
+                    </a>:
+                    <img className="placeholder even" src={placeholderImg}/>}
+                  {this.state.cropParams.even &&
+                      <div className="crop-preview" style={this.getCropPreviewStyle('even')}/>
+                  }
+                </li>
                 <li>
                   <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('odd');}.bind(this)}> Crop</a>
                   {oddImage ?
-                    <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
-                      <img src={oddImage+"/thumb?"+randomSuffix} ref="thumb-odd"/>
-                    </a>:
-                    <img className="placeholder" src={placeholderImg}/>}
+                  <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix, 'odd');}.bind(this)}>
+                    <img className="odd" src={oddImage+"/thumb?"+randomSuffix} />
+                  </a>:
+                  <img className="placeholder odd" src={placeholderImg}/>}
                   {this.state.cropParams.odd &&
                     <div className="crop-preview" style={this.getCropPreviewStyle('odd')}/>
-                  }
-                </li>
-                <li>
-                  <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('even');}.bind(this)}> Crop</a>
-                  {evenImage ?
-                  <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
-                    <img src={evenImage+"/thumb?"+randomSuffix} ref="thumb-even"/>
-                  </a>:
-                  <img className="placeholder" src={placeholderImg}/>}
-                  {this.state.cropParams.even &&
-                      <div className="crop-preview" style={this.getCropPreviewStyle('even')}/>
-                  }
-                </li>
-              </ul>
-              {/* Portrait layout */}
-              <ul className="show-for-portrait small-block-grid-1 medium-block-grid-2 capture-preview">
-                  <li>
-                  <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('odd');}.bind(this)}> Crop</a>
-                  {oddImage ?
-                    <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
-                      <img src={oddImage+"/thumb?"+randomSuffix} ref="thumb-odd"/>
-                    </a>:
-                    <img className="placeholder" src={placeholderImg}/>}
-                    {this.state.cropParams.odd &&
-                        <div className="crop-preview" style={this.getCropPreviewStyle('odd')}/>
-                    }
-                  </li>
-                <li>
-                  <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('even');}.bind(this)}> Crop</a>
-                  {evenImage ?
-                  <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
-                    <img src={evenImage+"/thumb?"+randomSuffix} ref="thumb-even" />
-                  </a>:
-                  <img className="placeholder" src={placeholderImg}/>}
-                  {this.state.cropParams.even &&
-                      <div className="crop-preview" style={this.getCropPreviewStyle('even')}/>
                   }
                 </li>
               </ul>

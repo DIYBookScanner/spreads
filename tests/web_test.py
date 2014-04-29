@@ -236,7 +236,7 @@ def test_get_workflow_image_thumb(client):
     wfid = create_workflow(client)
     rv = client.get('/api/workflow/{0}/image/1/thumb'.format(wfid))
     assert rv.status_code == 200
-    assert jpegtran.JPEGImage(blob=rv.data).width
+    assert jpegtran.JPEGImage(blob=rv.data).width == 130
 
 
 def test_prepare_capture(client):

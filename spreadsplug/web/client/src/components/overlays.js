@@ -53,7 +53,7 @@
       return (
         <div title="Close lightbox" onClick={this.props.onClose} className="overlay lightbox">
           <a data-bypass={true} title="Open full resolution image in new tab" href={this.props.src} target='_blank'>
-            <img src={this.props.src} />
+            <img className={this.props.targetPage || ''} src={this.props.src} />
           </a>
         </div>
       );
