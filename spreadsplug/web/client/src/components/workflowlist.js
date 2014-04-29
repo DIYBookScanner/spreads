@@ -145,7 +145,7 @@
           {/* Display waiting for download overlay? */}
           {this.state.downloadWaiting &&
             <ProgressOverlay progress={this.state.downloadPrepareProgress}
-                             statusMessage={this.state.downloadPrepareCurrentFile || "Preparing download..."}/>}
+                             statusMessage={this.state.downloadPrepareCurrentFile || "Preparing download..."}/>
           }
           {/* Display deletion confirmation modal? */}
           {this.state.deleteModal &&

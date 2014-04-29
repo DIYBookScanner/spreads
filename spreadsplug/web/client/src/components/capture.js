@@ -102,6 +102,10 @@
      * Trigger a single capture, display activity overlay until it is finished
      */
     handleCapture: function() {
+      if (this.state.waiting) {
+        // There is already a capture (or preparation) in progress.
+        return;
+      }
       console.log("Triggering capture");
       this.props.workflow.triggerCapture(false, function() {
         if (this.state.refreshReview) {
@@ -114,6 +118,10 @@
      * ones, display activity overlay until it is finished.
      */
     handleRetake: function() {
+      if (this.state.waiting) {
+        // There is already a capture (or preparation) in progress.
+        return;
+      }
       console.log("Re-taking last shot");
       this.props.workflow.triggerCapture(true, function() {
         if (!this.state.refreshReview) {
