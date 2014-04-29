@@ -65,6 +65,7 @@
               onConfirm={this.doShutdown} fixed={true}>
               <h1>Shut down</h1>
               <p>Do you really want to shut down the device?</p>
+              <p><strong>If you do, please make sure that you turn off your devices before confirming!</strong></p>
             </confirmModal>}
           <nav className="top-bar" data-topbar>
             <ul className="title-area">
