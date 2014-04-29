@@ -59,7 +59,7 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
         # TODO: This plugin should be 'output' only, since we ideally work
         #       with fully binarized output images
         logger.info("Performing OCR")
-        img_dir = path / 'done'
+        img_dir = path / 'data' / 'done'
         self._perform_ocr(img_dir, self.config["language"].get())
         for fname in img_dir.glob('*.html'):
             self._fix_hocr(fname)
@@ -101,17 +101,18 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
         #       pdfbeads.
         #       See the following bugreport for more information:
         #       http://rubyforge.org/tracker/index.php?func=detail&aid=29737&group_id=9752&atid=37737
+        # FIXME: Somehow this does not work for some files, find out why
         with fpath.open('r') as fp:
-            new_content = re.sub(r'(<span[^>]*>(<strong>)? +(<\/strong>)?'
-                                 r'<\/span> *)(<span[^>]*>(<strong>)? '
-                                 r'+(<\/strong>)?<\/span> *)',
-                                 r'\g<1>', fp.read())
+            new_content = re.sub(
+                r'(<span[^>]*>(<strong>)? +(<\/strong>)?<\/span> *)'
+                r'(<span[^>]*>(<strong>)? +(<\/strong>)?<\/span> *)',
+                r'\g<1>', fp.read())
         with fpath.open('w') as fp:
             fp.write(new_content)
 
     def output(self, path):
-        outfile = path / 'out' / "{0}.hocr".format(path.name)
-        inpath = path / 'done'
+        outfile = path / 'data' / 'out' / "{0}.hocr".format(path.name)
+        inpath = path / 'data' / 'done'
         out_root = ET.Element('html')
         ET.SubElement(out_root, 'head')
         body = ET.SubElement(out_root, 'body')

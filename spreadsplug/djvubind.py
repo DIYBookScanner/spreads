@@ -37,8 +37,8 @@ class DjvuBindPlugin(HookPlugin, OutputHookMixin):
 
     def output(self, path):
         logger.info("Assembling DJVU.")
-        img_dir = path / 'done'
-        djvu_file = path / 'out' / "{0}.djvu".format(path.name)
+        img_dir = path / 'data' / 'done'
+        djvu_file = path / 'data' / 'out' / "{0}.djvu".format(path.name)
         cmd = ["djvubind", unicode(img_dir)]
         if not img_dir.glob("*.html"):
             cmd.append("--no-ocr")

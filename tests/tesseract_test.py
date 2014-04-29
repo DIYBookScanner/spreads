@@ -68,16 +68,17 @@ def test_fix_hocr(plugin, tmpdir):
 def test_output(plugin, tmpdir):
     basedir = tmpdir.join('test')
     basedir.mkdir()
-    basedir.join('out').mkdir()
-    done_path = basedir.join('done')
+    basedir.join('data').mkdir()
+    basedir.join('data', 'out').mkdir()
+    done_path = basedir.join('data', 'done')
     done_path.mkdir()
     for idx in xrange(20):
         shutil.copyfile('./tests/data/000.hocr',
                         unicode(done_path.join('{0:03}.html'.format(idx))))
     fpath = Path(unicode(basedir))
     plugin.output(fpath)
-    assert basedir.join('out', 'test.hocr').exists()
-    tree = ET.parse(unicode(basedir.join('out', 'test.hocr')))
+    assert basedir.join('data', 'out', 'test.hocr').exists()
+    tree = ET.parse(unicode(basedir.join('data', 'out', 'test.hocr')))
     assert len(tree.findall('.//span[@class="ocrx_word"]')) == 20*201
     assert len(tree.findall('.//span[@class="ocr_line"]')) == 20*26
     assert len(tree.findall('.//p[@class="ocr_par"]')) == 20*4

@@ -49,7 +49,8 @@ def mock_dbus(tmpdir):
             stickdir.mkdir()
             mockdevs = [mock.Mock(), mock.Mock()]*2
             mockobj = mock.MagicMock()
-            mockobj.get_dbus_method.return_value.return_value = unicode(stickdir)
+            mockobj.get_dbus_method.return_value.return_value = unicode(
+                stickdir)
             mockobj.EnumerateDevices.return_value = mockdevs
             mockobj.Get.side_effect = [True, 'usb', True]*2
             values['Interface'].return_value = mockobj
@@ -188,7 +189,7 @@ def test_download_workflow(client):
                       follow_redirects=True)
     zfile = zipfile.ZipFile(StringIO.StringIO(resp.data))
     assert len([x for x in zfile.namelist()
-                if '/raw/' in x and x.endswith('jpg')]) == 20
+                if '/data/raw/' in x and x.endswith('jpg')]) == 20
 
 
 def test_transfer_workflow(client, mock_dbus, tmpdir):
@@ -196,35 +197,22 @@ def test_transfer_workflow(client, mock_dbus, tmpdir):
     with mock.patch('spreadsplug.web.task_queue') as mock_tq:
         mock_tq.task.return_value = lambda x: x
         client.post('/api/workflow/{0}/transfer'.format(wfid))
-    assert len([x for x in tmpdir.visit('stick/*/raw/*.jpg')]) == 20
+    assert len([x for x in tmpdir.visit('stick/*/data/raw/*.jpg')]) == 20
 
 
-def test_submit_workflow(app, tmpdir):
+@mock.patch('spreadsplug.web.tasks.requests')
+def test_submit_workflow(requests, app, tmpdir):
     app.config['postproc_server'] = 'http://127.0.0.1:5000'
     app.config['mode'] = 'scanner'
     client = app.test_client()
     wfid = create_workflow(client)
-    with mock.patch('spreadsplug.web.web.requests.post') as post:
-        post.return_value.json = {'id': 1}
+    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+        mock_tq.task.return_value = lambda x: x
+        requests.post.return_value.json.return_value = {'id': 1}
         client.post('/api/workflow/{0}/submit'.format(wfid))
-    wfname = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)['name']
-    for img in tmpdir.join(wfname, 'raw').listdir():
-        post.assert_any_call('http://127.0.0.1:5000/api/workflow/{0}/image'
-                             .format(wfid),
-                             files={'file': {
-                                 img.basename: img.open('rb').read()}})
-
-
-def test_upload_workflow_image(client, tmpdir):
-    wfid = create_workflow(client, num_captures=None)
-    client.post('/api/workflow/{0}/image'.format(wfid),
-                data={'file': ('./tests/data/even.jpg', '000.jpg')})
-    wfdata = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)
-    assert len(wfdata['images']) == 1
-    assert tmpdir.join(wfdata['name'], 'raw', '000.jpg').exists()
-    resp = client.post('/api/workflow/{0}/image'.format(wfid),
-                       data={'file': ('./tests/data/even.jpg', '000.png')})
-    assert resp.status_code == 500
+    assert requests.post.call_count == 1
+    # TODO: Iterate through data, assert events are emitted
+    # TODO: Assert completed are emitted
 
 
 def test_get_workflow_image(client):
@@ -237,8 +225,9 @@ def test_get_workflow_image(client):
 
 def test_get_workflow_image_scaled(client):
     wfid = create_workflow(client)
-    img = jpegtran.JPEGImage(blob=client.get(
-        '/api/workflow/{0}/image/0?width=300'.format(wfid)).data)
+    rv = client.get('/api/workflow/{0}/image/0?width=300'.format(wfid))
+    assert rv.status_code == 200
+    img = jpegtran.JPEGImage(blob=rv.data)
     assert img.width == 300
 
 
@@ -254,6 +243,7 @@ def test_prepare_capture(client):
     wfid = create_workflow(client, num_captures=None)
     rv = client.post('/api/workflow/{0}/prepare_capture'.format(wfid))
     assert rv.status_code == 200
+    client.post('/api/workflow/{0}/finish_capture'.format(wfid))
     # TODO: Verify workflow was prepared, verify right data
     #       was returned
 
@@ -265,6 +255,7 @@ def test_prepare_capture_when_other_active(client):
     wfid = create_workflow(client, num_captures=None)
     assert (client.post('/api/workflow/{0}/prepare_capture'.format(wfid))
             .status_code) == 200
+    client.post('/api/workflow/{0}/finish_capture'.format(wfid))
 
 
 def test_capture(client):
@@ -273,6 +264,7 @@ def test_capture(client):
             .status_code) == 200
     assert (client.post('/api/workflow/{0}/capture'.format(wfid))
             .status_code) == 200
+    client.post('/api/workflow/{0}/finish_capture'.format(wfid))
     # TODO: Verify it was triggered on the workflow, verify
     #       the right data was returned
 

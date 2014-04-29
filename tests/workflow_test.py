@@ -38,7 +38,7 @@ def test_get_devices_no_device(workflow):
 
 
 def test_get_next_filename(workflow):
-    root_path = workflow.path/'raw'
+    root_path = workflow.path/'data'/'raw'
     fname = workflow._get_next_filename(target_page='odd')
     assert unicode(fname) == unicode(root_path/"001")
     fname = workflow._get_next_filename(target_page='even')
@@ -58,6 +58,7 @@ def test_prepare_capture(workflow):
     assert workflow.prepared
     assert workflow.active
     assert workflow.step == 'capture'
+    workflow.finish_capture()
 
 
 def test_capture(workflow):
@@ -65,10 +66,12 @@ def test_capture(workflow):
     workflow.config['device']['flip_target_pages'] = False
     for dev in workflow.devices:
         dev.delay = 0.25
+    workflow.prepare_capture()
     workflow.capture()
     assert workflow.pages_shot == 2
     assert (workflow.images[1].stat().st_ctime -
             workflow.images[0].stat().st_ctime) < 0.25
+    workflow.finish_capture()
 
 
 def test_capture_noparallel(workflow):
@@ -76,20 +79,25 @@ def test_capture_noparallel(workflow):
     workflow.config['device']['flip_target_pages'] = False
     for dev in workflow.devices:
         dev.delay = 0.25
+    workflow.prepare_capture()
     workflow.capture()
     assert workflow.pages_shot == 2
     assert round(workflow.images[1].stat().st_ctime -
                  workflow.images[0].stat().st_ctime, 2) >= 0.25
+    workflow.finish_capture()
 
 
 def test_capture_flip_target_pages(workflow):
     workflow.config['device']['parallel_capture'] = False
     workflow.config['device']['flip_target_pages'] = True
+    workflow.prepare_capture()
     workflow.capture()
     # TODO: Verify
+    workflow.finish_capture()
 
 
 def test_finish_capture(workflow):
+    workflow.prepare_capture()
     workflow.finish_capture()
     # TODO: Verify
 

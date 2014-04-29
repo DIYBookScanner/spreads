@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# -*- coding: utf-8 -*-
+
 import logging
 
 from concurrent import futures
@@ -47,7 +49,7 @@ class AutoRotatePlugin(HookPlugin, ProcessHookMixin):
             progress=float(idx)/num_total)
 
     def process(self, path):
-        img_dir = path / 'raw'
+        img_dir = path / 'data' / 'raw'
         logger.info("Rotating images in {0}".format(img_dir))
         with futures.ProcessPoolExecutor() as executor:
             files = sorted(img_dir.iterdir())

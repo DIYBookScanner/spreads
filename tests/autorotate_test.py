@@ -12,7 +12,7 @@ def test_process():
     path = mock.MagicMock(wraps=Path('/tmp/foobar'))
     files = [Path('001.jpg'), Path('002.jpg'), Path('003.jpg'),
              Path('004.jpg'), Path('foo.txt')]
-    (path/'raw').iterdir.return_value = files
+    (path/'data'/'raw').iterdir.return_value = files
 
     with mock.patch('concurrent.futures.ProcessPoolExecutor') as mockctx:
         plugin = autorotate.AutoRotatePlugin(config)

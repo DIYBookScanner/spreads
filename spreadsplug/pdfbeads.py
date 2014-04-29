@@ -39,8 +39,8 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
     def output(self, path):
         logger.info("Assembling PDF.")
         path = path.absolute()
-        img_dir = path / 'done'
-        pdf_file = path / 'out' / "{0}.pdf".format(path.name)
+        img_dir = path / 'data' / 'done'
+        pdf_file = path / 'data' / ' out' / "{0}.pdf".format(path.name)
         img_files = [unicode(x.name) for x in sorted(img_dir.glob('*.tif'))]
         cmd = ["pdfbeads", "-d"] + img_files + ["-o", unicode(pdf_file)]
         logger.debug("Running " + " ".join(cmd))

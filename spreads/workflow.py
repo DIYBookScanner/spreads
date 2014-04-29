@@ -22,8 +22,10 @@ spreads workflow object.
 from __future__ import division, unicode_literals
 
 import logging
+import multiprocessing
 import threading
 
+import spreads.vendor.bagit as bagit
 import spreads.vendor.confit as confit
 from blinker import Namespace
 from concurrent.futures import ThreadPoolExecutor
@@ -32,7 +34,7 @@ from spreads.vendor.pathlib import Path
 import spreads.plugin as plugin
 from spreads.config import Configuration
 from spreads.util import (check_futures_exceptions, get_free_space,
-                          DeviceException)
+                          DeviceException, SpreadsException)
 
 
 class Workflow(object):
@@ -46,8 +48,11 @@ class Workflow(object):
         if not isinstance(path, Path):
             path = Path(path)
         self.path = path
-        if not self.path.exists():
-            self.path.mkdir()
+        try:
+            self.bag = bagit.Bag(unicode(self.path))
+        except bagit.BagError:
+            # Convert non-bagit directories from older versions
+            self.bag = bagit.Bag.convert_directory(unicode(self.path))
         self.id = id
         if self.images:
             self.pages_shot = len(self.images)
@@ -62,8 +67,10 @@ class Workflow(object):
             self.config = self._load_config(config)
         self._capture_lock = threading.RLock()
         self.active = False
+        self.prepared = False
         self._devices = None
         self._pluginmanager = None
+        self._pool_executor = None
 
         # Instantiate plugins
         self.plugins = [cls(self.config) for cls in
@@ -90,15 +97,19 @@ class Workflow(object):
 
     @property
     def images(self):
-        # Get fresh image list if number of pages has changed
-        raw_path = self.path / 'raw'
+        # NOTE: We are not using the bag for this, since we hash files
+        #       asynchronously and it takes some time for the files to
+        #       land in the bag.
+        raw_path = self.path / 'data' / 'raw'
         if not raw_path.exists():
             return []
         return sorted(raw_path.iterdir())
 
     @property
     def out_files(self):
-        out_path = self.path / 'out'
+        # NOTE: Not using the bag here either, check :ref:`images` for
+        #       details
+        out_path = self.path / 'data' / 'out'
         if not out_path.exists():
             return []
         else:
@@ -153,7 +164,7 @@ class Workflow(object):
     def _load_config(self, value):
         # Load default configuration
         config = Configuration()
-        cfg_file = self.path / 'config.yml'
+        cfg_file = self.path / 'data' / 'config.yml'
         if value is None and cfg_file.exists():
             # Load workflow-specific configuration from file
             value = confit.ConfigSource({}, unicode(cfg_file))
@@ -189,7 +200,7 @@ class Workflow(object):
                             (e.g. /tmp/proj/003.jpg)
         :rtype:             pathlib.Path
         """
-        base_path = self.path / 'raw'
+        base_path = self.path / 'data' / 'raw'
         if not base_path.exists():
             base_path.mkdir()
 
@@ -207,6 +218,8 @@ class Workflow(object):
     def prepare_capture(self):
         self._logger.info("Preparing capture.")
         self.step = 'capture'
+        self._pool_executor = ThreadPoolExecutor(
+            max_workers=multiprocessing.cpu_count())
         if any(dev.target_page is None for dev in self.devices):
             raise DeviceException(
                 "Target page for at least one of the devicescould not be"
@@ -231,6 +244,8 @@ class Workflow(object):
         self.active = True
 
     def capture(self, retake=False):
+        if not self.prepared:
+            raise SpreadsException("Capture was not prepared before.")
         with self._capture_lock:
             self._logger.info("Triggering capture.")
             self.on_capture_triggered.send(self)
@@ -258,14 +273,20 @@ class Workflow(object):
             check_futures_exceptions(futures)
 
             self._run_hook('capture', self.devices, self.path)
+            # Queue new images for hashing
+            self._pool_executor.submit(self.bag.add_payload,
+                                       *self.images[-num_devices:])
             if not retake:
                 self.pages_shot += len(self.devices)
 
-            self.on_capture_succeeded.send(self,
-                                           images=self.images[-num_devices:])
+            self.on_capture_succeeded.send(
+                self, images=self.images[-num_devices:])
 
     def finish_capture(self):
         self.step_done = True
+        if self._pool_executor:
+            self._pool_executor.shutdown(wait=False)
+            self._pool_executor = None
         with ThreadPoolExecutor(len(self.devices)) as executor:
             futures = []
             self._logger.debug("Sending finish_capture command to devices")
@@ -282,6 +303,7 @@ class Workflow(object):
         self.step_done = False
         self._logger.info("Starting postprocessing...")
         self._run_hook('process', self.path)
+        self.bag.add_payload(str(self.path/'data'/'done'))
         self._logger.info("Done with postprocessing!")
         self.step_done = True
 
@@ -289,9 +311,10 @@ class Workflow(object):
         self._logger.info("Generating output files...")
         self.step = 'output'
         self.step_done = False
-        out_path = self.path / 'out'
+        out_path = self.path / 'data' / 'out'
         if not out_path.exists():
             out_path.mkdir()
         self._run_hook('output', self.path)
+        self.bag.add_payload(str(out_path))
         self._logger.info("Done generating output files!")
         self.step_done = True

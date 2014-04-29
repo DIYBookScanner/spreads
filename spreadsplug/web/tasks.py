@@ -17,18 +17,26 @@
 
 from __future__ import division
 
+import copy
 import logging
 import shutil
 
+import blinker
+import requests
 from spreads.vendor.pathlib import Path
 
 from spreadsplug.web import task_queue
 from persistence import get_workflow
 from util import find_stick
-from web import (on_transfer_started, on_transfer_progressed,
-                 on_transfer_completed)
 
 logger = logging.getLogger('spreadsplug.web.tasks')
+signals = blinker.Namespace()
+on_transfer_started = signals.signal('transfer:started')
+on_transfer_progressed = signals.signal('transfer:progressed')
+on_transfer_completed = signals.signal('transfer:completed')
+on_submit_started = signals.signal('submit:started')
+on_submit_progressed = signals.signal('submit:progressed')
+on_submit_completed = signals.signal('submit:completed')
 
 
 @task_queue.task()
@@ -50,11 +58,10 @@ def transfer_to_stick(workflow_id):
         if target_path.exists():
             shutil.rmtree(unicode(target_path))
         target_path.mkdir()
-        on_transfer_started.send(workflow)
+        signals['transfer:started'].send(workflow)
         for num, path in enumerate(files, 1):
-            on_transfer_progressed.send(workflow,
-                                        progress=(num/num_files)*0.79,
-                                        status=path.name)
+            signals['transfer:progressed'].send(
+                workflow, progress=(num/num_files)*0.79, status=path.name)
             target = target_path/path.relative_to(workflow.path)
             if path.is_dir():
                 target.mkdir()
@@ -62,8 +69,8 @@ def transfer_to_stick(workflow_id):
                 shutil.copyfile(unicode(path), unicode(target))
     finally:
         if 'mount_point' in locals():
-            on_transfer_progressed.send(workflow, progress=0.8,
-                                        status="Syncing...")
+            signals['transfer:progressed'].send(workflow, progress=0.8,
+                                                status="Syncing...")
             unmount = stick.get_dbus_method(
                 "FilesystemUnmount",
                 dbus_interface="org.freedesktop.UDisks.Device")
@@ -72,4 +79,33 @@ def transfer_to_stick(workflow_id):
                                       # long time, since the device has to be
                                       # synced.
         workflow.step_done = True
-        on_transfer_completed.send(workflow)
+        signals['transfer:completed'].send(workflow)
+
+
+@task_queue.task()
+def upload_workflow(workflow_id, endpoint):
+    # TODO: Obtain config and dump into data/config.yaml inside of zstream
+    logger.debug("Uploading workflow to postprocessing server")
+    workflow = get_workflow(workflow_id)
+    zstream = workflow.bag.package_as_zipstream(compression=None)
+    zstream_copy = copy.deepcopy(zstream)
+    num_data = sum(1 for x in zstream_copy)
+
+    def zstream_wrapper():
+        """ Wrapper around our zstream so we can emit a signal when all data
+        has been streamed to the client.
+        """
+        for num, data in enumerate(zstream):
+            signals['submit:progressed'].send(
+                workflow, progress=(num/num_data),
+                status="Uploading workflow...")
+            yield data
+
+    signals['submit:started'].send(workflow)
+    resp = requests.post(endpoint, data=zstream_wrapper(),
+                         headers={'Content-Type': 'application/zip'})
+    if not resp:
+        signals['submit:completed'].send(workflow, error=resp.content)
+        logger.error("Upload failed: {0}".format(resp.content))
+    else:
+        signals['submit:completed'].send(workflow, remote_id=resp.json()['id'])

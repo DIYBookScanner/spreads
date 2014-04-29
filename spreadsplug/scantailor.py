@@ -190,8 +190,8 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
                 " $PATH. Please install the appropriate"
                 " package(s)!")
         projectfile = path / "{0}.ScanTailor".format(path.name)
-        img_dir = path / 'raw'
-        out_dir = path / 'done'
+        img_dir = path / 'data' / 'raw'
+        out_dir = path / 'data' / 'done'
 
         if not projectfile.exists():
             self._generate_configuration(projectfile, img_dir, out_dir)

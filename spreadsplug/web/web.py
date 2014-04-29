@@ -4,18 +4,19 @@ import copy
 import itertools
 import logging
 import logging.handlers
+import os
 import shutil
+import StringIO
 import subprocess
 import time
+import zipfile
 from collections import deque
 
 import blinker
-import requests
 import zipstream
 from flask import (abort, json, jsonify, request, send_file, render_template,
                    url_for, redirect, make_response, Response)
 from jpegtran import JPEGImage
-from werkzeug import secure_filename
 from werkzeug.contrib.cache import SimpleCache
 
 import spreads.plugin as plugin
@@ -30,11 +31,8 @@ from util import (get_image_url, WorkflowConverter,
 logger = logging.getLogger('spreadsplug.web')
 
 signals = blinker.Namespace()
-on_transfer_started = signals.signal('transfer:started')
-on_transfer_progressed = signals.signal('transfer:progressed')
-on_transfer_completed = signals.signal('transfer:completed')
-on_download_prepare_progressed = signals.signal('download:prepare-progressed')
 on_download_prepared = signals.signal('download:prepared')
+on_download_prepare_progressed = signals.signal('download:prepare-progressed')
 on_download_finished = signals.signal('download:finished')
 
 # Event Queue for polling endpoints
@@ -147,18 +145,24 @@ def create_workflow():
 
     Returns the newly created workflow as a JSON object.
     """
-    data = json.loads(request.data)
-    path = Path(app.config['base_path'])/unicode(data['name'])
+    if request.content_type == 'application/zip':
+        zfile = zipfile.ZipFile(StringIO.StringIO(request.data))
+        zfile.extractall(path=app.config['base_path'])
+        wfname = os.path.dirname(zfile.filelist()[0].filename)
+        workflow = Workflow(path=os.path.join(app.config['base_path'], wfname))
+    else:
+        data = json.loads(request.data)
+        path = Path(app.config['base_path'])/unicode(data['name'])
 
-    # Setup default configuration
-    config = app.config['default_config']
-    # Overlay user-supplied values, if existant
-    user_config = data.get('config', None)
-    if user_config is not None:
-        config = config.with_overlay(user_config)
-    workflow = Workflow(config=config, path=path,
-                        step=data.get('step', None),
-                        step_done=data.get('step_done', None))
+        # Setup default configuration
+        config = app.config['default_config']
+        # Overlay user-supplied values, if existant
+        user_config = data.get('config', None)
+        if user_config is not None:
+            config = config.with_overlay(user_config)
+        workflow = Workflow(config=config, path=path,
+                            step=data.get('step', None),
+                            step_done=data.get('step_done', None))
     try:
         workflow.id = persistence.save_workflow(workflow)
     except persistence.ValidationError as e:
@@ -364,55 +368,15 @@ def submit_workflow(workflow):
         logger.error("Remote server was not configured, please set the"
                      "'postprocessing_server' value in your configuration!")
         abort(500)
-    logger.debug("Creating new workflow on postprocesing server")
-    resp = requests.post(server+'/api/workflow', data=json.dumps(
-        {'name': workflow.path.stem,
-         'step': 'capture',
-         'step_done': True}))
-    if not resp:
-        logger.error("Error creating remote workflow:\n{0}"
-                     .format(resp.content))
-        abort(resp.code)
-    remote_id = resp.json['id']
-    for imgpath in workflow.images:
-        logger.debug("Uploading image {0} to postprocessing server"
-                     .format(imgpath))
-        resp = requests.post("{0}/api/workflow/{1}/image"
-                             .format(server, remote_id),
-                             files={'file': {
-                                 imgpath.name: imgpath.open('rb').read()}}
-                             )
-        if not resp:
-            logger.error("Error uploading image {0} to postprocessing server:"
-                         " \n{1}".format(imgpath, resp.content))
-            abort(resp.code)
+    from tasks import upload_workflow
+    # TODO: Read config from request
+    upload_workflow(workflow.id, server+'/api/workflow')
     return ''
 
 
 # =============== #
 #  Image-related  #
 # =============== #
-@app.route('/api/workflow/<workflow:workflow>/image', methods=['POST'])
-def upload_workflow_image(workflow):
-    """ Obtain an image for the requested workflow.
-
-    Image must be sent as an attachment with a valid filename and be in either
-    JPG or DNG format. Image will be stored in the 'raw' subdirectory of the
-    workflow directory.
-    """
-    allowed = lambda x: x.rsplit('.', 1)[1].lower() in ('jpg', 'jpeg', 'dng')
-    file = request.files['file']
-    if not allowed(file.filename):
-        abort(500, 'Only JPG or DNG files are permitted')
-    save_path = workflow.path/'raw'
-    if not save_path.exists():
-        save_path.mkdir()
-    if file and allowed(file.filename):
-        filename = secure_filename(file.filename)
-        file.save(unicode(save_path/filename))
-        return "OK"
-
-
 @app.route('/api/workflow/<workflow:workflow>/image/<int:img_num>',
            methods=['GET'])
 def get_workflow_image(workflow, img_num):
