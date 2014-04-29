@@ -17,6 +17,9 @@ from spreads.plugin import DevicePlugin, DeviceFeatures
 from spreads.util import DeviceException
 
 
+WHITEBALANCE_MODES={ 'Auto': 0, 'Daylight': 1, 'Cloudy': 2, 'Tungsten': 3,
+           'Fluorescent': 4, 'Fluorescent H': 5, 'Custom': 7 }
+
 class CHDKPTPException(Exception):
     pass
 
@@ -49,6 +52,9 @@ class CHDKCameraDevice(DevicePlugin):
              'focus_distance': OptionTemplate(0, "Set focus distance"),
              'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
+             'wb_mode': OptionTemplate(value=sorted(WHITEBALANCE_MODES),
+                                       docstring='White balance mode',
+                                       selectable=True),
              'chdkptp_path': OptionTemplate(
                  u"/usr/local/lib/chdkptp",
                  "Path to CHDKPTP binary/libraries"),
@@ -186,8 +192,13 @@ class CHDKCameraDevice(DevicePlugin):
             if not rv:
                 self.logger.warn("Monochrome mode not supported on this "
                                  "device, will be disabled.")
+        # Set White Balance mode
+        self._set_wb()
         # Disable flash
-        self._execute_lua("while(get_flash_mode()<2) do click(\"right\") end")
+        self._execute_lua(
+            "props = require(\"propcase\")\n"
+            "if(get_flash_mode()~=2) then set_prop(props.FLASH_MODE, 2) end")
+        # Set Quality
         self._execute_lua("set_prop(require('propcase').QUALITY, {0})"
                           .format(self.MAX_QUALITY))
         self._execute_lua("set_prop(require('propcase').RESOLUTION, {0})"
@@ -355,7 +366,10 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("release('shoot_half')")
         time.sleep(0.25)
         self._execute_lua("set_aflock(1)")
-
+        
+    def _set_wb(self):
+        self._execute_lua("set_prop(require('propcase').WB_MODE, {0})"
+                  .format(WHITEBALANCE_MODES.get(self.config['wb_mode'].get())))
 
 class A2200(CHDKCameraDevice):
     """ Canon A2200 driver.
