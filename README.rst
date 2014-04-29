@@ -64,6 +64,7 @@ Requirements
 * An up-to date version of ScanTailor-enhanced_
 
 *Optional:*
+
 * For the GUI: PySide_
 * For CHDK cameras: An up-to-date version of chdkptp_
 * For the ScanTailor plugin: ScanTailor-enhanced_
