@@ -21,12 +21,38 @@
   'use strict';
 
   var React = require('react/addons'),
-      ModelMixin = require('../workflow.js'),
+      jQuery = require('jquery'),
+      ModelMixin = require('../../lib/backbonemixin.js'),
       foundation = require('./foundation.js'),
       lightbox = require('./overlays.js').LightBox,
+      isTouchDevice = require('../util.js').isTouchDevice,
       row = foundation.row,
       column = foundation.column,
-      pagination = foundation.pagination;
+      pagination = foundation.pagination,
+      PagePreview;
+
+  PagePreview = React.createClass({
+    displayName: "PagePreview",
+    getInitialState: function() {
+      // We always display the toolbar when we're on a touch device, since
+      // hover events are not available.
+      return { displayToolbar: isTouchDevice() };
+    },
+    toggleToolbar: function() {
+      if (!isTouchDevice()) {
+        this.setState({displayToolbar: !this.state.displayToolbar});
+      }
+    },
+    render: function() {
+      return (
+        <li className="th page-preview" title="Open full resolution image in lightbox"
+            onMouseEnter={this.toggleToolbar} onMouseLeave={this.toggleToolbar}>
+          <a onClick={this.props.lightboxCallback}><img src={this.props.image + '/thumb'} /></a>
+          {this.state.displayToolbar &&
+          <a onClick={this.props.deleteCallback} title="Remove image" className="delete-image fi-trash" />}
+        </li>);
+    }
+  })
 
   /**
    * Component that displays details for a single workflow along with
@@ -117,12 +143,9 @@
               <ul className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
                 {workflow.get('images').slice(thumbStart, thumbStop).map(function(image) {
                     return (
-                      <li key={image}>
-                        <a className="th" title="Open full resolution image in lightbox" onClick={
-                            function(){this.toggleLightbox(image);}.bind(this)}>
-                          <img src={image + '/thumb'} />
-                        </a>
-                      </li>
+                      <PagePreview image={image} key={image}
+                                   deleteCallback={function(){this.props.workflow.deleteImage(image);}.bind(this)}
+                                   lightboxCallback={function(){this.toggleLightbox(image);}.bind(this)} />
                     );
                   }.bind(this))}
               </ul>

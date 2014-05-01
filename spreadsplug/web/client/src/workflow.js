@@ -112,6 +112,7 @@
           // event.
           if (retake) {
             this.trigger('change');
+            this.trigger('change:images', this.get('images'));
           }
         }.bind(this)).fail(function() {
           console.error("Capture failed");
@@ -140,7 +141,21 @@
       }, this);
       if (modified) {
         this.trigger('change');
+        this.trigger('change:images', this.get('images'));
       }
+    },
+    deleteImage: function(imageUrl, callback) {
+      var imgNum = imageUrl.split('/').splice(-1)[0];
+      jQuery.ajax('/api/workflow/' + this.id + '/image/' + imgNum, {
+        type: 'DELETE',
+      }).fail(function() {
+        console.error("Could not remove image " + imgNum + " from workflow.");
+      }).done(function() {
+        var imageIdx = this.get('images').indexOf(imageUrl);
+        this.get('images').splice(imageIdx, 1);
+        this.trigger('change');
+        this.trigger('change:images', this.get('images'));
+      }.bind(this));
     },
     /**
      * Set default configuration from our global `pluginTemplates` object.

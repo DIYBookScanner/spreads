@@ -418,8 +418,9 @@ def get_workflow_image(workflow, img_num):
     # Scale image if requested
     width = request.args.get('width', None)
     try:
-        img_path = workflow.images[img_num]
-    except IndexError:
+        img_path = next(p for p in workflow.images
+                        if p.stem == "{0:03}".format(img_num))
+    except StopIteration:
         abort(404)
     if width:
         return scale_image(unicode(img_path), width=int(width))
@@ -432,8 +433,9 @@ def get_workflow_image(workflow, img_num):
 def get_workflow_image_thumb(workflow, img_num):
     """ Return thumbnail for image from requested workflow. """
     try:
-        img_path = workflow.images[img_num]
-    except IndexError:
+        img_path = next(p for p in workflow.images
+                        if p.stem == "{0:03}".format(img_num))
+    except StopIteration:
         abort(404)
     cache_key = "{0}.{1}".format(workflow, img_num)
     thumbnail = None
@@ -443,6 +445,19 @@ def get_workflow_image_thumb(workflow, img_num):
         thumbnail = get_thumbnail(img_path)
         cache.set(cache_key, thumbnail)
     return Response(thumbnail, mimetype='image/jpeg')
+
+
+@app.route('/api/workflow/<workflow:workflow>/image/<int:img_num>',
+           methods=['DELETE'])
+def delete_workflow_image(workflow, img_num):
+    """ Remove a single image from a workflow. """
+    try:
+        img_path = next(p for p in workflow.images
+                        if p.stem == "{0:03}".format(img_num))
+    except StopIteration:
+        abort(404)
+    img_path.unlink()
+    return 'OK'
 
 
 # ================= #
