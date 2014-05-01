@@ -178,14 +178,21 @@ li.page-preview {
 }
 
 .reveal-modal {
-    width: 50%;
-    margin-left: -25%;
+    @media #{$medium-up} {
+        width: 50%;
+        margin-left: -25%;
+    }
 
   &.fixed {
+    z-index: 100;
     position: fixed;
     margin-left: 0;
     top: 10%;
-    left: 25%;
+    min-height: 0;
+
+    @media #{$medium-up} {
+      left: 25%;
+    }
   }
 }
 
