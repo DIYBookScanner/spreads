@@ -23,6 +23,23 @@
   transform: $transformation;
 }
 
+.action-select {
+  width: 100%;
+  font-size: rem-calc(16) !important;
+}
+
+.button-list {
+  list-style: none;
+  margin: 0;
+
+  .action-button.small {
+    width: 100%;
+    margin-bottom: 0;
+    text-align: left;
+    font-size: rem-calc(16);
+  }
+}
+
 .action-button {
   @include button(rem-calc(12));
   font-size: rem-calc(32);
@@ -47,6 +64,11 @@
   &.secondary { @include button-style($bg:$secondary-color); }
 
   &.complete { @include button-style($bg:$success-color); }
+
+  &.dropdown {
+    @include dropdown-button();
+    margin-bottom: 0;
+  }
 }
 
 .capture-preview {
@@ -77,28 +99,40 @@
   }
   li {
     .action-button {
+      @media #{$small-only} {
+        width: 20%;
+      }
       width: 10%;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
     }
     display: inline;
     list-style-type: none;
   }
   #retake-capture .action-button {
+    @media #{$small-only} {
+      width: 20%;
+    }
     width: 20%;
   }
   #trigger-capture .action-button {
+    @media #{$small-only} {
+      width: 40%;
+    }
     width: 45%;
   }
 }
 
 li.page-preview {
   position: relative;
+  text-align: center;
   padding: 0;
 }
 
 .delete-image {
   position: absolute;
   bottom: 0;
-  left: 0;
+  left: 50%;
   margin: 0.25em;
   opacity: 0.75;
   font-size: 2em;

@@ -1,4 +1,4 @@
-/* global module, require */
+/* global module, require, matchMedia, Foundation */
 
 /*
  * Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
@@ -19,11 +19,30 @@
 (function() {
   'use strict';
 
+  /* TODO: These are currently copy-pasta'ed from Foundation, it would be nice
+   *       to properly load foundation via 'require' to determine these
+   *       at runtime. */
+  var mediaQueries = {
+    large: "only screen and (min-width:64.063em)",
+    medium: "only screen and (min-width:40.063em)",
+    small: "only screen",
+    topbar: "only screen and (min-width:40.063em)",
+    xlarge: "only screen and (min-width:90.063em)",
+    xxlarge: "only screen and (min-width:120.063em)"
+  };
+
   function isTouchDevice() {
     return 'ontouchstart' in window || 'onmsgesturechange' in window;
   }
 
+  function isSmall() {
+    return matchMedia(mediaQueries.small).matches &&
+      !matchMedia(mediaQueries.medium).matches;
+  }
+
   module.exports = {
-    isTouchDevice: isTouchDevice
+    isTouchDevice: isTouchDevice,
+    isSmall: isSmall,
+    mediaQueries: mediaQueries
   }
 }());

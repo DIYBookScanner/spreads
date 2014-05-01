@@ -24,11 +24,75 @@
       LoadingOverlay = require('./overlays.js').Activity,
       ProgressOverlay = require('./overlays.js').Progress,
       foundation = require('./foundation.js'),
+      util = require('../util.js'),
       row = foundation.row,
       column = foundation.column,
       modal = foundation.modal,
       confirmModal = foundation.confirmModal,
-      WorkflowItem;
+      ActionBar, WorkflowItem;
+
+  ActionBar = React.createClass({
+    getInitialState: function() {
+      return { actionDropdownVisible: false };
+    },
+    toggleActionDropdown: function() {
+      this.setState({actionDropdownVisible: !this.state.actionDropdownVisible});
+    },
+    render: function() {
+      return (
+        <row>
+          <div className="small-6 medium-12 columns">
+            {this.props.smallDisplay &&
+              <a onClick={this.toggleActionDropdown} className="action-select action-button small dropdown fi-list"
+                  title="View actions">Actions</a>
+            }
+            {(!this.props.smallDisplay || this.state.actionDropdownVisible) &&
+            <ul className={this.props.smallDisplay ? "button-list": "button-group"}>
+              <li>
+                <a title="Edit the workflow"
+                    href={'/workflow/' + this.props.workflowId + '/edit'}
+                    className="action-button small fi-pencil">
+                    {this.props.smallDisplay && " Edit"}
+                </a>
+              </li>
+              <li>
+                <a onClick={this.props.removalBlocked ? null : this.props.handleRemove}
+                    title="Remove workflow and all associated files"
+                    className={"action-button small fi-trash" + (this.props.removalBlocked ? " disabled" : "")}>
+                    {this.props.smallDisplay && " Remove"}
+                </a>
+              </li>
+              <li>
+                <a data-bypass={true}
+                    title="Download workflow as a ZIP archive"
+                    onClick={this.props.handleDownload}
+                    href={'/api/workflow/' + this.props.workflowId + '/download'}
+                    className="action-button small fi-download">
+                  {this.props.smallDisplay && " Download"}
+                </a>
+              </li>
+              {window.config.web.mode !== 'postprocessor' &&
+                <li>
+                  <a onClick={this.props.handleCapture}
+                      title="Capture images"
+                      className="action-button small fi-camera">
+                  {this.props.smallDisplay && " Capture"}
+                </a>
+                </li>}
+              {window.config.web.standalone_device &&
+                <li>
+                  <a onClick={this.props.handleTransfer}
+                      title="Transfer workflow directory to a removable storage device"
+                      className="action-button small fi-usb">
+                    {this.props.smallDisplay && " Transfer"}
+                  </a>
+                </li>}
+            </ul>}
+          </div>
+        </row>
+      );
+    }
+  })
 
   /**
    * Display a single workflow with thumbnail, metadata and available actions.
@@ -139,87 +203,71 @@
     render: function() {
       var workflow = this.props.workflow,
           workflowUrl = '/workflow/' + workflow.get('id'),
-          removalBlocked = (this.state.downloadInProgress || this.state.transferWaiting);
+          removalBlocked = (this.state.downloadInProgress || this.state.transferWaiting),
+          actionBar;
+
+      actionBar = (<ActionBar workflowId={workflow.id}
+                              handleRemove={this.handleRemove}
+                              handleDownload={this.handleDownload}
+                              handleCapture={this.handleCapture}
+                              handleTransfer={this.handleTransfer}
+                              removalBlocked={removalBlocked}
+                              smallDisplay={this.props.smallDisplay}/>);
       return (
-        <row>
-          {/* Display waiting for download overlay? */}
-          {this.state.downloadWaiting &&
-            <ProgressOverlay progress={this.state.downloadPrepareProgress}
-                             statusMessage={this.state.downloadPrepareCurrentFile || "Preparing download..."}/>
-          }
-          {/* Display deletion confirmation modal? */}
-          {this.state.deleteModal &&
-            <confirmModal
-              onCancel={function(){this.setState({deleteModal: false});}.bind(this)}
-              onConfirm={this.doRemove} fixed={true}>
-              <h1>Remove?</h1>
-              <p>Do you really want to permanently remove this workflow and all
-                 of its related files?</p>
-            </confirmModal>}
-          {/* Display error modal? */}
-          {this.state.errorModal &&
-            <modal onClose={function(){this.setState({errorModal: false});}.bind(this)}
-                   fixed={true}>
-              <h1>{this.state.errorModalHeading}</h1>
-              <p>{this.state.errorModalText}</p>
-            </modal>}
-          <column size={[6, 3]}>
-          {/* Display loading overlay */}
-          {this.state.transferWaiting &&
-            <ProgressOverlay progress={this.state.transferProgress}
-                             statusMessage={this.state.transferCurrentFile || "Preparing transfer..."}/>}
-          {/* Display preview image (second-to last page) if there are images
-              in the workflow */}
-          {workflow.get('images').length > 0 ?
-            <a href={workflowUrl}>
-              <img width="100%" src={workflow.get('images').slice(-2)[0] + '/thumb'} />
-            </a>:
-            'no images'
-          }
-          </column>
-          <column size={[6, 9]}>
-            <row>
-              <h3><a title="View details"
-                  href={workflowUrl}>{workflow.get('name')}</a></h3>
-            </row>
-            <row>
-              <p>{workflow.has('images') ? workflow.get('images').length : 0} pages</p>
-            </row>
-            <row>
-              <ul className="button-group">
-                <li>
-                  <a title="Edit the workflow"
-                     href={'/workflow/' + workflow.id + '/edit'}
-                     className="action-button fi-pencil"></a>
-                </li>
-                <li>
-                  <a onClick={removalBlocked ? null : this.handleRemove}
-                     title="Remove workflow and all associated files"
-                     className={"action-button fi-trash" + (removalBlocked ? " disabled" : "")}></a>
-                </li>
-                <li>
-                  <a data-bypass={true}
-                     title="Download workflow as a ZIP archive"
-                     onClick={this.handleDownload}
-                     href={'/api/workflow/' + workflow.id + '/download'}
-                     className="action-button fi-download"></a>
-                </li>
-                {window.config.web.mode !== 'postprocessor' &&
-                  <li>
-                    <a onClick={this.handleCapture}
-                    title="Capture images"
-                    className="action-button fi-camera"></a>
-                  </li>}
-                {window.config.web.standalone_device &&
-                  <li>
-                    <a onClick={this.handleTransfer}
-                    title="Transfer workflow directory to a removable storage device"
-                    className="action-button fi-usb"></a>
-                  </li>}
-              </ul>
-            </row>
-          </column>
-        </row>
+        <div>
+          <row>
+            {/* Display waiting for download overlay? */}
+            {this.state.downloadWaiting &&
+              <ProgressOverlay progress={this.state.downloadPrepareProgress}
+                              statusMessage={this.state.downloadPrepareCurrentFile || "Preparing download..."}/>
+            }
+            {/* Display deletion confirmation modal? */}
+            {this.state.deleteModal &&
+              <confirmModal
+                onCancel={function(){this.setState({deleteModal: false});}.bind(this)}
+                onConfirm={this.doRemove} fixed={true}>
+                <h1>Remove?</h1>
+                <p>Do you really want to permanently remove this workflow and all
+                  of its related files?</p>
+              </confirmModal>}
+            {/* Display error modal? */}
+            {this.state.errorModal &&
+              <modal onClose={function(){this.setState({errorModal: false});}.bind(this)}
+                    fixed={true}>
+                <h1>{this.state.errorModalHeading}</h1>
+                <p>{this.state.errorModalText}</p>
+              </modal>}
+            {/* Display loading overlay */}
+            {this.state.transferWaiting &&
+              <ProgressOverlay progress={this.state.transferProgress}
+                              statusMessage={this.state.transferCurrentFile || "Preparing transfer..."}/>}
+            {/* Display preview image (second-to last page) if there are images
+                in the workflow */}
+            <column size={[6, 4]}>
+            {workflow.get('images').length > 0 ?
+              <a href={workflowUrl}>
+                <img width="100%" src={workflow.get('images').slice(-2)[0] + '/thumb'} />
+              </a>:
+              'no images'
+            }
+            </column>
+            <column size={[6, 8]}>
+              <row>
+                <column>
+                  <h3><a title="View details"
+                      href={workflowUrl}>{workflow.get('name')}</a></h3>
+                </column>
+              </row>
+              <row>
+                <column>
+                  <p>{workflow.has('images') ? workflow.get('images').length : 0} pages</p>
+                </column>
+              </row>
+              {!this.props.smallDisplay && actionBar}
+            </column>
+          </row>
+          {this.props.smallDisplay && actionBar}
+        </div>
       );
     }
   });
@@ -239,6 +287,14 @@
     getBackboneModels: function() {
       return this.props.workflows;
     },
+    getInitialState: function() {
+      return { mqSmall: util.isSmall() };
+    },
+    componentWillMount: function() {
+      matchMedia(util.mediaQueries.medium).addListener(function(mql){
+        this.setState({ mqSmall: !mql.matches});
+      }.bind(this));
+    },
     render: function() {
       return(
         <main>
@@ -250,8 +306,9 @@
           <div>
             {this.props.workflows.length > 0 ?
               this.props.workflows.map(function(workflow) {
-                return <WorkflowItem key={workflow.id} workflow={workflow} />;
-              }):
+                return <WorkflowItem key={workflow.id} workflow={workflow}
+                                     smallDisplay={this.state.mqSmall}/>;
+              }, this):
               <row>
                 <column><h2>No workflows yet!</h2>
                 <p>
