@@ -48,16 +48,17 @@ class CHDKCameraDevice(DevicePlugin):
                  u"1/25", "The shutter speed as a fraction"),
              'zoom_level': OptionTemplate(3, "The default zoom level"),
              'dpi': OptionTemplate(300, "The capturing resolution"),
-             'shoot_raw': OptionTemplate(False, "Shoot in RAW format (DNG)"),
+             'shoot_raw': OptionTemplate(False, "Shoot in RAW format (DNG)",
+                                         advanced=True),
              'focus_distance': OptionTemplate(0, "Set focus distance"),
              'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
              'wb_mode': OptionTemplate(value=sorted(WHITEBALANCE_MODES),
                                        docstring='White balance mode',
-                                       selectable=True),
-             'chdkptp_path': OptionTemplate(
-                 u"/usr/local/lib/chdkptp",
-                 "Path to CHDKPTP binary/libraries"),
+                                       selectable=True, advanced=True),
+             'chdkptp_path': OptionTemplate(u"/usr/local/lib/chdkptp",
+                                            "Path to CHDKPTP binary/libraries",
+                                            advanced=True),
              })
         return conf
 

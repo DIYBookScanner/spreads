@@ -119,6 +119,9 @@
             </row>
             {_.map(template, function(option, key) {
               var path = 'config.' + this.props.plugin + '.' + key;
+              if (!this.props.showAdvanced && option.advanced) {
+                  return;
+              }
               return (<PluginOption name={key} option={option} key={key}
                                     bindFunc={this.props.bindFunc}
                                     error={this.props.errors[path]} />);
@@ -160,6 +163,10 @@
     handleSelect: function(event) {
       this.setState({selectedPlugin: event.target.value});
     },
+    toggleAdvanced: function(){
+      this.setState({ advancedOpts: !this.state.advancedOpts });
+      this.forceUpdate();
+    },
     render: function() {
       var templates = window.pluginTemplates,
           /* If no plugin is explicitely selected, use the first one */
@@ -177,11 +184,15 @@
                 return <option key={plugin} value={plugin}>{_.capitalize(plugin)}</option>;
               })}
             </select>
+            <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
+                    onChange={this.toggleAdvanced} />
+            <label htmlFor="check-advanced">Show advanced options</label>
             {/* NOTE: This is kind of nasty.... We can't use _'s 'partial',
                       since we want to provide the second argument and leave
                       the first one to the caller. */}
             <PluginWidget plugin={selectedPlugin}
                           template={templates[selectedPlugin]}
+                          showAdvanced={this.state.advancedOpts}
                           bindFunc={function(key) {
                             return this.bindTo(
                               this.props.workflow,

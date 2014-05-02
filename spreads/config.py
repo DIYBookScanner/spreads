@@ -34,17 +34,22 @@ class OptionTemplate(object):
                       a list or tuple of acceptable values for this option,
                       with the first member being the default selection.
     :type selectable: bool
+    :attr advanced:   Whether the option is an advanced option
+    :type advanced:   bool
     """
 
-    def __init__(self, value, docstring=None, selectable=False):
+    def __init__(self, value, docstring=None, selectable=False,
+                 advanced=False):
         self.value = value
         self.docstring = docstring
         self.selectable = selectable
+        self.advanced = advanced
 
     def __repr__(self):
-        return ("OptionTemplate(value={0}, docstring={1}, selectable={2})"
+        return ("OptionTemplate(value={0}, docstring={1}, selectable={2}"
+                " advanced={3})"
                 .format(repr(self.value), repr(self.docstring),
-                        repr(self.selectable)))
+                        repr(self.selectable), repr(self.advanced)))
 
 
 CORE_OPTIONS = {

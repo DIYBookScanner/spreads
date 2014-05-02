@@ -188,6 +188,10 @@
         refreshReview: false,
       });
     },
+    toggleAdvanced: function(){
+      this.setState({ advancedOpts: !this.state.advancedOpts });
+      this.forceUpdate();
+    },
     render: function() {
       var workflow = this.props.workflow || {},
           randomSuffix = this.state.refreshReview ? '?'+(Math.random()*10e3 | 0) : '',
@@ -209,7 +213,6 @@
         oddImage = workflow.get('images').slice(-2)[0];
         evenImage = workflow.get('images').slice(-2)[1];
       }
-
       return (
         <div>
           {/* Display loading overlay? */}
@@ -221,11 +224,15 @@
             <form onSubmit={this.saveConfig}>
               <confirmModal onCancel={this.toggleConfigModal}>
                 <h2>Configure Devices</h2>
+                <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
+                       onChange={this.toggleAdvanced} />
+                <label htmlFor="check-advanced">Show advanced options</label>
                 <PluginWidget plugin="device" template={window.pluginTemplates.device}
+                              showAdvanced={this.state.advancedOpts}
                               bindFunc={function(key) {
                                 return this.bindTo(this.props.workflow,
                                                     'config.device.' + key);
-                              }.bind(this)} errors={[]}/>
+                              }.bind(this)} errors={[]} />
               </confirmModal>
             </form>
           }

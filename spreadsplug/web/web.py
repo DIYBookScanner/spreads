@@ -108,7 +108,8 @@ def get_plugin_templates():
                 rv[plugname] = dict()
             rv[plugname][key] = dict(value=value,
                                      docstring=option.docstring,
-                                     selectable=option.selectable)
+                                     selectable=option.selectable,
+                                     advanced=option.advanced)
     return rv
 
 
