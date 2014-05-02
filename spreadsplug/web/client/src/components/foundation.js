@@ -86,9 +86,9 @@
       });
       classes += " " + this.props.size;
       return (this.transferPropsTo(
-          <button onClick={this.props.callback} className={classes}>
+          <a onClick={this.props.callback} className={classes}>
               {this.props.children}
-          </button>));
+          </a>));
     }
   });
 
