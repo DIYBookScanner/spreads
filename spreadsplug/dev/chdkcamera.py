@@ -17,8 +17,16 @@ from spreads.plugin import DevicePlugin, DeviceFeatures
 from spreads.util import DeviceException
 
 
-WHITEBALANCE_MODES={ 'Auto': 0, 'Daylight': 1, 'Cloudy': 2, 'Tungsten': 3,
-           'Fluorescent': 4, 'Fluorescent H': 5, 'Custom': 7 }
+WHITEBALANCE_MODES = {
+    'Auto': 0,
+    'Daylight': 1,
+    'Cloudy': 2,
+    'Tungsten': 3,
+    'Fluorescent': 4,
+    'Fluorescent H': 5,
+    'Custom': 7
+}
+
 
 class CHDKPTPException(Exception):
     pass
@@ -367,10 +375,12 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("release('shoot_half')")
         time.sleep(0.25)
         self._execute_lua("set_aflock(1)")
-        
+
     def _set_wb(self):
+        value = WHITEBALANCE_MODES.get(self.config['wb_mode'].get())
         self._execute_lua("set_prop(require('propcase').WB_MODE, {0})"
-                  .format(WHITEBALANCE_MODES.get(self.config['wb_mode'].get())))
+                          .format(value))
+
 
 class A2200(CHDKCameraDevice):
     """ Canon A2200 driver.
