@@ -20,6 +20,7 @@
 (function() {
   'use strict';
   var React = require('react/addons'),
+      _ = require('underscore'),
       ModelMixin = require('../../lib/backbonemixin.js'),
       LoadingOverlay = require('./overlays.js').Activity,
       ProgressOverlay = require('./overlays.js').Progress,
@@ -33,10 +34,21 @@
 
   ActionBar = React.createClass({
     getInitialState: function() {
-      return { actionDropdownVisible: false };
+      return {
+        actionDropdownVisible: false,
+        dropdownWidth: undefined
+      };
     },
     toggleActionDropdown: function() {
       this.setState({actionDropdownVisible: !this.state.actionDropdownVisible});
+    },
+    componentDidUpdate: function() {
+      if (this.state.actionDropdownVisible) {
+        var domNode = this.getDOMNode();
+        var dropdownWidth = this.getDOMNode().getElementsByClassName('action-select')[0]
+                            .getBoundingClientRect().width;
+        domNode.getElementsByClassName('button-list')[0].style.width = dropdownWidth + "px";
+      }
     },
     render: function() {
       return (
@@ -108,7 +120,8 @@
         downloadInProgress: false,
         transferWaiting: false,
         transferProgress: 0,
-        transferCurrentFile: undefined
+        transferCurrentFile: undefined,
+        stepProgress: 0
       };
     },
     /**
@@ -263,6 +276,10 @@
                   <p>{workflow.has('images') ? workflow.get('images').length : 0} pages</p>
                 </column>
               </row>
+              {_.contains(["process", "output"], workflow.get('step')) &&
+              <row>
+                <p></p>
+              </row>}
               {!this.props.smallDisplay && actionBar}
             </column>
           </row>

@@ -29,6 +29,8 @@
 }
 
 .button-list {
+  position: absolute;
+  z-index: 200;
   list-style: none;
   margin: 0;
 
