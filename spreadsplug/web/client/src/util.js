@@ -43,6 +43,8 @@
   module.exports = {
     isTouchDevice: isTouchDevice,
     isSmall: isSmall,
-    mediaQueries: mediaQueries
+    mediaQueries: mediaQueries,
+    // For modernizr compatibility
+    touch: isTouchDevice()
   }
 }());

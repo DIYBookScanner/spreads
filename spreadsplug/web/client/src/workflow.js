@@ -24,7 +24,7 @@
       jQuery = require('jquery'),
       Workflow;
   // Custom third party extension to Backbone, see below
-  Backbone.DeepModel = require('../lib/backbone-deep-model.js');
+  Backbone.DeepModel = require('../vendor/backbone-deep-model.js');
   // Load Backbone.Validation extension
   require('backbone-validation');
   _.extend(Backbone.DeepModel.prototype, Backbone.Validation.mixin);

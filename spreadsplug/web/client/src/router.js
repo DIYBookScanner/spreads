@@ -68,7 +68,7 @@
     _renderView: function(view, workflowId) {
       React.renderComponent(<SpreadsApp view={view} workflows={this._workflows}
                                         workflowId={workflowId} />,
-                            document.getElementById('content'));
+                            document.body);
     },
     root: function() {
       this._renderView("root");

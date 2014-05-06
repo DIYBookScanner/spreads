@@ -22,7 +22,7 @@
 
   var React = require('react/addons'),
       jQuery = require('jquery'),
-      ModelMixin = require('../../lib/backbonemixin.js'),
+      ModelMixin = require('../../vendor/backbonemixin.js'),
       foundation = require('./foundation.js'),
       lightbox = require('./overlays.js').LightBox,
       isTouchDevice = require('../util.js').isTouchDevice,

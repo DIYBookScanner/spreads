@@ -21,25 +21,34 @@
 
 
   var Backbone = require('backbone'),
-      $ = require('jquery'),
-      Router = require('./router');
+      jQuery = require('jquery'),
+      Router = require('./router'),
+      React = require('react/addons');
+
+  // Load stylesheets
+  require('../scss/app.scss');
+  require('../vendor/foundation-icons.css');
+  require("imports?this=>window,Modernizr=../src/util.js,jQuery=jquery!../vendor/foundation.js");
+  require("imports?this=>window,Modernizr=../src/util.js,jQuery=jquery!../vendor/foundation.topbar.js");
 
   // Assign jQuery to Backbone
-  Backbone.$ = $;
-  // Assign jQuery to window for Foundation
-  /** @global */
-  window.jQuery = $;
+  Backbone.$ = jQuery;
 
-  window.React = require('react');
+  // For debugging with the React chrome addon
+  window.React = React;
 
   // Initialize routing
   /** @global */
   window.router = new Router();
   Backbone.history.start({pushState: true, root: '/'});
 
+  // Initialize foundation
+  //jQuery(document).foundation();
+  Foundation.init();
+
   // Intercept the browser's default link handling
-  $(document).on('click', 'a:not([data-bypass])', function(e) {
-    var href = $(this).attr('href');
+  jQuery(document).on('click', 'a:not([data-bypass])', function(e) {
+    var href = jQuery(this).attr('href');
     if (!href) {
       return;
     }
@@ -51,7 +60,7 @@
   });
 
   // Intercept the browser's default form submissino handling
-  $(document).on('submit', 'form', function(e) {
+  jQuery(document).on('submit', 'form', function(e) {
     e.preventDefault();
   });
 }());

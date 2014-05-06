@@ -24,7 +24,7 @@
       _ = require('underscore'),
       Mousetrap = require('mousetrap'),
       foundation = require('./foundation.js'),
-      ModelMixin = require('../../lib/backbonemixin.js'),
+      ModelMixin = require('../../vendor/backbonemixin.js'),
       LoadingOverlay = require('./overlays.js').Activity,
       lightbox = require('./overlays.js').LightBox,
       PluginWidget = require('./config.js').PluginWidget,

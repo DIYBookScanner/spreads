@@ -5,27 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>spreads</title>
   <link rel="shortcut icon" href="/static/img/favicon.ico">
-  <link rel="stylesheet" href="/static/foundation/css/foundation-icons.css">
-  <link rel="stylesheet" href="/static/spreads.css" />
+  <script type="text/javascript">
+    window.config = {{default_config|tojson|safe}};
+    window.pluginTemplates = {{plugin_templates|tojson|safe}};
+  </script>
 </head>
 <body>
-<div id="content"></div>
-
-<script type="text/javascript">
-  window.config = {{default_config|tojson|safe}};
-  window.pluginTemplates = {{plugin_templates|tojson|safe}};
-</script>
 {% if debug %}
-  <script src="/static/spreads.js"></script>
-  <script src="/static/foundation/js/vendor/modernizr.js"></script>
-  <script src="/static/foundation/js/foundation.js"></script>
+  <script src="/static/packages/bundle-dev.js"></script>
 {% else %}
-  <script src="/static/spreads.min.js"></script>
-  <script src="/static/foundation/js/vendor/modernizr.js"></script>
-  <script src="/static/foundation/js/foundation.min.js"></script>
+  <script src="/static/packages/bundle.js"></script>
 {% endif %}
-<script type="text/javascript">
-  jQuery(document).foundation();
-</script>
 </body>
 </html>

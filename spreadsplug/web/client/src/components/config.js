@@ -23,7 +23,7 @@
       _ = require('underscore'),
       merge = require('react/lib/merge'),
       foundation = require('./foundation.js'),
-      ModelMixin = require('../../lib/backbonemixin.js'),
+      ModelMixin = require('../../vendor/backbonemixin.js'),
       row = foundation.row,
       column = foundation.column,
       fnButton = foundation.button,
