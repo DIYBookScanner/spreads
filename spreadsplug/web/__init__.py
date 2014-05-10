@@ -110,7 +110,11 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
                 value=False,
                 docstring="Server runs on a standalone device dedicated to "
                           "scanning (e.g. 'spreadpi').",
-                selectable=False)
+                selectable=False),
+            'port': OptionTemplate(
+                value=5000,
+                docstring="TCP-Port to listen on",
+                selectable=False),
         }
 
 
@@ -168,7 +172,8 @@ def setup_signals(ws_server=None):
 
 
 def run_server(config):
-    ws_server = WebSocketServer(port=5001)
+    listening_port = config['web']['port'].get(int)
+    ws_server = WebSocketServer(port=listening_port+1)
     setup_app(config)
     setup_logging(config)
     setup_signals(ws_server)
@@ -187,7 +192,8 @@ def run_server(config):
             for cam in plugin.get_devices(config):
                 cam.show_textbox(
                     "\n    You can now access the web interface at:"
-                    "\n\n\n         http://{0}:5000".format(ip_address))
+                    "\n\n\n         http://{0}:{1}"
+                    .format(ip_address, listening_port))
         except plugin.DeviceException:
             logger.warn("No devices could be found at startup.")
 
@@ -201,7 +207,7 @@ def run_server(config):
         # NOTE: We spin up this obscene number of threads since we have
         #       some long-polling going on, which will always block
         #       one worker thread.
-        waitress.serve(app, port=5000, threads=16)
+        waitress.serve(app, port=listening_port, threads=16)
     finally:
         consumer.shutdown()
         ws_server.stop()

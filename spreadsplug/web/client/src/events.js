@@ -60,7 +60,9 @@
   }
   if (window.WebSocket) {
     // Try to use WebSockets
-    websocket = new WebSocket("ws://"+window.location.hostname+":5001/");
+    var hostName = window.location.hostname,
+        port = parseInt(window.location.port)+1;
+    websocket = new WebSocket("ws://" + hostName + ":" + port);
     websocket.onclose = function() {
       if (!websocket.onmessage) {
         // This means we were never able to establish a connection,

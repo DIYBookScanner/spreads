@@ -38,7 +38,7 @@ class SocketHandler(websocket.WebSocketHandler):
 
 
 class WebSocketServer(threading.Thread):
-    def __init__(self, port=5001):
+    def __init__(self, port):
         super(WebSocketServer, self).__init__()
         app = web.Application([
             (r'/', SocketHandler),
