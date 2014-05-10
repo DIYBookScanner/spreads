@@ -240,7 +240,14 @@
     render: function() {
       var workflow = this.props.workflow || {},
           randomSuffix = this.state.refreshReview ? '?'+(Math.random()*10e3 | 0) : '',
-          speed, oddImage, evenImage, captureKeys;
+          speed, oddImage, evenImage, captureKeys, previewClasses;
+
+      previewClasses = {
+        'capture-preview': true,
+        'small-block-grid-2': util.getOrientation() === 'landscape',
+        'small-block-grid-1': util.getOrientation() === 'portrait',
+        'medium-block-grid-2': util.getOrientation() === 'portrait'
+      }
       captureKeys = [] ;
       _.each(window.config.core.capture_keys, function(key) {
         if (key === ' ') captureKeys.push('<spacebar>');
@@ -297,12 +304,12 @@
                 *       the browser to load from the server and not from the cache.
                 *       This is needed since the images might change on the server,
                 *       e.g. after a retake. */}
-              <ul className="small-block-grid-2 capture-preview">
+              <ul className={React.addons.classSet(previewClasses)}>
                 <li>
                   <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('even');}.bind(this)}> Crop</a>
                   {evenImage ?
                     <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix, 'even');}.bind(this)}>
-                      <img className="even" src={evenImage+"/thumb?"+randomSuffix} />
+                      <img className="even" src={evenImage+"/thumb?"+randomSuffix} ref="thumb-even"/>
                     </a>:
                     <img className="placeholder even" src={placeholderImg}/>}
                   {this.state.cropParams.even &&
@@ -313,7 +320,7 @@
                   <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('odd');}.bind(this)}> Crop</a>
                   {oddImage ?
                   <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix, 'odd');}.bind(this)}>
-                    <img className="odd" src={oddImage+"/thumb?"+randomSuffix} />
+                    <img className="odd" src={oddImage+"/thumb?"+randomSuffix} ref="thumb-odd"/>
                   </a>:
                   <img className="placeholder odd" src={placeholderImg}/>}
                   {this.state.cropParams.odd &&

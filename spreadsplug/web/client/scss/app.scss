@@ -230,21 +230,6 @@ li.page-preview {
   overflow-x: scroll;
 }
 
-img {
-  &.odd {
-    -webkit-transform: rotate(90deg);
-    -o-transform: rotate(90eg);
-    -ms-transform: rotate(90deg);
-    image-orientation: 90deg;
-  }
-  &.even {
-    -webkit-transform: rotate(270deg);
-    -o-transform: rotate(270deg);
-    -ms-transform: rotate(270deg);
-    image-orientation: 270deg;
-  }
-}
-
 /* ===== Overlays ===== */
 .overlay {
   position: fixed;

@@ -40,6 +40,10 @@
       !matchMedia(mediaQueries.medium).matches;
   }
 
+  function getOrientation() {
+    return (window.innerHeight > window.innerWidth) ? 'portrait' : 'landscape';
+  }
+
   /**
     * Convert the first letter of a given string to uppercase.
     *
@@ -52,6 +56,7 @@
   module.exports = {
     isTouchDevice: isTouchDevice,
     isSmall: isSmall,
+    getOrientation: getOrientation,
     mediaQueries: mediaQueries,
     capitalize: capitalize,
     // For modernizr compatibility
