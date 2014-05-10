@@ -76,6 +76,32 @@
 .capture-preview {
   text-align: center;
 
+  li {
+    position: relative;
+    padding: 0;
+    margin-bottom: 1em;
+  }
+
+  .toggle-crop {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 0.25em;
+    background-color: rgba(255, 255, 255, 0.5);
+    z-index: 10;
+  }
+
+  .toggle-crop:hover {
+    background-color: rgba(255, 255, 255, 0.75);
+  }
+
+  .crop-preview {
+    position: absolute;
+    background-color: blue;
+    opacity: 0.5;
+  }
+
   img {
     @media #{$small-only} and (orientation: portrait) {
       width: 75%
@@ -134,10 +160,9 @@ li.page-preview {
 .delete-image {
   position: absolute;
   bottom: 0;
-  left: 50%;
-  margin: 0.25em;
+  right: 0;
   opacity: 0.75;
-  font-size: 2em;
+  font-size: 2.5em;
   color: white;
   text-shadow: black 0.1em 0.1em;
 }
@@ -180,10 +205,12 @@ li.page-preview {
 }
 
 .reveal-modal {
+  &.small {
     @media #{$medium-up} {
         width: 50%;
         margin-left: -25%;
     }
+  }
 
   &.fixed {
     z-index: 100;
@@ -279,6 +306,152 @@ li.page-preview {
   margin-bottom: 0;
 }
 
+.crop-container {
+  position: relative;
+
+  .cropbox {
+    position: absolute;
+    background-color: white;
+    opacity: 0.5;
+    cursor: move;
+    background-size: 3em;
+    background-repeat: no-repeat;
+    background-position: center;
+    border: 1px dashed black;
+
+    &.touch {
+      background-image: url("../img/icon-move.svg");
+    }
+
+    &.active {
+      background-color: royalblue;
+    }
+
+    .drag {
+      position: absolute;
+      width: 3em;
+      height: 3em;
+      text-align: center;
+      background-size: 3em;
+      background-repeat: no-repeat;
+      background-position: center;
+
+      &.active {
+        background-color: royalblue;
+      }
+
+      &.upper-left {
+        top: 0;
+        left: 0;
+        cursor: nw-resize;
+        &.touch {
+          border-right: 1px dashed black;
+          border-bottom: 1px dashed black;
+        }
+      }
+
+      &.touch.upper-left,
+      &.touch.lower-right {
+        background-size: 2em;
+        background-image: url("../img/icon-drag-corner1.svg");
+      }
+
+      &.upper-middle {
+        top: 0;
+        left: 3em;
+        width: calc(100% - 6em);
+        cursor: n-resize;
+        border: 0;
+        &.touch {
+          border-bottom: 1px dashed black;
+        }
+      }
+
+      &.touch.upper-middle,
+      &.touch.lower-middle {
+        background-image: url("../img/icon-drag-up.svg");
+      }
+
+      &.upper-right {
+        top: 0;
+        right: 0;
+        cursor: ne-resize;
+        &.touch {
+          border-left: 1px dashed black;
+          border-bottom: 1px dashed black;
+        }
+      }
+
+      &.touch.upper-right,
+      &.touch.lower-left {
+        background-size: 2em;
+        background-image: url("../img/icon-drag-corner2.svg");
+      }
+
+      &.middle-left {
+        top: 3em;
+        left: 0;
+        height: calc(100% - 6em);
+        cursor: w-resize;
+        border: 0;
+        &.touch {
+          border-right: 1px dashed black;
+        }
+      }
+
+      &.middle-right {
+        top: 3em;
+        right: 0;
+        height: calc(100% - 6em);
+        cursor: e-resize;
+        border: 0;
+        &.touch {
+          border-left: 1px dashed black;
+        }
+      }
+
+      &.touch.middle-left,
+      &.touch.middle-right {
+        background-image: url("../img/icon-drag-left.svg");
+      }
+
+      &.lower-left {
+        bottom: 0;
+        left: 0;
+        cursor: sw-resize;
+        &.touch {
+          border-right: 1px dashed black;
+          border-top: 1px dashed black;
+        }
+      }
+
+      &.lower-middle {
+        bottom: 0;
+        left: 3em;
+        width: calc(100% - 6em);
+        cursor: s-resize;
+        border: 0;
+        &.touch {
+          border-top: 1px dashed black;
+        }
+      }
+
+      &.lower-right {
+        bottom: 0;
+        right: 0;
+        cursor: se-resize;
+        &.touch {
+          border-left: 1px dashed black;
+          border-top: 1px dashed black;
+        }
+      }
+    }
+  }
+
+  img {
+    width: 100%;
+  }
+}
 /* ======= Animations ======== */
 @include keyframes(bounce) {
   0%, 100% {

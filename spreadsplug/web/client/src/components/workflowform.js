@@ -70,7 +70,7 @@
       /* Deregister event handlers */
       this.props.workflow.off('all', null, this);
     },
-    handleSubmit: function() {
+    handleSave: function() {
       /* Save workflow and open capture screen when successful */
       this.setState({submitting: true});
       var rv = this.props.workflow.save();
@@ -98,7 +98,7 @@
     render: function() {
       return (
         <section>
-          <form onSubmit={this.handleSubmit}>
+          <form onSubmit={this.handleSave}>
             <row>
                 <column size='12'>
                 <h2>{this.props.isNew ?
@@ -120,9 +120,9 @@
                                 errors={this.state.errors} />
             <row>
                 <column size='12'>
-                <fnButton onClick={this.handleSubmit} size="small" disabled={this.state.submitting}>
+                  <button className={"action-button small" + (this.state.submitting ? 'disabled' : '')}>
                     <i className="fi-check"/> Submit
-                </fnButton>
+                  </button>
                 </column>
             </row>
           </form>

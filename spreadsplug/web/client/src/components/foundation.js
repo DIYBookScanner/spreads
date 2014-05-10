@@ -214,11 +214,17 @@
    * @property {React.Component[]} children - Child components
    */
   modal = React.createClass({
+    getDefaultProps: function() {
+      return {
+        small: true
+      };
+    },
     render: function() {
       var classes = classSet({
         'reveal-modal': true,
         'open': true,
-        'fixed': this.props.fixed
+        'fixed': this.props.fixed,
+        'small': this.props.small
       });
       return (
         <div className={classes}

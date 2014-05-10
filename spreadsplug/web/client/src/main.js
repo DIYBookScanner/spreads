@@ -43,8 +43,10 @@
   Backbone.history.start({pushState: true, root: '/'});
 
   // Initialize foundation
-  //jQuery(document).foundation();
-  Foundation.init();
+  jQuery(document).foundation();
+
+  // Initialize touch events in React
+  React.initializeTouchEvents();
 
   // Intercept the browser's default link handling
   jQuery(document).on('click', 'a:not([data-bypass])', function(e) {
