@@ -27,6 +27,7 @@ from spreads.workflow import Workflow
 
 import persistence
 from spreadsplug.web import app
+from discovery import discover_servers
 from util import (get_image_url, WorkflowConverter,
                   get_thumbnail, find_stick, scale_image)
 
@@ -151,6 +152,16 @@ def get_available_plugins():
 @app.route('/api/plugins/templates')
 def template_endpoint():
     return jsonify(get_plugin_templates())
+
+@app.route('/api/remote/discover')
+def discover_postprocessors():
+    if app.config['mode'] != 'scanner':
+        raise ApiException("Discovery only possible when running in 'scanner'"
+                           " mode.", 503)
+    servers = discover_servers()
+    if app.config['postproc_server']:
+        servers.append(app.config['postproc_server'].split(':'))
+    return jsonify(servers=["{0}:{1}".format(*addr) for addr in servers])
 
 
 @app.route('/api/remote/plugins')

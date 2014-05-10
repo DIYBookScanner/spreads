@@ -38,6 +38,7 @@ import persistence
 import util
 app.json_encoder = util.CustomJSONEncoder
 from websockets import WebSocketServer
+from discovery import DiscoveryListener
 
 
 logger = logging.getLogger('spreadsplug.web')
@@ -201,6 +202,9 @@ def run_server(config):
     consumer.start()
     # Start websocket server
     ws_server.start()
+    if app.config['mode'] in ('processor', 'full'):
+        discovery_listener = DiscoveryListener(listening_port)
+        discovery_listener.start()
 
     try:
         import waitress
@@ -211,3 +215,5 @@ def run_server(config):
     finally:
         consumer.shutdown()
         ws_server.stop()
+        if app.config['mode'] in ('processor', 'full'):
+            discovery_listener.stop()
