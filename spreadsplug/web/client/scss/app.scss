@@ -293,35 +293,11 @@ li.page-preview {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 300;
-  src: url('/static/fonts/OpenSans-Light-webfont.ttf') format('truetype');
+  src: url('../fonts/OpenSans-Light-webfont.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 400;
-  src: url('/static/fonts/OpenSans-Regular-webfont.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Open Sans';
-  font-style: normal;
-  font-weight: 700;
-  src: url('/static/fonts/OpenSans-Bold-webfont.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Open Sans';
-  font-style: italic;
-  font-weight: 300;
-  src: url('/static/fonts/OpenSans-LightItalic-webfont.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Open Sans';
-  font-style: italic;
-  font-weight: 400;
-  src: url('/static/fonts/OpenSans-Italic-webfont.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Open Sans';
-  font-style: italic;
-  font-weight: 700;
-  src: url('/static/fonts/OpenSans-BoldItalic-webfont.ttf') format('truetype');
+  src: url('../fonts/OpenSans-Regular-webfont.ttf') format('truetype');
 }

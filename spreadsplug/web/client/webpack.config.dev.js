@@ -13,8 +13,7 @@ module.exports = {
       {test: /\.js$/, loader: 'jsx-loader'},
       {test: /\.css$/, loader: 'style!css'},
       {test: /\.scss$/, loader: "style!css!sass"},
-      { test: /\.ttf$/, loader: "url-loader" },
-
+      { test: /\.ttf$/, loader: "url-loader" }
     ]
   },
 }

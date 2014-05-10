@@ -5,9 +5,9 @@ from setuptools import setup
 import spreads
 
 if os.path.exists('README.rst'):
-    description_long=open('README.rst').read()
+    description_long = open('README.rst').read()
 else:
-    description_long="""
+    description_long = """
 spreads is a tool that aims to streamline your book scanning workflow.  It
 takes care of every step=Setting up your capturing devices, handling the
 capturing process, downloading the images to your machine, post-processing them
@@ -67,15 +67,8 @@ setup(
         "spread"
     ],
     package_data={
-        'spreads': ['config_default.yaml'],
         'spreadsplug.gui': ['pixmaps/monk.png'],
-        'spreadsplug.web': ['client/index.html', 'client/spreads.css',
-                            'client/spreads.min.js', 'client/spreads.js',
-                            'client/foundation/css/*', 'client/foundation/fonts/*',
-                            'client/foundation/js/foundation.js',
-                            'client/foundation/js/foundation.min.js',
-                            'client/fonts/*',
-                            ]
+        'spreadsplug.web': ['client/index.html', 'client/packages/*']
     },
     entry_points={
         'spreadsplug.devices': [
