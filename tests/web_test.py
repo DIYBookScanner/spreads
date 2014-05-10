@@ -116,7 +116,7 @@ def create_workflow(client, num_captures='random'):
 def test_index(client):
     rv = client.get('/')
     assert "<title>spreads</title>" in rv.data
-    assert "<script src=\"/static/spreads.min.js\"></script>" in rv.data
+    assert "<script src=\"/static/packages/bundle.js\"></script>" in rv.data
 
     cfg = json.loads(re.findall(r"window.config = ({.*});", rv.data)[0])
     assert cfg['plugins'] == ['test_output', 'test_process', 'test_process2']
