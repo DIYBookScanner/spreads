@@ -14,6 +14,7 @@ import requests
 import zipstream
 from flask import (abort, json, jsonify, request, send_file, render_template,
                    url_for, redirect, make_response, Response)
+from jpegtran import JPEGImage
 from werkzeug import secure_filename
 from werkzeug.contrib.cache import SimpleCache
 
@@ -458,6 +459,36 @@ def delete_workflow_image(workflow, img_num):
     except StopIteration:
         abort(404)
     img_path.unlink()
+    return 'OK'
+
+
+@app.route('/api/workflow/<workflow:workflow>/image/<int:img_num>/crop',
+           methods=['POST'])
+def crop_workflow_image(workflow, img_num):
+    try:
+        img_path = next(p for p in workflow.images
+                        if p.stem == "{0:03}".format(img_num))
+    except StopIteration:
+        abort(404)
+    img = JPEGImage(unicode(img_path))
+    params = {
+        'x': int(request.args.get('left', 0)),
+        'y': int(request.args.get('top', 0)),
+    }
+    width = int(request.args.get('width', img.width - params['x']))
+    height = int(request.args.get('height', img.height - params['y']))
+    if width > img.width:
+        width = img.width
+    if height > img.height:
+        width = img.height
+    params['width'] = width
+    params['height'] = height
+    logger.debug("Cropping \"{0}\" to x:{1} y:{2} w:{3} h:{4}"
+                 .format(img_path, *params.values()))
+    cropped = img.crop(**params)
+    cropped.save(unicode(img_path))
+    cache_key = "{0}.{1}".format(workflow, img_num)
+    cache.delete(cache_key)
     return 'OK'
 
 

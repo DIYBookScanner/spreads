@@ -24,26 +24,12 @@
       merge = require('react/lib/merge'),
       foundation = require('./foundation.js'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
+      capitalize = require('../util.js').capitalize,
       row = foundation.row,
       column = foundation.column,
       fnButton = foundation.button,
       PluginOption, PluginWidget, PluginConfiguration;
 
-  /**
-   * Some helper mixins for underscore that we're going to need
-   *
-   * @mixin
-   */
-  _.mixin({
-    /**
-     * Convert the first letter of a given string to uppercase.
-     *
-     * @param {string} string
-     */
-    capitalize: function(string) {
-        return string.charAt(0).toUpperCase() + string.substring(1).toLowerCase();
-      }
-  });
 
   /**
    * A single option component for the workflow configuration.
@@ -60,7 +46,7 @@
           bindFunc = this.props.bindFunc,
           /* If there is a docstring, use it as the label, otherwise use
            * the capitalized name */
-          label =  <label htmlFor={name}>{option.docstring || _.capitalize(name)}</label>,
+          label =  <label htmlFor={name}>{option.docstring || capitalize(name)}</label>,
           input;
       if (option.selectable && _.isArray(option.value)) {
         /* Use a dropdown to represent selectable values */
@@ -181,7 +167,7 @@
             <label>Configure plugin</label>
             <select onChange={this.handleSelect}>
               {_.keys(templates).map(function(plugin) {
-                return <option key={plugin} value={plugin}>{_.capitalize(plugin)}</option>;
+                return <option key={plugin} value={plugin}>{capitalize(plugin)}</option>;
               })}
             </select>
             <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}

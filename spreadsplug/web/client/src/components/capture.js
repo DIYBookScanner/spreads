@@ -28,10 +28,13 @@
       LoadingOverlay = require('./overlays.js').Activity,
       lightbox = require('./overlays.js').LightBox,
       PluginWidget = require('./config.js').PluginWidget,
+      CropWidget = require('./cropdialog.js'),
+      util = require('../util.js'),
       row = foundation.row,
       column = foundation.column,
       fnButton = foundation.button,
       confirmModal = foundation.confirmModal,
+      modal = foundation.modal,
       placeholderImg;
 
   placeholderImg = "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4AQMAAABPbGssAAAAA1BMVEWZmZl86KQWAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gQIFjciiRhnwgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAZSURBVEjH7cEBDQAAAMKg909tDwcUAAAPBgnYAAHW6F1SAAAAAElFTkSuQmCC";
@@ -63,7 +66,9 @@
         /** Time of first capture */
         captureStart: undefined,
         /** Validation errors for device configuration */
-        validationErrors: {}
+        validationErrors: {},
+        /** Crop parameters */
+        cropParams: {}
       };
     },
     /**
@@ -96,6 +101,9 @@
       });
       Mousetrap.unbind('r');
       Mousetrap.unbind('f');
+      if (!_.isEmpty(this.state.cropParams)) {
+        this.cropLast();
+      }
       this.props.workflow.finishCapture();
     },
     /**
@@ -106,12 +114,23 @@
         // There is already a capture (or preparation) in progress.
         return;
       }
+      if (!_.isEmpty(this.state.cropParams)) {
+        this.cropLast();
+      }
       console.log("Triggering capture");
       this.props.workflow.triggerCapture(false, function() {
         if (this.state.refreshReview) {
           this.setState({refreshReview: false});
         }
       }.bind(this));
+    },
+    cropLast: function() {
+      var workflow = this.props.workflow,
+          oddImage = workflow.get('images').slice(-2)[0],
+          evenImage = workflow.get('images').slice(-2)[1];
+      console.log("Cropping last capture")
+      this.props.workflow.cropImage(oddImage, this.state.cropParams.odd);
+      this.props.workflow.cropImage(evenImage, this.state.cropParams.even);
     },
     /**
      * Trigger a retake (= delete last <num_devices> captures and take new
@@ -155,6 +174,19 @@
         displayConfig: !this.state.displayConfig
       });
     },
+    toggleCropDialog: function(targetPage) {
+      this.setState({
+        cropTarget: targetPage
+      });
+    },
+    setCropParams: function(params) {
+      var origParams = this.state.cropParams;
+      origParams[this.state.cropTarget] = params;
+      this.setState({
+        cropParams: origParams,
+        cropTarget: undefined
+      });
+    },
     saveConfig: function() {
       this.props.workflow.on('validated:invalid', function(workflow, errors) {
         this.setState({validationErrors: errors});
@@ -191,6 +223,17 @@
     toggleAdvanced: function(){
       this.setState({ advancedOpts: !this.state.advancedOpts });
       this.forceUpdate();
+    },
+    getCropPreviewStyle: function(targetPage) {
+      var cropParams = this.state.cropParams[targetPage],
+          thumbNode = this.refs['thumb-'+targetPage].getDOMNode(),
+          factor = thumbNode.offsetWidth / cropParams.nativeWidth;
+      return {
+        left: Math.ceil(cropParams.left*factor),
+        top: Math.ceil(cropParams.top*factor),
+        width: Math.ceil(cropParams.width*factor),
+        height: Math.ceil(cropParams.height*factor)
+      };
     },
     render: function() {
       var workflow = this.props.workflow || {},
@@ -236,6 +279,15 @@
               </confirmModal>
             </form>
           }
+          {this.state.cropTarget &&
+            <modal onClose={function(){this.setState({cropTarget: undefined});}.bind(this)}
+                   small={false}>
+              <CropWidget imageSrc={this.state.cropTarget == 'even' ? evenImage : oddImage}
+                          onSave={this.setCropParams}
+                          cropParams={this.state.cropParams[this.state.cropTarget]}
+                          showInputs={true}/>
+            </modal>
+          }
           <row>
             <column>
               {/* NOTE: We append a random suffix to the thumbnail URL to force
@@ -245,35 +297,51 @@
               {/* Landscape layout */}
               <ul className="show-for-landscape small-block-grid-2 capture-preview">
                 <li>
+                  <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('odd');}.bind(this)}> Crop</a>
                   {oddImage ?
                     <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
-                      <img src={oddImage+"/thumb?"+randomSuffix} />
+                      <img src={oddImage+"/thumb?"+randomSuffix} ref="thumb-odd"/>
                     </a>:
                     <img className="placeholder" src={placeholderImg}/>}
+                  {this.state.cropParams.odd &&
+                    <div className="crop-preview" style={this.getCropPreviewStyle('odd')}/>
+                  }
                 </li>
                 <li>
+                  <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('even');}.bind(this)}> Crop</a>
                   {evenImage ?
                   <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
-                    <img src={evenImage+"/thumb?"+randomSuffix} />
+                    <img src={evenImage+"/thumb?"+randomSuffix} ref="thumb-even"/>
                   </a>:
                   <img className="placeholder" src={placeholderImg}/>}
+                  {this.state.cropParams.even &&
+                      <div className="crop-preview" style={this.getCropPreviewStyle('even')}/>
+                  }
                 </li>
               </ul>
               {/* Portrait layout */}
               <ul className="show-for-portrait small-block-grid-1 medium-block-grid-2 capture-preview">
                   <li>
+                  <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('odd');}.bind(this)}> Crop</a>
                   {oddImage ?
                     <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix);}.bind(this)}>
-                      <img src={oddImage+"/thumb?"+randomSuffix} />
+                      <img src={oddImage+"/thumb?"+randomSuffix} ref="thumb-odd"/>
                     </a>:
                     <img className="placeholder" src={placeholderImg}/>}
+                    {this.state.cropParams.odd &&
+                        <div className="crop-preview" style={this.getCropPreviewStyle('odd')}/>
+                    }
                   </li>
                 <li>
+                  <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('even');}.bind(this)}> Crop</a>
                   {evenImage ?
                   <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix);}.bind(this)}>
-                    <img src={evenImage+"/thumb?"+randomSuffix} />
+                    <img src={evenImage+"/thumb?"+randomSuffix} ref="thumb-even" />
                   </a>:
                   <img className="placeholder" src={placeholderImg}/>}
+                  {this.state.cropParams.even &&
+                      <div className="crop-preview" style={this.getCropPreviewStyle('even')}/>
+                  }
                 </li>
               </ul>
             </column>
@@ -317,6 +385,7 @@
               </ul>
             </div>
           </row>
+          {!util.isTouchDevice() &&
           <row className="hide-for-touch">
             <column size="4" offset="4" className="shortcuts">
               <strong>Keyboard shortcuts:</strong>
@@ -329,7 +398,7 @@
                 <li>Finish: <kbd>F</kbd></li>
               </ul>
             </column>
-          </row>
+          </row>}
         </div>
       );
     }

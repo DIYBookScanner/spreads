@@ -157,6 +157,16 @@
         this.trigger('change:images', this.get('images'));
       }.bind(this));
     },
+    cropImage: function(imageUrl, cropParams, callback) {
+      var parts = [];
+      for (var p in cropParams)
+          parts.push(encodeURIComponent(p) + "=" + encodeURIComponent(cropParams[p]));
+
+      jQuery.post(imageUrl + '/crop?' + parts.join("&"))
+        .fail(function() {
+          console.error("Could not crop image " + imageUrl );
+        });
+    },
     /**
      * Set default configuration from our global `pluginTemplates` object.
      *

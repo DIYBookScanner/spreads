@@ -40,10 +40,20 @@
       !matchMedia(mediaQueries.medium).matches;
   }
 
+  /**
+    * Convert the first letter of a given string to uppercase.
+    *
+    * @param {string} string
+    */
+  function capitalize(string) {
+    return string.charAt(0).toUpperCase() + string.substring(1).toLowerCase();
+  }
+
   module.exports = {
     isTouchDevice: isTouchDevice,
     isSmall: isSmall,
     mediaQueries: mediaQueries,
+    capitalize: capitalize,
     // For modernizr compatibility
     touch: isTouchDevice()
   }
