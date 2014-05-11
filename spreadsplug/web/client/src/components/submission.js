@@ -34,6 +34,8 @@
 
     getInitialState: function() {
       return {
+        selectedServer: undefined,
+        availableServers: [],
         plugins: {},
         templates: {},
         workflow: undefined,
@@ -44,44 +46,57 @@
       };
     },
     componentDidMount: function() {
-      function loadRemoteTemplates() {
-        jQuery.getJSON('/api/remote/plugins/templates', function(data) {
-          var config = this.state.config,
-              plugins = this.state.plugins['postprocessing'].concat(this.state.plugins['output']);
-          this.setState({
-            templates: data
-          });
-          _.each(plugins, function(plugName) {
-            this.loadDefaultConfig(plugName);
-          }, this);
-        }.bind(this)).fail(function() {
-          console.error("Could not get list of remote templates");
-        });
-      }
-
+      jQuery.getJSON('/api/remote/discover', function(data) {
+        this.setState({
+          availableServers: data.servers,
+          selectedServer: data.servers[0]
+        }, this.loadServerData);
+      }.bind(this));
+    },
+    loadServerData: function() {
       // NOTE: To take advantage of the things Backbone provides, we clone
       // our workflow here. **This clone is never persisted**
       var workflow = this.props.workflow.clone(),
           config = {};
 
+      function loadTemplates() {
+        jQuery.getJSON(
+          '/api/remote/plugins/templates',
+          {'server': this.state.selectedServer},
+          function(data) {
+            var config = this.state.config,
+                plugins = this.state.plugins['postprocessing'].concat(this.state.plugins['output']);
+            this.setState({
+              templates: data
+            });
+            _.each(plugins, function(plugName) {
+              this.loadDefaultConfig(plugName);
+            }, this);
+          }.bind(this))
+          .fail(function() {
+            console.error("Could not get list of remote templates");
+          });
+      }
 
-
-      jQuery.getJSON('/api/remote/plugins', function(data) {
-        config.plugins = data.postprocessing.concat(data.output);
-        workflow.set('config', config);
-        this.setState({
-          plugins: data,
-          workflow: workflow
+      jQuery.getJSON(
+        '/api/remote/plugins',
+        {'server': this.state.selectedServer},
+        function(data) {
+          config.plugins = data.postprocessing.concat(data.output);
+          workflow.set('config', config);
+          this.setState({
+            plugins: data,
+            workflow: workflow
+          });
+          loadTemplates.bind(this)()
+          /* Update `errors` if there were validation errors. */
+          workflow.on('validated:invalid', function(workflow, errors) {
+            this.setState({errors: errors});
+          }, this);
+        }.bind(this))
+        .fail(function() {
+          console.error("Could not get list of remote plugins");
         });
-        loadRemoteTemplates.bind(this)();
-      }.bind(this)).fail(function() {
-        console.error("Could not get list of remote plugins");
-      });
-
-      /* Update `errors` if there were validation errors. */
-      this.props.workflow.on('validated:invalid', function(workflow, errors) {
-        this.setState({errors: errors});
-      }, this);
     },
     handleSubmit: function() {
       var start_process,
@@ -98,7 +113,8 @@
         data: JSON.stringify(
           { config: this.state.workflow.get('config'),
             start_process: start_process,
-            start_output: start_output }),
+            start_output: start_output,
+            server: this.state.selectedServer }),
         contentType: "application/json; charset=utf-8",
       }).fail(function(xhr) {
         this.setState({ submissionWaiting: false });
@@ -122,6 +138,11 @@
         });
         window.router.navigate('/', {trigger: true});
       }.bind(this));
+    },
+    handleServerSelect: function(event) {
+      this.setState({
+        selectedServer: event.target.value
+      }, this.loadServerData);
     },
     handlePluginToggle: function(enabled, pluginName) {
       var config = this.state.workflow.get('config');
@@ -166,6 +187,18 @@
             </row>
             <row>
               <column size={[12,9]}>
+                <label>Select postprocessing server</label>
+                <select onChange={this.handleServerSelect}>
+                  {this.state.availableServers.map(function(server) {
+                    return <option key={server} value={server}>{server}</option>;
+                  })}
+                </select>
+              </column>
+            </row>
+            {this.state.selectedServer &&
+            <div>
+            <row>
+              <column size={[12,9]}>
                 {this.state.plugins && _.map(this.state.plugins.postprocessing, function(plugin) {
                   var key = 'toggle-' + plugin;
                   return (
@@ -201,6 +234,8 @@
                 <button>Submit</button>
               </column>
             </row>
+          </div>
+          }
           </form>
           </section>
       );

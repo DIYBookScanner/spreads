@@ -153,6 +153,7 @@ def get_available_plugins():
 def template_endpoint():
     return jsonify(get_plugin_templates())
 
+
 @app.route('/api/remote/discover')
 def discover_postprocessors():
     if app.config['mode'] != 'scanner':
@@ -166,32 +167,28 @@ def discover_postprocessors():
 
 @app.route('/api/remote/plugins')
 def get_remote_plugins():
+    # TODO: Shouldn't this the done via a CORS request on the client-side?
     if app.config['mode'] != 'scanner':
         raise ApiException("Submission only possible when running in 'scanner'"
                            " mode.", 503)
-    server = app.config['postproc_server']
+    server = request.args.get("server")
     if not server:
-        error_msg = ("Remote server was not configured, please set the"
-                     "'postprocessing_server' value in your configuration!")
-        logger.error(error_msg)
-        raise ApiException(error_msg, 500)
-    resp = requests.get(server + '/api/plugins')
+        raise ApiException("Missing 'server' parameter", 400)
+    resp = requests.get('http://{0}/api/plugins'.format(server))
     return make_response(resp.content, resp.status_code,
                          {'Content-Type': 'application/json'})
 
 
 @app.route('/api/remote/plugins/templates')
 def get_remote_templates():
+    # TODO: Shouldn't this the done via a CORS request on the client-side?
     if app.config['mode'] != 'scanner':
         raise ApiException("Submission only possible when running in 'scanner'"
                            " mode.", 503)
-    server = app.config['postproc_server']
+    server = request.args.get("server")
     if not server:
-        error_msg = ("Remote server was not configured, please set the"
-                     "'postprocessing_server' value in your configuration!")
-        logger.error(error_msg)
-        raise ApiException(error_msg, 500)
-    resp = requests.get(server + '/api/plugins/templates')
+        raise ApiException("Missing 'server' parameter", 400)
+    resp = requests.get('http://{0}/api/plugins/templates'.format(server))
     return make_response(resp.content, resp.status_code,
                          {'Content-Type': 'application/json'})
 
@@ -448,17 +445,15 @@ def submit_workflow(workflow):
     if app.config['mode'] != 'scanner':
         raise ApiException("Submission only possible when running in 'scanner'"
                            " mode.", 503)
-    server = app.config['postproc_server']
-    if not server:
-        error_msg = ("Remote server was not configured, please set the"
-                     "'postprocessing_server' value in your configuration!")
-        logger.error(error_msg)
-        raise ApiException(error_msg, 500)
     data = json.loads(request.data)
+    server = data.get('server')
+    if not server:
+        raise ApiException("Missing 'server' field in JSON data", 400)
     user_config = data.get('config', {})
     from tasks import upload_workflow
     # TODO: Pass config to this function
-    upload_workflow(workflow.id, server+'/api/workflow', user_config,
+    upload_workflow(workflow.id,
+                    'http://{0}/api/workflow'.format(server), user_config,
                     start_process=data.get('start_process', False),
                     start_output=data.get('start_output', False))
     return 'OK'

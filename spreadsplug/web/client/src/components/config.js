@@ -174,7 +174,7 @@
             <label>Configure plugin</label>
             <select onChange={this.handleSelect}>
               {plugins.map(function(plugin) {
-                return <option key={plugin} value={plugin}>{_.capitalize(plugin)}</option>;
+                return <option key={plugin} value={plugin}>{capitalize(plugin)}</option>;
               })}
             </select>
             <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
