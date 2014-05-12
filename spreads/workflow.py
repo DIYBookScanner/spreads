@@ -164,7 +164,7 @@ class Workflow(object):
     def _load_config(self, value):
         # Load default configuration
         config = Configuration()
-        cfg_file = self.path / 'data' / 'config.yml'
+        cfg_file = self.path / 'config.yml'
         if value is None and cfg_file.exists():
             # Load workflow-specific configuration from file
             value = confit.ConfigSource({}, unicode(cfg_file))
