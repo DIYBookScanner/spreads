@@ -98,7 +98,7 @@
                     {this.props.smallDisplay && " Transfer"}
                   </a>
                 </li>}
-              {window.config.web.postprocessing_server && window.config.web.mode === 'scanner' &&
+              {window.config.web.mode === 'scanner' &&
                 <li>
                   <a title="Submit for postprocessing"
                       href={'/workflow/' + this.props.workflowId + '/submit'}
