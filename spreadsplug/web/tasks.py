@@ -135,9 +135,9 @@ def upload_workflow(workflow_id, endpoint, user_config, start_process=False,
     else:
         wfid = resp.json()['id']
         if start_process:
-            requests.post(endpoint + "{0}/process".format(wfid))
+            requests.post(endpoint + "/{0}/process".format(wfid))
         if start_output:
-            requests.post(endpoint + "{0}/output".format(wfid))
+            requests.post(endpoint + "/{0}/output".format(wfid))
         signals['submit:completed'].send(workflow, remote_id=wfid)
 
     # Remove configuration file again, since it does not match the scanner
@@ -147,11 +147,15 @@ def upload_workflow(workflow_id, endpoint, user_config, start_process=False,
 
 @task_queue.task()
 def process_workflow(workflow_id):
+    logger.debug("Initiating processing for workflow {0}"
+                 .format(workflow_id))
     workflow = get_workflow(workflow_id)
     workflow.process()
 
 
 @task_queue.task()
 def output_workflow(workflow_id):
+    logger.debug("Initiating output generation for workflow {0}"
+                 .format(workflow_id))
     workflow = get_workflow(workflow_id)
     workflow.output()
