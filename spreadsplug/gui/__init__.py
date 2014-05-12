@@ -27,6 +27,8 @@ logger = logging.getLogger('spreadsplug.gui')
 
 
 class GuiCommand(HookPlugin, SubcommandHookMixin):
+    __name__ = 'gui'
+
     @classmethod
     def add_command_parser(cls, rootparser):
         guiparser = rootparser.add_parser(

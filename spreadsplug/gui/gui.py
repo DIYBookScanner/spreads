@@ -326,7 +326,7 @@ class CapturePage(QtGui.QWizardPage):
             capture_speed = ((3600 / (time.time() - self._start_time))
                              * self.shot_count)
         else:
-            self._start_time = start_time
+            self._start_time = time.time()
             capture_speed = 0.0
         self.status.setText(
             "Shot {0} pages in {1:.0f} minutes ({2:.0f} pages/hour)"
