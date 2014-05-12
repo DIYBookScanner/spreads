@@ -164,7 +164,7 @@ class GeneratorIO(BufferedIOBase):
 
 
 def get_image_url(workflow, img_path):
-    img_num = int(img_path.stem)
+    img_num = int(Path(img_path).stem)
     return "/api/workflow/{0}/image/{1}".format(workflow.id, img_num)
 
 
