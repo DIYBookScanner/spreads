@@ -787,7 +787,7 @@ class Configuration(RootView):
             os.makedirs(appdir)
         return appdir
 
-    def dump(self, filename=None, full=True):
+    def dump(self, filename=None, full=True, sections=None):
         """Dump the Configuration object to a YAML file.
 
         The order of the keys is determined from the default
@@ -799,6 +799,8 @@ class Configuration(RootView):
         :type filename:   unicode
         :param full:      Dump settings that don't differ from the defaults
                           as well
+        :param sections:  Sections to include in the dump
+        :type sections:   collection
         """
         out_dict = OrderedDict()
         try:
@@ -811,8 +813,10 @@ class Configuration(RootView):
         out_keys = default_keys + new_keys
         for key in out_keys:
             # Skip entries unchanged from default config
-            if (not full and key in default_keys
-                    and self[key].get() == default_conf[key]):
+            unchanged_default = (key in default_keys
+                                 and self[key].get() == default_conf[key])
+            filtered = sections is not None and key not in sections
+            if (not full and unchanged_default) or filtered:
                 continue
             try:
                 out_dict[key] = self[key].flatten()

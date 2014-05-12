@@ -23,6 +23,7 @@ import shutil
 
 import blinker
 import requests
+from spreads.vendor.confit import Configuration
 from spreads.vendor.pathlib import Path
 
 from spreadsplug.web import task_queue
@@ -85,9 +86,17 @@ def transfer_to_stick(workflow_id):
 @task_queue.task()
 def upload_workflow(workflow_id, endpoint, user_config, start_process=False,
                     start_output=False):
-    # TODO: Dump user_config into data/config.yaml inside of zstream
     logger.debug("Uploading workflow to postprocessing server")
     workflow = get_workflow(workflow_id)
+
+    # Temporarily write the user-supplied configuration to the bag
+    tmp_cfg = workflow.config.with_overlay(user_config)
+    tmp_cfg_path = workflow.path/'config.yaml'
+    tmp_cfg.dump(filename=tmp_cfg_path,
+                 sections=(user_config['plugins'] + ["plugins", "device"]))
+    workflow.bag.add_tagfiles(unicode(tmp_cfg_path))
+
+    # Create a zipstream from the workflow-bag
     zstream = workflow.bag.package_as_zipstream(compression=None)
     zstream_copy = copy.deepcopy(zstream)
     num_data = sum(1 for x in zstream_copy)
@@ -118,6 +127,10 @@ def upload_workflow(workflow_id, endpoint, user_config, start_process=False,
         if start_output:
             requests.post(endpoint + "{0}/output".format(wfid))
         signals['submit:completed'].send(workflow, remote_id=wfid)
+
+    # Remove configuration file again, since it does not match the scanner
+    # configuration/plugin selection
+    workflow.remove_tagfiles(tmp_cfg_path)
 
 
 @task_queue.task()

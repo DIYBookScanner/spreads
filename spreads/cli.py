@@ -171,7 +171,6 @@ def configure(config):
             continue
         config.set_from_template(name, config.templates[name])
 
-
     # We only need to set the device target_page if the driver supports
     # shooting with two devices
     if driver and plugin.DeviceFeatures.IS_CAMERA in driver.features:
