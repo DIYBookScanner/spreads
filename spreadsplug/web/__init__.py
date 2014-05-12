@@ -30,8 +30,8 @@ from spreads.config import OptionTemplate
 from spreads.cli import add_argument_from_template
 from spreads.workflow import Workflow
 
-app = Flask('spreadsplug.web', static_url_path='/static', static_folder='./client',
-            template_folder='./client')
+app = Flask('spreadsplug.web', static_url_path='/static',
+            static_folder='./client', template_folder='./client')
 task_queue = None
 import web
 import persistence
@@ -72,6 +72,8 @@ except ImportError:
 
 
 class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
+    __name__ = 'web'
+
     @classmethod
     def add_command_parser(cls, rootparser):
         cmdparser = rootparser.add_parser(
@@ -140,6 +142,13 @@ def setup_app(config):
             config['web']['postprocessing_server'].get())
 
 
+def setup_task_queue(config):
+    # Initialize huey task queue
+    global task_queue
+    db_location = config.cfg_path.parent / 'queue.db'
+    task_queue = SqliteHuey(location=unicode(db_location))
+
+
 def setup_logging(config):
     # Add in-memory log handler
     memoryhandler = logging.handlers.BufferingHandler(1024*10)
@@ -163,8 +172,9 @@ def setup_signals(ws_server=None):
         return signal_callback
 
     # Register event handlers
+    import tasks
     signals = chain(*(x.signals.values()
-                      for x in (Workflow, util.EventHandler, web)))
+                      for x in (Workflow, util.EventHandler, web, tasks)))
 
     for signal in signals:
         signal.connect(get_signal_callback_http(signal), weak=False)
@@ -177,12 +187,9 @@ def run_server(config):
     ws_server = WebSocketServer(port=listening_port+1)
     setup_app(config)
     setup_logging(config)
+    setup_task_queue(config)
     setup_signals(ws_server)
 
-    # Initialize huey task queue
-    global task_queue
-    db_location = config.cfg_path.parent / 'queue.db'
-    task_queue = SqliteHuey(location=unicode(db_location))
     consumer = Consumer(task_queue)
 
     ip_address = get_ip_address()

@@ -121,7 +121,6 @@ def upload_workflow(workflow_id, endpoint, user_config, start_process=False,
         logger.error(error_msg)
     else:
         wfid = resp.json()['id']
-        signals['submit:completed'].send(workflow, remote_id=wfid)
         if start_process:
             requests.post(endpoint + "{0}/process".format(wfid))
         if start_output:
