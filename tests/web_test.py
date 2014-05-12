@@ -29,7 +29,9 @@ def app(config, tmpdir):
     config['web']['standalone_device'] = True
     setup_app(config)
     setup_logging(config)
-    setup_signals()
+    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+        mock_tq.task.return_value = lambda x: x
+        setup_signals()
     app.config['TESTING'] = True
     event_queue.clear()
     persistence.WorkflowCache = {}
@@ -234,7 +236,10 @@ def test_submit_workflow(requests, app, tmpdir):
     with mock.patch('spreadsplug.web.task_queue') as mock_tq:
         mock_tq.task.return_value = lambda x: x
         requests.post.return_value.json.return_value = {'id': 1}
-        client.post('/api/workflow/{0}/submit'.format(wfid))
+        client.post('/api/workflow/{0}/submit'.format(wfid),
+                    content_type="application/json",
+                    data=json.dumps({'config': {'plugins': []},
+                                     'server': '127.0.0.1:5000'}))
     assert requests.post.call_count == 1
     # TODO: Iterate through data, assert events are emitted
     # TODO: Assert completed are emitted
@@ -261,7 +266,7 @@ def test_get_workflow_image_thumb(client):
     wfid = create_workflow(client)
     rv = client.get('/api/workflow/{0}/image/1/thumb'.format(wfid))
     assert rv.status_code == 200
-    assert jpegtran.JPEGImage(blob=rv.data).width == 130
+    assert jpegtran.JPEGImage(blob=rv.data).width == 196
 
 
 def test_prepare_capture(client):
@@ -318,9 +323,10 @@ def test_start_processing(client):
         client.post('/api/workflow/{0}/process'.format(wfid))
     time.sleep(.1)
     events = json.loads(client.get('/api/events').data)
-    assert all(e['name'] == 'workflow:progressed' for e in events)
-    assert [e['data']['plugin_name'] for e in events] == ['test_process',
-                                                          'test_process2']
+    assert all(e['name'] == 'workflow:progressed' for e in events
+               if e['name'] != 'logrecord')
+    assert [e['data']['plugin_name'] for e in events
+            if e['name'] != 'logrecord'] == ['test_process', 'test_process2']
     # TODO: Verify generation was completed (files?)
 
 
@@ -331,8 +337,10 @@ def test_start_outputting(client):
         client.post('/api/workflow/{0}/output'.format(wfid))
     time.sleep(.1)
     events = json.loads(client.get('/api/events').data)
-    assert all(e['name'] == 'workflow:progressed' for e in events)
-    assert [e['data']['plugin_name'] for e in events] == ['test_output']
+    assert all(e['name'] == 'workflow:progressed' for e in events
+               if e['name'] != 'logrecord')
+    assert [e['data']['plugin_name'] for e in events
+            if e['name'] != 'logrecord'] == ['test_output']
 
 
 def test_get_logs(client):

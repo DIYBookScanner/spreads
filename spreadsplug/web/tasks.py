@@ -23,7 +23,6 @@ import shutil
 
 import blinker
 import requests
-from spreads.vendor.confit import Configuration
 from spreads.vendor.pathlib import Path
 
 from spreadsplug.web import task_queue
@@ -90,9 +89,10 @@ def upload_workflow(workflow_id, endpoint, user_config, start_process=False,
     workflow = get_workflow(workflow_id)
 
     # Temporarily write the user-supplied configuration to the bag
-    tmp_cfg = workflow.config.with_overlay(user_config)
+    tmp_cfg = copy.deepcopy(workflow.config)
+    tmp_cfg.set(user_config)
     tmp_cfg_path = workflow.path/'config.yaml'
-    tmp_cfg.dump(filename=tmp_cfg_path,
+    tmp_cfg.dump(filename=unicode(tmp_cfg_path),
                  sections=(user_config['plugins'] + ["plugins", "device"]))
     workflow.bag.add_tagfiles(unicode(tmp_cfg_path))
 
@@ -142,7 +142,7 @@ def upload_workflow(workflow_id, endpoint, user_config, start_process=False,
 
     # Remove configuration file again, since it does not match the scanner
     # configuration/plugin selection
-    workflow.remove_tagfiles(tmp_cfg_path)
+    workflow.bag.remove_tagfiles(unicode(tmp_cfg_path))
 
 
 @task_queue.task()
