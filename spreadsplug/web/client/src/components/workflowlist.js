@@ -23,7 +23,6 @@
       _ = require('underscore'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
       LoadingOverlay = require('./overlays.js').Activity,
-      ProgressOverlay = require('./overlays.js').Progress,
       foundation = require('./foundation.js'),
       util = require('../util.js'),
       row = foundation.row,
@@ -210,10 +209,6 @@
         downloadWaiting: true,
         downloadInProgress: true
       });
-      window.router.events.on('download:prepare-progressed', function() {
-          this.setState({downloadPrepareProgress: data.progress*100 | 0,
-                         downloadPrepareCurrentFile: data.status});
-      }, this);
       window.router.events.on('download:prepared', function() {
         this.setState({downloadWaiting: false});
       }, this);
@@ -239,8 +234,7 @@
           <row>
             {/* Display waiting for download overlay? */}
             {this.state.downloadWaiting &&
-              <ProgressOverlay progress={this.state.downloadPrepareProgress}
-                              statusMessage={this.state.downloadPrepareCurrentFile || "Preparing download..."}/>
+              <LoadingOverlay message="Preparing download..."/>
             }
             {/* Display deletion confirmation modal? */}
             {this.state.deleteModal &&

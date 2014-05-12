@@ -15,7 +15,6 @@ from collections import deque
 import blinker
 import pkg_resources
 import requests
-import zipstream
 from flask import (abort, json, jsonify, request, send_file, render_template,
                    url_for, redirect, make_response, Response)
 from jpegtran import JPEGImage
@@ -35,7 +34,6 @@ logger = logging.getLogger('spreadsplug.web')
 
 signals = blinker.Namespace()
 on_download_prepared = signals.signal('download:prepared')
-on_download_prepare_progressed = signals.signal('download:prepare-progressed')
 on_download_finished = signals.signal('download:finished')
 
 # Event Queue for polling endpoints
@@ -382,24 +380,7 @@ def download_workflow(workflow, fname):
         return redirect(url_for('download_workflow', workflow=workflow,
                         fname="{0}.zip".format(workflow.path.stem)))
 
-    # Open ZIP stream
-    zstream = zipstream.ZipFile(mode='w', compression=zipstream.ZIP_STORED)
-    # Dump configuration to workflow directory
-    workflow.config.dump(unicode(workflow.path/'config.yaml'))
-    # Find all files within up to two levels deep, relative to the
-    # workflow base path
-    files = tuple(workflow.path.glob('**/*'))
-    num_files = len(files)
-    for num, fpath in enumerate(files):
-        extract_path = '/'.join((workflow.path.stem,
-                                 unicode(fpath.relative_to(workflow.path)))
-                                )
-        logger.debug("Adding {0} to archive as {1}"
-                     .format(fpath, extract_path))
-        zstream.write(unicode(fpath), extract_path)
-        on_download_prepare_progressed.send(workflow,
-                                            progress=(num/num_files),
-                                            status=fpath.name)
+    zstream = workflow.bag.package_as_zipstream(compression=None)
     zstream_copy = copy.deepcopy(zstream)
     zipsize = sum(len(data) for data in zstream_copy)
     on_download_prepared.send(workflow)
