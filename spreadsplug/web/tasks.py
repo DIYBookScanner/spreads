@@ -28,7 +28,7 @@ from spreads.vendor.pathlib import Path
 
 from spreadsplug.web import task_queue
 from persistence import get_workflow
-from util import find_stick
+from util import find_stick, GeneratorIO
 
 logger = logging.getLogger('spreadsplug.web.tasks')
 signals = blinker.Namespace()
@@ -99,20 +99,33 @@ def upload_workflow(workflow_id, endpoint, user_config, start_process=False,
     # Create a zipstream from the workflow-bag
     zstream = workflow.bag.package_as_zipstream(compression=None)
     zstream_copy = copy.deepcopy(zstream)
-    num_data = sum(1 for x in zstream_copy)
+    zsize = sum(len(x) for x in zstream_copy)
 
     def zstream_wrapper():
         """ Wrapper around our zstream so we can emit a signal when all data
         has been streamed to the client.
         """
-        for num, data in enumerate(zstream):
-            signals['submit:progressed'].send(
-                workflow, progress=(num/num_data),
-                status="Uploading workflow...")
+        transferred = 0
+        progress = "0.00"
+        for data in zstream:
             yield data
+            transferred += len(data)
+            # Only update progress if we've progress at least by 0.01
+            new_progress = "{0:.2f}".format(transferred/zsize)
+            if new_progress != progress:
+                progress = new_progress
+                signals['submit:progressed'].send(
+                    workflow, progress=float(progress),
+                    status="Uploading workflow...")
 
+    # NOTE: This is neccessary since requests makes a chunked upload when
+    #       passed a plain generator, which is not supported by the WSGI
+    #       protocol that receives it. Hence we wrap it inside of a
+    #       GeneratorIO to make it appear as a file-like object with a
+    #       known size.
+    zstream_fp = GeneratorIO(zstream_wrapper(), zsize)
     signals['submit:started'].send(workflow)
-    resp = requests.post(endpoint, data=zstream_wrapper(),
+    resp = requests.post(endpoint, data=zstream_fp,
                          headers={'Content-Type': 'application/zip'})
     if not resp:
         error_msg = "Upload failed: {0}".format(resp.content)

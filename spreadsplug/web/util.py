@@ -22,7 +22,9 @@ import logging
 import time
 import traceback
 from datetime import datetime
+from io import BufferedIOBase, UnsupportedOperation
 
+from spreads.vendor.pathlib import Path
 from flask import abort
 from flask.json import JSONEncoder
 from jpegtran import JPEGImage
@@ -126,6 +128,39 @@ class WorkflowConverter(BaseConverter):
 
     def to_url(self, value):
         return unicode(value.id)
+
+
+class GeneratorIO(BufferedIOBase):
+    """ Wrapper around a generator to act as a file-like object.
+    """
+    def __init__(self, generator, length=None):
+        self._generator = generator
+        self._next_chunk = bytearray()
+        self._length = length
+
+    def read(self, num_bytes=None):
+        if self._next_chunk is None:
+            return b''
+        try:
+            if num_bytes is None:
+                rv = self._next_chunk[:]
+                self._next_chunk[:] = next(self._generator)
+                return bytes(rv)
+            while len(self._next_chunk) < num_bytes:
+                self._next_chunk += next(self._generator)
+            rv = self._next_chunk[:num_bytes]
+            self._next_chunk[:] = self._next_chunk[num_bytes:]
+            return bytes(rv)
+        except StopIteration:
+            rv = self._next_chunk[:]
+            self._next_chunk = None
+            return bytes(rv)
+
+    def __len__(self):
+        if self._length is not None:
+            return self._length
+        else:
+            raise UnsupportedOperation
 
 
 def get_image_url(workflow, img_path):
