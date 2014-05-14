@@ -25,8 +25,8 @@ import blinker
 import requests
 from spreads.vendor.pathlib import Path
 
+from spreads.workflow import Workflow
 from spreadsplug.web import task_queue
-from persistence import get_workflow
 from util import find_stick, GeneratorIO
 
 logger = logging.getLogger('spreadsplug.web.tasks')
@@ -40,16 +40,14 @@ on_submit_completed = signals.signal('submit:completed')
 
 
 @task_queue.task()
-def transfer_to_stick(workflow_id):
+def transfer_to_stick(workflow):
     stick = find_stick()
-    workflow = get_workflow(workflow_id)
     files = list(workflow.path.rglob('*'))
     num_files = len(files)
     # Filter out problematic characters
     clean_name = (workflow.path.name.replace(':', '_')
                                     .replace('/', '_'))
-    workflow.step = 'transfer'
-    workflow.step_done = False
+    workflow.status['step'] = 'transfer'
     try:
         mount = stick.get_dbus_method(
             "FilesystemMount", dbus_interface="org.freedesktop.UDisks.Device")
@@ -62,6 +60,7 @@ def transfer_to_stick(workflow_id):
         for num, path in enumerate(files, 1):
             signals['transfer:progressed'].send(
                 workflow, progress=(num/num_files)*0.79, status=path.name)
+            workflow.status['step_done'] = (num/num_files)*0.79
             target = target_path/path.relative_to(workflow.path)
             if path.is_dir():
                 target.mkdir()
@@ -71,6 +70,7 @@ def transfer_to_stick(workflow_id):
         if 'mount_point' in locals():
             signals['transfer:progressed'].send(workflow, progress=0.8,
                                                 status="Syncing...")
+            workflow.status['step_done'] = 0.8
             unmount = stick.get_dbus_method(
                 "FilesystemUnmount",
                 dbus_interface="org.freedesktop.UDisks.Device")
@@ -78,15 +78,14 @@ def transfer_to_stick(workflow_id):
                                       # timeout... unmounting sometimes takes a
                                       # long time, since the device has to be
                                       # synced.
-        workflow.step_done = True
         signals['transfer:completed'].send(workflow)
+        workflow.status['step'] = None
 
 
 @task_queue.task()
-def upload_workflow(workflow_id, endpoint, user_config, start_process=False,
+def upload_workflow(workflow, endpoint, user_config, start_process=False,
                     start_output=False):
     logger.debug("Uploading workflow to postprocessing server")
-    workflow = get_workflow(workflow_id)
 
     # Temporarily write the user-supplied configuration to the bag
     tmp_cfg = copy.deepcopy(workflow.config)
@@ -146,16 +145,14 @@ def upload_workflow(workflow_id, endpoint, user_config, start_process=False,
 
 
 @task_queue.task()
-def process_workflow(workflow_id):
+def process_workflow(workflow):
     logger.debug("Initiating processing for workflow {0}"
-                 .format(workflow_id))
-    workflow = get_workflow(workflow_id)
+                 .format(workflow.slug))
     workflow.process()
 
 
 @task_queue.task()
-def output_workflow(workflow_id):
+def output_workflow(workflow):
     logger.debug("Initiating output generation for workflow {0}"
-                 .format(workflow_id))
-    workflow = get_workflow(workflow_id)
+                 .format(workflow.slug))
     workflow.output()

@@ -21,6 +21,7 @@ import calendar
 import logging
 import time
 import traceback
+import uuid
 from datetime import datetime
 from io import BufferedIOBase, UnsupportedOperation
 
@@ -28,12 +29,10 @@ from spreads.vendor.pathlib import Path
 from flask import abort
 from flask.json import JSONEncoder
 from jpegtran import JPEGImage
-from werkzeug.routing import BaseConverter, ValidationError
+from werkzeug.routing import BaseConverter
 
-from spreads.workflow import Workflow
+from spreads.workflow import Workflow, signals as workflow_signals
 from spreads.util import EventHandler
-
-from persistence import get_workflow
 
 logger = logging.getLogger('spreadsplug.web.util')
 
@@ -80,14 +79,16 @@ class CustomJSONEncoder(JSONEncoder):
     def _workflow_to_dict(self, workflow):
         return {
             'id': workflow.id,
+            'slug': workflow.slug,
             'name': workflow.path.name,
-            'step': workflow.step,
-            'step_done': workflow.step_done,
+            'status': workflow.status,
             'images': [get_image_url(workflow, x)
                        for x in workflow.images] if workflow.images else [],
             'out_files': ([unicode(path) for path in workflow.out_files]
                           if workflow.out_files else []),
-            'config': workflow.config.flatten()
+            'config': {k: v for k, v in workflow.config.flatten().iteritems()
+                       if k in workflow.config['plugins'].get()
+                       or k in ('device', 'plugins')}
         }
 
     def _logrecord_to_dict(self, record):
@@ -103,7 +104,7 @@ class CustomJSONEncoder(JSONEncoder):
     def _event_to_dict(self, event):
         name = event.signal.name
         data = event.data
-        if event.signal in Workflow.signals.values():
+        if event.signal in workflow_signals.values():
             if 'id' not in data:
                 data['id'] = event.sender.id
             if 'images' in data:
@@ -116,18 +117,18 @@ class CustomJSONEncoder(JSONEncoder):
 
 class WorkflowConverter(BaseConverter):
     def to_python(self, value):
-        workflow_id = None
+        from spreadsplug.web import app
         try:
-            workflow_id = int(value)
+            uuid.UUID(value)
+            workflow = Workflow.find_by_id(app.config['base_path'], value)
         except ValueError:
-            raise ValidationError()
-        workflow = get_workflow(workflow_id)
+            workflow = Workflow.find_by_slug(app.config['base_path'], value)
         if workflow is None:
             abort(404)
         return workflow
 
     def to_url(self, value):
-        return unicode(value.id)
+        return value.slug
 
 
 class GeneratorIO(BufferedIOBase):
@@ -165,7 +166,7 @@ class GeneratorIO(BufferedIOBase):
 
 def get_image_url(workflow, img_path):
     img_num = int(Path(img_path).stem)
-    return "/api/workflow/{0}/image/{1}".format(workflow.id, img_num)
+    return "/api/workflow/{0}/image/{1}".format(workflow.slug, img_num)
 
 
 def scale_image(img_name, width=None, height=None):

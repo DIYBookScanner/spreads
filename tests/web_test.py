@@ -11,13 +11,12 @@ import mock
 import pytest
 from multiprocessing.pool import ThreadPool
 
-from spreads.workflow import Workflow
+from spreads.workflow import signals as workflow_signals
 from conftest import TestPluginOutput, TestPluginProcess, TestPluginProcessB
 
 
 @pytest.yield_fixture
 def app(config, tmpdir):
-    import spreadsplug.web.persistence as persistence
     from spreadsplug.web import setup_app, setup_logging, setup_signals, app
     from spreadsplug.web.web import event_queue
     config.load_defaults(overwrite=False)
@@ -34,7 +33,6 @@ def app(config, tmpdir):
         setup_signals()
     app.config['TESTING'] = True
     event_queue.clear()
-    persistence.WorkflowCache = {}
     yield app
 
 
@@ -162,7 +160,7 @@ def test_create_workflow(client, jsonworkflow):
     workflow_id = data['id']
     data = json.loads(client.get('/api/workflow/{0}'.format(workflow_id)).data)
     assert data['name'] == 'foobar'
-    assert data['id'] == 1
+    assert data['slug'] == 'foobar'
 
 
 def test_list_workflows(client):
@@ -178,17 +176,16 @@ def test_get_workflow(client):
     wfid = create_workflow(client)
     data = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)
     assert 'test_output' in data['config']['plugins']
-    assert data['step'] == 'capture'
 
 
 def test_update_workflow(client):
     wfid = create_workflow(client)
     workflow = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)
-    workflow['config']['foo'] = 'bar'
+    workflow['config']['device']['flip_target_pages'] = True
     data = json.loads(
         client.put('/api/workflow/{0}'.format(wfid), data=json.dumps(workflow))
         .data)
-    assert data['config']['foo'] == 'bar'
+    assert data['config']['device']['flip_target_pages']
 
 
 def test_delete_workflow(client):
@@ -202,7 +199,7 @@ def test_poll(client):
     pool = ThreadPool(processes=1)
     asyn_result = pool.apply_async(client.get, ('/api/poll', ))
     time.sleep(.1)
-    Workflow.on_removed.send(None, id=1)
+    workflow_signals['workflow:removed'].send(None, id=1)
     rv = asyn_result.get()
     assert rv.status_code == 200
     data = json.loads(rv.data)
@@ -323,10 +320,11 @@ def test_start_processing(client):
         client.post('/api/workflow/{0}/process'.format(wfid))
     time.sleep(.1)
     events = json.loads(client.get('/api/events').data)
-    assert all(e['name'] == 'workflow:progressed' for e in events
-               if e['name'] != 'logrecord')
+    assert len(filter(lambda e: e['name'] == 'workflow:progressed',
+                      events)) == 2
     assert [e['data']['plugin_name'] for e in events
-            if e['name'] != 'logrecord'] == ['test_process', 'test_process2']
+            if e['name'] == 'workflow:progressed'] == ['test_process',
+                                                       'test_process2']
     # TODO: Verify generation was completed (files?)
 
 
@@ -337,10 +335,10 @@ def test_start_outputting(client):
         client.post('/api/workflow/{0}/output'.format(wfid))
     time.sleep(.1)
     events = json.loads(client.get('/api/events').data)
-    assert all(e['name'] == 'workflow:progressed' for e in events
-               if e['name'] != 'logrecord')
+    assert len(filter(lambda e: e['name'] == 'workflow:progressed',
+                      events)) == 1
     assert [e['data']['plugin_name'] for e in events
-            if e['name'] != 'logrecord'] == ['test_output']
+            if e['name'] == 'workflow:progressed'] == ['test_output']
 
 
 def test_get_logs(client):

@@ -37,7 +37,7 @@
    * Handles selection of display components and error messages.
    *
    * @property {Backbone.Collection<Workflow>} [workflows] - Associated workflows
-   * @property {number} [workflowId] - Associated workflow ID
+   * @property {string} [workflowSlug] - Associated workflow slug
    * @property {string} view - Name of view to display
    */
   module.exports = React.createClass({
@@ -45,7 +45,6 @@
 
     /** Register message change listeners */
     componentDidMount: function() {
-      // TODO: Listen for logging events, filter by level
       window.router.events.on('logrecord', function(record) {
         if (_.contains(["WARNING", "ERROR"], record.level)) {
           this.setState({
@@ -95,19 +94,21 @@
      */
     getViewComponent: function(viewName) {
       var workflows = this.props.workflows,
-          workflowId = this.props.workflowId;
+          displayed = this.props.workflowSlug && workflows.where({slug: this.props.workflowSlug})[0];
       switch (viewName) {
       case "create":
-        var newWorkflow = new workflows.model(null, {collection: workflows});
+        //var newWorkflow = new workflows.model(null, {collection: workflows});
+        var newWorkflow = new workflows.model();
+        workflows.add(newWorkflow);
         return <WorkflowForm workflow={newWorkflow} isNew={true}/>;
       case "capture":
-        return <CaptureInterface workflow={workflows.get(workflowId)}/>;
+        return <CaptureInterface workflow={displayed}/>;
       case "view":
-        return <WorkflowDetails workflow={workflows.get(workflowId)}/>;
+        return <WorkflowDetails workflow={displayed}/>;
       case "edit":
-        return <WorkflowForm workflow={workflows.get(workflowId)} isNew={false} />;
+        return <WorkflowForm workflow={displayed} isNew={false} />;
       case "submit":
-        return <SubmissionForm workflow={workflows.get(workflowId)} />;
+        return <SubmissionForm workflow={displayed} />;
       case "log":
         return <LogDisplay />;
       default:

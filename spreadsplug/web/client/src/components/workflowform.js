@@ -73,7 +73,7 @@
     handleSave: function() {
       /* Save workflow and open capture screen when successful */
       this.setState({submitting: true});
-      var rv = this.props.workflow.save();
+      var rv = this.props.workflow.save({wait: true});
       if (!rv) {
         this.setState({submitting: false});
         return;
@@ -81,7 +81,7 @@
       rv.success(function(workflow) {
           var route;
           if (this.props.isNew) {
-            route = '/workflow/' + workflow.id + '/capture';
+            route = '/workflow/' + this.props.workflow.get('slug') + '/capture';
           } else {
             route = '/';
           }

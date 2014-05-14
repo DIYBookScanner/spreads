@@ -24,6 +24,8 @@ import abc
 import itertools
 import logging
 import os
+import re
+from unicodedata import normalize
 
 import blinker
 from colorama import Fore, Back, Style
@@ -64,6 +66,28 @@ def get_free_space(path):
     # TODO: Add path for windows
     st = os.statvfs(unicode(path))
     return (st.f_bavail * st.f_frsize)
+
+
+PUNCTUATION_REXP = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
+def slugify(text, delimiter=u'-'):
+    """Generates an ASCII-only slug.
+
+    Code adapted from Flask snipped by Armin Ronacher:
+    http://flask.pocoo.org/snippets/5/
+
+    :param text:        Text to create slug for
+    :type text:         unicode
+    :param delimiter:   Delimiter to use in slug
+    :type delimiter:    unicode
+    :return:            The generated slug
+    :rtype:             unicode
+    """
+    result = []
+    for word in PUNCTUATION_REXP.split(text.lower()):
+        word = normalize('NFKD', word).encode('ascii', 'ignore')
+        if word:
+            result.append(word)
+    return unicode(delimiter.join(result))
 
 
 class _instancemethodwrapper(object):

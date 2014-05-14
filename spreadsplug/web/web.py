@@ -5,7 +5,6 @@ import itertools
 import logging
 import logging.handlers
 import os
-import shutil
 import StringIO
 import subprocess
 import time
@@ -21,10 +20,8 @@ from jpegtran import JPEGImage
 from werkzeug.contrib.cache import SimpleCache
 
 import spreads.plugin as plugin
-from spreads.vendor.pathlib import Path
-from spreads.workflow import Workflow
+from spreads.workflow import Workflow, ValidationError
 
-import persistence
 from spreadsplug.web import app
 from discovery import discover_servers
 from util import (get_image_url, WorkflowConverter,
@@ -231,22 +228,20 @@ def create_workflow():
         workflow = Workflow(path=os.path.join(app.config['base_path'], wfname))
     else:
         data = json.loads(request.data)
-        path = Path(app.config['base_path'])/unicode(data['name'])
 
-        # Setup default configuration
-        config = app.config['default_config']
-        # Overlay user-supplied values, if existant
-        user_config = data.get('config', None)
-        if user_config is not None:
-            config = config.with_overlay(user_config)
-        workflow = Workflow(config=config, path=path,
-                            step=data.get('step', None),
-                            step_done=data.get('step_done', None))
-    try:
-        workflow.id = persistence.save_workflow(workflow)
-    except persistence.ValidationError as e:
-        return make_response(json.dumps(dict(errors=e.errors)), 400,
-                             {'Content-Type': 'application/json'})
+        if data.get('config'):
+            config = app.config['default_config'].with_overlay(
+                data.get('config'))
+        else:
+            config = app.config['default_config']
+
+        try:
+            workflow = Workflow.create(location=app.config['base_path'],
+                                       name=unicode(data['name']),
+                                       config=config)
+        except ValidationError as e:
+            return make_response(json.dumps(dict(errors=e.errors)), 400,
+                                 {'Content-Type': 'application/json'})
     return make_response(json.dumps(workflow),
                          200, {'Content-Type': 'application/json'})
 
@@ -254,7 +249,7 @@ def create_workflow():
 @app.route('/api/workflow', methods=['GET'])
 def list_workflows():
     """ Return a list of all workflows. """
-    workflows = persistence.get_all_workflows()
+    workflows = Workflow.find_all(app.config['base_path'])
     return make_response(json.dumps(workflows.values()),
                          200, {'Content-Type': 'application/json'})
 
@@ -288,7 +283,7 @@ def update_workflow(workflow):
     # Update workflow configuration
     workflow.config.set(config)
     # Persist to disk
-    persistence.save_workflow(workflow)
+    workflow.save_config()
     return make_response(json.dumps(workflow),
                          200, {'Content-Type': 'application/json'})
 
@@ -296,14 +291,7 @@ def update_workflow(workflow):
 @app.route('/api/workflow/<workflow:workflow>', methods=['DELETE'])
 def delete_workflow(workflow):
     """ Delete a single workflow from database and disk. """
-    # Remove directory
-    try:
-        shutil.rmtree(unicode(workflow.path))
-    except OSError:
-        logger.warning("Workflow path {0} could not be removed"
-                       .format(workflow.path))
-    # Remove from database
-    persistence.delete_workflow(workflow.id)
+    Workflow.remove(workflow)
     return jsonify({})
 
 
@@ -411,7 +399,7 @@ def transfer_workflow(workflow):
     if stick is None:
         return jsonify({"error": "Could not find removable device"}), 503
     from tasks import transfer_to_stick
-    transfer_to_stick(workflow.id)
+    transfer_to_stick(workflow)
     return 'OK'
 
 
@@ -433,7 +421,7 @@ def submit_workflow(workflow):
     user_config = data.get('config', {})
     from tasks import upload_workflow
     # TODO: Pass config to this function
-    upload_workflow(workflow.id,
+    upload_workflow(workflow,
                     'http://{0}/api/workflow'.format(server), user_config,
                     start_process=data.get('start_process', False),
                     start_output=data.get('start_output', False))
@@ -469,7 +457,7 @@ def get_workflow_image_thumb(workflow, img_num):
                         if p.stem == "{0:03}".format(img_num))
     except StopIteration:
         abort(404)
-    cache_key = "{0}.{1}".format(workflow, img_num)
+    cache_key = "{0}.{1}".format(workflow.id, img_num)
     thumbnail = None
     if not request.args:
         thumbnail = cache.get(cache_key)
@@ -517,7 +505,7 @@ def crop_workflow_image(workflow, img_num):
                  .format(img_path, *params.values()))
     cropped = img.crop(**params)
     cropped.save(unicode(img_path))
-    cache_key = "{0}.{1}".format(workflow, img_num)
+    cache_key = "{0}.{1}".format(workflow.id, img_num)
     cache.delete(cache_key)
     return 'OK'
 
@@ -537,9 +525,10 @@ def prepare_capture(workflow):
 
     # Check if any other workflow is active and finish, if neccessary
     logger.debug("Finishing previous workflows")
-    for wfid, wf in persistence.get_all_workflows().iteritems():
-        if wf.active:
-            if wfid == workflow.id and not 'reset' in request.args:
+    wfitems = Workflow.find_all(app.config['base_path'], key='id').iteritems()
+    for wfid, wf in wfitems:
+        if wf.status['step'] == 'capture' and wf.status['prepared']:
+            if wf is workflow and not request.args.get('reset'):
                 return 'OK'
             wf.finish_capture()
     workflow.prepare_capture()
@@ -558,7 +547,8 @@ def trigger_capture(workflow):
     if app.config['mode'] not in ('scanner', 'full'):
         raise ApiException("Only possible when running in 'scanner' or 'full'"
                            " mode.", 503)
-    if workflow.step != 'capture':
+    status = workflow.status
+    if status['step'] != 'capture' or not status['prepared']:
         # TODO: Abort with error, since capture has to be prepared first
         workflow.prepare_capture()
     try:
@@ -590,7 +580,7 @@ def start_processing(workflow):
         raise ApiException("Only possible when running in 'processor' or"
                            " 'full' mode.", 503)
     from tasks import process_workflow
-    process_workflow(workflow.id)
+    process_workflow(workflow)
     return 'OK'
 
 
@@ -600,7 +590,7 @@ def start_output_generation(workflow):
         raise ApiException("Only possible when running in 'processor' or"
                            " 'full' mode.", 503)
     from tasks import output_workflow
-    output_workflow(workflow.id)
+    output_workflow(workflow)
     return 'OK'
 
 

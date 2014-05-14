@@ -26,9 +26,9 @@ from spreads.vendor.pathlib import Path
 from flask import Flask
 
 import spreads.plugin as plugin
+import spreads.workflow as workflow
 from spreads.config import OptionTemplate
 from spreads.cli import add_argument_from_template
-from spreads.workflow import Workflow
 
 app = Flask('spreadsplug.web', static_url_path='/static',
             static_folder='./client', template_folder='./client')
@@ -174,7 +174,7 @@ def setup_signals(ws_server=None):
     # Register event handlers
     import tasks
     signals = chain(*(x.signals.values()
-                      for x in (Workflow, util.EventHandler, web, tasks)))
+                      for x in (workflow, util.EventHandler, web, tasks)))
 
     for signal in signals:
         signal.connect(get_signal_callback_http(signal), weak=False)

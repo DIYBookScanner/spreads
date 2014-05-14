@@ -55,9 +55,8 @@ def test_get_next_filename(workflow):
 
 def test_prepare_capture(workflow):
     workflow.prepare_capture()
-    assert workflow.prepared
-    assert workflow.active
-    assert workflow.step == 'capture'
+    assert workflow.status['prepared']
+    assert workflow.status['step'] == 'capture'
     workflow.finish_capture()
 
 
@@ -68,7 +67,7 @@ def test_capture(workflow):
         dev.delay = 0.25
     workflow.prepare_capture()
     workflow.capture()
-    assert workflow.pages_shot == 2
+    assert len(workflow.images) == 2
     assert (workflow.images[1].stat().st_ctime -
             workflow.images[0].stat().st_ctime) < 0.25
     workflow.finish_capture()
@@ -81,7 +80,7 @@ def test_capture_noparallel(workflow):
         dev.delay = 0.25
     workflow.prepare_capture()
     workflow.capture()
-    assert workflow.pages_shot == 2
+    assert len(workflow.images) == 2
     assert round(workflow.images[1].stat().st_ctime -
                  workflow.images[0].stat().st_ctime, 2) >= 0.25
     workflow.finish_capture()

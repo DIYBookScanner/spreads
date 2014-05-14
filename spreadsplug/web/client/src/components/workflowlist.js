@@ -61,7 +61,7 @@
             <ul className={this.props.smallDisplay ? "button-list": "button-group"}>
               <li>
                 <a title="Edit the workflow"
-                    href={'/workflow/' + this.props.workflowId + '/edit'}
+                    href={'/workflow/' + this.props.workflowSlug + '/edit'}
                     className="action-button small fi-pencil">
                     {this.props.smallDisplay && " Edit"}
                 </a>
@@ -77,7 +77,7 @@
                 <a data-bypass={true}
                     title="Download workflow as a ZIP archive"
                     onClick={this.props.handleDownload}
-                    href={'/api/workflow/' + this.props.workflowId + '/download'}
+                    href={'/api/workflow/' + this.props.workflowSlug + '/download'}
                     className="action-button small fi-download">
                   {this.props.smallDisplay && " Download"}
                 </a>
@@ -101,7 +101,7 @@
               {window.config.web.mode === 'scanner' &&
                 <li>
                   <a title="Submit for postprocessing"
-                      href={'/workflow/' + this.props.workflowId + '/submit'}
+                      href={'/workflow/' + this.props.workflowSlug + '/submit'}
                       className="action-button small fi-cloud">
                     {this.props.smallDisplay && " Submit"}
                   </a>
@@ -153,7 +153,7 @@
      * Continue to next step in workflow.
      */
     handleCapture: function() {
-      window.router.navigate('/workflow/' + this.props.workflow.id + '/capture',
+      window.router.navigate('/workflow/' + this.props.workflow.get('slug') + '/capture',
                              {trigger: true});
     },
     /**
@@ -218,11 +218,11 @@
     },
     render: function() {
       var workflow = this.props.workflow,
-          workflowUrl = '/workflow/' + workflow.get('id'),
+          workflowUrl = '/workflow/' + workflow.get('slug'),
           removalBlocked = (this.state.downloadInProgress || this.state.transferWaiting),
           actionBar;
 
-      actionBar = (<ActionBar workflowId={workflow.id}
+      actionBar = (<ActionBar workflowSlug={workflow.get('slug')}
                               handleRemove={this.handleRemove}
                               handleDownload={this.handleDownload}
                               handleCapture={this.handleCapture}

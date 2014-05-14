@@ -30,10 +30,10 @@ import time
 import colorama
 from spreads.vendor.pathlib import Path
 
+import spreads.workflow
 import spreads.plugin as plugin
 from spreads.config import Configuration
 from spreads.util import DeviceException, ColourStreamHandler, EventHandler
-from spreads.workflow import Workflow
 
 if sys.platform == 'win32':
     import msvcrt
@@ -202,8 +202,8 @@ def configure(config):
 
 def capture(config):
     path = config['path'].get()
-    workflow = Workflow(config=config, path=path)
-    workflow.on_created.send(workflow=workflow)
+    workflow = spreads.workflow.Workflow(config=config, path=path)
+    spreads.workflow.on_created.send(workflow=workflow)
     capture_keys = workflow.config['core']['capture_keys'].as_str_seq()
 
     # Some closures
@@ -211,19 +211,19 @@ def capture(config):
         # Callback to print statistics
         if refresh_stats.start_time is not None:
             pages_per_hour = ((3600/(time.time() - refresh_stats.start_time))
-                              * workflow.pages_shot)
+                              * len(workflow.images))
         else:
             pages_per_hour = 0.0
             refresh_stats.start_time = time.time()
         status = ("\rShot {0: >3} pages [{1: >4.0f}/h] "
-                  .format(unicode(workflow.pages_shot), pages_per_hour))
+                  .format(len(workflow.images), pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
     refresh_stats.start_time = None
 
     def trigger_loop():
         is_posix = sys.platform != 'win32'
-        old_count = workflow.pages_shot
+        old_count = len(workflow.images)
         if is_posix:
             import select
             old_settings = termios.tcgetattr(sys.stdin)
@@ -239,8 +239,8 @@ def capture(config):
                 tty.setcbreak(sys.stdin.fileno())
             while True:
                 time.sleep(0.01)
-                if workflow.pages_shot != old_count:
-                    old_count = workflow.pages_shot
+                if len(workflow.images) != old_count:
+                    old_count = len(workflow.images)
                     refresh_stats()
                 if not data_available():
                     continue
@@ -278,9 +278,9 @@ def capture(config):
 
 def postprocess(config):
     path = config['path'].get()
-    workflow = Workflow(config=config, path=path)
+    workflow = spreads.workflow.Workflow(config=config, path=path)
     draw_progress(0.0)
-    workflow.on_step_progressed.connect(
+    spreads.workflow.on_step_progressed.connect(
         lambda x, **kwargs: draw_progress(kwargs['progress']),
         sender=workflow, weak=False)
     workflow.process()
@@ -288,9 +288,9 @@ def postprocess(config):
 
 def output(config):
     path = config['path'].get()
-    workflow = Workflow(config=config, path=path)
+    workflow = spreads.workflow.Workflow(config=config, path=path)
     draw_progress(0)
-    workflow.on_step_progressed.connect(
+    spreads.workflow.on_step_progressed.connect(
         lambda x, **kwargs: draw_progress(kwargs['progress']),
         sender=workflow, weak=False)
     workflow.output()

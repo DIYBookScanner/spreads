@@ -1,4 +1,4 @@
-import itertools
+import logging
 import os.path
 import shutil
 import time
@@ -7,14 +7,15 @@ from random import randint
 
 import mock
 import pytest
-from spreads.workflow import Workflow
-from spreads.plugin import SpreadsPlugin
-from spreads.util import EventHandler
+import spreads.workflow as workflow
 
 import spreads.plugin as plugin
 import spreads.util as util
 import spreadsplug.web.web as web
 from spreads.config import Configuration, OptionTemplate
+
+logging.getLogger().level = logging.DEBUG
+
 
 class TestPluginProcess(plugin.HookPlugin,
                         plugin.ProcessHookMixin):
@@ -155,14 +156,14 @@ def empty_device_cache():
     spreads.plugin.devices = None
 
 
-@pytest.fixture
+@pytest.yield_fixture
 def config():
-    with mock.patch('spreads.config.confit.LazyConfig.read'):
+    with mock.patch('spreads.config.confit.Configuration.read'):
         cfg = Configuration(appname='spreads_test')
-    cfg["driver"] = u"testdriver"
-    cfg["plugins"] = [u"test_output", u"test_process", u"test_process2"]
-    cfg["capture"]["capture_keys"] = ["b", " "]
-    return cfg
+        cfg["driver"] = u"testdriver"
+        cfg["plugins"] = [u"test_output", u"test_process", u"test_process2"]
+        cfg["capture"]["capture_keys"] = ["b", " "]
+        yield cfg
 
 
 @pytest.yield_fixture(scope='module')
@@ -186,6 +187,6 @@ def mock_findinpath():
 def fix_blinker():
     yield
     signals = chain(*(x.signals.values()
-                      for x in (Workflow, util.EventHandler, web)))
+                      for x in (workflow, util.EventHandler, web)))
     for signal in signals:
         signal._clear_state()
