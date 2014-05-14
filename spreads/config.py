@@ -69,7 +69,7 @@ CORE_OPTIONS = {
 
 class Configuration(object):
     def __init__(self, appname='spreads'):
-        self._config = confit.LazyConfig(appname, __name__)
+        self._config = confit.Configuration(appname, __name__)
         self._config.read()
         if 'plugins' not in self._config.keys():
             self['plugins'] = []
@@ -151,15 +151,18 @@ class Configuration(object):
         :param overwrite: Whether to overwrite already existing values
 
         """
+        old_settings = self[section].flatten()
+        settings = copy.deepcopy(old_settings)
         for key, option in template.iteritems():
             logging.info("Adding setting {0} from {1}"
                          .format(key, section))
-            if not overwrite and key in self[section].keys():
+            if not overwrite and key in old_settings:
                 continue
             if option.selectable:
-                self[section][key] = option.value[0]
+                settings[key] = option.value[0]
             else:
-                self[section][key] = option.value
+                settings[key] = option.value
+        self[section].set(settings)
 
     def set_from_args(self, args):
         """ Apply settings from parsed arguments.
