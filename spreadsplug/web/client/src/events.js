@@ -40,7 +40,7 @@
           console.warn("Could not open connection to WebSocket server " +
                         "at " + websocket.url + ", falling back to " +
                         "long polling.");
-          longPoll();
+          this.longPoll();
         }
       }.bind(this);
       websocket.onopen = function() {
@@ -52,15 +52,15 @@
     } else {
       // Use AJAX long-polling as a fallback when WebSockets are not supported
       // by the browser
-      longPoll();
+      this.longPoll();
     }
   };
 
   _.extend(EventDispatcher.prototype, Backbone.Events, {
     emitEvent: function emitEvent(event) {
       var parts = event.name.split(':')
-      if (parts[0] === 'workflow:' && parts[1] !== 'created') {
-          event.name = parts[0] + event.data.id + ':' + parts[1];
+      if (parts[0] === 'workflow' && parts[1] !== 'created') {
+          event.name = parts[0] + ':' + event.data.id + ':' + parts[1];
           delete event.data['id'];
       }
       this.trigger(event.name, event.data);
@@ -75,12 +75,12 @@
         complete: function(xhr, status) {
           if (_.contains(["timeout", "success"], status)) {
             // Restart polling
-            longPoll();
+            this.longPoll();
           } else {
             // Back off for 30 seconds before polling again
-            _.delay(longPoll, 30*1000);
+            _.delay(this.longPoll.bind(this), 30*1000);
           }
-        },
+        }.bind(this),
         timeout: 30*1000  // Cancel the request after 30 seconds
       });
     }

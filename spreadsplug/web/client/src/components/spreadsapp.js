@@ -54,11 +54,12 @@
         }
       }, this);
       window.router.on('route:displayLog', function() {
-        this.setState(this.getInitialState());
+        this.setState({messages: [], numUnreadErrors: 0});
       }, this);
     },
     componentWillUnmount: function() {
       window.router.events.off('logrecord', null, this);
+      window.router.off(null, null, this);
     },
     getInitialState: function() {
       return {

@@ -25,7 +25,7 @@
       jQuery = require('jquery'),
       SpreadsApp = require('./components/spreadsapp'),
       Workflows = require('./workflow.js'),
-      events = require('./events.js');
+      EventDispatcher = require('./events.js');
 
   /**
    * Application Router.
@@ -38,7 +38,7 @@
      * Sets up the application.
      */
     initialize: function() {
-      this.events = events;
+      this.events = new EventDispatcher();
 
       // Set up model collections
       this._workflows = new Workflows();
