@@ -161,6 +161,10 @@
           /* If no plugin is explicitely selected, use the first one */
           selectedPlugin = this.state.selectedPlugin;
 
+      if (window.config.web.mode !== 'processor') {
+          plugins.push('device');
+      }
+
       if (!selectedPlugin || !_.contains(plugins, selectedPlugin)){
         selectedPlugin = plugins[0];
       }
