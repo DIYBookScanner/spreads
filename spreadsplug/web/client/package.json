@@ -13,24 +13,30 @@
     "raw-loader": "~0.5.1",
     "file-loader": "~0.5.1",
     "url-loader": "~0.5.5",
-    "karma-webpack-plugin": "~1.0.0",
-    "karma": "~0.12.16",
-    "karma-phantomjs-launcher": "~0.1.4",
-    "webpack-dev-server": "~1.2.7",
-    "karma-chrome-launcher": "~0.1.3",
-    "karma-webpack": "~1.1.0",
-    "karma-cli": "0.0.4",
-    "jasmine-ajax": "git://github.com/pivotal/jasmine-ajax.git",
-    "karma-jasmine": "~0.2.2",
-    "karma-firefox-launcher": "~0.1.3"
+    "jest-cli": "~0.1.2",
+    "react-tools": "~0.10.0"
   },
   "dependencies": {
     "envify": "~1.2.0",
     "react": "~0.10.0",
-    "underscore": "~1.5.2",
-    "backbone": "~1.1.0",
+    "underscore": "~1.6.0",
+    "backbone": "~1.1.2",
     "jquery": "~2.1.0",
     "backbone-validation": "~0.9.1",
     "mousetrap": "0.0.1"
+  },
+  "jest": {
+    "scriptPreprocessor": "./testutils/preprocessor.js",
+    "unmockedModulePathPatterns": [
+      "./node_modules/underscore",
+      "./node_modules/react",
+      "./node_modules/backbone",
+      "./testutils/fixtures.js"
+    ],
+    "modulePathIgnorePatterns": ["webpack"],
+    "testPathIgnorePatterns": [
+      "./node_modules",
+      "./testutils/fixtures.js"
+    ]
   }
 }

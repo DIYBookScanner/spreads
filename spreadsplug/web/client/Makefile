@@ -1,31 +1,30 @@
 WEBPACK_BIN=./node_modules/.bin/webpack
-KARMA_BIN=./node_modules/.bin/karma
+JEST_BIN=./node_modules/.bin/jest
 
-ifndef $(BROWSERS)
-BROWSERS=PhantomJS
-endif
-
-all: development production
+all: test development production
 
 node_modules:
-	npm install
+	@echo Installing dependencies
+	@npm install
 
 production: node_modules
-	$(WEBPACK_BIN) -p --progress
+	@echo Building minified production package
+	@$(WEBPACK_BIN) -p --progress > /dev/null
 
 development: node_modules
-	$(WEBPACK_BIN) -d --config webpack.config.dev.js --progress
+	@echo Building development package with source map
+	@$(WEBPACK_BIN) -d --config webpack.config.dev.js --progress > /dev/null
 
 watch: node_modules
 	$(WEBPACK_BIN) -d --config webpack.config.dev.js --watch
 
-test-ci: node_modules
-	$(KARMA_BIN) --browsers PhantomJS,Chrome,Firefox start
+test: node_modules
+	@echo Running tests
+	@echo ==================================
+	@$(JEST_BIN)
+	@echo ==================================
 
 test-debug: node_modules
-	$(KARMA_BIN) --browsers Chrome --no-single-run start
+	node --harmony --debug --debug-brk $(JEST_BIN) --runInBand
 
-test: node_modules
-	$(KARMA_BIN) --browsers $(BROWSERS) start
-
-.PHONY: production development watch start-karma test test-debug test-ci
+.PHONY: production development watch test test-debug
