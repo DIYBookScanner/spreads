@@ -1,6 +1,7 @@
 describe("Workflow", function() {
   var jQuery, workflows, dispatcher, _;
   beforeEach(function() {
+    window.console.log = function(){};
     jest.dontMock('backbone');
     jest.dontMock('backbone-validation');
     jest.dontMock('../../vendor/backbone-deep-model.js');
