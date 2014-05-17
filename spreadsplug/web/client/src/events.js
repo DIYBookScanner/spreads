@@ -58,11 +58,6 @@
 
   _.extend(EventDispatcher.prototype, Backbone.Events, {
     emitEvent: function emitEvent(event) {
-      var parts = event.name.split(':')
-      if (parts[0] === 'workflow' && parts[1] !== 'created') {
-          event.name = parts[0] + ':' + event.data.id + ':' + parts[1];
-          delete event.data['id'];
-      }
       this.trigger(event.name, event.data);
     },
     longPoll: function longPoll() {

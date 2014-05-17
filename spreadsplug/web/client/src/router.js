@@ -22,7 +22,6 @@
   var Backbone = require('backbone'),
       React = require('react/addons'),
       _ = require('underscore'),
-      jQuery = require('jquery'),
       SpreadsApp = require('./components/spreadsapp'),
       Workflows = require('./workflow.js'),
       EventDispatcher = require('./events.js');

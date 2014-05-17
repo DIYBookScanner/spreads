@@ -52,14 +52,14 @@
       return Backbone.Validation.mixin.validate.bind(this)();
     },
     /**
-     * Initiates the submissiong of the workflow to a remote postprocessing
+     * Initiates the submission of the workflow to a remote postprocessing
      * server for postprocessing and output generation.
      *
      * @param {requestCallback} callback Callback to execute after API request
      *                                   is completed.
      */
     submit: function(callback) {
-      console.debug("Submitting workflow " + this.id + " for postprocessing");
+      console.log("Submitting workflow " + this.id + " for postprocessing");
       jQuery.post('/api/workflow/' + this.id + '/submit')
         .fail(function() {
           console.error("Could not submit workflow " + this.id);
@@ -72,7 +72,7 @@
      *                                   completed.
      */
     transfer: function(callback) {
-      console.debug("Initiating transfer for workflow " + this.id + "");
+      console.log("Initiating transfer for workflow " + this.id + "");
       jQuery.post('/api/workflow/' + this.id + '/transfer')
         .fail(function() {
           console.error("Could not transfer workflow " + this.id);
@@ -88,7 +88,7 @@
       jQuery.post(
         '/api/workflow/' + this.id + '/prepare_capture' + (reset ? '?reset=true' : ''),
         function() {
-          console.debug("Preparation successful");
+          console.log("Preparation successful");
         }.bind(this)).fail(function() {
           console.error("Capture preparation failed");
         }).complete(callback);
@@ -104,7 +104,7 @@
       jQuery.post(
         '/api/workflow/' + this.id + "/capture" + (retake ? '?retake=true' : ''),
         function(data) {
-          console.debug("Capture succeeded");
+          console.log("Capture succeeded");
           this.addImages(data.images);
           // Since no 'real' update of the images takes place during a
           // retake, but we would like to update the dependant views anyway
@@ -126,7 +126,7 @@
      */
     finishCapture: function(callback) {
       jQuery.post('/api/workflow/' + this.id + "/finish_capture", function() {
-        console.debug("Capture successfully finished");
+        console.log("Capture successfully finished");
       }).fail(function() {
         console.error("Capture could not be finished.");
       }).complete(callback);
