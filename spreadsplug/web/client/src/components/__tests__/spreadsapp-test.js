@@ -38,7 +38,7 @@ describe('SpreadsApp', function() {
     var NavigationBar = require('../navbar.js');
     triggerLogRecord("ERROR");
     triggerLogRecord("ERROR");
-    expect(NavigationBar.mock.calls.length).toBeGreaterThan(0);
+    expect(NavigationBar).toBeCalled();
     expect(NavigationBar.mock.calls.slice(-1)[0][0].numUnreadErrors).toEqual(2);
     expect(NavigationBar.mock.calls.slice(-1)[0][0].title).toEqual(document.title);
   });

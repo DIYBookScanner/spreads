@@ -3,7 +3,6 @@ describe('SomeTest', function() {
 
   beforeEach(function(){
     jest.dontMock('../events.js');
-    jest.dontMock('backbone');
     EventDispatcher = require('../events.js');
   });
 

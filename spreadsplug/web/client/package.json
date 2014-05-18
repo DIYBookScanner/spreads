@@ -31,7 +31,12 @@
       "./node_modules/underscore",
       "./node_modules/react",
       "./node_modules/backbone",
-      "./testutils/fixtures.js"
+      "./node_modules/backbone-validation",
+      "./vendor/backbone-deep-model.js",
+      "./vendor/backbonemixin.js",
+      "./testutils",
+      "./src/components/foundation.js",
+      "./src/components/overlays.js"
     ],
     "modulePathIgnorePatterns": ["webpack"],
     "testPathIgnorePatterns": [
