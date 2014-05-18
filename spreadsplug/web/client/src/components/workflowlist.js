@@ -23,6 +23,7 @@
       _ = require('underscore'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
       LoadingOverlay = require('./overlays.js').Activity,
+      ProgressOverlay = require('./overlays.js').Progress,
       foundation = require('./foundation.js'),
       util = require('../util.js'),
       row = foundation.row,
@@ -32,6 +33,7 @@
       ActionBar, WorkflowItem;
 
   ActionBar = React.createClass({
+    displayName: "ActionBar",
     getInitialState: function() {
       return {
         actionDropdownVisible: false,
@@ -119,6 +121,7 @@
    * @property {Workflow} workflow  - Workflow to set configuration for
    */
   WorkflowItem = React.createClass({
+    displayName: "WorkflowItem",
     getInitialState: function() {
       return {
         /** Display deletion confirmation modal? */
