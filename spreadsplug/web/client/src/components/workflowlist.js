@@ -139,10 +139,6 @@
      */
     doRemove: function() {
       this.props.workflow.destroy();
-      // Disable deletion confirmation modal
-      this.setState({
-        deleteModal: false
-      });
     },
     /**
      * Enable deletion confirmation modal
