@@ -14,7 +14,6 @@ describe('SpreadsApp', function() {
 
   beforeEach(function() {
     jest.dontMock('../spreadsapp.js');
-    jest.dontMock('../foundation.js');
     var SpreadsApp = require('../spreadsapp.js'),
         Events = require('backbone').Events,
         _ = require('underscore');

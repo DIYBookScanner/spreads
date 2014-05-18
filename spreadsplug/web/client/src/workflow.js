@@ -211,14 +211,6 @@
     }
   });
 
-  /**
-   * Callback for API requests. Executed after the request finished, no
-   * matter if successfull or unsuccessful.
-   *
-   * @param {jQuery.xhr} xhr - The XHTTPRequest object
-   * @param {string} xhr - The request tatus
-   */
-
   module.exports = Backbone.Collection.extend({
     model: Workflow,
     url: '/api/workflow',
