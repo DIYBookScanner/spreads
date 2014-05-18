@@ -303,7 +303,7 @@
 
     /** Activates databinding for `workflows` model collection property. */
     getBackboneModels: function() {
-      return this.props.workflows;
+      return [this.props.workflows];
     },
     getInitialState: function() {
       return { mqSmall: util.isSmall() };
