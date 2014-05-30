@@ -140,7 +140,7 @@
           <row>
             <column size='12'>
               <h2>Captured images</h2>
-              <ul className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
+              <ul ref="imagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
                 {workflow.get('images').slice(thumbStart, thumbStop).map(function(image) {
                     return (
                       <PagePreview image={image} key={image}
@@ -158,7 +158,7 @@
           <row>
             <column size='12'>
               <h2>Output files</h2>
-              <ul>
+              <ul ref="outputlist">
                 {workflow.get('output_files').map(function(outFile) {
                     return (
                       <li key={outFile}><a href={outFile}>{outFile}</a></li>

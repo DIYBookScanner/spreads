@@ -29,6 +29,7 @@
    *    animation
    */
   Activity = React.createClass({
+    displayName: "ActivityOverlay",
     render: function() {
       return (
         <div className="overlay activity">
@@ -49,6 +50,7 @@
    * @property {url} src - Source URL for the image to be displayed
    */
   LightBox = React.createClass({
+    displayName: "LightBox",
     render: function() {
       return (
         <div title="Close lightbox" onClick={this.props.onClose} className="overlay lightbox">
@@ -61,19 +63,20 @@
   });
 
   Progress = React.createClass({
-      render: function() {
-        var widthPercent;
-        if (this.props.progress > 1) widthPercent = this.props.progress | 0;
-        else widthPercent = (this.props.progress*100) | 0;
-        return (
-          <div className="overlay spreads-progress">
-            <div className="progress">
-              <span className="meter" style={{width: widthPercent+"%"}}></span>
-              <span className="status">{this.props.statusMessage}</span>
-            </div>
+    displayName: "ProgressOverlay",
+    render: function() {
+      var widthPercent;
+      if (this.props.progress > 1) widthPercent = this.props.progress | 0;
+      else widthPercent = (this.props.progress*100) | 0;
+      return (
+        <div className="overlay spreads-progress">
+          <div className="progress">
+            <span className="meter" style={{width: widthPercent+"%"}}></span>
+            <span className="status">{this.props.statusMessage}</span>
           </div>
-        );
-      }
+        </div>
+      );
+    }
   });
 
   module.exports = {
