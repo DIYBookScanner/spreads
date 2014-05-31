@@ -418,9 +418,11 @@ def add_argument_from_template(extname, key, template, parser):
             flag = "--no-{0}".format(key.replace('_', '-'))
             kwargs['help'] = ("Disable {0}"
                               .format(template.docstring.lower()))
-            kwargs['action'] = "store_false"
+            kwargs['action'] = "store_const"
+            kwargs['const'] = False
         else:
-            kwargs['action'] = "store_true"
+            kwargs['action'] = "store_const"
+            kwargs['const'] = True
     elif isinstance(template.value, float):
         kwargs['type'] = float
         kwargs['metavar'] = "<float>"
