@@ -24,7 +24,6 @@
       jQuery = require('jquery'),
       _ = require('underscore'),
       foundation = require('./foundation'),
-      events = require('../events'),
       column = foundation.column,
       row = foundation.row,
       pagination = foundation.pagination,
@@ -193,7 +192,7 @@
     componentWillMount: function() {
       this.loadMessages();
       // Initialize polling
-      events.on('logrecord', function(message) {
+      window.router.events.on('logrecord', function(message) {
         if (!this.isMounted()) {
           return;
         }
@@ -207,7 +206,7 @@
       }, this);
     },
     componentWillUnmount: function() {
-      events.off('logrecord', null, this);
+      window.router.events.off('logrecord', null, this);
     },
     /** Callback when loglevel filter is changed */
     handleSetLevel: function(event) {
