@@ -62,7 +62,14 @@ like 'postprocess' or 'output'.
                                   value between 0 and 1.
 """)
 
-on_modified = signals.signal('workflow:modified', doc="""\
+on_status_updated = signals.signal('workflow:status_updated', doc="""\
+Sent by a :class:`Workflow` after its status has changed.
+
+:argument :class:`Workflow`:      the Workflow that has made progress
+:keyword dict status:             the updated status
+""")
+
+on_config_updated = signals.signal('workflow:config_updated', doc="""\
 Sent by a :class:`Workflow` after modifications to its configuration were
 made.
 
@@ -224,8 +231,8 @@ class Workflow(object):
 
         # Update status when a step has progressed
         on_step_progressed.connect(
-            lambda _, __, progress: self.status.set('step_progressed',
-                                                    progress),
+            lambda _, __, progress: self.update_status('step_progressed',
+                                                       progress),
             sender=self)
 
     @property
@@ -288,6 +295,10 @@ class Workflow(object):
             return []
         else:
             return sorted(out_path.iterdir())
+
+    def _update_status(self, key, value):
+        self.status[key] = value
+        on_status_updated.send(self, status=self.status)
 
     def _load_config(self, value):
         # Load default configuration
@@ -352,7 +363,7 @@ class Workflow(object):
 
     def prepare_capture(self):
         self._logger.info("Preparing capture.")
-        self.status['step'] = 'capture'
+        self._update_status('step', 'capture')
         self._pool_executor = ThreadPoolExecutor(
             max_workers=multiprocessing.cpu_count())
         if any(dev.target_page is None for dev in self.devices):
@@ -375,7 +386,7 @@ class Workflow(object):
                                              self.devices[0].target_page)
         self._run_hook('prepare_capture', self.devices, self.path)
         self._run_hook('start_trigger_loop', self.capture)
-        self.status['prepared'] = True
+        self._update_status('prepared', True)
 
     def capture(self, retake=False):
         if not self.status['prepared']:
@@ -425,24 +436,24 @@ class Workflow(object):
         check_futures_exceptions(futures)
         self._run_hook('finish_capture', self.devices, self.path)
         self._run_hook('stop_trigger_loop')
-        self.status['step'] = None
-        self.status['prepared'] = False
+        self._update_status('step', None)
+        self._update_status('prepared', False)
 
     def process(self):
-        self.status['step'] = 'process'
+        self._update_status('step', 'process')
         self._logger.info("Starting postprocessing...")
         self._run_hook('process', self.path)
         self.bag.add_payload(str(self.path/'data'/'done'))
         self._logger.info("Done with postprocessing!")
-        self.status['step'] = None
+        self._update_status('step', None)
 
     def output(self):
         self._logger.info("Generating output files...")
-        self.status['step'] = 'output'
+        self._update_status('step', 'output')
         out_path = self.path / 'data' / 'out'
         if not out_path.exists():
             out_path.mkdir()
         self._run_hook('output', self.path)
         self.bag.add_payload(str(out_path))
         self._logger.info("Done generating output files!")
-        self.status['step'] = None
+        self._update_status('step', None)

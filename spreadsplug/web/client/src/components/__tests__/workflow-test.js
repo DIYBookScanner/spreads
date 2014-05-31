@@ -12,8 +12,8 @@ describe("WorkflowDisplay", function() {
     workflow = new workflows.model();
     // TODO: Force pagination by making images.length > 24
     workflow.set({id: 1, slug: 'foo', name: 'foo', images: ['001', '002'],
-                  config: {plugins: ["test1", "test2"]}, step: "capture",
-                  step_done: false});
+                  config: {plugins: ["test1", "test2"]},
+                  status: {step: 'capture', step_progress: null, prepared: true}});
     workflows.add(workflow);
     view = ReactTestUtils.renderIntoDocument(WorkflowDetails({workflow: workflow}));
   });
@@ -24,7 +24,7 @@ describe("WorkflowDisplay", function() {
     expect(heading.props.children).toEqual('foo');
     var metalist = ReactTestUtils.scryRenderedDOMComponentsWithTag(view, 'ul')[0];
     expect(metalist.props.children[0].props.children)
-          .toEqual("capture: in progress");
+          .toEqual("capture");
     expect(metalist.props.children[1].props.children.join(''))
           .toEqual("Enabled plugins: test1, test2");
   });

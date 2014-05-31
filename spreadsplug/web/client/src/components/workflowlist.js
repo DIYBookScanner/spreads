@@ -277,7 +277,7 @@
                   <p>{workflow.has('images') ? workflow.get('images').length : 0} pages</p>
                 </column>
               </row>
-              {_.contains(["process", "output"], workflow.get('step')) &&
+              {_.contains(["process", "output"], workflow.get('status').step) &&
               <row>
                 <p></p>
               </row>}

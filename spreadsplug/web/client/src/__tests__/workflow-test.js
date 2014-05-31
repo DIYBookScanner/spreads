@@ -141,11 +141,12 @@ describe("Workflow", function() {
     it('connects all events', function() {
       var mockDispatcher = {on: jest.genMockFn()};
       workflows.connectEvents(mockDispatcher);
-      expect(mockDispatcher.on.mock.calls.length).toBe(4);
+      expect(mockDispatcher.on.mock.calls.length).toBe(5);
       expect(mockDispatcher.on.mock.calls[0][0/*event name*/]).toBe("workflow:created");
       expect(mockDispatcher.on.mock.calls[1][0/*event name*/]).toBe("workflow:removed");
       expect(mockDispatcher.on.mock.calls[2][0/*event name*/]).toBe("workflow:capture-triggered");
       expect(mockDispatcher.on.mock.calls[3][0/*event name*/]).toBe("workflow:capture-succeeded");
+      expect(mockDispatcher.on.mock.calls[4][0/*event name*/]).toBe("workflow:status-updated");
     });
 
     it('adds a workflow on "workflow:created"', function() {

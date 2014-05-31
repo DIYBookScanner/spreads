@@ -81,7 +81,7 @@
       this.props.workflow.on('capture-triggered', function(){
         this.toggleWaiting("Please wait for the capture to finish...");
       }, this);
-      this.props.workflow.on('capture-succeeded', this.toggleWaiting);
+      this.props.workflow.on('capture-succeeded', this.toggleWaiting, this);
       _.each(window.config.core.capture_keys, function(key) {
         if (key === ' ') key = 'space';
         Mousetrap.bind(key, this.handleCapture);

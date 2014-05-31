@@ -239,6 +239,12 @@
           workflow.trigger('capture-succeeded');
         }
       }, this);
+      eventDispatcher.on('workflow:status-updated', function(data) {
+        var workflow = this.get(data.id);
+        if (workflow) {
+          workflow.set('status', data.status);
+        }
+      });
     }
   });
 }());

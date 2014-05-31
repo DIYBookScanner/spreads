@@ -125,9 +125,8 @@
             <column size='12'>
               <h2>Metadata</h2>
               <ul>
-                {workflow.has('step') ?
-                  <li>{workflow.get('step') + ': ' +
-                       (workflow.get('step_done') ? 'completed' : 'in progress')}</li>:
+                {workflow.get('status').step ?
+                  <li>{workflow.get('status').step}</li>:
                   <li>Current step: <em>inactive</em></li>
                 }
                 <li>Enabled plugins:{' '}{workflow.get('config').plugins.join(', ')}</li>
