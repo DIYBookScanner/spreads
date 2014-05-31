@@ -279,7 +279,12 @@
               </row>
               {_.contains(["process", "output"], workflow.get('status').step) &&
               <row>
-                <p></p>
+                <column>
+                  {workflow.get('status').step}:
+                  <div className="progress">
+                    <span className="meter" style={{width: workflow.get('status').step_progress*100}}></span>
+                  </div>
+                </column>
               </row>}
               {!this.props.smallDisplay && actionBar}
             </column>
