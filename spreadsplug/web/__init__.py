@@ -34,7 +34,6 @@ app = Flask('spreadsplug.web', static_url_path='/static',
             static_folder='./client', template_folder='./client')
 task_queue = None
 import web
-import persistence
 import util
 app.json_encoder = util.CustomJSONEncoder
 from websockets import WebSocketServer
