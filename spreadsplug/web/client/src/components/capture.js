@@ -126,11 +126,11 @@
     },
     cropLast: function() {
       var workflow = this.props.workflow,
-          oddImage = workflow.get('images').slice(-2)[0],
-          evenImage = workflow.get('images').slice(-2)[1];
+          evenImage = workflow.get('images').slice(-2)[0],
+          oddImage = workflow.get('images').slice(-2)[1];
       console.log("Cropping last capture")
-      this.props.workflow.cropImage(oddImage, this.state.cropParams.odd);
       this.props.workflow.cropImage(evenImage, this.state.cropParams.even);
+      this.props.workflow.cropImage(oddImage, this.state.cropParams.odd);
     },
     /**
      * Trigger a retake (= delete last <num_devices> captures and take new
