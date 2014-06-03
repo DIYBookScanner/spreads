@@ -276,7 +276,7 @@
                       targetPage={this.state.lightboxImageTarget} />}
           {this.state.displayConfig &&
             <form onSubmit={this.saveConfig}>
-              <confirmModal onCancel={this.toggleConfigModal}>
+              <confirmModal onCancel={this.toggleConfigModal} onConfirm={this.saveConfig}>
                 <h2>Configure Devices</h2>
                 <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
                        onChange={this.toggleAdvanced} />
