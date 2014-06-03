@@ -229,9 +229,10 @@
     getCropPreviewStyle: function(targetPage) {
       var cropParams = this.state.cropParams[targetPage],
           thumbNode = this.refs['thumb-'+targetPage].getDOMNode(),
-          factor = thumbNode.offsetWidth / cropParams.nativeWidth;
+          factor = thumbNode.offsetWidth / cropParams.nativeWidth,
+          thumbOffset = thumbNode.offsetLeft;
       return {
-        left: Math.ceil(cropParams.left*factor),
+        left: thumbOffset + Math.ceil(cropParams.left*factor),
         top: Math.ceil(cropParams.top*factor),
         width: Math.ceil(cropParams.width*factor),
         height: Math.ceil(cropParams.height*factor)
