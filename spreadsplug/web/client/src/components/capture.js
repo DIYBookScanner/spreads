@@ -68,7 +68,9 @@
         /** Validation errors for device configuration */
         validationErrors: {},
         /** Crop parameters */
-        cropParams: {}
+        cropParams: {},
+        /** Whether we registered a function to crop on successful captures */
+        cropOnSuccess: false,
       };
     },
     /**
@@ -101,8 +103,9 @@
       });
       Mousetrap.unbind('r');
       Mousetrap.unbind('f');
+      // Crop last two shot images
       if (!_.isEmpty(this.state.cropParams)) {
-        this.cropLast();
+        this.cropLast({{images: this.props.workflow.get(images).slice(-2)}});
       }
       this.props.workflow.finishCapture();
     },
@@ -114,9 +117,6 @@
         // There is already a capture (or preparation) in progress.
         return;
       }
-      if (!_.isEmpty(this.state.cropParams)) {
-        this.cropLast();
-      }
       console.log("Triggering capture");
       this.props.workflow.triggerCapture(false, function() {
         if (this.state.refreshReview) {
@@ -124,13 +124,24 @@
         }
       }.bind(this));
     },
-    cropLast: function() {
+    /**
+     * For each page number 'n' in data.images, crop the image 'n-2' with
+     * the appropriate crop parameters.
+     */
+    cropLast: function(data) {
       var workflow = this.props.workflow,
-          evenImage = workflow.get('images').slice(-2)[0],
-          oddImage = workflow.get('images').slice(-2)[1];
+          shotImages = data.images;
+      if (data.retake) {
+        // Don't crop on retakes
+        return;
+      }
       console.log("Cropping last capture")
-      this.props.workflow.cropImage(evenImage, this.state.cropParams.even);
-      this.props.workflow.cropImage(oddImage, this.state.cropParams.odd);
+      _.each(data.images) {
+        var pageNum = parseInt(shotImages[0].slice(-2)),
+            toCrop = shotImages[0].slice(0, -2) + (pageNum-2),
+            targetPage = pageNum%2 > 0 ? 'odd': 'even';
+        this.props.workflow.cropImage(toCrop, this.state.cropParams[targetPage]);
+      }
     },
     /**
      * Trigger a retake (= delete last <num_devices> captures and take new
@@ -180,6 +191,14 @@
       });
     },
     setCropParams: function(params) {
+      // Register event to crop the previous picture for any new picture taken
+      // We don't send this manually with each capture trigger, since we also
+      // want to catch captures triggered from the backend (i.e. via the
+      // hidtrigger plugin)
+      if (!this.state.cropParams && !this.state.cropOnSuccess) {
+        this.props.workflow.on('capture-succeeded', this.cropLast, this);
+        this.setState({cropOnSuccess: true})
+      }
       var origParams = this.state.cropParams;
       origParams[this.state.cropTarget] = params;
       this.setState({

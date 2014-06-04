@@ -94,6 +94,7 @@ Sent by a :class:`Workflow` after a capture was successfully executed.
 
 :argument :class:`Workflow`:  the Workflow a capture was executed on
 :keyword list<Path> images:          the images that were captured
+:keyword bool retake          whether the shot was a retake
 """)
 
 
@@ -422,7 +423,8 @@ class Workflow(object):
             self._pool_executor.submit(
                 self.bag.add_payload,
                 *(unicode(x) for x in self.images[-num_devices:]))
-        on_capture_succeeded.send(self, images=self.images[-num_devices:])
+        on_capture_succeeded.send(self, images=self.images[-num_devices:],
+                                  retake=retake)
 
     def finish_capture(self):
         if self._pool_executor:
