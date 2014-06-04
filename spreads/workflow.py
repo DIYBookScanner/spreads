@@ -21,6 +21,7 @@ spreads workflow object.
 
 from __future__ import division, unicode_literals
 
+import copy
 import logging
 import multiprocessing
 import shutil
@@ -50,17 +51,6 @@ signals = Namespace()
 on_created = signals.signal(
     'workflow:created',
     doc="Sent by a :class:`Workflow` when a new workflow was created.")
-
-on_step_progressed = signals.signal('workflow:progressed', doc="""\
-Sent by a :class:`Workflow` after it has made progress on a running step
-like 'postprocess' or 'output'.
-
-:argument :class:`Workflow`:      the Workflow that has made progress
-:keyword unicode step:            the name of the currently active step
-:keyword unicode plugin:          the name of the currently running plugin
-:keyword float progress:          the progress of the current step as a
-                                  value between 0 and 1.
-""")
 
 on_status_updated = signals.signal('workflow:status_updated', doc="""\
 Sent by a :class:`Workflow` after its status has changed.
@@ -230,12 +220,6 @@ class Workflow(object):
         # Save configuration
         self.save_config()
 
-        # Update status when a step has progressed
-        on_step_progressed.connect(
-            lambda _, __, progress: self.update_status('step_progressed',
-                                                       progress),
-            sender=self)
-
     @property
     def id(self):
         return self.bag.info.get('spreads-id')
@@ -297,9 +281,10 @@ class Workflow(object):
         else:
             return sorted(out_path.iterdir())
 
-    def _update_status(self, key, value):
-        self.status[key] = value
-        on_status_updated.send(self, status=self.status)
+    def _update_status(self, **kwargs):
+        for key, value in kwargs.items():
+            self.status[key] = value
+        on_status_updated.send(self, status=copy.copy(self.status))
 
     def _load_config(self, value):
         # Load default configuration
@@ -325,15 +310,13 @@ class Workflow(object):
         plugins = [x for x in self.plugins if hasattr(x, hook_name)]
         for (idx, plug) in enumerate(plugins):
             plug.on_progressed.connect(
-                lambda sender, **kwargs: on_step_progressed.send(
-                    self, plugin_name=sender.__name__,
-                    progress=(float(idx)/len(plugins) +
-                              kwargs['progress']*1.0/len(plugins))),
+                lambda sender, **kwargs: self._update_status(
+                    step_progress=(float(idx)/len(plugins) +
+                                   kwargs['progress']*1.0/len(plugins))),
                 sender=plug, weak=False
             )
             getattr(plug, hook_name)(*args)
-            on_step_progressed.send(self, plugin_name=plug.__name__,
-                                    progress=float(idx+1)/len(plugins))
+            self._update_status(step_progress=float(idx+1)/len(plugins))
 
     def _get_next_filename(self, target_page=None):
         """ Get next filename that a capture should be stored as.
@@ -364,7 +347,7 @@ class Workflow(object):
 
     def prepare_capture(self):
         self._logger.info("Preparing capture.")
-        self._update_status('step', 'capture')
+        self._update_status(step='capture')
         self._pool_executor = ThreadPoolExecutor(
             max_workers=multiprocessing.cpu_count())
         if any(dev.target_page is None for dev in self.devices):
@@ -387,7 +370,7 @@ class Workflow(object):
                                              self.devices[0].target_page)
         self._run_hook('prepare_capture', self.devices, self.path)
         self._run_hook('start_trigger_loop', self.capture)
-        self._update_status('prepared', True)
+        self._update_status(prepared=True)
 
     def capture(self, retake=False):
         if not self.status['prepared']:
@@ -438,24 +421,21 @@ class Workflow(object):
         check_futures_exceptions(futures)
         self._run_hook('finish_capture', self.devices, self.path)
         self._run_hook('stop_trigger_loop')
-        self._update_status('step', None)
-        self._update_status('prepared', False)
+        self._update_status(step=None, prepared=False)
 
     def process(self):
-        self._update_status('step', 'process')
+        self._update_status(step='process', step_progress=0)
         self._logger.info("Starting postprocessing...")
         self._run_hook('process', self.path)
         self.bag.add_payload(str(self.path/'data'/'done'))
         self._logger.info("Done with postprocessing!")
-        self._update_status('step', None)
 
     def output(self):
         self._logger.info("Generating output files...")
-        self._update_status('step', 'output')
+        self._update_status(step='output', step_progress=0)
         out_path = self.path / 'data' / 'out'
         if not out_path.exists():
             out_path.mkdir()
         self._run_hook('output', self.path)
         self.bag.add_payload(str(out_path))
         self._logger.info("Done generating output files!")
-        self._update_status('step', None)
