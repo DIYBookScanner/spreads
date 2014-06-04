@@ -282,9 +282,16 @@ class Workflow(object):
             return sorted(out_path.iterdir())
 
     def _update_status(self, **kwargs):
+        trigger_event = True
+        if 'step_progress' in kwargs:
+            # Don't trigger event if we only made very little progress
+            old_progress = self.status['step_progress'] or 0
+            prog_diff = kwargs['step_progress'] - old_progress
+            trigger_event = prog_diff >= 0.01
         for key, value in kwargs.items():
             self.status[key] = value
-        on_status_updated.send(self, status=copy.copy(self.status))
+        if trigger_event:
+            on_status_updated.send(self, status=copy.copy(self.status))
 
     def _load_config(self, value):
         # Load default configuration
