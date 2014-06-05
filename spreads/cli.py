@@ -280,8 +280,8 @@ def postprocess(config):
     path = config['path'].get()
     workflow = spreads.workflow.Workflow(config=config, path=path)
     draw_progress(0.0)
-    spreads.workflow.on_step_progressed.connect(
-        lambda x, **kwargs: draw_progress(kwargs['progress']),
+    spreads.workflow.on_status_updated.connect(
+        lambda wf, status: draw_progress(status['step_progress']),
         sender=workflow, weak=False)
     workflow.process()
 
@@ -290,9 +290,10 @@ def output(config):
     path = config['path'].get()
     workflow = spreads.workflow.Workflow(config=config, path=path)
     draw_progress(0)
-    spreads.workflow.on_step_progressed.connect(
-        lambda x, **kwargs: draw_progress(kwargs['progress']),
+    spreads.workflow.on_status_updated.connect(
+        lambda wf, status: draw_progress(status['step_progress']),
         sender=workflow, weak=False)
+    workflow.process()
     workflow.output()
 
 
