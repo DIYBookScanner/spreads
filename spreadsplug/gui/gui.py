@@ -359,9 +359,9 @@ class PostprocessPage(QtGui.QWizardPage):
         QtCore.QTimer.singleShot(0, self.doPostprocess)
 
     def doPostprocess(self):
-        self.wizard().workflow.on_step_progressed.connect(
-            lambda x, **kwargs: self.progressbar.setValue(
-                int(kwargs['progress']*100)), weak=False)
+        self.wizard().workflow.on_status_updated.connect(
+            lambda wf, status: self.progressbar.setValue(
+                int(status['step_progress']*100)), weak=False)
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(self.wizard().workflow.process)
             while not future.done():
@@ -406,9 +406,9 @@ class OutputPage(QtGui.QWizardPage):
         QtCore.QTimer.singleShot(0, self.doGenerateOutput)
 
     def doGenerateOutput(self):
-        self.wizard().workflow.on_step_progressed.connect(
-            lambda x, **kwargs: self.progressbar.setValue(
-                int(kwargs['progress']*100)), weak=False)
+        self.wizard().workflow.on_status_updated.connect(
+            lambda wf, status: self.progressbar.setValue(
+                int(status['step_progress']*100)), weak=False)
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(self.wizard().workflow.output)
             while not future.done():
