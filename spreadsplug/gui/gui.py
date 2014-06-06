@@ -299,7 +299,7 @@ class CapturePage(QtGui.QWizardPage):
             self.doCapture()
 
     def updateControl(self):
-        images = self.wizard().workflow.images
+        images = self.wizard().workflow.raw_images
         self.control_odd.setPixmap(
             QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[-2]))
                                     .scaledToWidth(250)))

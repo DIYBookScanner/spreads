@@ -112,7 +112,7 @@
           // event.
           if (retake) {
             this.trigger('change');
-            this.trigger('change:images', this.get('images'));
+            this.trigger('change:raw_images', this.get('raw_images'));
           }
         }.bind(this)).fail(function() {
           console.error("Capture failed");
@@ -134,14 +134,14 @@
     addImages: function(images) {
       var modified = false;
       _.each(images, function(img) {
-        if (!_.contains(this.get('images'), img)) {
-          this.get('images').push(img);
+        if (!_.contains(this.get('raw_images'), img)) {
+          this.get('raw_images').push(img);
           modified = true;
         }
       }, this);
       if (modified) {
         this.trigger('change');
-        this.trigger('change:images', this.get('images'));
+        this.trigger('change:raw_images', this.get('raw_images'));
       }
     },
     deleteImage: function(imageUrl, callback) {
@@ -151,10 +151,10 @@
       }).fail(function() {
         console.error("Could not remove image " + imgNum + " from workflow.");
       }).done(function() {
-        var imageIdx = this.get('images').indexOf(imageUrl);
-        this.get('images').splice(imageIdx, 1);
+        var imageIdx = this.get('raw_images').indexOf(imageUrl);
+        this.get('raw_images').splice(imageIdx, 1);
         this.trigger('change');
-        this.trigger('change:images', this.get('images'));
+        this.trigger('change:raw_images', this.get('raw_images'));
       }.bind(this));
     },
     cropImage: function(imageUrl, cropParams, callback) {

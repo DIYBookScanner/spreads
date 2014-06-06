@@ -17,7 +17,7 @@ describe("WorkflowList", function() {
     require('../../util.js').isSmall.mockReturnValue(false);
     workflows = new Workflows();
     workflow = new workflows.model();
-    workflow.set({id: 1, slug: 'foo', name: 'foo', images: ['001', '002'],
+    workflow.set({id: 1, slug: 'foo', name: 'foo', raw_images: ['001', '002'],
                   status: {step: null, step_progress: null, prepared: false}});
     workflows.add(workflow);
   });
@@ -45,7 +45,7 @@ describe("WorkflowList", function() {
     var wfItems = util.findComponentsByDisplayName(list, 'WorkflowItem');
     expect(wfItems.length).toBe(1);
     var newWf = new workflows.model();
-    newWf.set({id: 2, slug: 'bar', name: 'bar', images: ['001', '002'],
+    newWf.set({id: 2, slug: 'bar', name: 'bar', raw_images: ['001', '002'],
                status: {step: null, step_progress: null, prepared: false}});
     workflows.add(newWf);
     wfItems = util.findComponentsByDisplayName(list, 'WorkflowItem');
@@ -78,7 +78,7 @@ describe("WorkflowList", function() {
     });
 
     it("shows placeholder when no images are on the workflow", function() {
-      workflows.get(1).set('images', []);
+      workflows.get(1).set('raw_images', []);
       expect(ReactTestUtils.scryRenderedDOMComponentsWithClass(itemComponent, 'columns')[0].props.children)
              .toEqual("no images");
     });

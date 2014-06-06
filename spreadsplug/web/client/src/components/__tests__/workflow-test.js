@@ -10,8 +10,8 @@ describe("WorkflowDisplay", function() {
     var Workflows = require('../../workflow.js');
     workflows = new Workflows();
     workflow = new workflows.model();
-    // TODO: Force pagination by making images.length > 24
-    workflow.set({id: 1, slug: 'foo', name: 'foo', images: ['001', '002'],
+    // TODO: Force pagination by making raw_images.length > 24
+    workflow.set({id: 1, slug: 'foo', name: 'foo', raw_images: ['001', '002'],
                   config: {plugins: ["test1", "test2"]},
                   status: {step: 'capture', step_progress: null, prepared: true}});
     workflows.add(workflow);
@@ -42,7 +42,7 @@ describe("WorkflowDisplay", function() {
   });
 
   it("doesn't display grid when there are no images", function() {
-    workflow.set('images', []);
+    workflow.set('raw_images', []);
     var grid = ReactTestUtils.findRenderedDOMComponentWithClass(view, 'small-block-grid-2');
     expect(grid.props.children.length).toBe(0);
   });

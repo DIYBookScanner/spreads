@@ -438,7 +438,7 @@ def get_workflow_image(workflow, img_num):
     # Scale image if requested
     width = request.args.get('width', None)
     try:
-        img_path = next(p for p in workflow.images
+        img_path = next(p for p in workflow.raw_images
                         if p.stem == "{0:03}".format(img_num))
     except StopIteration:
         abort(404)
@@ -453,7 +453,7 @@ def get_workflow_image(workflow, img_num):
 def get_workflow_image_thumb(workflow, img_num):
     """ Return thumbnail for image from requested workflow. """
     try:
-        img_path = next(p for p in workflow.images
+        img_path = next(p for p in workflow.raw_images
                         if p.stem == "{0:03}".format(img_num))
     except StopIteration:
         abort(404)
@@ -472,7 +472,7 @@ def get_workflow_image_thumb(workflow, img_num):
 def delete_workflow_image(workflow, img_num):
     """ Remove a single image from a workflow. """
     try:
-        img_path = next(p for p in workflow.images
+        img_path = next(p for p in workflow.raw_images
                         if p.stem == "{0:03}".format(img_num))
     except StopIteration:
         abort(404)
@@ -484,7 +484,7 @@ def delete_workflow_image(workflow, img_num):
            methods=['POST'])
 def crop_workflow_image(workflow, img_num):
     try:
-        img_path = next(p for p in workflow.images
+        img_path = next(p for p in workflow.raw_images
                         if p.stem == "{0:03}".format(img_num))
     except StopIteration:
         abort(404)
@@ -557,9 +557,9 @@ def trigger_capture(workflow):
         logger.error(e)
         raise ApiException("Error during capture: {0}".format(e.message), 500)
     return jsonify({
-        'pages_shot': len(workflow.images),
+        'pages_shot': len(workflow.raw_images),
         'images': [get_image_url(workflow, x)
-                   for x in workflow.images[-2:]]
+                   for x in workflow.raw_images[-2:]]
     })
 
 

@@ -106,7 +106,7 @@
     },
     render: function() {
       var workflow = this.props.workflow,
-          pageCount = Math.ceil(workflow.get('images').length / this.state.thumbCount),
+          pageCount = Math.ceil(workflow.get('raw_images').length / this.state.thumbCount),
           thumbStart = this.state.thumbStart,
           thumbStop = this.state.thumbStart+this.state.thumbCount;
       return (
@@ -135,12 +135,12 @@
           </row>
 
           {/* Only show image thumbnails when there are images in the workflow */}
-          {(workflow.has('images') && workflow.get('images')) &&
+          {(workflow.has('raw_images') && workflow.get('raw_images')) &&
           <row>
             <column size='12'>
               <h2>Captured images</h2>
               <ul ref="imagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
-                {workflow.get('images').slice(thumbStart, thumbStop).map(function(image) {
+                {workflow.get('raw_images').slice(thumbStart, thumbStop).map(function(image) {
                     return (
                       <PagePreview image={image} key={image}
                                    deleteCallback={function(){this.props.workflow.deleteImage(image);}.bind(this)}

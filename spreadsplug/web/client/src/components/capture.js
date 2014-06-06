@@ -60,7 +60,7 @@
         /** Display activity overlay? */
         waiting: false,
         /** Initial number of pages shot */
-        initialPageCount: this.props.workflow.get('images').length,
+        initialPageCount: this.props.workflow.get('raw_images').length,
         /** Message for activity overlay */
         waitMessage: undefined,
         /** Time of first capture */
@@ -105,7 +105,7 @@
       Mousetrap.unbind('f');
       // Crop last two shot images
       if (!_.isEmpty(this.state.cropParams)) {
-        this.cropLast({{images: this.props.workflow.get(images).slice(-2)}});
+        this.cropLast({images: this.props.workflow.get('raw_images').slice(-2)});
       }
       this.props.workflow.finishCapture();
     },
@@ -135,13 +135,13 @@
         // Don't crop on retakes
         return;
       }
-      console.log("Cropping last capture")
-      _.each(data.images) {
-        var pageNum = parseInt(shotImages[0].slice(-2)),
-            toCrop = shotImages[0].slice(0, -2) + (pageNum-2),
+      console.log("Cropping last capture");
+      _.each(shotImages, function(image) {
+        var pageNum = parseInt(image.slice(-2)),
+            toCrop = image.slice(0, -2) + (pageNum-2),
             targetPage = pageNum%2 > 0 ? 'odd': 'even';
         this.props.workflow.cropImage(toCrop, this.state.cropParams[targetPage]);
-      }
+      }, this);
     },
     /**
      * Trigger a retake (= delete last <num_devices> captures and take new
@@ -275,15 +275,15 @@
       });
       if (workflow && this.state.captureStart) {
         var elapsed = (new Date().getTime()/1000) - this.state.captureStart,
-            shot = workflow.get('images').length - this.state.initialPageCount;
+            shot = workflow.get('raw_images').length - this.state.initialPageCount;
         speed = (3600/elapsed)*shot | 0;
       } else {
         this.setState({captureStart: new Date().getTime()/1000});
         speed = 0.0;
       }
-      if (workflow.get('images').length) {
-        evenImage = workflow.get('images').slice(-2)[0];
-        oddImage = workflow.get('images').slice(-2)[1];
+      if (workflow.get('raw_images').length) {
+        evenImage = workflow.get('raw_images').slice(-2)[0];
+        oddImage = workflow.get('raw_images').slice(-2)[1];
       }
       return (
         <div>
@@ -352,7 +352,7 @@
           </row>
           <row className="capture-info">
             <column size="6">
-              <span className="pagecount">{workflow.get('images').length} pages</span>
+              <span className="pagecount">{workflow.get('raw_images').length} pages</span>
             </column>
             {speed > 0 &&
             <column size="6">

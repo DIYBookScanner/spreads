@@ -262,7 +262,7 @@ class Workflow(object):
         return self._devices
 
     @property
-    def images(self):
+    def raw_images(self):
         # NOTE: We are not using the bag for this, since we hash files
         #       asynchronously and it takes some time for the files to
         #       land in the bag.
@@ -270,6 +270,15 @@ class Workflow(object):
         if not raw_path.exists():
             return []
         return sorted(raw_path.iterdir())
+
+    @property
+    def processed_images(self):
+        # NOTE: Not using the bag here either, check :ref:`images` for
+        #       details
+        done_path = self.path / 'data' / 'done'
+        if not done_path.exists():
+            return []
+        return sorted(done_path.iterdir())
 
     @property
     def out_files(self):
@@ -342,7 +351,7 @@ class Workflow(object):
             base_path.mkdir()
 
         try:
-            last_num = int(self.images[-1].stem)
+            last_num = int(self.raw_images[-1].stem)
         except IndexError:
             last_num = -1
 
@@ -397,7 +406,7 @@ class Workflow(object):
 
             if retake:
                 # Remove last n images, where n == len(self.devices)
-                map(lambda x: x.unlink(), self.images[-num_devices:])
+                map(lambda x: x.unlink(), self.raw_images[-num_devices:])
 
             futures = []
             with ThreadPoolExecutor(num_devices
@@ -412,8 +421,8 @@ class Workflow(object):
             # Queue new images for hashing
             self._pool_executor.submit(
                 self.bag.add_payload,
-                *(unicode(x) for x in self.images[-num_devices:]))
-        on_capture_succeeded.send(self, images=self.images[-num_devices:],
+                *(unicode(x) for x in self.raw_images[-num_devices:]))
+        on_capture_succeeded.send(self, images=self.raw_images[-num_devices:],
                                   retake=retake)
 
     def finish_capture(self):

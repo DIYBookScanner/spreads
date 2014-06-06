@@ -103,9 +103,9 @@
         workflows.add(newWorkflow);
         return <WorkflowForm workflow={newWorkflow} isNew={true}/>;
       case "capture":
-        return <CaptureInterface workflow={displayed}/>;
+        return <CaptureInterface workflow={displayed} />;
       case "view":
-        return <WorkflowDetails workflow={displayed}/>;
+        return <WorkflowDetails workflow={displayed} />;
       case "edit":
         return <WorkflowForm workflow={displayed} isNew={false} />;
       case "submit":

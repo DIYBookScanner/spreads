@@ -82,8 +82,10 @@ class CustomJSONEncoder(JSONEncoder):
             'slug': workflow.slug,
             'name': workflow.path.name,
             'status': workflow.status,
-            'images': [get_image_url(workflow, x)
-                       for x in workflow.images] if workflow.images else [],
+            'raw_images': [get_image_url(workflow, x)
+                           for x in workflow.raw_images],
+            'processed_images': [get_image_url(workflow, x)
+                                 for x in workflow.processed_images],
             'out_files': ([unicode(path) for path in workflow.out_files]
                           if workflow.out_files else []),
             'config': {k: v for k, v in workflow.config.flatten().iteritems()

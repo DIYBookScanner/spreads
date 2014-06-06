@@ -258,9 +258,9 @@
             {/* Display preview image (second-to last page) if there are images
                 in the workflow */}
             <column size={[6, 4]}>
-            {workflow.get('images').length > 0 ?
+            {workflow.get('raw_images').length > 0 ?
               <a href={workflowUrl}>
-                <img width="100%" src={workflow.get('images').slice(-2)[0] + '/thumb'} />
+                <img width="100%" src={workflow.get('raw_images').slice(-2)[0] + '/thumb'} />
               </a>:
               'no images'
             }
@@ -274,7 +274,7 @@
               </row>
               <row>
                 <column>
-                  <p>{workflow.has('images') ? workflow.get('images').length : 0} pages</p>
+                  <p>{workflow.has('raw_images') ? workflow.get('raw_images').length : 0} pages</p>
                 </column>
               </row>
               {_.contains(["process", "output"], workflow.get('status').step) &&

@@ -58,7 +58,7 @@ describe("Workflow", function() {
       workflow = new workflows.model();
       workflow.set('id', 1);
       workflow.set('name', 'backend_test');
-      workflow.set('images', []);
+      workflow.set('raw_images', []);
       workflows.add(workflow);
       jQuery.post.mockReturnValue(jqPromise);
     }),
@@ -113,7 +113,7 @@ describe("Workflow", function() {
       var cb = jest.genMockFn(),
           eventFn = jest.genMockFn();
       workflow.set('id', 1);
-      workflow.on('change:images', eventFn);
+      workflow.on('change:raw_images', eventFn);
       workflow.triggerCapture(false, cb);
       expect(jQuery.post.mock.calls.length).toBe(1);
       expect(jQuery.post.mock.calls.slice(-1)[0][0]).toBe('/api/workflow/1/capture');
@@ -185,14 +185,14 @@ describe("Workflow", function() {
 
     it('adds images on workflow:capture-succeeded to the right workflow', function() {
       workflows.connectEvents(dispatcher);
-      workflows.add({id: 1, name: 'foo', images: []});
+      workflows.add({id: 1, name: 'foo', raw_images: []});
       var modelObj = workflows.get(1),
           eventFn = jest.genMockFn();
       modelObj.on('capture-succeeded', eventFn);
       dispatcher.trigger('workflow:capture-succeeded',
                          {id: 1, images: ['foo.jpg', 'bar.jpg']});
       expect(eventFn.mock.calls.length).toBe(1);
-      expect(modelObj.get('images')).toEqual(['foo.jpg', 'bar.jpg']);
+      expect(modelObj.get('raw_images')).toEqual(['foo.jpg', 'bar.jpg']);
     });
 
     it('sends events when individual configuration options are changed', function() {
