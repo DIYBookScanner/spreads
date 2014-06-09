@@ -125,6 +125,12 @@ class Workflow(object):
 
         :param location:    Location where the workflows are located
         :type location:     unicode/pathlib.Path
+        :param key:         Attribute to use as key for returned dict
+        :type key:          str
+        :param reload:      Do not load workflows from cache
+        :type reload:       bool
+        :return:            All found workflows
+        :rtype:             dict
         """
         if not isinstance(location, Path):
             location = Path(location)
@@ -271,6 +277,15 @@ class Workflow(object):
             return []
         return sorted(raw_path.iterdir())
 
+    def remove_raw_images(self, *paths):
+        for fpath in paths:
+            if not fpath in self.raw_images:
+                raise ValueError('Image not part of this workflow: {0}'
+                                 .format(fpath))
+        for fpath in paths:
+            fpath.unlink()
+        self.bag.update_payload(fast=True)
+
     @property
     def processed_images(self):
         # NOTE: Not using the bag here either, check :ref:`images` for
@@ -279,6 +294,15 @@ class Workflow(object):
         if not done_path.exists():
             return []
         return sorted(done_path.iterdir())
+
+    def remove_processed_images(self, *paths):
+        for fpath in paths:
+            if not fpath in self.processed_images:
+                raise ValueError('File not part of this workflow: {0}'
+                                 .format(fpath))
+        for fpath in paths:
+            fpath.unlink()
+        self.bag.update_payload(fast=True)
 
     @property
     def out_files(self):
