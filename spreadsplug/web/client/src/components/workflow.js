@@ -186,8 +186,23 @@
             </column>
           </row>}
 
+          {/* Only show processed file list if there are processed files in the workflow */}
+          {(workflow.has('processed_images') && workflow.get('processed_images').length > 0) &&
+          <row>
+            <column size='12'>
+              <h2>Processed files</h2>
+              <ul ref="processedlist">
+                {workflow.get('processed_images').map(function(file) {
+                    return (
+                      <li key={file}><a href={'/workflow/' + this.props.workflow.get('id') + '/processed/' + file}>{file}</a></li>
+                    );
+                  })}
+              </ul>
+            </column>
+          </row>}
+
           {/* Only show output file list if there are output files in the workflow */}
-          {(workflow.has('output_files') && workflow.get('output_files').length) &&
+          {(workflow.has('output_files') && workflow.get('output_files').length > 0) &&
           <row>
             <column size='12'>
               <h2>Output files</h2>
