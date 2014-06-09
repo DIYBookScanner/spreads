@@ -99,10 +99,6 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
                 value=u"~/scans",
                 docstring="Directory for project folders",
                 selectable=False),
-            'database': OptionTemplate(
-                value=u"~/.config/spreads/workflows.db",
-                docstring="Path to application database file",
-                selectable=False),
             'postprocessing_server': OptionTemplate(
                 value=u"",  # Cannot be None because of type deduction in
                             # option parser
@@ -124,14 +120,12 @@ def setup_app(config):
     mode = config['web']['mode'].get()
     logger.debug("Starting scanning station server in \"{0}\" mode"
                  .format(mode))
-    db_path = Path(config['web']['database'].get()).expanduser()
     project_dir = os.path.expanduser(config['web']['project_dir'].get())
     if not os.path.exists(project_dir):
         os.mkdir(project_dir)
 
     app.config['DEBUG'] = config['web']['debug'].get()
     app.config['mode'] = mode
-    app.config['database'] = db_path
     app.config['base_path'] = project_dir
     app.config['default_config'] = config
     app.config['standalone'] = config['web']['standalone_device'].get()
