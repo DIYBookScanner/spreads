@@ -219,7 +219,7 @@ describe("WorkflowList", function() {
       });
 
       it("hides the capture button when running in postprocessing mode", function() {
-        window.config.web.mode = "postprocessor";
+        window.config.web.mode = "processor";
         var barComponent = util.findComponentsByDisplayName(itemComponent, "ActionBar")[0];
         barComponent.forceUpdate();
         expect(ReactTestUtils.scryRenderedDOMComponentsWithClass(barComponent, "fi-camera").length).toBe(0);

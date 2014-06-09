@@ -84,7 +84,7 @@
                   {this.props.smallDisplay && " Download"}
                 </a>
               </li>
-              {window.config.web.mode !== 'postprocessor' &&
+              {window.config.web.mode !== 'processor' &&
                 <li>
                   <a onClick={this.props.handleCapture}
                       title="Capture images"
