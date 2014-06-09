@@ -195,7 +195,7 @@
       // We don't send this manually with each capture trigger, since we also
       // want to catch captures triggered from the backend (i.e. via the
       // hidtrigger plugin)
-      if (!this.state.cropParams && !this.state.cropOnSuccess) {
+      if (_.isEmpty(this.state.cropParams) && !this.state.cropOnSuccess) {
         this.props.workflow.on('capture-succeeded', this.cropLast, this);
         this.setState({cropOnSuccess: true})
       }

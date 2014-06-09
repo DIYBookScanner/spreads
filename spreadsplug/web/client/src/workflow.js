@@ -240,7 +240,7 @@
         var workflow = this.get(data.id);
         if (workflow) {
           workflow.addImages(data.images)
-          workflow.trigger('capture-succeeded');
+          workflow.trigger('capture-succeeded', data);
         }
       }, this);
       eventDispatcher.on('workflow:status-updated', function(data) {
