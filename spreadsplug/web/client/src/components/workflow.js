@@ -22,6 +22,7 @@
 
   var React = require('react/addons'),
       jQuery = require('jquery'),
+      _ = require('underscore'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
       foundation = require('./foundation.js'),
       lightbox = require('./overlays.js').LightBox,
@@ -44,12 +45,21 @@
       }
     },
     render: function() {
+      var cx = require('react/addons').addons.classSet,
+          liClasses = cx({
+            'th': true,
+            'page-preview': true,
+            'selected': this.props.selected
+          });
       return (
-        <li className="th page-preview" title="Open full resolution image in lightbox"
+        <li className={liClasses} title="Open full resolution image in lightbox"
             onMouseEnter={this.toggleToolbar} onMouseLeave={this.toggleToolbar}>
-          <a onClick={this.props.lightboxCallback}><img src={this.props.image + '/thumb'} /></a>
+          <a onClick={this.props.selectCallback}
+             title={this.props.selected ? "Deselect image" : "Select image"}>
+            <img src={this.props.image + '/thumb'} />
+          </a>
           {this.state.displayToolbar &&
-          <a onClick={this.props.deleteCallback} title="Remove image" className="delete-image fi-trash" />}
+          <a onClick={this.props.lightboxCallback}  className="toggle-zoom fi-zoom-in" />}
         </li>);
     }
   })
@@ -78,7 +88,8 @@
         /** Number of thumbnails to display */
         thumbCount: 24,
         /** Image to display in a lightobx overlay */
-        lightboxImage: undefined
+        lightboxImage: undefined,
+        selectedImages: []
       };
     },
     /**
@@ -104,11 +115,29 @@
         thumbStart: (pageIdx-1)*this.state.thumbCount
       });
     },
+    toggleImageSelect: function(img) {
+      var images = this.state.selectedImages;
+      if (_.contains(images, img)) {
+        this.setState({selectedImages: _.without(images, img)});
+      } else {
+        images.push(img);
+        this.setState({selectedImages: images});
+      }
+    },
+    bulkDelete: function() {
+      this.props.workflow.deleteImages(this.state.selectedImages);
+    },
     render: function() {
       var workflow = this.props.workflow,
           pageCount = Math.ceil(workflow.get('raw_images').length / this.state.thumbCount),
           thumbStart = this.state.thumbStart,
-          thumbStop = this.state.thumbStart+this.state.thumbCount;
+          thumbStop = this.state.thumbStart+this.state.thumbCount,
+          deleteClasses = require('react/addons').addons.classSet({
+            'small': true,
+            'button': true,
+            'fi-trash': true,
+            'disabled': this.state.selectedImages.length === 0
+          });
       return (
         <main>
           {/* Display image in lightbox overlay? */}
@@ -139,11 +168,16 @@
           <row>
             <column size='12'>
               <h2>Captured images</h2>
+              <div className="button-bar">
+                <ul className="button-group">
+                  <li><a onClick={this.bulkDelete} className={deleteClasses}> Delete</a></li>
+                </ul>
+              </div>
               <ul ref="imagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
                 {workflow.get('raw_images').slice(thumbStart, thumbStop).map(function(image) {
                     return (
-                      <PagePreview image={image} key={image}
-                                   deleteCallback={function(){this.props.workflow.deleteImage(image);}.bind(this)}
+                      <PagePreview image={image} key={image} selected={_.contains(this.state.selectedImages, image)}
+                                   selectCallback={function(){this.toggleImageSelect(image)}.bind(this)}
                                    lightboxCallback={function(){this.toggleLightbox(image);}.bind(this)} />
                     );
                   }.bind(this))}

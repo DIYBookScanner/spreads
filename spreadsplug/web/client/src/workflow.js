@@ -144,17 +144,21 @@
         this.trigger('change:raw_images', this.get('raw_images'));
       }
     },
-    deleteImage: function(imageUrl, callback) {
-      var imgNum = imageUrl.split('/').splice(-1)[0];
-      jQuery.ajax('/api/workflow/' + this.id + '/image/' + imgNum, {
+    deleteImages: function(images, callback) {
+      var imgNums = [];
+      _.each(images, function(imageUrl) {
+        imgNums.push(imageUrl.split('/').splice(-1)[0]);
+      });
+      jQuery.ajax('/api/workflow/' + this.id + '/bulk/image', {
         type: 'DELETE',
+        contentType: 'application/json',
+        data: JSON.stringify({images: imgNums})
       }).fail(function() {
-        console.error("Could not remove image " + imgNum + " from workflow.");
-      }).done(function() {
-        var imageIdx = this.get('raw_images').indexOf(imageUrl);
-        this.get('raw_images').splice(imageIdx, 1);
-        this.trigger('change');
-        this.trigger('change:raw_images', this.get('raw_images'));
+        console.error("Could not remove images from workflow.");
+      }).done(function(data) {
+        var oldImages = _.clone(this.get('raw_images')),
+            newImages = _.difference(oldImages, data.images);
+        this.set({"raw_images": newImages});
       }.bind(this));
     },
     cropImage: function(imageUrl, cropParams, callback) {

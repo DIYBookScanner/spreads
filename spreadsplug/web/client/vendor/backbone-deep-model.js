@@ -134,7 +134,7 @@ function objToPaths(obj) {
     for (var key in obj) {
         var val = obj[key];
 
-        if (val && (val.constructor === Object || val.constructor === Array) && !_.isEmpty(val)) {
+        if (val && val.constructor === Object && !_.isEmpty(val)) {
             //Recursion for embedded objects
             var obj2 = objToPaths(val);
 

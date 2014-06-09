@@ -155,9 +155,32 @@ li.page-preview {
   position: relative;
   text-align: center;
   padding: 0;
+
+  &.selected {
+    background-color: green;
+
+    img {
+      opacity: 0.75;
+    }
+  }
+
+  .toggle-zoom {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 0.25em;
+    background-color: rgba(255, 255, 255, 0.5);
+    z-index: 10;
+  }
+
+  .toggle-zoom:hover {
+    background-color: rgba(255, 255, 255, 0.75);
+  }
+
 }
 
-.delete-image {
+.select-image {
   position: absolute;
   bottom: 0;
   right: 0;

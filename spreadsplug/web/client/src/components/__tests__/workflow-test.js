@@ -47,13 +47,10 @@ describe("WorkflowDisplay", function() {
     expect(grid.props.children.length).toBe(0);
   });
 
-  it("displays lightbox when a thumbnail is clicked", function() {
+  it("toggle selection when a thumbnail is clicked", function() {
     var preview = ReactTestUtils.scryRenderedDOMComponentsWithClass(view, 'page-preview')[0];
     ReactTestUtils.Simulate.click(preview.props.children[0].getDOMNode());
-    var lightbox = util.findComponentsByDisplayName(view, 'LightBox')[0];
-    expect(lightbox).toBeDefined();
-    expect(lightbox.props.src).toEqual('001');
-
+    expect(preview.props.className).toEqual("th page-preview selected");
   });
 
   it("displays list of output files, if present", function() {
@@ -67,39 +64,31 @@ describe("WorkflowDisplay", function() {
     expect(view.refs.outputlist.props.children[0].props.key).toEqual("foo.pdf");
   });
 
-  it("displays a removal icon when a thumbnail is hovered", function() {
+  it("displays a zoom icon when a thumbnail is hovered", function() {
     var preview = ReactTestUtils.scryRenderedDOMComponentsWithClass(view, 'page-preview')[0];
     // NOTE: This does not work
     //ReactTestUtils.Simulate.mouseEnter(preview.getDOMNode());
     preview.props.onMouseEnter();
-    expect(ReactTestUtils.scryRenderedDOMComponentsWithClass(preview, 'delete-image').length).toBe(1);
+    expect(ReactTestUtils.scryRenderedDOMComponentsWithClass(preview, 'toggle-zoom').length).toBe(1);
   });
 
-  it("always displays a removal icon on touch-devices", function() {
+  it("always displays a zoom icon on touch-devices", function() {
     require('../../util.js').isTouchDevice.mockReturnValue(true);
     view = ReactTestUtils.renderIntoDocument(WorkflowDetails({workflow: workflow}));
     var preview = ReactTestUtils.scryRenderedDOMComponentsWithClass(view, 'page-preview')[0];
-    expect(ReactTestUtils.scryRenderedDOMComponentsWithClass(preview, 'delete-image').length).toBe(1);
+    expect(ReactTestUtils.scryRenderedDOMComponentsWithClass(preview, 'toggle-zoom').length).toBe(1);
   });
 
-  it("removes an image when the removal icon is clicked", function() {
+  it("displays a lightbox when a zoom icon is clicked", function() {
     var preview = ReactTestUtils.scryRenderedDOMComponentsWithClass(view, 'page-preview')[0];
     expect(preview.isMounted()).toBe(true);
     preview.props.onMouseEnter();
-    var deleteBtn = ReactTestUtils.findRenderedDOMComponentWithClass(preview, 'delete-image');
-    workflow.deleteImage = jest.genMockFn();
-    ReactTestUtils.Simulate.click(deleteBtn);
-    expect(workflow.deleteImage).toBeCalled();
-  });
-
-  it("opens a full-resolution image in a lightbox when a thumbnail is clicked", function() {
-    var preview = ReactTestUtils.scryRenderedDOMComponentsWithClass(view, 'page-preview')[0];
-    ReactTestUtils.Simulate.click(preview.props.children[0]);
-    var lightbox = ReactTestUtils.scryRenderedDOMComponentsWithClass(view, "lightbox")[0];
+    var zoomBtn = ReactTestUtils.findRenderedDOMComponentWithClass(preview, 'toggle-zoom');
+    //workflow.deleteImage = jest.genMockFn();
+    ReactTestUtils.Simulate.click(zoomBtn);
+    var lightbox = util.findComponentsByDisplayName(view, 'LightBox')[0];
     expect(lightbox).toBeDefined();
-    // NOTE: This does not work
-    //ReactTestUtils.Simulate.click(preview.getDOMNode());
-    lightbox.props.onClick();
-    expect(ReactTestUtils.scryRenderedDOMComponentsWithClass(view, "lightbox").length).toBe(0);
+    expect(lightbox.props.src).toEqual('001');
+   // expect(workflow.deleteImage).toBeCalled();
   });
 });
