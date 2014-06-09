@@ -318,9 +318,10 @@ class Workflow(object):
         trigger_event = True
         if 'step_progress' in kwargs:
             # Don't trigger event if we only made very little progress
-            old_progress = self.status['step_progress'] or 0
-            prog_diff = kwargs['step_progress'] - old_progress
-            trigger_event = prog_diff >= 0.01
+            old_progress = self.status['step_progress']
+            if old_progress is not None:
+                prog_diff = kwargs['step_progress'] - old_progress
+                trigger_event = prog_diff >= 0.01
         for key, value in kwargs.items():
             self.status[key] = value
         if trigger_event:
