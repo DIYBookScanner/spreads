@@ -32,7 +32,11 @@
    */
   row =  React.createClass({
     render: function() {
-      return this.transferPropsTo(<div className="row">{this.props.children}</div>);
+      var classes = classSet({
+        'row': true,
+        'collapse': this.props.collapse
+      });
+      return this.transferPropsTo(<div className={classes}>{this.props.children}</div>);
     }
   });
 

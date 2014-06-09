@@ -47,10 +47,12 @@
     },
     componentDidMount: function() {
       jQuery.getJSON('/api/remote/discover', function(data) {
-        this.setState({
-          availableServers: data.servers,
-          selectedServer: data.servers[0]
-        }, this.loadServerData);
+        if (data.servers.length > 0) {
+          this.setState({
+            availableServers: data.servers,
+            selectedServer: data.servers[0]
+          }, this.loadServerData);
+        }
       }.bind(this));
     },
     loadServerData: function() {
@@ -73,9 +75,12 @@
               this.loadDefaultConfig(plugName);
             }, this);
           }.bind(this))
-          .fail(function() {
+          .fail(function(xhr) {
+            this.setState({
+              errors: xhr.responseJSON.errors
+            });
             console.error("Could not get list of remote templates");
-          });
+          }.bind(this));
       }
 
       jQuery.getJSON(
@@ -94,11 +99,17 @@
             this.setState({errors: errors});
           }, this);
         }.bind(this))
-        .fail(function() {
+        .fail(function(xhr) {
+          this.setState({
+            errors: xhr.responseJSON.errors
+          });
           console.error("Could not get list of remote plugins");
-        });
+        }.bind(this));
     },
     handleSubmit: function() {
+      if (this.state.errors || !this.state.workflow) {
+        return;
+      }
       var start_process,
           start_output,
           selected_plugins = this.state.workflow.get('config').plugins;
@@ -141,6 +152,8 @@
     },
     handleServerSelect: function(event) {
       this.setState({
+        plugins: {},
+        templates: {},
         selectedServer: event.target.value
       }, this.loadServerData);
     },
@@ -185,14 +198,38 @@
                 <h2>Configure postprocessing</h2>
               </column>
             </row>
+            {this.state.availableServers.length > 0 &&
             <row>
               <column size={[12,9]}>
-                <label>Select postprocessing server</label>
-                <select onChange={this.handleServerSelect}>
-                  {this.state.availableServers.map(function(server) {
-                    return <option key={server} value={server}>{server}</option>;
-                  })}
-                </select>
+                <label className={this.state.errors.server ? 'error': ''}>
+                  Select postprocessing server
+                  <select onChange={this.handleServerSelect}
+                          className={this.state.errors.server ? 'error': ''}>
+                    {this.state.availableServers.map(function(server) {
+                      return <option key={server} value={server}>{server}</option>;
+                    })}
+                  </select>
+                </label>
+              </column>
+            </row>}
+            <row>
+              <column size={12}>
+                <row collapse={true}>
+                  <column size={[10,7]}>
+                    <input type="text" placeholder="Custom server address"
+                          className={this.state.errors.server ? 'error': ''}
+                          onKeyUp={function(e){
+                            // Check for enter key
+                            if (e.keyCode == 13) this.handleServerSelect(e);
+                          }.bind(this)}
+                          onBlur={this.handleServerSelect} />
+                    {this.state.errors.server &&
+                    <small className="error">{this.state.errors.server}</small>}
+                  </column>
+                  <column size={[2, 5]}>
+                    <a className="button postfix fi-refresh" style={{width: '8em'}}> Refresh</a>
+                  </column>
+                </row>
               </column>
             </row>
             {this.state.selectedServer &&
@@ -225,13 +262,13 @@
                 }.bind(this))}
               </column>
             </row>
-            {this.state.workflow &&
+            {(this.state.workflow && !_.isEmpty(this.state.templates)) &&
             <PluginConfiguration workflow={this.state.workflow}
                                  errors={this.state.errors}
                                  templates={this.state.templates} />}
             <row>
               <column size={[12,9]}>
-                <button>Submit</button>
+                <button className={_.isEmpty(this.state.errors) ? '': 'disabled'}>Submit</button>
               </column>
             </row>
           </div>

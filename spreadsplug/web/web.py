@@ -169,9 +169,17 @@ def get_remote_plugins():
     server = request.args.get("server")
     if not server:
         raise ApiException("Missing 'server' parameter", 400)
-    resp = requests.get('http://{0}/api/plugins'.format(server))
-    return make_response(resp.content, resp.status_code,
-                         {'Content-Type': 'application/json'})
+    try:
+        resp = requests.get('http://{0}/api/plugins'.format(server))
+    except requests.ConnectionError:
+        resp = False
+    if not resp:
+        errors = {'server': 'Could not reach server at supplied address.'}
+        return make_response(json.dumps(dict(errors=errors)), 400,
+                             {'Content-Type': 'application/json'})
+    else:
+        return make_response(resp.content, resp.status_code,
+                             {'Content-Type': 'application/json'})
 
 
 @app.route('/api/remote/plugins/templates')
@@ -183,9 +191,17 @@ def get_remote_templates():
     server = request.args.get("server")
     if not server:
         raise ApiException("Missing 'server' parameter", 400)
-    resp = requests.get('http://{0}/api/plugins/templates'.format(server))
-    return make_response(resp.content, resp.status_code,
-                         {'Content-Type': 'application/json'})
+    try:
+        resp = requests.get('http://{0}/api/plugins/templates'.format(server))
+    except requests.ConnectionError:
+        resp = False
+    if not resp:
+        errors = {'server': 'Could not reach server at supplied address.'}
+        return make_response(json.dumps(dict(errors=errors)), 400,
+                             {'Content-Type': 'application/json'})
+    else:
+        return make_response(resp.content, resp.status_code,
+                             {'Content-Type': 'application/json'})
 
 
 @app.route('/api/log')
