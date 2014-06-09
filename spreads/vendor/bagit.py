@@ -316,9 +316,13 @@ class Bag(object):
                     "Path {0} is an empty directory , will be skipped."
                     .format(path))
                 continue
-            logger.debug("Adding path {0} to bag".format(path))
-            if not in_bag:
-                logger.debug("Copying path {0} to bag".format(path))
+            if in_bag:
+                if self._get_path(path) in self.payload:
+                    logger.debug("Updating payload for {0}")
+                else:
+                    logger.debug("Adding path {0} to payload".format(path))
+            else:
+                logger.debug("Copying path {0} to paylod directory".format(path))
                 old_path = path
                 path = os.path.join(
                     base_dir,
