@@ -459,7 +459,7 @@ def get_workflow_image(workflow, img_num):
     except StopIteration:
         abort(404)
     if width:
-        return scale_image(unicode(img_path), width=int(width))
+        return scale_image(img_path, width=int(width))
     else:
         return send_file(unicode(img_path))
 
@@ -492,7 +492,7 @@ def delete_workflow_image(workflow, img_num):
                         if p.stem == "{0:03}".format(img_num))
     except StopIteration:
         abort(404)
-    img_path.unlink()
+    workflow.remove_raw_images(img_path)
     return 'OK'
 
 
@@ -524,6 +524,67 @@ def crop_workflow_image(workflow, img_num):
     cache_key = "{0}.{1}".format(workflow.id, img_num)
     cache.delete(cache_key)
     return 'OK'
+
+
+@app.route('/api/workflow/<workflow:workflow>/processed/<fname>',
+           methods=['GET'])
+def get_processed_file(workflow, fname):
+    try:
+        fobj = next(f for f in workflow.processed_images if f.name == fname)
+    except StopIteration:
+        abort(404)
+    return send_file(unicode(fobj))
+
+
+@app.route('/api/workflow/<workflow:workflow>/processed/<fname>/thumb',
+           methods=['GET'])
+def get_processed_file_thumb(workflow, fname):
+    try:
+        fobj = next(f for f in workflow.processed_images if f.name == fname)
+    except StopIteration:
+        abort(404)
+    cache_key = "{0}.{1}".format(workflow.id, fname)
+    thumbnail = None
+    if not request.args:
+        thumbnail = cache.get(cache_key)
+    if thumbnail is None:
+        try:
+            thumbnail = get_thumbnail(fobj)
+        except:
+            abort(404)
+        cache.set(cache_key, thumbnail)
+    return Response(thumbnail, mimetype='image/jpeg')
+
+
+@app.route('/api/workflow/<workflow:workflow>/processed/<fname>',
+           methods=['DELETE'])
+def delete_processed_file(workflow, fname):
+    try:
+        fobj = next(f for f in workflow.processed_images if f.name == fname)
+    except StopIteration:
+        abort(404)
+    fobj.unlink()
+    workflow.remove_processed_images(fobj)
+    return 'OK'
+
+
+@app.route('/api/workflow/<workflow:workflow>/bulk/image', methods=['DELETE'])
+def bulk_delete_images(workflow):
+    imgnums = [int(x) for x in json.loads(request.data)['images']]
+    to_delete = [f for f in workflow.raw_images if int(f.stem) in imgnums]
+    logger.debug("Bulk removing from workflow {0}: {1}".format(
+      workflow.id, to_delete))
+    workflow.remove_raw_images(*to_delete)
+    return jsonify({'images': [get_image_url(workflow, f) for f in to_delete]})
+
+
+@app.route('/api/workflow/<workflow:workflow>/bulk/processed',
+           methods=['DELETE'])
+def bulk_delete_processed_files(workflow):
+    fnames = json.loads(request.data)
+    to_delete = [f for f in workflow.processed_images if f.name in fnames]
+    workflow.remove_processed_images(*to_delete)
+    return jsonify({'files': [f.stem for f in to_delete]})
 
 
 # ================= #

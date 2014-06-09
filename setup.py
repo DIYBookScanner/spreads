@@ -108,6 +108,7 @@ setup(
             "waitress >= 0.8.8",
             "zipstream >= 1.0.2",
             "tornado == 3.2"
+            "Wand == 0.3.7"
         ]
     }
 )

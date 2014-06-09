@@ -171,14 +171,25 @@ def get_image_url(workflow, img_path):
     return "/api/workflow/{0}/image/{1}".format(workflow.slug, img_num)
 
 
-def scale_image(img_name, width=None, height=None):
+def scale_image(img_path, width=None, height=None):
+    def get_target_size(srcwidth, srcheight):
+        aspect = srcwidth/srcheight
+        target_width = width if width else int(aspect*height)
+        target_height = height if height else int(width/aspect)
+        return target_width, target_height
+
     if width is None and height is None:
         raise ValueError("Please specify either width or height")
-    img = JPEGImage(img_name)
-    aspect = img.width/img.height
-    width = width if width else int(aspect*height)
-    height = height if height else int(width/aspect)
-    return img.downscale(width, height).as_blob()
+    if img_path.suffix.lower() in ('.jpg', '.jpeg'):
+        img = JPEGImage(unicode(img_path))
+        width, height = get_target_size(img.width, img.height)
+        return img.downscale(width, height).as_blob()
+    else:
+        from wand.image import Image
+        img = Image(filename=unicode(img_path))
+        width, height = get_target_size(img.width, img.height)
+        img.resize(width, height)
+        return img.make_blob(format='jpg')
 
 
 def get_thumbnail(img_path):
@@ -189,14 +200,15 @@ def get_thumbnail(img_path):
     :return:          The thumbnail
     :rtype:           bytestring
     """
-    img = JPEGImage(unicode(img_path))
-    thumb = img.exif_thumbnail
-    if thumb:
-        logger.debug("Using EXIF thumbnail for {0}".format(img_path))
-        return thumb.as_blob()
-    else:
-        logger.debug("Generating thumbnail for {0}".format(img_path))
-        return scale_image(unicode(img_path), width=160)
+    if img_path.suffix.lower() in ('.jpg', '.jpeg'):
+        img = JPEGImage(unicode(img_path))
+        thumb = img.exif_thumbnail
+        if thumb:
+            logger.debug("Using EXIF thumbnail for {0}".format(img_path))
+            return thumb.as_blob()
+
+    logger.debug("Generating thumbnail for {0}".format(img_path))
+    return scale_image(img_path, width=160)
 
 
 def find_stick():
