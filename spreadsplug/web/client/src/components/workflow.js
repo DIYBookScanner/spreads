@@ -26,7 +26,7 @@
       ModelMixin = require('../../vendor/backbonemixin.js'),
       foundation = require('./foundation.js'),
       lightbox = require('./overlays.js').LightBox,
-      isTouchDevice = require('../util.js').isTouchDevice,
+      util = require('../util.js'),
       row = foundation.row,
       column = foundation.column,
       pagination = foundation.pagination,
@@ -37,10 +37,10 @@
     getInitialState: function() {
       // We always display the toolbar when we're on a touch device, since
       // hover events are not available.
-      return { displayToolbar: isTouchDevice() };
+      return { displayToolbar: util.isTouchDevice() };
     },
     toggleToolbar: function() {
-      if (!isTouchDevice()) {
+      if (!util.isTouchDevice()) {
         this.setState({displayToolbar: !this.state.displayToolbar});
       }
     },
@@ -56,7 +56,7 @@
             onMouseEnter={this.toggleToolbar} onMouseLeave={this.toggleToolbar}>
           <a onClick={this.props.selectCallback}
              title={this.props.selected ? "Deselect image" : "Select image"}>
-            <img src={this.props.image + '/thumb'} />
+            <img src={this.props.thumbUrl} />
           </a>
           {this.state.displayToolbar &&
           <a onClick={this.props.lightboxCallback}  className="toggle-zoom fi-zoom-in" />}
@@ -89,7 +89,7 @@
         thumbCount: 24,
         /** Image to display in a lightobx overlay */
         lightboxImage: undefined,
-        selectedImages: []
+        selectedPages: []
       };
     },
     /**
@@ -100,9 +100,9 @@
      *
      * @param {string} [img] - URL for image to be displayed in lightbox
      */
-    toggleLightbox: function(img) {
+    toggleLightbox: function(page) {
       this.setState({
-        lightboxImage: img
+        lightboxImage: page ? util.getPageUrl(this.props.workflow, page, 'raw', false) : undefined
       });
     },
     /**
@@ -115,28 +115,28 @@
         thumbStart: (pageIdx-1)*this.state.thumbCount
       });
     },
-    toggleImageSelect: function(img) {
-      var images = this.state.selectedImages;
-      if (_.contains(images, img)) {
-        this.setState({selectedImages: _.without(images, img)});
+    togglePageSelect: function(page) {
+      var pages = this.state.selectedPages;
+      if (_.contains(pages, page)) {
+        this.setState({selectedPages: _.without(pages, page)});
       } else {
-        images.push(img);
-        this.setState({selectedImages: images});
+        pages.push(page);
+        this.setState({selectedPages: pages});
       }
     },
     bulkDelete: function() {
-      this.props.workflow.deleteImages(this.state.selectedImages);
+      this.props.workflow.deletePages(this.state.selectedPages);
     },
     render: function() {
       var workflow = this.props.workflow,
-          pageCount = Math.ceil(workflow.get('raw_images').length / this.state.thumbCount),
+          pageCount = Math.ceil(workflow.get('pages').length / this.state.thumbCount),
           thumbStart = this.state.thumbStart,
           thumbStop = this.state.thumbStart+this.state.thumbCount,
           deleteClasses = require('react/addons').addons.classSet({
             'small': true,
             'button': true,
             'fi-trash': true,
-            'disabled': this.state.selectedImages.length === 0
+            'disabled': this.state.selectedPages.length === 0
           });
       return (
         <main>
@@ -164,40 +164,27 @@
           </row>
 
           {/* Only show image thumbnails when there are images in the workflow */}
-          {(workflow.has('raw_images') && workflow.get('raw_images')) &&
+          {(workflow.has('pages') && workflow.get('pages')) &&
           <row>
             <column size='12'>
-              <h2>Captured images</h2>
+              <h2>Pages</h2>
               <div className="button-bar">
                 <ul className="button-group">
                   <li><a onClick={this.bulkDelete} className={deleteClasses}> Delete</a></li>
                 </ul>
               </div>
-              <ul ref="imagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
-                {workflow.get('raw_images').slice(thumbStart, thumbStop).map(function(image) {
+              <ul ref="pagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
+                {workflow.get('pages').slice(thumbStart, thumbStop).map(function(page) {
+                    var thumbUrl = util.getPageUrl(workflow, page, 'raw', true);
                     return (
-                      <PagePreview image={image} key={image} selected={_.contains(this.state.selectedImages, image)}
-                                   selectCallback={function(){this.toggleImageSelect(image)}.bind(this)}
-                                   lightboxCallback={function(){this.toggleLightbox(image);}.bind(this)} />
+                      <PagePreview thumbUrl={thumbUrl} key={page.raw_image}
+                                   selected={_.contains(this.state.selectedPages, page)}
+                                   selectCallback={function(){this.togglePageSelect(page)}.bind(this)}
+                                   lightboxCallback={function(){this.toggleLightbox(page);}.bind(this)} />
                     );
                   }.bind(this))}
               </ul>
               {pageCount > 1 && <pagination centered={true} pageCount={pageCount} onBrowse={this.browse} />}
-            </column>
-          </row>}
-
-          {/* Only show processed file list if there are processed files in the workflow */}
-          {(workflow.has('processed_images') && workflow.get('processed_images').length > 0) &&
-          <row>
-            <column size='12'>
-              <h2>Processed files</h2>
-              <ul ref="processedlist">
-                {workflow.get('processed_images').map(function(file) {
-                    return (
-                      <li key={file}><a href={'/workflow/' + this.props.workflow.get('id') + '/processed/' + file}>{file}</a></li>
-                    );
-                  })}
-              </ul>
             </column>
           </row>}
 

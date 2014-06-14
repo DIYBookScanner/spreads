@@ -31,14 +31,14 @@ from datetime import datetime
 
 import spreads.vendor.bagit as bagit
 import spreads.vendor.confit as confit
+import json
 from blinker import Namespace
 from concurrent.futures import ThreadPoolExecutor
 from spreads.vendor.pathlib import Path
 
 import spreads.plugin as plugin
+import spreads.util as util
 from spreads.config import Configuration
-from spreads.util import (check_futures_exceptions, get_free_space, slugify,
-                          DeviceException, SpreadsException)
 
 # TODO: Example status dict:
 # {
@@ -48,9 +48,11 @@ from spreads.util import (check_futures_exceptions, get_free_space, slugify,
 # }
 
 signals = Namespace()
-on_created = signals.signal(
-    'workflow:created',
-    doc="Sent by a :class:`Workflow` when a new workflow was created.")
+on_created = signals.signal('workflow:created', doc="""\
+Sent by a :class:`Workflow` when a new workflow was created.
+
+:argument :class:`Workflow`:    the newly created Workflow
+""")
 
 on_status_updated = signals.signal('workflow:status_updated', doc="""\
 Sent by a :class:`Workflow` after its status has changed.
@@ -83,7 +85,7 @@ on_capture_succeeded = signals.signal('workflow:capture-succeeded', doc="""\
 Sent by a :class:`Workflow` after a capture was successfully executed.
 
 :argument :class:`Workflow`:  the Workflow a capture was executed on
-:keyword list<Path> images:          the images that were captured
+:keyword list<Path> pages:    the pages that were captured
 :keyword bool retake          whether the shot was a retake
 """)
 
@@ -95,17 +97,77 @@ class ValidationError(Exception):
 on_created.connect(lambda sender: Workflow._add_to_cache(sender))
 
 
+class Page(object):
+    __slots__ = ["sequence_num", "page_num", "raw_image", "processed_image"]
+
+    def __init__(self, raw_image, sequence_num=None, page_num=None,
+                 processed_image=None):
+        self.raw_image = raw_image
+        self.processed_image = processed_image
+        if sequence_num:
+            self.sequence_num = sequence_num
+        else:
+            self.sequence_num = int(raw_image.stem)
+        if page_num:
+            # TODO: Add support for letter numbering (e.g. 'a' -> 1,
+            #       'aa' -> 27, 'zz' -> 52, etc)
+            # TODO: Add support for prefixes (e.g. 'A-1')
+            valid_string = (isinstance(page_num, basestring) and
+                            (page_num.isdigit() or
+                             util.RomanNumeral.is_roman(page_num.upper())))
+            if not isinstance(page_num, int) and not valid_string:
+                raise ValueError(
+                    "page_num must be an integer, a string of digits, a roman "
+                    "numeral string or a RomanNumeral type")
+            self.page_num = str(page_num)
+        else:
+            self.page_num = unicode(self.sequence_num)
+
+    def to_dict(self):
+        return {
+            'sequence_num': self.sequence_num,
+            'page_num': self.page_num,
+            'raw_image': self.raw_image,
+            'processed_image': self.processed_image
+        }
+
+
+class TocEntry(object):
+    __slots__ = ("title", "start_page", "end_page", "children")
+
+    def __init__(self, title, start_page, end_page, children=None):
+        self.title = title
+        self.start_page = start_page
+        self.end_page = end_page
+        self.children = children
+
+    def __repr__(self):
+        return (
+            u"TocEntry(title={0}, start_page={1}, end_page={2}, "
+            u"children={3})"
+        ).format(repr(self.title), repr(self.start_page), repr(self.end_page),
+                 repr(self.children))
+
+    def to_dict(self):
+        return {
+            'title': self.title,
+            'start_page': self.start_page.sequence_num,
+            'end_page': self.end_page.sequence_num,
+            'children': self.children
+        }
+
+
 class Workflow(object):
     _cache = {}
 
     @classmethod
-    def create(cls, location, name, config=None):
+    def create(cls, location, name, config=None, metadata=None):
         if not isinstance(location, Path):
             location = Path(location)
         if (location/name).exists():
             raise ValidationError(
                 name="A workflow with that name already exists")
-        wf = cls(path=location/name, config=config)
+        wf = cls(path=location/name, config=config, metadata=metadata)
         if not location in cls._cache:
             cls._cache[location] = []
         cls._cache[location].append(wf)
@@ -171,14 +233,14 @@ class Workflow(object):
     @classmethod
     def remove(cls, workflow):
         if workflow.status['step'] is not None:
-            raise SpreadsException(
+            raise util.SpreadsException(
                 "Cannot remove a workflow while it is busy."
                 " (active step: '{0}')".format(workflow.status['step']))
         shutil.rmtree(unicode(workflow.path))
         cls._cache[workflow.path.parent].remove(workflow)
         on_removed.send(id=workflow.id)
 
-    def __init__(self, path, config=None):
+    def __init__(self, path, config=None, metadata=None):
         self._logger = logging.getLogger('Workflow')
         self._logger.debug("Initializing workflow {0}".format(path))
         self.status = {
@@ -196,7 +258,7 @@ class Workflow(object):
             # Convert non-bagit directories from older versions
             self.bag = bagit.Bag.convert_directory(unicode(self.path))
         if not self.slug:
-            self.slug = slugify(unicode(self.path.name))
+            self.slug = util.slugify(unicode(self.path.name))
         if not self.id:
             self.id = unicode(uuid.uuid4())
         # See if supplied `config` is already a valid ConfigView object
@@ -206,13 +268,12 @@ class Workflow(object):
             self.config = config.as_view()
         else:
             self.config = self._load_config(config)
+        if metadata:
+            self.metadata = metadata
         self._capture_lock = threading.RLock()
         self._devices = None
         self._pluginmanager = None
         self._pool_executor = None
-
-        if is_new:
-            on_created.send(self)
 
         # Filter out subcommand plugins, since these are not workflow-specific
         plugin_classes = [
@@ -224,7 +285,13 @@ class Workflow(object):
         self.config['plugins'] = [name for name, cls in plugin_classes]
 
         # Save configuration
-        self.save_config()
+        self._save_config()
+
+        self.pages = self._load_pages()
+        self.table_of_contents = self.load_toc()
+
+        if is_new:
+            on_created.send(self, workflow=self)
 
     @property
     def id(self):
@@ -252,7 +319,7 @@ class Workflow(object):
     @property
     def devices(self):
         if 'driver' not in self.config.keys():
-            raise DeviceException(
+            raise util.DeviceException(
                 "No driver has been configured\n"
                 "Please run `spread configure` to select a driver.")
         if self._devices is None:
@@ -264,55 +331,94 @@ class Workflow(object):
                 "action.")
             self._devices = None
         if not self._devices:
-            raise DeviceException("Could not find any compatible devices!")
+            raise util.DeviceException("Could not find any compatible "
+                                       "devices!")
         return self._devices
 
-    @property
-    def raw_images(self):
-        # NOTE: We are not using the bag for this, since we hash files
-        #       asynchronously and it takes some time for the files to
-        #       land in the bag.
-        raw_path = self.path / 'data' / 'raw'
-        if not raw_path.exists():
-            return []
-        return sorted(raw_path.iterdir())
+    def _fix_page_numbers(self, page_to_remove):
+        def get_num_type(num_str):
+            if page_to_remove.page_num.isdigit():
+                return int, None
+            elif util.RomanNumeral.is_roman(page_to_remove.page_num):
+                return util.RomanNumeral, page_to_remove.page_num.islower()
+            elif num_str == '':
+                return None, None
 
-    def remove_raw_images(self, *paths):
-        for fpath in paths:
-            if not fpath in self.raw_images:
-                raise ValueError('Image not part of this workflow: {0}'
-                                 .format(fpath))
-        for fpath in paths:
-            fpath.unlink()
-        self.bag.update_payload(fast=True)
+        # Fix page numbers
+        page_idx = self.pages.index(page_to_remove)
+        num_type = get_num_type(page_to_remove.page_num)
+        if num_type != (None, None):
+            for next_page in self.pages[page_idx+1:]:
+                if get_num_type(next_page.page_num) != num_type:
+                    # We can stop re-numbering when the numbering scheme
+                    # has changed
+                    break
+                num = num_type[0](next_page.page_num)
+                next_page.page_num = str(num - 1)
 
-    @property
-    def processed_images(self):
-        # NOTE: Not using the bag here either, check :ref:`images` for
-        #       details
-        done_path = self.path / 'data' / 'done'
-        if not done_path.exists():
-            return []
-        return sorted(done_path.iterdir())
+    def _fix_table_of_contents(self, page_to_remove):
+        def find_page_in_toc(toc):
+            matches = []
+            for entry in toc:
+                if page_to_remove in (entry.start_page, entry.end_page):
+                    matches.append(entry)
+                if entry.children is not None:
+                    matches.extend(find_page_in_toc(entry.children))
+            return matches
 
-    def remove_processed_images(self, *paths):
-        for fpath in paths:
-            if not fpath in self.processed_images:
-                raise ValueError('File not part of this workflow: {0}'
-                                 .format(fpath))
-        for fpath in paths:
-            fpath.unlink()
+        page_idx = self.pages.index(page_to_remove)
+        for entry in find_page_in_toc(self.table_of_contents):
+            if entry.start_page == page_to_remove:
+                entry.start_page = self.pages[page_idx+1]
+            else:
+                entry.end_page = self.pages[page_idx-1]
+
+    def remove_pages(self, *pages):
+        for page in pages:
+            page.raw_image.unlink()
+            if page.processed_image:
+                page.processed_image.unlink()
+            self._fix_page_numbers(page)
+            self._fix_table_of_contents(page)
+            self.pages.remove(page)
+        self._save_pages()
         self.bag.update_payload(fast=True)
 
     @property
     def out_files(self):
-        # NOTE: Not using the bag here either, check :ref:`images` for
-        #       details
         out_path = self.path / 'data' / 'out'
         if not out_path.exists():
             return []
         else:
             return sorted(out_path.iterdir())
+
+    @property
+    def metadata(self):
+        if not hasattr(self, '_dcmeta'):
+            try:
+                fpath = next(x for x in self.bag.tagfiles
+                             if x.endswith('/dcmeta.txt'))
+            except StopIteration:
+                fpath = unicode(self.path/'dcmeta.txt')
+            self._dcmeta = bagit.BagInfo(fpath,
+                                         save_callback=self.bag.add_tagfiles)
+        return self._dcmeta
+
+    @metadata.setter
+    def metadata(self, value):
+        if hasattr(self, '_dcmeta'):
+            self._dcmeta = None
+            # Remove old metadata file
+            (self.path/'dcmeta.txt').unlink()
+        if not hasattr(value, 'items'):
+            raise ValueError("Metadata must be a dict-like object.")
+        for k, v in value.items():
+            self._dcmeta[k] = v
+
+    def save(self):
+        self._save_config()
+        self._save_toc()
+        self._save_pages()
 
     def _update_status(self, **kwargs):
         trigger_event = True
@@ -339,12 +445,63 @@ class Workflow(object):
             config = config.with_overlay(value)
         return config
 
-    def save_config(self):
-        cfg_path = self.path/'config.yaml'
+    def _save_config(self):
+        cfg_path = self.path/'config.json'
         self.config.dump(
             unicode(cfg_path), True,
             self.config["plugins"].get() + ["plugins", "device"])
         self.bag.add_tagfiles(unicode(cfg_path))
+
+    def load_toc(self, data=None):
+        def from_dict(dikt):
+            try:
+                start_page = next(p for p in self.pages
+                                  if p.sequence_num == dikt['start_page'])
+                end_page = next(p for p in self.pages
+                                if p.sequence_num == dikt['end_page'])
+            except StopIteration:
+                raise ValueError('Invalid toc entry, one of the pages is not '
+                                 'existing: {0}'.format(dikt))
+            children = [from_dict(x) for x in dikt['children']]
+            return TocEntry(dikt['title'], start_page, end_page, children)
+
+        if not data:
+            toc_path = self.path / 'toc.json'
+            if not toc_path.exists():
+                return []
+            with toc_path.open('r') as fp:
+                data = json.load(fp)
+        return [from_dict(e) for e in data]
+
+    def _save_toc(self):
+        toc_path = self.path / 'toc.json'
+        with toc_path.open('wb') as fp:
+            json.dump([x.to_dict() for x in self.table_of_contents], fp,
+                      cls=util.CustomJSONEncoder, indent=2, ensure_ascii=False)
+        self.bag.add_tagfiles(unicode(toc_path))
+
+    def _load_pages(self):
+        def from_dict(dikt):
+            raw_image = Path(dikt['raw_image'])
+            processed_image = dikt['processed_image']
+            if processed_image is not None:
+                processed_image = Path(processed_image)
+            return Page(raw_image=raw_image,
+                        processed_image=processed_image,
+                        page_num=dikt['page_num'],
+                        sequence_num=dikt['sequence_num'])
+        fpath = self.path / 'pagemeta.json'
+        if not fpath.exists():
+            return []
+        with fpath.open('r') as fp:
+            return [from_dict(p) for p in json.load(fp)]
+
+    def _save_pages(self):
+        fpath = self.path / 'pagemeta.json'
+        with fpath.open('wb') as fp:
+            json.dump([x.to_dict() for x in self.pages], fp,
+                      cls=util.CustomJSONEncoder, indent=2, ensure_ascii=False)
+        self.bag.add_tagfiles(unicode(fpath))
 
     def _run_hook(self, hook_name, *args):
         self._logger.debug("Running '{0}' hooks".format(hook_name))
@@ -376,15 +533,18 @@ class Workflow(object):
             base_path.mkdir()
 
         try:
-            last_num = int(self.raw_images[-1].stem)
+            last_num = self.pages[-1].sequence_num
         except IndexError:
             last_num = -1
 
         if target_page is None:
             return base_path / "{03:0}".format(last_num+1)
 
+        is_raw = ('shoot_raw' in self.config['device'].keys()
+                  and self.config['device']['shoot_raw'].get(bool))
         next_num = (last_num+2 if target_page == 'odd' else last_num+1)
-        return base_path / "{0:03}".format(next_num)
+        return base_path / "{0:03}.{1}".format(next_num,
+                                               'dng' if is_raw else 'jpg')
 
     def prepare_capture(self):
         self._logger.info("Preparing capture.")
@@ -392,7 +552,7 @@ class Workflow(object):
         self._pool_executor = ThreadPoolExecutor(
             max_workers=multiprocessing.cpu_count())
         if any(dev.target_page is None for dev in self.devices):
-            raise DeviceException(
+            raise util.DeviceException(
                 "Target page for at least one of the devicescould not be"
                 "determined, please run 'spread configure' to configure your"
                 "your devices.")
@@ -401,7 +561,7 @@ class Workflow(object):
             self._logger.debug("Preparing capture in devices")
             for dev in self.devices:
                 futures.append(executor.submit(dev.prepare_capture, self.path))
-        check_futures_exceptions(futures)
+        util.check_futures_exceptions(futures)
 
         flip_target = ('flip_target_pages' in self.config['device'].keys()
                        and self.config['device']['flip_target_pages'].get())
@@ -415,7 +575,7 @@ class Workflow(object):
 
     def capture(self, retake=False):
         if not self.status['prepared']:
-            raise SpreadsException("Capture was not prepared before.")
+            raise util.SpreadsException("Capture was not prepared before.")
         with self._capture_lock:
             self._logger.info("Triggering capture.")
             on_capture_triggered.send(self)
@@ -426,28 +586,34 @@ class Workflow(object):
             num_devices = len(self.devices)
 
             # Abort when there is little free space
-            if get_free_space(self.path) < 50*(1024**2):
+            if util.get_free_space(self.path) < 50*(1024**2):
                 raise IOError("Insufficient disk space to take a capture.")
 
             if retake:
-                # Remove last n images, where n == len(self.devices)
-                map(lambda x: x.unlink(), self.raw_images[-num_devices:])
+                # Remove last n pages, where n == len(self.devices)
+                self.remove_pages(*self.pages[-num_devices:])
 
             futures = []
+            captured_images = []
             with ThreadPoolExecutor(num_devices
                                     if parallel_capture else 1) as executor:
                 self._logger.debug("Sending capture command to devices")
                 for dev in self.devices:
                     img_path = self._get_next_filename(dev.target_page)
+                    captured_images.append(img_path)
                     futures.append(executor.submit(dev.capture, img_path))
-            check_futures_exceptions(futures)
+            util.check_futures_exceptions(futures)
+
+            for img in captured_images:
+                self.pages.append(Page(img, int(img.stem)))
 
             self._run_hook('capture', self.devices, self.path)
             # Queue new images for hashing
             self._pool_executor.submit(
                 self.bag.add_payload,
-                *(unicode(x) for x in self.raw_images[-num_devices:]))
-        on_capture_succeeded.send(self, images=self.raw_images[-num_devices:],
+                *(unicode(x) for x in captured_images))
+        self._save_pages()
+        on_capture_succeeded.send(self, pages=self.pages[-num_devices:],
                                   retake=retake)
 
     def finish_capture(self):
@@ -459,7 +625,7 @@ class Workflow(object):
             self._logger.debug("Sending finish_capture command to devices")
             for dev in self.devices:
                 futures.append(executor.submit(dev.finish_capture))
-        check_futures_exceptions(futures)
+        util.check_futures_exceptions(futures)
         self._run_hook('finish_capture', self.devices, self.path)
         self._run_hook('stop_trigger_loop')
         self._update_status(step=None, prepared=False)

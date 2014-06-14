@@ -255,14 +255,16 @@
             {this.state.transferWaiting &&
               <ProgressOverlay progress={this.state.transferProgress}
                               statusMessage={this.state.transferCurrentFile || "Preparing transfer..."}/>}
-            {/* Display preview image (second-to last page) if there are images
+            {/* Display preview image (second-to last page) if there are pages
                 in the workflow */}
             <column size={[6, 4]}>
-            {workflow.get('raw_images').length > 0 ?
+            {workflow.get('pages').length > 0 ?
               <a href={workflowUrl}>
-                <img width="100%" src={workflow.get('raw_images').slice(-2)[0] + '/thumb'} />
+                <img width="100%"
+                     src={util.getPageUrl(workflow, workflow.get('pages').slice(-2)[0],
+                                          'raw', true)} />
               </a>:
-              'no images'
+              'no pages'
             }
             </column>
             <column size={[6, 8]}>
@@ -274,7 +276,7 @@
               </row>
               <row>
                 <column>
-                  <p>{workflow.has('raw_images') ? workflow.get('raw_images').length : 0} pages</p>
+                  <p>{workflow.has('pages') ? workflow.get('pages').length : 0} pages</p>
                 </column>
               </row>
               {_.contains(["process", "output"], workflow.get('status').step) &&

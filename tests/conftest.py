@@ -112,7 +112,7 @@ class TestDriver(plugin.DevicePlugin):
         srcpath = os.path.abspath(
             './tests/data/{0}.jpg'.format(self.target_page or 'even')
         )
-        shutil.copyfile(srcpath, unicode(path)+'.jpg')
+        shutil.copyfile(srcpath, unicode(path))
 
     def finish_capture(self):
         pass

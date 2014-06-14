@@ -53,6 +53,13 @@
     return string.charAt(0).toUpperCase() + string.substring(1).toLowerCase();
   }
 
+  function getPageUrl(workflow, page, type, thumb) {
+    var url = "/api/workflow/" + workflow.id + "/page/" + page.sequence_num;
+    if (page) url = url + "/" + type;
+    if (thumb) url = url + "/thumb";
+    return url;
+  }
+
   module.exports = {
     isTouchDevice: isTouchDevice,
     isSmall: isSmall,
@@ -60,6 +67,7 @@
     mediaQueries: mediaQueries,
     capitalize: capitalize,
     // For modernizr compatibility
-    touch: isTouchDevice()
+    touch: isTouchDevice(),
+    getPageUrl: getPageUrl
   }
 }());

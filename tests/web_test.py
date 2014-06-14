@@ -242,26 +242,26 @@ def test_submit_workflow(requests, app, tmpdir):
     # TODO: Assert completed are emitted
 
 
-def test_get_workflow_image(client):
+def test_get_page_image(client):
     wfid = create_workflow(client)
     with open(os.path.abspath('./tests/data/even.jpg'), 'rb') as fp:
         orig = fp.read()
-    fromapi = client.get('/api/workflow/{0}/image/0'.format(wfid)).data
+    fromapi = client.get('/api/workflow/{0}/page/0/raw'.format(wfid)).data
     assert orig == fromapi
 
 
-def test_get_workflow_image_scaled(client):
+def test_get_page_image_scaled(client):
     wfid = create_workflow(client)
-    rv = client.get('/api/workflow/{0}/image/0?width=300'.format(wfid))
+    rv = client.get('/api/workflow/{0}/page/0/raw?width=300'.format(wfid))
     assert rv.status_code == 200
     img = jpegtran.JPEGImage(blob=rv.data)
     assert img.width == 300
 
 
-def test_get_workflow_image_thumb(client):
+def test_get_page_image_thumb(client):
     # TODO: Use test images that actually have an EXIF thumbnail...
     wfid = create_workflow(client)
-    rv = client.get('/api/workflow/{0}/image/1/thumb'.format(wfid))
+    rv = client.get('/api/workflow/{0}/page/1/raw/thumb'.format(wfid))
     assert rv.status_code == 200
     assert jpegtran.JPEGImage(blob=rv.data).width == 196
 

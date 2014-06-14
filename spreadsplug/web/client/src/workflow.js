@@ -105,14 +105,14 @@
         '/api/workflow/' + this.id + "/capture" + (retake ? '?retake=true' : ''),
         function(data) {
           console.log("Capture succeeded");
-          this.addImages(data.images);
-          // Since no 'real' update of the images takes place during a
+          //this.addPages(data.pages);
+          // Since no 'real' update of the pages takes place during a
           // retake, but we would like to update the dependant views anyway
-          // to get the latest versions of the images, we force a 'change'
+          // to get the latest versions of the pages, we force a 'change'
           // event.
           if (retake) {
             this.trigger('change');
-            this.trigger('change:raw_images', this.get('raw_images'));
+            this.trigger('change:pages', this.get('pages'));
           }
         }.bind(this)).fail(function() {
           console.error("Capture failed");
@@ -131,44 +131,40 @@
         console.error("Capture could not be finished.");
       }).complete(callback);
     },
-    addImages: function(images) {
+    addPages: function(pages) {
       var modified = false;
-      _.each(images, function(img) {
-        if (!_.contains(this.get('raw_images'), img)) {
-          this.get('raw_images').push(img);
+      _.each(pages, function(page) {
+        if (!_.contains(this.get('pages'), page)) {
+          this.get('pages').push(page);
           modified = true;
         }
       }, this);
       if (modified) {
         this.trigger('change');
-        this.trigger('change:raw_images', this.get('raw_images'));
+        this.trigger('change:pages', this.get('pages'));
       }
     },
-    deleteImages: function(images, callback) {
-      var imgNums = [];
-      _.each(images, function(imageUrl) {
-        imgNums.push(imageUrl.split('/').splice(-1)[0]);
-      });
-      jQuery.ajax('/api/workflow/' + this.id + '/bulk/image', {
+    deletePages: function(pages, callback) {
+      jQuery.ajax('/api/workflow/' + this.id + '/page', {
         type: 'DELETE',
         contentType: 'application/json',
-        data: JSON.stringify({images: imgNums})
+        data: JSON.stringify({pages: pages})
       }).fail(function() {
-        console.error("Could not remove images from workflow.");
+        console.error("Could not remove pages from workflow.");
       }).done(function(data) {
-        var oldImages = _.clone(this.get('raw_images')),
-            newImages = _.difference(oldImages, data.images);
-        this.set({"raw_images": newImages});
+        var oldPages = _.clone(this.get('pages')),
+            newPages = _.difference(oldPages, data.pages);
+        this.set({"pages": newPages});
       }.bind(this));
     },
-    cropImage: function(imageUrl, cropParams, callback) {
+    cropPage: function(pageNum, cropParams, callback) {
       var parts = [];
       for (var p in cropParams)
           parts.push(encodeURIComponent(p) + "=" + encodeURIComponent(cropParams[p]));
 
-      jQuery.post(imageUrl + '/crop?' + parts.join("&"))
+      jQuery.post('/api/workflow/' + this.id + '/page/' + pageNum + '/raw/crop?' + parts.join("&"))
         .fail(function() {
-          console.error("Could not crop image " + imageUrl );
+          console.error("Could not crop page " + pageNum);
         });
     },
     /**
@@ -219,9 +215,13 @@
     model: Workflow,
     url: '/api/workflow',
     connectEvents: function(eventDispatcher) {
-      eventDispatcher.on('workflow:created', function(workflow) {
-        if (!this.contains(workflow)) {
-          this.add(workflow);
+      eventDispatcher.on('workflow:created', function(data) {
+        // Check for pending workflows, if there is one, it's the one that
+        // just triggered the event on the server and is just about to receive
+        // its data from the POST response
+        // => Only add from an event if it wasn't us wo created the workflow
+        if (this.where({id: undefined}).length != 1) {
+          this.add(data.workflow);
         }
       }, this);
       eventDispatcher.on('workflow:removed', function(workflowId) {
@@ -239,7 +239,7 @@
       eventDispatcher.on('workflow:capture-succeeded', function(data) {
         var workflow = this.get(data.id);
         if (workflow) {
-          workflow.addImages(data.images)
+          workflow.addPages(data.pages);
           workflow.trigger('capture-succeeded', data);
         }
       }, this);

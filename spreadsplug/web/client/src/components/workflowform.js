@@ -58,8 +58,6 @@
         this.setState({errors: errors});
       }, this);
       /* When workflow is saved, add it to the `workflows` collection. */
-      // TODO: Check that the workflow is not already in the collection
-      //       (happens when editing an existing workflow)
       if (this.props.isNew) {
         this.props.workflow.on('sync', function() {
             this.props.workflow.collection.add(this.props.workflow);

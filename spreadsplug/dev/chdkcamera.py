@@ -235,14 +235,18 @@ class CHDKCameraDevice(DevicePlugin):
         shutter_speed = float(Fraction(self.config["shutter_speed"]
                               .get(unicode)))
         shoot_raw = self.config['shoot_raw'].get(bool)
+
+        # chdkptp expects that there is no file extension, so we temporarily
+        # strip it
+        noext_path = path.parent/path.stem
         if self._can_remote:
             cmd = ("remoteshoot -tv={0} -sv={1} {2} \"{3}\""
                    .format(shutter_speed, sensitivity*0.65,
-                           "-dng" if shoot_raw else "", path))
+                           "-dng" if shoot_raw else "", noext_path))
         else:
             cmd = ("shoot -tv={0} -sv={1} -dng={2} -rm -dl \"{3}\""
                    .format(shutter_speed, sensitivity*0.65,
-                           int(shoot_raw), path))
+                           int(shoot_raw), noext_path))
         try:
             self._run(cmd)
         except CHDKPTPException as e:
@@ -253,16 +257,14 @@ class CHDKCameraDevice(DevicePlugin):
                 self.logger.warn("Capture command failed.")
                 raise e
 
-        extension = 'dng' if shoot_raw else 'jpg'
-        local_path = "{0}.{1}".format(path, extension)
         # Set EXIF orientation
         self.logger.debug("Setting EXIF orientation on captured image")
-        img = JPEGImage(local_path)
+        img = JPEGImage(path)
         if self.target_page == 'odd':
             img.exif_orientation = 6  # -90°
         else:
             img.exif_orientation = 8  # 90°
-        img.save(local_path)
+        img.save(path)
 
     def show_textbox(self, message):
         messages = message.split("\n")

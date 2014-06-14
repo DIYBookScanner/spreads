@@ -168,6 +168,8 @@ class Bag(object):
             old_length+additional_size, old_num+new_num)
 
     def remove_payload(self, *paths):
+        if not paths:
+            return
         num_removed = self._remove_files(self._get_path('data'),
                                          self.manifest_files,
                                          *paths)
@@ -186,6 +188,8 @@ class Bag(object):
         self._add_files(self.path, self.tagmanifest_files, *paths)
 
     def remove_tagfiles(self, *paths):
+        if not paths:
+            return
         any_in_payload = any(os.path.relpath(p, self.path).startswith('data')
                              for p in paths)
         if any_in_payload:
@@ -307,7 +311,8 @@ class Bag(object):
         for path in paths:
             # ToDO: Verify that the file name is Windows-compatible
             if not os.path.exists(path):
-                logger.warning("Path {0} does not exist, will be skipped.")
+                logger.warning("Path {0} does not exist, will be skipped."
+                               .format(path))
                 continue
             in_bag = os.path.abspath(path).startswith(base_dir)
             is_dir = os.path.isdir(path)
@@ -322,7 +327,8 @@ class Bag(object):
                 else:
                     logger.debug("Adding path {0} to payload".format(path))
             else:
-                logger.debug("Copying path {0} to paylod directory".format(path))
+                logger.debug(
+                    "Copying path {0} to paylod directory".format(path))
                 old_path = path
                 path = os.path.join(
                     base_dir,

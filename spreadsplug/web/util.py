@@ -25,10 +25,10 @@ import uuid
 from datetime import datetime
 from io import BufferedIOBase, UnsupportedOperation
 
-from spreads.vendor.pathlib import Path
 from flask import abort
 from flask.json import JSONEncoder
 from jpegtran import JPEGImage
+from spreads.vendor.pathlib import Path
 from werkzeug.routing import BaseConverter
 
 from spreads.workflow import Workflow, signals as workflow_signals
@@ -62,12 +62,16 @@ class Event(object):
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, Workflow):
+        if hasattr(obj, 'to_dict'):
+            return obj.to_dict()
+        elif isinstance(obj, Workflow):
             return self._workflow_to_dict(obj)
         elif isinstance(obj, logging.LogRecord):
             return self._logrecord_to_dict(obj)
         elif isinstance(obj, Event):
             return self._event_to_dict(obj)
+        elif isinstance(obj, Path):
+            return unicode(obj)
         elif isinstance(obj, datetime):
             # Return datetime as an epoch timestamp with microsecond-resolution
             ts = (calendar.timegm(obj.timetuple())*1000
@@ -81,11 +85,9 @@ class CustomJSONEncoder(JSONEncoder):
             'id': workflow.id,
             'slug': workflow.slug,
             'name': workflow.path.name,
+            'metadata': dict(workflow.metadata),
             'status': workflow.status,
-            'raw_images': [get_image_url(workflow, x)
-                           for x in workflow.raw_images],
-            'processed_images': [get_image_url(workflow, x)
-                                 for x in workflow.processed_images],
+            'pages': workflow.pages,
             'out_files': ([unicode(path) for path in workflow.out_files]
                           if workflow.out_files else []),
             'config': {k: v for k, v in workflow.config.flatten().iteritems()
@@ -109,9 +111,6 @@ class CustomJSONEncoder(JSONEncoder):
         if event.signal in workflow_signals.values():
             if 'id' not in data:
                 data['id'] = event.sender.id
-            if 'images' in data:
-                data['images'] = [get_image_url(event.sender, imgpath)
-                                  for imgpath in data['images']]
         elif event.signal is EventHandler.on_log_emit:
             data = data['record']
         return {'name': name, 'data': data}
@@ -164,11 +163,6 @@ class GeneratorIO(BufferedIOBase):
             return self._length
         else:
             raise UnsupportedOperation
-
-
-def get_image_url(workflow, img_path):
-    img_num = int(Path(img_path).stem)
-    return "/api/workflow/{0}/image/{1}".format(workflow.slug, img_num)
 
 
 def scale_image(img_path, width=None, height=None):

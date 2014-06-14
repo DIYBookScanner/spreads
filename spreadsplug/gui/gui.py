@@ -299,12 +299,12 @@ class CapturePage(QtGui.QWizardPage):
             self.doCapture()
 
     def updateControl(self):
-        images = self.wizard().workflow.raw_images
+        images = [p.raw_image for p in self.wizard().workflow.pages[-2:]]
         self.control_odd.setPixmap(
-            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[-2]))
+            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[0]))
                                     .scaledToWidth(250)))
         self.control_even.setPixmap(
-            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[-1]))
+            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[1]))
                                     .scaledToWidth(250)))
 
     def retakeCapture(self):

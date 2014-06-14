@@ -60,7 +60,7 @@
         /** Display activity overlay? */
         waiting: false,
         /** Initial number of pages shot */
-        initialPageCount: this.props.workflow.get('raw_images').length,
+        initialPageCount: this.props.workflow.get('pages').length,
         /** Message for activity overlay */
         waitMessage: undefined,
         /** Time of first capture */
@@ -105,7 +105,10 @@
       Mousetrap.unbind('f');
       // Crop last two shot images
       if (!_.isEmpty(this.state.cropParams)) {
-        this.cropLast({images: this.props.workflow.get('raw_images').slice(-2)});
+        _.each(this.props.workflow.get('pages').slice(-2), function(page) {
+            var targetPage = page.sequence_num%2 > 0 ? 'odd': 'even';
+            this.props.workflow.cropPage(page.sequence_num, this.state.cropParams[targetPage]);
+        }, this);
       }
       this.props.workflow.finishCapture();
     },
@@ -125,22 +128,22 @@
       }.bind(this));
     },
     /**
-     * For each page number 'n' in data.images, crop the image 'n-2' with
+     * For each page number 'n' in data.pages, crop the page 'n-2' with
      * the appropriate crop parameters.
      */
     cropLast: function(data) {
       var workflow = this.props.workflow,
-          shotImages = data.images;
+          shotPages = data.pages;
       if (data.retake) {
         // Don't crop on retakes
         return;
       }
       console.log("Cropping last capture");
-      _.each(shotImages, function(image) {
-        var pageNum = parseInt(image.slice(-2)),
-            toCrop = image.slice(0, -2) + (pageNum-2),
+      _.each(shotPages, function(page) {
+        var pageNum = page.sequence_num,
+            toCrop = pageNum-2,
             targetPage = pageNum%2 > 0 ? 'odd': 'even';
-        this.props.workflow.cropImage(toCrop, this.state.cropParams[targetPage]);
+        this.props.workflow.cropPage(toCrop, this.state.cropParams[targetPage]);
       }, this);
     },
     /**
@@ -220,7 +223,7 @@
         }.bind(this))
       };
     },
-    /**
+   /**
      * Open image in lightbox overlay
      *
      * @param {url} - Image to display in lightbox
@@ -275,15 +278,15 @@
       });
       if (workflow && this.state.captureStart) {
         var elapsed = (new Date().getTime()/1000) - this.state.captureStart,
-            shot = workflow.get('raw_images').length - this.state.initialPageCount;
+            shot = workflow.get('pages').length - this.state.initialPageCount;
         speed = (3600/elapsed)*shot | 0;
       } else {
         this.setState({captureStart: new Date().getTime()/1000});
         speed = 0.0;
       }
-      if (workflow.get('raw_images').length) {
-        evenImage = workflow.get('raw_images').slice(-2)[0];
-        oddImage = workflow.get('raw_images').slice(-2)[1];
+      if (workflow.get('pages').length) {
+        evenImage = util.getPageUrl(workflow, workflow.get('pages').slice(-2)[0], 'raw');
+        oddImage = util.getPageUrl(workflow, workflow.get('pages').slice(-2)[1], 'raw');
       }
       return (
         <div>
@@ -326,7 +329,7 @@
                 *       e.g. after a retake. */}
               <ul className={React.addons.classSet(previewClasses)}>
                 <li>
-                  <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('even');}.bind(this)}> Crop</a>
+                  {evenImage && <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('even');}.bind(this)}> Crop</a>}
                   {evenImage ?
                     <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix, 'even');}.bind(this)}>
                       <img className="even" src={evenImage+"/thumb?"+randomSuffix} ref="thumb-even"/>
@@ -337,7 +340,7 @@
                   }
                 </li>
                 <li>
-                  <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('odd');}.bind(this)}> Crop</a>
+                  {oddImage && <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('odd');}.bind(this)}> Crop</a>}
                   {oddImage ?
                   <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix, 'odd');}.bind(this)}>
                     <img className="odd" src={oddImage+"/thumb?"+randomSuffix} ref="thumb-odd"/>
@@ -352,7 +355,7 @@
           </row>
           <row className="capture-info">
             <column size="6">
-              <span className="pagecount">{workflow.get('raw_images').length} pages</span>
+              <span className="pagecount">{workflow.get('pages').length} pages</span>
             </column>
             {speed > 0 &&
             <column size="6">
@@ -396,7 +399,7 @@
               <ul>
                 <li>Capture:
                   {_.map(captureKeys, function(key) {
-                    return (<span>{' '}<kbd>{key.toUpperCase()}</kbd></span>);
+                    return (<span key={key}>{' '}<kbd>{key.toUpperCase()}</kbd></span>);
                   })}</li>
                 <li>Retake: <kbd>R</kbd></li>
                 <li>Finish: <kbd>F</kbd></li>

@@ -20,12 +20,12 @@ from jpegtran import JPEGImage
 from werkzeug.contrib.cache import SimpleCache
 
 import spreads.plugin as plugin
+from spreads.util import get_next
 from spreads.workflow import Workflow, ValidationError
 
 from spreadsplug.web import app
 from discovery import discover_servers
-from util import (get_image_url, WorkflowConverter,
-                  get_thumbnail, find_stick, scale_image)
+from util import WorkflowConverter, get_thumbnail, find_stick, scale_image
 
 logger = logging.getLogger('spreadsplug.web')
 
@@ -251,10 +251,13 @@ def create_workflow():
         else:
             config = app.config['default_config']
 
+        metadata = data.get('metadata', {})
+
         try:
             workflow = Workflow.create(location=app.config['base_path'],
                                        name=unicode(data['name']),
-                                       config=config)
+                                       config=config,
+                                       metadata=metadata)
         except ValidationError as e:
             return make_response(json.dumps(dict(errors=e.errors)), 400,
                                  {'Content-Type': 'application/json'})
@@ -299,7 +302,7 @@ def update_workflow(workflow):
     # Update workflow configuration
     workflow.config.set(config)
     # Persist to disk
-    workflow.save_config()
+    workflow.save()
     return make_response(json.dumps(workflow),
                          200, {'Content-Type': 'application/json'})
 
@@ -445,35 +448,55 @@ def submit_workflow(workflow):
 
 
 # =============== #
-#  Image-related  #
+#  Page-related  #
 # =============== #
-@app.route('/api/workflow/<workflow:workflow>/image/<int:img_num>',
-           methods=['GET'])
-def get_workflow_image(workflow, img_num):
-    """ Return image from requested workflow. """
+@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>')
+def get_single_page(workflow, seq_num):
+    page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
+    if not page:
+        raise ApiException("Could not find page with sequence number {0}"
+                           .format(seq_num), 404)
+    return jsonify(page)
+
+
+@app.route('/api/workflow/<workflow:workflow>/page')
+def get_all_pages(workflow):
+    return make_response(json.dumps(workflow.pages),
+                         200, {'Content-Type': 'application/json'})
+
+
+@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>')
+def get_page_image(workflow, seq_num, img_type):
+    """ Return image for requested page. """
+    if img_type not in ('raw', 'processed'):
+        raise ApiException("Image type must be one of 'raw' or 'processed', "
+                           "not '{0}'".format(img_type), 400)
     # Scale image if requested
     width = request.args.get('width', None)
-    try:
-        img_path = next(p for p in workflow.raw_images
-                        if p.stem == "{0:03}".format(img_num))
-    except StopIteration:
-        abort(404)
+    page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
+    if not page:
+        raise ApiException("Could not find page with sequence number {0}"
+                           .format(seq_num), 404)
+    img_path = page.raw_image if img_type == 'raw' else page.processed_image
     if width:
         return scale_image(img_path, width=int(width))
     else:
         return send_file(unicode(img_path))
 
 
-@app.route('/api/workflow/<workflow:workflow>/image/<int:img_num>/thumb',
-           methods=['GET'])
-def get_workflow_image_thumb(workflow, img_num):
-    """ Return thumbnail for image from requested workflow. """
-    try:
-        img_path = next(p for p in workflow.raw_images
-                        if p.stem == "{0:03}".format(img_num))
-    except StopIteration:
-        abort(404)
-    cache_key = "{0}.{1}".format(workflow.id, img_num)
+@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>'
+           '/thumb', methods=['GET'])
+def get_page_image_thumb(workflow, seq_num, img_type):
+    """ Return thumbnail for page image from requested workflow. """
+    if img_type not in ('raw', 'processed'):
+        raise ApiException("Image type must be one of 'raw' or 'processed', "
+                           "not '{0}'".format(img_type), 400)
+    page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
+    if not page:
+        raise ApiException("Could not find page with sequence number {0}"
+                           .format(seq_num), 404)
+    img_path = page.raw_image if img_type == 'raw' else page.processed_image
+    cache_key = "{0}.{1}".format(workflow.id, page.raw_image)
     thumbnail = None
     if not request.args:
         thumbnail = cache.get(cache_key)
@@ -483,28 +506,29 @@ def get_workflow_image_thumb(workflow, img_num):
     return Response(thumbnail, mimetype='image/jpeg')
 
 
-@app.route('/api/workflow/<workflow:workflow>/image/<int:img_num>',
+@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>',
            methods=['DELETE'])
-def delete_workflow_image(workflow, img_num):
-    """ Remove a single image from a workflow. """
-    try:
-        img_path = next(p for p in workflow.raw_images
-                        if p.stem == "{0:03}".format(img_num))
-    except StopIteration:
-        abort(404)
-    workflow.remove_raw_images(img_path)
-    return 'OK'
+def delete_page(workflow, seq_num):
+    """ Remove a single page from a workflow. """
+    page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
+    if not page:
+        raise ApiException("Could not find page with sequence number {0}"
+                           .format(seq_num), 404)
+    workflow.remove_pages(page)
+    return jsonify(page)
 
 
-@app.route('/api/workflow/<workflow:workflow>/image/<int:img_num>/crop',
-           methods=['POST'])
-def crop_workflow_image(workflow, img_num):
-    try:
-        img_path = next(p for p in workflow.raw_images
-                        if p.stem == "{0:03}".format(img_num))
-    except StopIteration:
-        abort(404)
-    img = JPEGImage(unicode(img_path))
+@app.route(
+    '/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>/crop',
+    methods=['POST'])
+def crop_workflow_image(workflow, seq_num, img_type):
+    page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
+    if not page:
+        raise ApiException("Could not find page with sequence number {0}"
+                           .format(seq_num), 404)
+    if img_type != 'raw':
+        raise ApiException("Can only crop raw images.", 400)
+    img = JPEGImage(unicode(page.raw_image))
     params = {
         'x': int(request.args.get('left', 0)),
         'y': int(request.args.get('top', 0)),
@@ -518,73 +542,23 @@ def crop_workflow_image(workflow, img_num):
     params['width'] = width
     params['height'] = height
     logger.debug("Cropping \"{0}\" to x:{1} y:{2} w:{3} h:{4}"
-                 .format(img_path, *params.values()))
+                 .format(page.raw_image, *params.values()))
     cropped = img.crop(**params)
-    cropped.save(unicode(img_path))
-    cache_key = "{0}.{1}".format(workflow.id, img_num)
+    cropped.save(unicode(page.raw_image))
+    cache_key = "{0}.{1}".format(workflow.id, page.raw_image)
     cache.delete(cache_key)
     return 'OK'
 
 
-@app.route('/api/workflow/<workflow:workflow>/processed/<fname>',
-           methods=['GET'])
-def get_processed_file(workflow, fname):
-    try:
-        fobj = next(f for f in workflow.processed_images if f.name == fname)
-    except StopIteration:
-        abort(404)
-    return send_file(unicode(fobj))
-
-
-@app.route('/api/workflow/<workflow:workflow>/processed/<fname>/thumb',
-           methods=['GET'])
-def get_processed_file_thumb(workflow, fname):
-    try:
-        fobj = next(f for f in workflow.processed_images if f.name == fname)
-    except StopIteration:
-        abort(404)
-    cache_key = "{0}.{1}".format(workflow.id, fname)
-    thumbnail = None
-    if not request.args:
-        thumbnail = cache.get(cache_key)
-    if thumbnail is None:
-        try:
-            thumbnail = get_thumbnail(fobj)
-        except:
-            abort(404)
-        cache.set(cache_key, thumbnail)
-    return Response(thumbnail, mimetype='image/jpeg')
-
-
-@app.route('/api/workflow/<workflow:workflow>/processed/<fname>',
-           methods=['DELETE'])
-def delete_processed_file(workflow, fname):
-    try:
-        fobj = next(f for f in workflow.processed_images if f.name == fname)
-    except StopIteration:
-        abort(404)
-    fobj.unlink()
-    workflow.remove_processed_images(fobj)
-    return 'OK'
-
-
-@app.route('/api/workflow/<workflow:workflow>/bulk/image', methods=['DELETE'])
-def bulk_delete_images(workflow):
-    imgnums = [int(x) for x in json.loads(request.data)['images']]
-    to_delete = [f for f in workflow.raw_images if int(f.stem) in imgnums]
+@app.route('/api/workflow/<workflow:workflow>/page', methods=['DELETE'])
+def bulk_delete_pages(workflow):
+    seq_nums = [p['sequence_num'] for p in json.loads(request.data)['pages']]
+    to_delete = [p for p in workflow.pages if p.sequence_num in seq_nums]
     logger.debug("Bulk removing from workflow {0}: {1}".format(
-      workflow.id, to_delete))
-    workflow.remove_raw_images(*to_delete)
-    return jsonify({'images': [get_image_url(workflow, f) for f in to_delete]})
-
-
-@app.route('/api/workflow/<workflow:workflow>/bulk/processed',
-           methods=['DELETE'])
-def bulk_delete_processed_files(workflow):
-    fnames = json.loads(request.data)
-    to_delete = [f for f in workflow.processed_images if f.name in fnames]
-    workflow.remove_processed_images(*to_delete)
-    return jsonify({'files': [f.stem for f in to_delete]})
+        workflow.id, to_delete))
+    workflow.remove_pages(*to_delete)
+    return make_response(json.dumps(to_delete),
+                         200, {'Content-Type': 'application/json'})
 
 
 # ================= #
@@ -618,7 +592,7 @@ def trigger_capture(workflow):
 
     Optional parameter 'retake' specifies if the last shot is to be retaken.
 
-    Returns the number of pages shot and a list of the images captured by
+    Returns the number of pages shot and a list of the pages captured by
     this call in JSON notation.
     """
     if app.config['mode'] not in ('scanner', 'full'):
@@ -634,9 +608,8 @@ def trigger_capture(workflow):
         logger.error(e)
         raise ApiException("Error during capture: {0}".format(e.message), 500)
     return jsonify({
-        'pages_shot': len(workflow.raw_images),
-        'images': [get_image_url(workflow, x)
-                   for x in workflow.raw_images[-2:]]
+        'pages_shot': len(workflow.pages),
+        'pages': workflow.pages[-2:]
     })
 
 

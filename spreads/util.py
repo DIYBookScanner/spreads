@@ -22,13 +22,16 @@ from __future__ import division, unicode_literals
 
 import abc
 import itertools
+import json
 import logging
 import os
 import re
 from unicodedata import normalize
 
 import blinker
+import roman
 from colorama import Fore, Back, Style
+from spreads.vendor.pathlib import Path
 
 
 class SpreadsException(Exception):
@@ -88,6 +91,13 @@ def slugify(text, delimiter=u'-'):
         if word:
             result.append(word)
     return unicode(delimiter.join(result))
+
+
+def get_next(generator, default=None):
+    try:
+        return next(generator)
+    except StopIteration:
+        return default
 
 
 class _instancemethodwrapper(object):
@@ -191,3 +201,68 @@ class EventHandler(logging.Handler):
 
     def emit(self, record):
         self.on_log_emit.send(record=record)
+
+
+class RomanNumeral(object):
+    @staticmethod
+    def is_roman(value):
+        return bool(roman.romanNumeralPattern.match(value))
+
+    def __init__(self, value, case='upper'):
+        self._val = self._to_int(value)
+        self._case = case
+        if isinstance(value, basestring) and not self.is_roman(value):
+            self._case = 'lower'
+        elif isinstance(value, RomanNumeral):
+            self._case = value._case
+
+    def _to_int(self, value):
+        if isinstance(value, int):
+            return value
+        elif isinstance(value, basestring) and self.is_roman(value.upper()):
+            return roman.fromRoman(value.upper())
+        elif isinstance(value, RomanNumeral):
+            return value._val
+        else:
+            raise ValueError("Value must be a valid roman numeral, a string"
+                             " representing one or an integer: '{0}'"
+                             .format(value))
+
+    def __cmp__(self, other):
+        if self._val > self._to_int(other):
+            return 1
+        elif self._val == self._to_int(other):
+            return 0
+        elif self._val < self._to_int(other):
+            return -1
+
+    def __add__(self, other):
+        return RomanNumeral(self._val + self._to_int(other), self._case)
+
+    def __sub__(self, other):
+        return RomanNumeral(self._val - self._to_int(other), self._case)
+
+    def __int__(self):
+        return self._val
+
+    def __str__(self):
+        strval = roman.toRoman(self._val)
+        if self._case == 'lower':
+            return strval.lower()
+        else:
+            return strval
+
+    def __unicode__(self):
+        return unicode(str(self))
+
+    def __repr__(self):
+        return str(self)
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, 'to_dict'):
+            return obj.to_dict()
+        if isinstance(obj, Path):
+            return unicode(obj)
+        return json.JSONEncoder.default(self, obj)

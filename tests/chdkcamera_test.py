@@ -3,6 +3,7 @@ from contextlib import nested
 import mock
 import pytest
 import spreads.vendor.confit as confit
+from spreads.vendor.pathlib import Path
 
 import spreads.util as util
 import spreadsplug.dev.chdkcamera as chdkcamera
@@ -124,14 +125,14 @@ def test_set_target_page(write, camera):
 
 
 def test_prepare_capture(camera):
-    camera.prepare_capture('/tmp/foo')
+    camera.prepare_capture(Path('/tmp/foo.jpg'))
     camera._execute_lua.assert_any_call('enter_alt()')
     camera._run.assert_any_call('rec')
 
 
 def test_prepare_capture_withrec(camera):
     camera._run.side_effect = chdkcamera.CHDKPTPException()
-    camera.prepare_capture('/tmp/foo')
+    camera.prepare_capture(Path('/tmp/foo.jpg'))
     camera._execute_lua.assert_any_call('enter_alt()')
     camera._run.assert_any_call('rec')
 
@@ -151,9 +152,10 @@ def test_get_preview_image(mock_open, camera):
 @mock.patch('spreadsplug.dev.chdkcamera.JPEGImage')
 def test_capture(jpeg, camera):
     jpeg.return_value = mock.Mock()
-    camera.capture('/tmp/000')
+    camera.capture(Path('/tmp/000.jpg'))
     assert camera._run.call_count == 1
     assert camera._run.call_args_list[0][0][0].startswith('remoteshoot')
+    assert camera._run.call_args_list[0][0][0].endswith('"/tmp/000"')
     assert jpeg.called_once_with('/tmp/000.jpg')
     assert jpeg.return_value.exif_orientation == 6
     assert jpeg.return_value.save.called_once_with('/tmp/000.jpg')
@@ -163,9 +165,10 @@ def test_capture(jpeg, camera):
 def test_capture_raw(jpeg, camera):
     jpeg.return_value = mock.Mock()
     camera.config['shoot_raw'] = True
-    camera.capture('/tmp/000')
+    camera.capture(Path('/tmp/000.dng'))
     assert camera._run.call_count == 1
     assert "-dng " in camera._run.call_args_list[0][0][0]
+    assert camera._run.call_args_list[0][0][0].endswith('"/tmp/000"')
     assert jpeg.called_once_with('/tmp/000.dng')
 
 
@@ -174,7 +177,7 @@ def test_capture_noprepare(jpeg, camera):
     camera._run.side_effect = (
         chdkcamera.CHDKPTPException('dev not in rec mode'), None)
     with mock.patch.object(camera, 'prepare_capture') as prepare:
-        camera.capture('/tmp/000')
+        camera.capture(Path('/tmp/000.jpg'))
         assert prepare.call_count == 1
         assert camera._run.call_count == 2
 
@@ -183,7 +186,7 @@ def test_capture_noprepare(jpeg, camera):
 def test_capture_noremote(jpeg, camera):
     jpeg.return_value = mock.Mock()
     camera._can_remote = False
-    camera.capture('/tmp/000')
+    camera.capture(Path('/tmp/000.jpg'))
     assert camera._run.call_count == 1
     assert camera._run.call_args_list[0][0][0].startswith('shoot')
 
@@ -191,7 +194,7 @@ def test_capture_noremote(jpeg, camera):
 def test_capture_error(camera):
     camera._run.side_effect = chdkcamera.CHDKPTPException('foobar')
     with pytest.raises(chdkcamera.CHDKPTPException) as exc:
-        camera.capture('/tmp/000')
+        camera.capture(Path('/tmp/000.jpg'))
         assert exc is camera._run.side_effect
 
 

@@ -1,8 +1,7 @@
 from __future__ import division, unicode_literals
 
-import shutil
-
 import pytest
+from mock import Mock
 
 import spreads.util as util
 import spreads.workflow
@@ -40,17 +39,24 @@ def test_get_devices_no_device(workflow):
 def test_get_next_filename(workflow):
     root_path = workflow.path/'data'/'raw'
     fname = workflow._get_next_filename(target_page='odd')
-    assert unicode(fname) == unicode(root_path/"001")
+    assert unicode(fname) == unicode(root_path/"001.jpg")
     fname = workflow._get_next_filename(target_page='even')
-    assert unicode(fname) == unicode(root_path/"000")
+    assert unicode(fname) == unicode(root_path/"000.jpg")
 
-    shutil.copyfile('./tests/data/even.jpg', unicode(root_path/'000.jpg'))
-    shutil.copyfile('./tests/data/odd.jpg', unicode(root_path/'001.jpg'))
+    workflow.pages.append(Mock(sequence_num=0))
+    workflow.pages.append(Mock(sequence_num=1))
 
     fname = workflow._get_next_filename(target_page='odd')
-    assert unicode(fname) == unicode(root_path/"003")
+    assert unicode(fname) == unicode(root_path/"003.jpg")
     fname = workflow._get_next_filename(target_page='even')
-    assert unicode(fname) == unicode(root_path/"002")
+    assert unicode(fname) == unicode(root_path/"002.jpg")
+
+    workflow.pages.append(Mock(sequence_num=2))
+    workflow.pages.append(Mock(sequence_num=3))
+
+    workflow.config['device']['shoot_raw'] = True
+    fname = workflow._get_next_filename(target_page='even')
+    assert unicode(fname) == unicode(root_path/"004.dng")
 
 
 def test_prepare_capture(workflow):
@@ -67,9 +73,9 @@ def test_capture(workflow):
         dev.delay = 0.25
     workflow.prepare_capture()
     workflow.capture()
-    assert len(workflow.raw_images) == 2
-    assert (workflow.raw_images[1].stat().st_ctime -
-            workflow.raw_images[0].stat().st_ctime) < 0.25
+    assert len(workflow.pages) == 2
+    assert (workflow.pages[1].raw_image.stat().st_ctime -
+            workflow.pages[0].raw_image.stat().st_ctime) < 0.25
     workflow.finish_capture()
 
 
@@ -80,9 +86,9 @@ def test_capture_noparallel(workflow):
         dev.delay = 0.25
     workflow.prepare_capture()
     workflow.capture()
-    assert len(workflow.raw_images) == 2
-    assert round(workflow.raw_images[1].stat().st_ctime -
-                 workflow.raw_images[0].stat().st_ctime, 2) >= 0.25
+    assert len(workflow.pages) == 2
+    assert round(workflow.pages[1].raw_image.stat().st_ctime -
+                 workflow.pages[0].raw_image.stat().st_ctime, 2) >= 0.25
     workflow.finish_capture()
 
 

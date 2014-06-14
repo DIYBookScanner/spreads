@@ -211,19 +211,19 @@ def capture(config):
         # Callback to print statistics
         if refresh_stats.start_time is not None:
             pages_per_hour = ((3600/(time.time() - refresh_stats.start_time))
-                              * len(workflow.raw_images))
+                              * len(workflow.pages))
         else:
             pages_per_hour = 0.0
             refresh_stats.start_time = time.time()
         status = ("\rShot {0: >3} pages [{1: >4.0f}/h] "
-                  .format(len(workflow.raw_images), pages_per_hour))
+                  .format(len(workflow.pages), pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
     refresh_stats.start_time = None
 
     def trigger_loop():
         is_posix = sys.platform != 'win32'
-        old_count = len(workflow.raw_images)
+        old_count = len(workflow.pages)
         if is_posix:
             import select
             old_settings = termios.tcgetattr(sys.stdin)
@@ -239,8 +239,8 @@ def capture(config):
                 tty.setcbreak(sys.stdin.fileno())
             while True:
                 time.sleep(0.01)
-                if len(workflow.raw_images) != old_count:
-                    old_count = len(workflow.raw_images)
+                if len(workflow.pages) != old_count:
+                    old_count = len(workflow.pages)
                     refresh_stats()
                 if not data_available():
                     continue
