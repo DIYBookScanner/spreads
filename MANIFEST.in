@@ -1,4 +1,0 @@
-include spreads/config_default.yaml
-graft spreadsplug/gui/pixmaps
-include spreadsplug/web/client/index.html
-graft spreadsplug/web/client/packages/

@@ -1,6 +1,8 @@
 #!/usr/bin/env python2.7
 import os
+from subprocess import check_call
 from setuptools import setup
+from setuptools.command.sdist import sdist as SdistCommand
 
 import spreads
 
@@ -22,6 +24,13 @@ devices is made as painless as possible. You can also hook into any of the
 commands by implementing one of the available plugin hooks or even implement
 your own custom sub-commands.
 """
+
+
+class CustomSdistCommand(SdistCommand):
+    def run(self):
+        check_call(['make', '-C', 'spreadsplug/web/client', 'production'])
+        SdistCommand.run(self)
+        check_call(['make', '-C', 'spreadsplug/web/client', 'clean'])
 
 setup(
     name="spreads",
@@ -107,8 +116,9 @@ setup(
             "requests >= 2.2.0",
             "waitress >= 0.8.8",
             "zipstream >= 1.0.2",
-            "tornado == 3.2"
+            "tornado == 3.2",
             "Wand == 0.3.7"
         ]
-    }
+    },
+    cmdclass={'sdist': CustomSdistCommand}
 )
