@@ -156,7 +156,14 @@
      * Remove associated workflow object from the model collection.
      */
     doRemove: function() {
-      this.props.workflow.destroy();
+      // Finish capture if still in progress
+      if (this.props.workflow.get('status').step === 'capture') {
+        this.props.workflow.finishCapture(function() {
+          this.doRemove();
+        }.bind(this));
+      } else {
+        this.props.workflow.destroy();
+      }
     },
     /**
      * Enable deletion confirmation modal
