@@ -111,7 +111,7 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
         proc = psutil.Process(subprocess.Popen(generation_cmd).pid)
 
         num_images = sum(1 for x in img_dir.iterdir())
-        num_steps = end_filter - start_filter
+        num_steps = (end_filter - start_filter)+1
         last_filenum = 0
         recent_filenum = 0
         finished_steps = 0
@@ -175,8 +175,9 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
         while processes:
             recent_count = sum(1 for x in out_dir.glob('*.tif'))
             if recent_count > last_count:
-                self.on_progressed.send(
-                    self, progress=0.5+(float(recent_count)/num_pages)/2)
+                progress = 0.5 + (float(recent_count)/num_pages)/2
+                self.on_progressed.send(self, progress=progress)
+                last_count = recent_count
             for p in processes[:]:
                 if p.poll() is not None:
                     processes.remove(p)

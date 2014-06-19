@@ -538,13 +538,17 @@ class Workflow(object):
     def _run_hook(self, hook_name, *args):
         self._logger.debug("Running '{0}' hooks".format(hook_name))
         plugins = [x for x in self.plugins if hasattr(x, hook_name)]
+
+        def update_progress(idx, plug_progress):
+            step_progress = float(idx) / len(plugins)
+            internal_progress = plug_progress * (1.0 / len(plugins))
+            self._update_status(
+                step_progress=(step_progress + internal_progress))
+
         for (idx, plug) in enumerate(plugins):
             plug.on_progressed.connect(
-                lambda sender, **kwargs: self._update_status(
-                    step_progress=(float(idx)/len(plugins) +
-                                   kwargs['progress']*1.0/len(plugins))),
-                sender=plug, weak=False
-            )
+                lambda s, **kwargs: update_progress(idx, kwargs['progress']),
+                sender=plug, weak=False)
             getattr(plug, hook_name)(*args)
             self._update_status(step_progress=float(idx+1)/len(plugins))
 
