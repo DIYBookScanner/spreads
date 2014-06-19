@@ -43,16 +43,16 @@ def test_get_next_filename(workflow):
     fname = workflow._get_next_filename(target_page='even')
     assert unicode(fname) == unicode(root_path/"000.jpg")
 
-    workflow.pages.append(Mock(sequence_num=0))
-    workflow.pages.append(Mock(sequence_num=1))
+    workflow.pages.append(Mock(capture_num=0))
+    workflow.pages.append(Mock(capture_num=1))
 
     fname = workflow._get_next_filename(target_page='odd')
     assert unicode(fname) == unicode(root_path/"003.jpg")
     fname = workflow._get_next_filename(target_page='even')
     assert unicode(fname) == unicode(root_path/"002.jpg")
 
-    workflow.pages.append(Mock(sequence_num=2))
-    workflow.pages.append(Mock(sequence_num=3))
+    workflow.pages.append(Mock(capture_num=2))
+    workflow.pages.append(Mock(capture_num=3))
 
     workflow.config['device']['shoot_raw'] = True
     fname = workflow._get_next_filename(target_page='even')

@@ -117,6 +117,9 @@ class TestDriver(plugin.DevicePlugin):
     def finish_capture(self):
         pass
 
+    def update_configuration(self, updated):
+        pass
+
     def _acquire_focus(self):
         return 300
 
