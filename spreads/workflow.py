@@ -472,7 +472,7 @@ class Workflow(object):
         return config
 
     def _save_config(self):
-        cfg_path = self.path/'config.json'
+        cfg_path = self.path/'config.yml'
         self.config.dump(
             unicode(cfg_path), True,
             self.config["plugins"].get() + ["plugins", "device"])
