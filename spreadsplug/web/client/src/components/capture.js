@@ -285,8 +285,11 @@
         speed = 0.0;
       }
       if (workflow.get('pages').length) {
-        evenImage = util.getPageUrl(workflow, workflow.get('pages').slice(-2)[0], 'raw');
-        oddImage = util.getPageUrl(workflow, workflow.get('pages').slice(-2)[1], 'raw');
+        var lastPages = _.sortBy(workflow.get('pages').slice(-2), function(page) {
+          return page.sequence_num;
+        });
+        evenImage = util.getPageUrl(workflow, lastPages[0], 'raw');
+        oddImage = util.getPageUrl(workflow, lastPages[1], 'raw');
       }
       return (
         <div>

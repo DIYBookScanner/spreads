@@ -519,7 +519,8 @@ class Workflow(object):
         if not fpath.exists():
             return []
         with fpath.open('r') as fp:
-            return [from_dict(p) for p in json.load(fp)]
+            return sorted([from_dict(p) for p in json.load(fp)],
+                          key=lambda p: p.sequence_num)
 
     def _save_pages(self):
         fpath = self.path / 'pagemeta.json'
@@ -629,7 +630,7 @@ class Workflow(object):
                     futures.append(executor.submit(dev.capture, img_path))
             util.check_futures_exceptions(futures)
 
-            for img in captured_images:
+            for img in sorted(captured_images):
                 self.pages.append(Page(img, int(img.stem)))
 
             self._run_hook('capture', self.devices, self.path)
