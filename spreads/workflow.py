@@ -98,35 +98,54 @@ on_created.connect(lambda sender: Workflow._add_to_cache(sender))
 
 
 class Page(object):
-    __slots__ = ["sequence_num", "page_num", "raw_image", "processed_image"]
+    __slots__ = ["sequence_num", "capture_num", "raw_image", "page_label",
+                 "processed_image"]
 
-    def __init__(self, raw_image, sequence_num=None, page_num=None,
-                 processed_image=None):
+    def __init__(self, raw_image, sequence_num=None, capture_num=None,
+                 page_label=None, processed_image=None):
+
+        #: The path to the raw image
         self.raw_image = raw_image
+
+        #: The path to the processed image
+        # TODO: Make this a plugname -> Path dictionary
         self.processed_image = processed_image
-        if sequence_num:
-            self.sequence_num = sequence_num
+
+        #: The capture number of the page, i.e. at what position in the
+        #  workflow it was recorded, including aborted and retaken shots
+        if capture_num:
+            self.capture_num = capture_num
         else:
-            self.sequence_num = int(raw_image.stem)
-        if page_num:
+            self.capture_num = int(raw_image.stem)
+
+        #: The sequence number of the page, i.e. at what position in the
+        #  list of 'good' captures it is. Usually identical with the position
+        #  in the containing `pages` list. Defaults to the capture number
+        self.sequence_num = sequence_num or self.capture_num
+
+        #: A label for the page. Must be an integer, a string of digits or
+        #  a roman numeral (e.g. 12, '12', 'XII'). Defaults to the sequence
+        # number
+        if page_label:
             # TODO: Add support for letter numbering (e.g. 'a' -> 1,
             #       'aa' -> 27, 'zz' -> 52, etc)
             # TODO: Add support for prefixes (e.g. 'A-1')
-            valid_string = (isinstance(page_num, basestring) and
-                            (page_num.isdigit() or
-                             util.RomanNumeral.is_roman(page_num.upper())))
-            if not isinstance(page_num, int) and not valid_string:
+            valid_string = (isinstance(page_label, basestring) and
+                            (page_label.isdigit() or
+                             util.RomanNumeral.is_roman(page_label.upper())))
+            if not isinstance(page_label, int) and not valid_string:
                 raise ValueError(
-                    "page_num must be an integer, a string of digits, a roman "
-                    "numeral string or a RomanNumeral type")
-            self.page_num = str(page_num)
+                    "page_label must be an integer, a string of digits, a "
+                    "roman numeral string or a RomanNumeral type")
+            self.page_label = str(page_label)
         else:
-            self.page_num = unicode(self.sequence_num)
+            self.page_label = unicode(self.sequence_num)
 
     def to_dict(self):
         return {
             'sequence_num': self.sequence_num,
-            'page_num': self.page_num,
+            'capture_num': self.capture_num,
+            'page_label': self.page_label,
             'raw_image': self.raw_image,
             'processed_image': self.processed_image
         }
@@ -337,24 +356,29 @@ class Workflow(object):
 
     def _fix_page_numbers(self, page_to_remove):
         def get_num_type(num_str):
-            if page_to_remove.page_num.isdigit():
+            if page_to_remove.page_label.isdigit():
                 return int, None
-            elif util.RomanNumeral.is_roman(page_to_remove.page_num):
-                return util.RomanNumeral, page_to_remove.page_num.islower()
+            elif util.RomanNumeral.is_roman(page_to_remove.page_label):
+                return util.RomanNumeral, page_to_remove.page_label.islower()
             elif num_str == '':
                 return None, None
 
-        # Fix page numbers
+        # Fix page labels
         page_idx = self.pages.index(page_to_remove)
-        num_type = get_num_type(page_to_remove.page_num)
+        num_type = get_num_type(page_to_remove.page_label)
         if num_type != (None, None):
             for next_page in self.pages[page_idx+1:]:
-                if get_num_type(next_page.page_num) != num_type:
+                if get_num_type(next_page.page_label) != num_type:
                     # We can stop re-numbering when the numbering scheme
                     # has changed
                     break
-                num = num_type[0](next_page.page_num)
-                next_page.page_num = str(num - 1)
+                num = num_type[0](next_page.page_label)
+                next_page.page_label = str(num - 1)
+
+        # Fix sequence numbers:
+        # TODO: Verify....
+        for idx, next_page in enumerate(self.pages[page_idx+1:], page_idx):
+            next_page.sequence_num = idx
 
     def _fix_table_of_contents(self, page_to_remove):
         def find_page_in_toc(toc):
@@ -487,8 +511,9 @@ class Workflow(object):
             if processed_image is not None:
                 processed_image = Path(processed_image)
             return Page(raw_image=raw_image,
+                        capture_num=dikt['capture_num'],
                         processed_image=processed_image,
-                        page_num=dikt['page_num'],
+                        page_label=dikt['page_label'],
                         sequence_num=dikt['sequence_num'])
         fpath = self.path / 'pagemeta.json'
         if not fpath.exists():
@@ -533,7 +558,7 @@ class Workflow(object):
             base_path.mkdir()
 
         try:
-            last_num = self.pages[-1].sequence_num
+            last_num = self.pages[-1].capture_num
         except IndexError:
             last_num = -1
 
