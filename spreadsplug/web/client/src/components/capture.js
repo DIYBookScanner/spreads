@@ -87,6 +87,8 @@
       this.props.workflow.on('status-updated', function(status) {
         if (status.step !== 'capture') this.handleFinish();
       }.bind(this));
+      // Finish workflow before closing the window
+      window.addEventListener("beforeunload", this.handleUnload);
       _.each(window.config.core.capture_keys, function(key) {
         if (key === ' ') key = 'space';
         Mousetrap.bind(key, this.handleCapture);
@@ -100,12 +102,16 @@
      */
     componentWillUnmount: function() {
       console.log("Wrapping up capture process");
+
+      // Remove global event listeners
       _.each(window.config.core.capture_key, function(key) {
         if (key === ' ') key = 'space';
         Mousetrap.unbind(key);
       });
       Mousetrap.unbind('r');
       Mousetrap.unbind('f');
+      window.removeEventListener("beforeunload", this.handleUnload);
+
       // Crop last two shot images
       if (!_.isEmpty(this.state.cropParams)) {
         _.each(this.props.workflow.get('pages').slice(-2), function(page) {
@@ -113,6 +119,9 @@
             this.props.workflow.cropPage(page.sequence_num, this.state.cropParams[targetPage]);
         }, this);
       }
+      this.props.workflow.finishCapture();
+    },
+    handleUnload: function(event) {
       this.props.workflow.finishCapture();
     },
     /**
