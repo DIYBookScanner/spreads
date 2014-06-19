@@ -179,7 +179,6 @@ class CHDKCameraDevice(DevicePlugin):
         os.remove(tmp_handle[1])
 
     def prepare_capture(self, path):
-        shoot_monochrome = self.config['monochrome'].get(bool)
         # Try to go into alt mode to prevent weird behaviour
         self._execute_lua("enter_alt()")
         # Try to put into record mode
@@ -188,21 +187,13 @@ class CHDKCameraDevice(DevicePlugin):
         except CHDKPTPException as e:
             self.logger.debug(e)
             self.logger.info("Camera already seems to be in recording mode")
-        self._set_zoom(int(self.config['zoom_level'].get()))
+        self._set_zoom()
         # Disable ND filter
         self._execute_lua("set_nd_filter(2)")
         self._set_focus()
-        if shoot_monochrome:
-            rv = self._execute_lua(
-                "capmode = require(\"capmode\")\n"
-                "return capmode.set(\"SCN_MONOCHROME\")",
-                get_result=True
-            )
-            if not rv:
-                self.logger.warn("Monochrome mode not supported on this "
-                                 "device, will be disabled.")
+        self._set_monochrome()
         # Set White Balance mode
-        self._set_wb()
+        self._set_whitebalance()
         # Disable flash
         self._execute_lua(
             "props = require(\"propcase\")\n"
@@ -212,6 +203,18 @@ class CHDKCameraDevice(DevicePlugin):
                           .format(self.MAX_QUALITY))
         self._execute_lua("set_prop(require('propcase').RESOLUTION, {0})"
                           .format(self.MAX_RESOLUTION))
+
+    def _set_monochrome(self):
+        if not self.config['monochrome'].get(bool):
+            return
+        rv = self._execute_lua(
+            "capmode = require(\"capmode\")\n"
+            "return capmode.set(\"SCN_MONOCHROME\")",
+            get_result=True
+        )
+        if not rv:
+            self.logger.warn("Monochrome mode not supported on this "
+                             "device, will be disabled.")
 
     def finish_capture(self):
         # Switch camera back to play mode.
@@ -265,6 +268,14 @@ class CHDKCameraDevice(DevicePlugin):
         else:
             img.exif_orientation = 8  # 90°
         img.save(path)
+
+    def update_configuration(self, updated):
+        if 'zoom_level' in updated:
+            self._set_zoom()
+        if 'focus_distance' in updated:
+            self._set_focus()
+        if 'wb_mode' in updated:
+            self._set_whitebalance()
 
     def show_textbox(self, message):
         messages = message.split("\n")
@@ -342,7 +353,8 @@ class CHDKCameraDevice(DevicePlugin):
             raise ValueError("Could not read OWN.TXT")
         return target_page
 
-    def _set_zoom(self, level):
+    def _set_zoom(self):
+        level = int(self.config['zoom_level'].get())
         if level >= self._zoom_steps:
             raise ValueError("Zoom level {0} exceeds the camera's range!"
                              " (max: {1})".format(level, self._zoom_steps-1))
@@ -357,7 +369,7 @@ class CHDKCameraDevice(DevicePlugin):
         except CHDKPTPException as e:
             self.logger.debug(e)
             self.logger.info("Camera already seems to be in recording mode")
-        self._set_zoom(int(self.config['zoom_level'].get()))
+        self._set_zoom()
         self._execute_lua("set_aflock(0)")
         self._execute_lua("press('shoot_half')")
         time.sleep(0.8)
@@ -378,7 +390,7 @@ class CHDKCameraDevice(DevicePlugin):
         time.sleep(0.25)
         self._execute_lua("set_aflock(1)")
 
-    def _set_wb(self):
+    def _set_whitebalance(self):
         value = WHITEBALANCE_MODES.get(self.config['wb_mode'].get())
         self._execute_lua("set_prop(require('propcase').WB_MODE, {0})"
                           .format(value))
@@ -406,7 +418,7 @@ class A2200(CHDKCameraDevice):
         # chdk 1.3, this is why we stub it out here.
         pass
 
-    def _set_zoom(self, level):
+    def _set_zoom(self):
         """ Set zoom level.
 
             The A2200 currently has a bug, where setting the zoom level
@@ -417,6 +429,7 @@ class A2200(CHDKCameraDevice):
         :type level:  int
 
         """
+        level = int(self.config['zoom_level'].get())
         if level >= self._zoom_steps:
             raise ValueError(
                 "Zoom level {0} exceeds the camera's range!"

@@ -273,9 +273,11 @@ def test_get_target_page_error(camera):
 
 def test_set_zoom(camera):
     camera._zoom_steps = 8
+    camera.config['zoom_level'] = 10
     with pytest.raises(ValueError):
-        camera._set_zoom(10)
-    camera._set_zoom(7)
+        camera._set_zoom()
+    camera.config['zoom_level'] = 7
+    camera._set_zoom()
     camera._execute_lua.assert_called_once_with("set_zoom(7)", wait=True)
 
 
@@ -335,11 +337,13 @@ def test_a2200_finish_capture(a2200):
 
 def test_a2200_set_zoom(a2200):
     a2200._zoom_steps = 8
+    a2200.config['zoom_level'] = 10
     with pytest.raises(ValueError):
-        a2200._set_zoom(10)
+        a2200._set_zoom()
     with mock.patch.object(a2200, '_execute_lua') as lua:
         lua.return_value = 1
-        a2200._set_zoom(7)
+        a2200.config['zoom_level'] = 7
+        a2200._set_zoom()
         lua.return_value = 8
-        a2200._set_zoom(7)
+        a2200._set_zoom()
         assert lua.call_count == 4
