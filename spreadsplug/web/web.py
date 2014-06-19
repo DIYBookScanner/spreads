@@ -300,7 +300,7 @@ def update_workflow(workflow):
         workflow.path = new_path
     config = data.get('config')
     # Update workflow configuration
-    workflow.config.set(config)
+    workflow.update_configuration(config)
     # Persist to disk
     workflow.save()
     return make_response(json.dumps(workflow),
