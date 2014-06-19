@@ -227,7 +227,7 @@
                     <small className="error">{this.state.errors.server}</small>}
                   </column>
                   <column size={[2, 5]}>
-                    <a className="button postfix fi-refresh" style={{width: '8em'}}> Refresh</a>
+                    <a className="button postfix" style={{width: '8em'}}><i className="fa fa-refresh"/> Refresh</a>
                   </column>
                 </row>
               </column>

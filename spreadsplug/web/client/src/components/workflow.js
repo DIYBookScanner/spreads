@@ -59,7 +59,7 @@
             <img src={this.props.thumbUrl} />
           </a>
           {this.state.displayToolbar &&
-          <a onClick={this.props.lightboxCallback}  className="toggle-zoom fi-zoom-in" />}
+          <a onClick={this.props.lightboxCallback}  className="toggle-zoom fa fa-search-plus" />}
         </li>);
     }
   })
@@ -135,7 +135,6 @@
           deleteClasses = require('react/addons').addons.classSet({
             'small': true,
             'button': true,
-            'fi-trash': true,
             'disabled': this.state.selectedPages.length === 0
           });
       return (
@@ -170,7 +169,7 @@
               <h2>Pages</h2>
               <div className="button-bar">
                 <ul className="button-group">
-                  <li><a onClick={this.bulkDelete} className={deleteClasses}> Delete</a></li>
+                  <li><a onClick={this.bulkDelete} className={deleteClasses}><i className="fa fa-trash-o" /> Delete</a></li>
                 </ul>
               </div>
               <ul ref="pagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">

@@ -120,7 +120,7 @@
             <row>
                 <column size='12'>
                   <button className={"action-button small" + (this.state.submitting ? 'disabled' : '')}>
-                    <i className="fi-check"/> Submit
+                    <i className="fa fa-check"/> Submit
                   </button>
                 </column>
             </row>

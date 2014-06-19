@@ -332,7 +332,7 @@
                 *       e.g. after a retake. */}
               <ul className={React.addons.classSet(previewClasses)}>
                 <li>
-                  {evenImage && <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('even');}.bind(this)}> Crop</a>}
+                  {evenImage && <a className="toggle-crop" title="Crop image" onClick={function(){this.toggleCropDialog('even');}.bind(this)}><i className="fa fa-crop" /> Crop</a>}
                   {evenImage ?
                     <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(evenImage+'?'+randomSuffix, 'even');}.bind(this)}>
                       <img className="even" src={evenImage+"/thumb?"+randomSuffix} ref="thumb-even"/>
@@ -343,7 +343,7 @@
                   }
                 </li>
                 <li>
-                  {oddImage && <a className="toggle-crop fi-crop" title="Crop image" onClick={function(){this.toggleCropDialog('odd');}.bind(this)}> Crop</a>}
+                  {oddImage && <a className="toggle-crop" title="Crop image" onClick={function(){this.toggleCropDialog('odd');}.bind(this)}><i className="fa fa-crop" /> Crop</a>}
                   {oddImage ?
                   <a title="Open full resolution image in lightbox" onClick={function(){this.openLightbox(oddImage+'?'+randomSuffix, 'odd');}.bind(this)}>
                     <img className="odd" src={oddImage+"/thumb?"+randomSuffix} ref="thumb-odd"/>
@@ -371,25 +371,25 @@
                 <li id="retake-capture">
                   <fnButton title="Discard last capture and take a new one"
                             callback={this.handleRetake} secondary='true'>
-                      <i className="fi-refresh"></i>
+                      <i className="fa fa-refresh"></i>
                   </fnButton>
                 </li>
                 <li id="trigger-capture">
                   <fnButton title="Trigger capture"
                             callback={this.handleCapture}>
-                    <i className="fi-camera"></i>
+                    <i className="fa fa-camera"></i>
                   </fnButton>
                 </li>
                 <li>
                   <fnButton title="Configure devices"
                             callback={this.toggleConfigModal} secondary='true'>
-                    <i className="fi-widget"></i>
+                    <i className="fa fa-gear"></i>
                   </fnButton>
                 </li>
                 <li>
                   <fnButton title="Finish capture and return to workflow list"
                             callback={this.handleFinish} complete={true}>
-                    <i className="fi-check"></i>
+                    <i className="fa fa-check"></i>
                   </fnButton>
                 </li>
               </ul>

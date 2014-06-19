@@ -1,5 +1,6 @@
 @import "settings";
 @import "foundation";
+@import "font-awesome/font-awesome";
 
 @mixin animation ($animation, $duration, $iteration-count, $timing-function, $delay) {
   -webkit-animation: $animation $duration $iteration-count $timing-function $delay;

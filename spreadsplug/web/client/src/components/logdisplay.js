@@ -79,19 +79,19 @@
           </row>
           <row>
             <column size="6">
-              <a className="action-button fi-magnifying-glass"
+              <a className="action-button"
                  data-bypass={true}
                  href={"https://github.com/DIYBookScanner/spreads/search?q=" +
                        exception + "&type=Issues"}
-                  target="_blank"> Search for open issues</a>
+                  target="_blank"><i className="fa fa-search"/> Search for open issues</a>
             </column>
             <column size="6">
-              <a className="action-button fi-social-github"
+              <a className="action-button"
                  data-bypass={true}
                   href={"https://github.com/DIYBookScanner/spreads/issues/new" +
                         "?title=" + encodeURIComponent(exception) +
                         "&body=" + encodeURIComponent(bugreportTemplate) }
-                  target="_blank"> Open new issue</a>
+                  target="_blank"><i className="fa fa-github"/> Open new issue</a>
             </column>
           </row>
           <row>

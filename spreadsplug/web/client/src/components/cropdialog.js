@@ -323,7 +323,7 @@
               </row>
             }
             <button className={"action-button small"}>
-              <i className="fi-save" /> Save
+              <i className="fa-save" /> Save
             </button>
           </form>
         </div>);

@@ -31,7 +31,7 @@ from spreads.config import OptionTemplate
 from spreads.cli import add_argument_from_template
 
 app = Flask('spreadsplug.web', static_url_path='/static',
-            static_folder='./client', template_folder='./client')
+            static_folder='./client/packages', template_folder='./client')
 task_queue = None
 import web
 import util

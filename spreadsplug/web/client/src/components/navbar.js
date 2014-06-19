@@ -69,23 +69,23 @@
             </confirmModal>}
           <nav className="top-bar" data-topbar>
             <ul className="title-area">
-              <li className="name"> <h1><a href="/" title="Return to workflow list" className="fi-home"> {this.props.title}</a></h1> </li>
-              <li className="toggle-topbar"><a className="fi-list"></a></li>
+              <li className="name"> <h1><a href="/" title="Return to workflow list"><i className="fa fa-home" /> {this.props.title}</a></h1> </li>
+              <li className="toggle-topbar"><a className="fa fa-list"></a></li>
             </ul>
             <section className="top-bar-section">
               <ul className="left">
-                <li><a href="/workflow/new"><i className="fi-plus"></i> New workflow</a></li>
+                <li><a href="/workflow/new"><i className="fa fa-plus"></i> New workflow</a></li>
               </ul>
               <ul className="right">
                 <li>
                   <a href="/logging">
-                    <i className="fi-list"></i> Show log
+                    <i className="fa fa-list"></i> Show log
                     {this.props.numUnreadErrors > 0 &&<fnLabel level='alert' round={true}> {this.props.numUnreadErrors}</fnLabel>}
                   </a>
                 </li>
                 {/* Only show shutdown button if the application is running in standalone mode */}
                 {window.config.web.standalone_device &&
-                  (<li><a onClick={this.handleShutdown}><i className="fi-power"></i> Shut down</a></li>)}
+                  (<li><a onClick={this.handleShutdown}><i className="fa fa-power-off"></i> Shut down</a></li>)}
               </ul>
             </section>
           </nav>

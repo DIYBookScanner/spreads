@@ -27,7 +27,6 @@
 
   // Load stylesheets
   require('../scss/app.scss');
-  require('../vendor/foundation-icons.css');
   require("imports?this=>window,Modernizr=../src/util.js,jQuery=jquery!../vendor/foundation.js");
   require("imports?this=>window,Modernizr=../src/util.js,jQuery=jquery!../vendor/foundation.topbar.js");
 

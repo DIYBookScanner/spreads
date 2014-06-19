@@ -56,7 +56,7 @@
         <row>
           <div className="small-6 medium-12 columns">
             {this.props.smallDisplay &&
-              <a onClick={this.toggleActionDropdown} className="action-select action-button small dropdown fi-list"
+              <a onClick={this.toggleActionDropdown} className="action-select action-button small dropdown fa fa-list"
                   title="View actions">Actions</a>
             }
             {(!this.props.smallDisplay || this.state.actionDropdownVisible) &&
@@ -64,15 +64,15 @@
               <li>
                 <a title="Edit the workflow"
                     href={'/workflow/' + this.props.workflowSlug + '/edit'}
-                    className="action-button small fi-pencil">
-                    {this.props.smallDisplay && " Edit"}
+                    className="action-button small">
+                    <i className="fa fa-edit"/>{this.props.smallDisplay && " Edit"}
                 </a>
               </li>
               <li>
                 <a onClick={this.props.removalBlocked ? null : this.props.handleRemove}
                     title="Remove workflow and all associated files"
-                    className={"action-button small fi-trash" + (this.props.removalBlocked ? " disabled" : "")}>
-                    {this.props.smallDisplay && " Remove"}
+                    className={"action-button small" + (this.props.removalBlocked ? " disabled" : "")}>
+                    <i className="fa fa-trash-o"/>{this.props.smallDisplay && " Remove"}
                 </a>
               </li>
               <li>
@@ -80,32 +80,32 @@
                     title="Download workflow as a ZIP archive"
                     onClick={this.props.handleDownload}
                     href={'/api/workflow/' + this.props.workflowSlug + '/download'}
-                    className="action-button small fi-download">
-                  {this.props.smallDisplay && " Download"}
+                    className="action-button small">
+                  <i className="fa fa-download"/>{this.props.smallDisplay && " Download"}
                 </a>
               </li>
               {window.config.web.mode !== 'processor' &&
                 <li>
                   <a onClick={this.props.handleCapture}
                       title="Capture images"
-                      className="action-button small fi-camera">
-                  {this.props.smallDisplay && " Capture"}
+                      className="action-button small">
+                  <i className="fa fa-camera"/>{this.props.smallDisplay && " Capture"}
                 </a>
                 </li>}
               {window.config.web.standalone_device &&
                 <li>
                   <a onClick={this.props.handleTransfer}
                       title="Transfer workflow directory to a removable storage device"
-                      className="action-button small fi-usb">
-                    {this.props.smallDisplay && " Transfer"}
+                      className="action-button small">
+                    <i className="fa fa-hdd-o"/>{this.props.smallDisplay && " Transfer"}
                   </a>
                 </li>}
               {window.config.web.mode === 'scanner' &&
                 <li>
                   <a title="Submit for postprocessing"
                       href={'/workflow/' + this.props.workflowSlug + '/submit'}
-                      className="action-button small fi-cloud">
-                    {this.props.smallDisplay && " Submit"}
+                      className="action-button small fa">
+                    <i className="fa fa-cloud-upload"/>{this.props.smallDisplay && " Submit"}
                   </a>
                 </li>}
             </ul>}
