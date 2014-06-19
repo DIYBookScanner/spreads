@@ -33,15 +33,19 @@ class HidTrigger(HookPlugin, TriggerHooksMixin):
     def __init__(self, config):
         self._logger = logging.getLogger('spreadsplug.hidtrigger')
         self._logger.debug("Initializing HidTrigger plugin")
-
-    def start_trigger_loop(self, capture_callback):
         self._hid_devs = []
         for dev in self._find_devices():
             self._logger.debug("Found HID device: {0}".format(dev))
             self._hid_devs.append(dev)
         if not self._hid_devs:
             self._logger.warning("Could not find any HID devices.")
+
+    def start_trigger_loop(self, capture_callback):
+        if not self._hid_devs:
+            self._logger.warning("Not starting trigger loop since there are "
+                                 "no HID devices.")
             return
+
         self._exit_event = threading.Event()
         self._loop_thread = threading.Thread(target=self._trigger_loop,
                                              args=(capture_callback, ))
