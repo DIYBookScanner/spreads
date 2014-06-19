@@ -92,6 +92,24 @@
                   <i className="fa fa-camera"/>{this.props.smallDisplay && " Capture"}
                 </a>
                 </li>}
+              {window.config.web.mode !== 'scanner' && this.props.hasPages &&
+                <li>
+                  <a onClick={this.props.handleProcess}
+                     title="Postprocess images"
+                     className="action-button small">
+                     <i className="fa fa-gears"/>{this.props.smallDisplay && " Start Postprocessing"}
+                  </a>
+                </li>
+              }
+              {window.config.web.mode !== 'scanner' && this.props.hasPages &&
+                <li>
+                  <a onClick={this.props.handleOutput}
+                     title="Generate output files"
+                     className="action-button small">
+                     <i className="fa fa-file-pdf-o"/>{this.props.smallDisplay && "Start Output Generation"}
+                  </a>
+                </li>
+              }
               {window.config.web.standalone_device &&
                 <li>
                   <a onClick={this.props.handleTransfer}
@@ -215,6 +233,12 @@
         this.setState({downloadInProgress: false});
       }, this);
     },
+    handleProcess: function() {
+      this.props.workflow.startPostprocessing();
+    },
+    handleOutput: function() {
+      this.props.workflow.startOutputting();
+    },
     render: function() {
       var workflow = this.props.workflow,
           workflowUrl = '/workflow/' + workflow.get('slug'),
@@ -222,10 +246,13 @@
           actionBar;
 
       actionBar = (<ActionBar workflowSlug={workflow.get('slug')}
+                              hasPages={workflow.get('pages').length > 0}
                               handleRemove={this.handleRemove}
                               handleDownload={this.handleDownload}
                               handleCapture={this.handleCapture}
                               handleTransfer={this.handleTransfer}
+                              handleProcess={this.handleProcess}
+                              handleOutput={this.handleOutput}
                               removalBlocked={removalBlocked}
                               smallDisplay={this.props.smallDisplay}/>);
       return (

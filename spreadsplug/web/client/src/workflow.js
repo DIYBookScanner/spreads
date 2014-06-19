@@ -131,6 +131,20 @@
         console.error("Capture could not be finished.");
       }).complete(callback);
     },
+    startPostprocessing: function(callback) {
+      jQuery.post('/api/workflow/' + this.id + '/process', function() {
+        console.log("Postprocessing started.");
+      }).fail(function() {
+        console.log("Failed to start postprocessing.");
+      }).complete(callback);
+    },
+    startOutputting: function(callback) {
+      jQuery.post('/api/workflow/' + this.id + '/output', function() {
+        console.log("Output generation started.");
+      }).fail(function() {
+        console.log("Failed to start output generation.");
+      }).complete(callback);
+    },
     addPages: function(pages) {
       var modified = false;
       _.each(pages, function(page) {
@@ -248,7 +262,7 @@
         if (workflow) {
           workflow.set('status', data.status);
         }
-      });
+      }, this);
     }
   });
 }());
