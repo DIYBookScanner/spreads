@@ -56,5 +56,5 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
                 last_count = current_count
                 self.on_progressed.send(
                     self, progress=float(current_count)/len(img_files))
-            time.sleep(.1)
+            time.sleep(.01)
         logger.debug("Output:\n{0}".format(proc.stdout.read()))
