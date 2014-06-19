@@ -3,9 +3,12 @@ JEST_BIN=./node_modules/.bin/jest
 
 all: test development production
 
+clean:
+	rm -rf node_modules packages
+
 node_modules:
 	@echo Installing dependencies
-	@npm install
+	@npm install --silent
 
 production: node_modules
 	@echo Building minified production package
