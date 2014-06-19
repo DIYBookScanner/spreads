@@ -500,6 +500,8 @@ class Workflow(object):
         return [from_dict(e) for e in data]
 
     def _save_toc(self):
+        if not self.table_of_contents:
+            return
         toc_path = self.path / 'toc.json'
         with toc_path.open('wb') as fp:
             json.dump([x.to_dict() for x in self.table_of_contents], fp,
