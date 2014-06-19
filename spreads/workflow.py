@@ -454,6 +454,8 @@ class Workflow(object):
             if old_progress is not None:
                 prog_diff = kwargs['step_progress'] - old_progress
                 trigger_event = prog_diff >= 0.01
+                if not trigger_event:
+                    kwargs.pop('step_progress', None)
         for key, value in kwargs.items():
             self.status[key] = value
         if trigger_event:
