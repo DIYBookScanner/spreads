@@ -262,12 +262,12 @@ class CHDKCameraDevice(DevicePlugin):
 
         # Set EXIF orientation
         self.logger.debug("Setting EXIF orientation on captured image")
-        img = JPEGImage(path)
+        img = JPEGImage(unicode(path))
         if self.target_page == 'odd':
             img.exif_orientation = 6  # -90°
         else:
             img.exif_orientation = 8  # 90°
-        img.save(path)
+        img.save(unicode(path))
 
     def update_configuration(self, updated):
         if 'zoom_level' in updated:
