@@ -40,7 +40,8 @@ on_submit_completed = signals.signal('submit:completed')
 
 
 @task_queue.task()
-def transfer_to_stick(workflow):
+def transfer_to_stick(wfid, base_path):
+    workflow = Workflow.find_by_id(base_path, wf_id)
     stick = find_stick()
     files = list(workflow.path.rglob('*'))
     num_files = len(files)
@@ -83,10 +84,11 @@ def transfer_to_stick(workflow):
 
 
 @task_queue.task()
-def upload_workflow(workflow, endpoint, user_config, start_process=False,
-                    start_output=False):
+def upload_workflow(wfid, base_path, endpoint, user_config,
+                    start_process=False, start_output=False):
     logger.debug("Uploading workflow to postprocessing server")
 
+    workflow = Workflow.find_by_id(base_path, wf_id)
     # Temporarily write the user-supplied configuration to the bag
     tmp_cfg = copy.deepcopy(workflow.config)
     tmp_cfg.set(user_config)
@@ -145,14 +147,16 @@ def upload_workflow(workflow, endpoint, user_config, start_process=False,
 
 
 @task_queue.task()
-def process_workflow(workflow):
+def process_workflow(wf_id, base_path):
+    workflow = Workflow.find_by_id(base_path, wf_id)
     logger.debug("Initiating processing for workflow {0}"
                  .format(workflow.slug))
     workflow.process()
 
 
 @task_queue.task()
-def output_workflow(workflow):
+def output_workflow(wf_id, base_path):
+    workflow = Workflow.find_by_id(base_path, wf_id)
     logger.debug("Initiating output generation for workflow {0}"
                  .format(workflow.slug))
     workflow.output()

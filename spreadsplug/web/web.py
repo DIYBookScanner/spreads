@@ -418,7 +418,7 @@ def transfer_workflow(workflow):
     if stick is None:
         return jsonify({"error": "Could not find removable device"}), 503
     from tasks import transfer_to_stick
-    transfer_to_stick(workflow)
+    transfer_to_stick(workflow.id, app.config['base_path'])
     return 'OK'
 
 
@@ -440,7 +440,7 @@ def submit_workflow(workflow):
     user_config = data.get('config', {})
     from tasks import upload_workflow
     # TODO: Pass config to this function
-    upload_workflow(workflow,
+    upload_workflow(workflow.id, app.config['base_path'],
                     'http://{0}/api/workflow'.format(server), user_config,
                     start_process=data.get('start_process', False),
                     start_output=data.get('start_output', False))
@@ -630,7 +630,7 @@ def start_processing(workflow):
         raise ApiException("Only possible when running in 'processor' or"
                            " 'full' mode.", 503)
     from tasks import process_workflow
-    process_workflow(workflow)
+    process_workflow(workflow.id, app.config['base_path'])
     return 'OK'
 
 
@@ -640,7 +640,7 @@ def start_output_generation(workflow):
         raise ApiException("Only possible when running in 'processor' or"
                            " 'full' mode.", 503)
     from tasks import output_workflow
-    output_workflow(workflow)
+    output_workflow(workflow.id, app.config['base_path'])
     return 'OK'
 
 
