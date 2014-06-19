@@ -118,7 +118,7 @@ def create_workflow(client, num_captures='random'):
 def test_index(client):
     rv = client.get('/')
     assert "<title>spreads</title>" in rv.data
-    assert "<script src=\"/static/packages/bundle.js\"></script>" in rv.data
+    assert "<script src=\"/static/bundle.js\"></script>" in rv.data
 
     cfg = json.loads(re.findall(r"window.config = ({.*});", rv.data)[0])
     assert cfg['plugins'] == ['test_output', 'test_process', 'test_process2']
@@ -321,7 +321,7 @@ def test_start_processing(client):
     time.sleep(.1)
     update_events = [
         e['data']['status'] for e in json.loads(client.get('/api/events').data)
-        if e['name'] == 'workflow:status_updated']
+        if e['name'] == 'workflow:status-updated']
     assert len(update_events) == 3
     assert all(e['step'] == 'process' for e in update_events)
     assert update_events[0]['step_progress'] == 0
@@ -338,7 +338,7 @@ def test_start_outputting(client):
     time.sleep(.1)
     update_events = [
         e['data']['status'] for e in json.loads(client.get('/api/events').data)
-        if e['name'] == 'workflow:status_updated']
+        if e['name'] == 'workflow:status-updated']
     assert len(update_events) == 2
     assert all(e['step'] == 'output' for e in update_events)
     assert update_events[0]['step_progress'] == 0
