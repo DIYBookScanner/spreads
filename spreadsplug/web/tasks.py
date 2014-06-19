@@ -40,7 +40,7 @@ on_submit_completed = signals.signal('submit:completed')
 
 
 @task_queue.task()
-def transfer_to_stick(wfid, base_path):
+def transfer_to_stick(wf_id, base_path):
     workflow = Workflow.find_by_id(base_path, wf_id)
     stick = find_stick()
     files = list(workflow.path.rglob('*'))
@@ -84,7 +84,7 @@ def transfer_to_stick(wfid, base_path):
 
 
 @task_queue.task()
-def upload_workflow(wfid, base_path, endpoint, user_config,
+def upload_workflow(wf_id, base_path, endpoint, user_config,
                     start_process=False, start_output=False):
     logger.debug("Uploading workflow to postprocessing server")
 
