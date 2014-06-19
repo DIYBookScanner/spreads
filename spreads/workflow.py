@@ -54,14 +54,14 @@ Sent by a :class:`Workflow` when a new workflow was created.
 :argument :class:`Workflow`:    the newly created Workflow
 """)
 
-on_status_updated = signals.signal('workflow:status_updated', doc="""\
+on_status_updated = signals.signal('workflow:status-updated', doc="""\
 Sent by a :class:`Workflow` after its status has changed.
 
 :argument :class:`Workflow`:      the Workflow that has made progress
 :keyword dict status:             the updated status
 """)
 
-on_config_updated = signals.signal('workflow:config_updated', doc="""\
+on_config_updated = signals.signal('workflow:config-updated', doc="""\
 Sent by a :class:`Workflow` after modifications to its configuration were
 made.
 
