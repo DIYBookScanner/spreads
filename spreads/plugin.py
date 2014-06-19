@@ -196,6 +196,15 @@ class DevicePlugin(SpreadsPlugin):  # pragma: no cover
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def update_configuration(self, updated):
+        """ Update the device configuration.
+
+        :param updated:     Updated configuration values
+        :type updated:      dict
+        """
+        raise NotImplementedError
+
 
 class HookPlugin(SpreadsPlugin):
     """ Base class for HookPlugins.

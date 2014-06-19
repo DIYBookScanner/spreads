@@ -672,3 +672,20 @@ class Workflow(object):
         self._run_hook('output', self.path)
         self.bag.add_payload(str(out_path))
         self._logger.info("Done generating output files!")
+
+    def update_configuration(self, values):
+        def diff_dicts(old, new):
+            out = {}
+            for key, value in old.iteritems():
+                if new[key] != value:
+                    out[key] = new[key]
+                elif isinstance(value, dict):
+                    diff = diff_dicts(value, new[key])
+                    if diff:
+                        out[key] = diff
+            return out
+        old_cfg = self.config.flatten()
+        self.config.set(values)
+        diff = diff_dicts(old_cfg, self.config.flatten())
+        self._run_hook('update_configuration', diff['device'])
+        on_config_updated.send(self, changes=diff)
