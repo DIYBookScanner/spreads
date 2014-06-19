@@ -4,7 +4,7 @@ JEST_BIN=./node_modules/.bin/jest
 all: test development production
 
 clean:
-	rm -rf node_modules packages
+	rm -rf node_modules build
 
 node_modules:
 	@echo Installing dependencies

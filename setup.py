@@ -77,13 +77,12 @@ setup(
     ],
     package_data={
         'spreadsplug.gui': ['pixmaps/monk.png'],
-        'spreadsplug.web': ['client/index.html', 'client/packages/*']
+        'spreadsplug.web': ['client/index.html', 'client/build/*']
     },
     entry_points={
         'spreadsplug.devices': [
             "chdkcamera=spreadsplug.dev.chdkcamera:CHDKCameraDevice",
             "gphoto2camera=spreadsplug.dev.gphoto2camera:GPhoto2CameraDevice",
-            "dummy=spreadsplug.dev.dummy:DummyDevice"
         ],
         'spreadsplug.hooks': [
             "autorotate     =spreadsplug.autorotate:AutoRotatePlugin",
