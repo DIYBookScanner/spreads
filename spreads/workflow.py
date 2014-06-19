@@ -251,7 +251,9 @@ class Workflow(object):
 
     @classmethod
     def remove(cls, workflow):
-        if workflow.status['step'] is not None:
+        wf_busy = (workflow.status['step'] is not None and
+                   workflow.status['step_progress'] < 1)
+        if wf_busy:
             raise util.SpreadsException(
                 "Cannot remove a workflow while it is busy."
                 " (active step: '{0}')".format(workflow.status['step']))
