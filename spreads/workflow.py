@@ -203,9 +203,9 @@ class Workflow(object):
     def _add_to_cache(cls, workflow):
         location = workflow.path.parent
         if not location in cls._cache:
-            return
-        if not workflow in Workflow._cache[location]:
-            cls._cache[location] = workflow
+            cls._cache[location] = [workflow]
+        elif not workflow in Workflow._cache[location]:
+            cls._cache[location].append(workflow)
 
     @classmethod
     def find_all(cls, location, key='slug', reload=False):
