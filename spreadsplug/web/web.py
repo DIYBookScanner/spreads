@@ -673,9 +673,9 @@ def start_processing(workflow):
     if app.config['mode'] not in ('processor', 'full'):
         raise ApiException("Only possible when running in 'processor' or"
                            " 'full' mode.", 503)
+    workflow._update_status(step='process', step_progress=None)
     from tasks import process_workflow
     process_workflow(workflow.id, app.config['base_path'])
-    workflow._update_status(step='process', step_progress=None)
     return 'OK'
 
 
@@ -684,9 +684,9 @@ def start_output_generation(workflow):
     if app.config['mode'] not in ('processor', 'full'):
         raise ApiException("Only possible when running in 'processor' or"
                            " 'full' mode.", 503)
+    workflow._update_status(step='output', step_progress=None)
     from tasks import output_workflow
     output_workflow(workflow.id, app.config['base_path'])
-    workflow._update_status(step='output', step_progress=None)
     return 'OK'
 
 
