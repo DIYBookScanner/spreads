@@ -136,10 +136,12 @@ def get_plugin_templates():
 def get_available_plugins():
     exts = list(pkg_resources.iter_entry_points('spreadsplug.hooks'))
     activated = app.config['default_config']['plugins'].get()
+    post_plugins = sorted(
+        [ext.name for ext in exts if ext.name in activated
+         and issubclass(ext.load(), plugin.ProcessHookMixin)],
+        key=lambda x: activated.index(x))
     return jsonify({
-        'postprocessing': [ext.name for ext in exts if ext.name in activated
-                           and issubclass(ext.load(),
-                                          plugin.ProcessHookMixin)],
+        'postprocessing': post_plugins,
         'output': [ext.name for ext in exts if ext.name in activated
                    and issubclass(ext.load(), plugin.OutputHookMixin)]
     })
