@@ -24,6 +24,7 @@ import subprocess
 import tempfile
 import time
 import xml.etree.cElementTree as ET
+from itertools import chain
 
 from spreads.config import OptionTemplate
 from spreads.plugin import HookPlugin, ProcessHookMixin
@@ -76,7 +77,7 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
         logger.info("Language is \"{0}\"".format(language))
         self._perform_ocr(in_paths, out_dir, language)
 
-        for fname in out_dir.glob('*.hocr'):
+        for fname in chain(out_dir.glob('*.hocr'), out_dir.glob('*.html')):
             self._fix_hocr(fname)
             out_stem = fname.stem
             for in_path, page in in_paths.iteritems():
@@ -133,7 +134,7 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
             fp.write(new_content)
 
     def output(self, pages, target_path, metadata, table_of_contents):
-        outfile = target_path/"text.hocr"
+        outfile = target_path/"text.html"
         out_root = ET.Element('html')
         ET.SubElement(out_root, 'head')
         body = ET.SubElement(out_root, 'body')
