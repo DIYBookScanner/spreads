@@ -50,16 +50,27 @@
             'th': true,
             'page-preview': true,
             'selected': this.props.selected
-          });
+          }),
+          page = this.props.page,
+          thumbUrl = util.getPageUrl(this.props.workflow, page, this.props.imageType, true);
       return (
         <li className={liClasses} title="Open full resolution image in lightbox"
             onMouseEnter={this.toggleToolbar} onMouseLeave={this.toggleToolbar}>
-          <a onClick={this.props.selectCallback}
-             title={this.props.selected ? "Deselect image" : "Select image"}>
-            <img src={this.props.thumbUrl} />
-          </a>
-          {this.state.displayToolbar &&
-          <a onClick={this.props.lightboxCallback}  className="toggle-zoom fa fa-search-plus" />}
+          <row>
+            <column>
+              <a onClick={this.props.selectCallback}
+                title={this.props.selected ? "Deselect image" : "Select image"}>
+                <img src={thumbUrl} />
+              </a>
+              {this.state.displayToolbar &&
+              <a onClick={this.props.lightboxCallback}  className="toggle-zoom fa fa-search-plus" />}
+            </column>
+          </row>
+          <row>
+            <column>
+              {page.page_label}
+            </column>
+          </row>
         </li>);
     }
   })
@@ -89,6 +100,9 @@
         thumbCount: 24,
         /** Image to display in a lightobx overlay */
         lightboxImage: undefined,
+        lightboxNext: undefined,
+        lightboxPrevious: undefined,
+        imageType: 'raw',
         selectedPages: []
       };
     },
@@ -100,9 +114,20 @@
      *
      * @param {string} [img] - URL for image to be displayed in lightbox
      */
-    toggleLightbox: function(page) {
+    toggleLightbox: function(workflow, page) {
+      console.debug(workflow, page);
+      var image, next, previous;
+      if (page) {
+        var allPages = workflow.get('pages'),
+            pageIdx = allPages.indexOf(page);
+        image = util.getPageUrl(this.props.workflow, page, this.state.imageType, false);
+        next = (pageIdx != (allPages.length-1)) && allPages[pageIdx+1];
+        previous = (pageIdx != 0) && allPages[pageIdx-1];
+      }
       this.setState({
-        lightboxImage: page ? util.getPageUrl(this.props.workflow, page, 'raw', false) : undefined
+        lightboxImage: image,
+        lightboxNext: next,
+        lightboxPrevious: previous
       });
     },
     /**
@@ -127,6 +152,11 @@
     bulkDelete: function() {
       this.props.workflow.deletePages(this.state.selectedPages);
     },
+    handleImageTypeSelect: function(event) {
+      this.setState({
+        imageType: event.target.value
+      });
+    },
     render: function() {
       var workflow = this.props.workflow,
           pageCount = Math.ceil(workflow.get('pages').length / this.state.thumbCount),
@@ -136,13 +166,22 @@
             'small': true,
             'button': true,
             'disabled': this.state.selectedPages.length === 0
-          });
+          }),
+          imageTypes = ['raw'].concat(_.without(_.keys(workflow.get('pages')[0].processed_images), 'tesseract'));
       return (
         <main>
           {/* Display image in lightbox overlay? */}
           {this.state.lightboxImage &&
             <lightbox onClose={function(){this.toggleLightbox();}.bind(this)}
-                      src={this.state.lightboxImage} />
+                      src={this.state.lightboxImage}
+                      handleNext={this.state.lightboxNext && function(e) {
+                        e.stopPropagation();
+                        this.toggleLightbox(workflow, this.state.lightboxNext);
+                      }.bind(this)}
+                      handlePrevious={this.state.lightboxPrevious && function(e) {
+                        e.stopPropagation();
+                        this.toggleLightbox(workflow, this.state.lightboxPrevious);
+                      }.bind(this)}/>
           }
           <row>
             <column size='12'>
@@ -170,16 +209,22 @@
               <div className="button-bar">
                 <ul className="button-group">
                   <li><a onClick={this.bulkDelete} className={deleteClasses}><i className="fa fa-trash-o" /> Delete</a></li>
+                  <li>
+                    <select onChange={this.handleImageTypeSelect}>
+                    {imageTypes.map(function(name) {
+                      return <option key={name} value={name}>{name}</option>;
+                    })}
+                    </select>
+                  </li>
                 </ul>
               </div>
               <ul ref="pagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
                 {workflow.get('pages').slice(thumbStart, thumbStop).map(function(page) {
-                    var thumbUrl = util.getPageUrl(workflow, page, 'raw', true);
                     return (
-                      <PagePreview thumbUrl={thumbUrl} key={page.raw_image}
+                      <PagePreview page={page} workflow={workflow} key={page.raw_image} imageType={this.state.imageType}
                                    selected={_.contains(this.state.selectedPages, page)}
                                    selectCallback={function(){this.togglePageSelect(page)}.bind(this)}
-                                   lightboxCallback={function(){this.toggleLightbox(page);}.bind(this)} />
+                                   lightboxCallback={function(){this.toggleLightbox(workflow, page);}.bind(this)} />
                     );
                   }.bind(this))}
               </ul>

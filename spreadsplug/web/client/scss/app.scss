@@ -156,6 +156,7 @@ li.page-preview {
   position: relative;
   text-align: center;
   padding: 0;
+  line-height: 1.5;
 
   &.selected {
     background-color: green;
@@ -169,8 +170,9 @@ li.page-preview {
     position: absolute;
     left: 0;
     bottom: 0;
-    width: 100%;
+    width: calc(100% - 1.875rem);
     padding: 0.25em;
+    margin-left: 0.9375rem;
     background-color: rgba(255, 255, 255, 0.5);
     z-index: 10;
   }
@@ -271,7 +273,7 @@ li.page-preview {
     img {
       // Only works for Firefox 26+
       image-orientation: from-image;
-      max-width: 100%;
+      max-width: calc(100% - 160px);
       max-height: 100%;
     }
   }

@@ -55,7 +55,10 @@
 
   function getPageUrl(workflow, page, type, thumb) {
     var url = "/api/workflow/" + workflow.id + "/page/" + page.sequence_num;
-    if (page) url = url + "/" + type;
+    if (page) {
+      if (type !== 'raw') type = 'processed/' + type;
+      url = url + "/" + type;
+    }
     if (thumb) url = url + "/thumb";
     return url;
   }

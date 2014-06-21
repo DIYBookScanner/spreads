@@ -51,12 +51,56 @@
    */
   LightBox = React.createClass({
     displayName: "LightBox",
+    getInitialState: function() {
+      return {};
+    },
+    handleResize: function(e) {
+      console.debug(e);
+      // TODO: Shouldn't this be possible just with CSS?
+      var imgNode = this.refs.image.getDOMNode();
+      this.setState({
+          controlY: imgNode.offsetTop,
+          controlHeight: imgNode.offsetHeight,
+          previousX: imgNode.offsetLeft-80,
+          nextX: imgNode.offsetLeft + imgNode.offsetWidth
+      });
+    },
+    componentDidMount: function() {
+      window.addEventListener("resize", this.handleResize);
+    },
+    componentWillUnmount: function() {
+      window.removeEventListener("resize", this.handleResize);
+    },
     render: function() {
       return (
         <div title="Close lightbox" onClick={this.props.onClose} className="overlay lightbox">
-          <a data-bypass={true} title="Open full resolution image in new tab" href={this.props.src} target='_blank'>
-            <img className={this.props.targetPage || ''} src={this.props.src} />
+          <a data-bypass={true} title="Open full resolution image in new tab" className="open-image" href={this.props.src} target='_blank'>
+            <img ref="image" className={this.props.targetPage || ''} src={this.props.src + '?format=browser'} onLoad={this.handleResize}/>
           </a>
+          {(this.state.previousX !== undefined) && this.props.handlePrevious &&
+            <a title="View previous page" className="control"
+                style={{position: 'fixed',
+                        left: this.state.previousX,
+                        width: 80,
+                        height: this.state.controlHeight,
+                        'line-height': this.state.controlHeight,
+                        top: this.state.controlY}}
+                onClick={this.props.handlePrevious}>
+              <i className="fa fa-caret-left fa-5x" />
+            </a>
+          }
+          {(this.state.nextX !== undefined) && this.props.handleNext &&
+            <a title="View next page" className="control"
+                style={{position: 'fixed',
+                        left: this.state.nextX,
+                        width: 80,
+                        height: this.state.controlHeight,
+                        'line-height': this.state.controlHeight,
+                        top: this.state.controlY}}
+                onClick={this.props.handleNext}>
+              <i className="fa fa-caret-right fa-5x" />
+            </a>
+          }
         </div>
       );
     }
