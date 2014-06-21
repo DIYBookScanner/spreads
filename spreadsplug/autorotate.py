@@ -18,8 +18,9 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import shutil
 
-from concurrent import futures
+from concurrent.futures import ProcessPoolExecutor
 from jpegtran import JPEGImage
 
 from spreads.plugin import HookPlugin, ProcessHookMixin
@@ -27,17 +28,19 @@ from spreads.plugin import HookPlugin, ProcessHookMixin
 logger = logging.getLogger('spreadsplug.autorotate')
 
 
-def autorotate_image(path):
-    img = JPEGImage(path)
+def autorotate_image(in_path, out_path):
+    img = JPEGImage(in_path)
     if img.exif_orientation is None:
         logger.warn("Image {0} did not have any EXIF rotation, did not rotate."
-                    .format(path))
+                    .format(in_path))
         return
     elif img.exif_orientation == 1:
-        logger.info("Image {0} is already rotated.".format(path))
-        return
-    rotated = img.exif_autotransform()
-    rotated.save(path)
+        logger.info("Image {0} is already rotated, will simply copy it."
+                    .format(in_path))
+        shutil.copyfile(in_path, out_path)
+    else:
+        rotated = img.exif_autotransform()
+        rotated.save(out_path)
 
 
 class AutoRotatePlugin(HookPlugin, ProcessHookMixin):
@@ -48,16 +51,31 @@ class AutoRotatePlugin(HookPlugin, ProcessHookMixin):
             self,
             progress=float(idx)/num_total)
 
-    def process(self, path):
-        img_dir = path / 'data' / 'raw'
-        logger.info("Rotating images in {0}".format(img_dir))
-        with futures.ProcessPoolExecutor() as executor:
-            files = sorted(img_dir.iterdir())
-            num_total = len(files)
-            for (idx, imgpath) in enumerate(files):
-                if imgpath.suffix.lower() not in ('.jpg', '.jpeg'):
+    def _get_update_callback(self, page, out_path):
+        return lambda x: page.processed_images.update(
+            {self.__name__: out_path})
+
+    def process(self, pages, target_path):
+        logger.info("Rotating images")
+        futures = []
+        with ProcessPoolExecutor() as executor:
+            num_total = len(pages)
+            for (idx, page) in enumerate(pages):
+                in_path = page.get_latest_processed(image_only=True)
+                if in_path is None:
+                    in_path = page.raw_image
+                if in_path.suffix.lower() not in ('.jpg', '.jpeg'):
+                    logger.warn("Image {0} is not a JPG file, cannot be "
+                                "rotated".format(in_path))
                     continue
-                future = executor.submit(autorotate_image, unicode(imgpath))
+                out_path = target_path/(in_path.stem + "_rotated.jpg")
+                future = executor.submit(autorotate_image,
+                                         unicode(in_path),
+                                         unicode(out_path))
                 future.add_done_callback(
                     self._get_progress_callback(idx, num_total)
                 )
+                future.add_done_callback(
+                    self._get_update_callback(page, out_path)
+                )
+                futures.append(future)
