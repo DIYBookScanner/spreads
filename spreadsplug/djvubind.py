@@ -19,7 +19,11 @@ from __future__ import division, unicode_literals
 
 import logging
 import os
+import shutil
 import subprocess
+import tempfile
+
+from spreads.vendor.pathlib import Path
 
 from spreads.plugin import HookPlugin, OutputHookMixin
 from spreads.util import MissingDependencyException, find_in_path
@@ -35,13 +39,21 @@ logger = logging.getLogger('spreadsplug.djvubind')
 class DjvuBindPlugin(HookPlugin, OutputHookMixin):
     __name__ = 'djvubind'
 
-    def output(self, path):
+    # TODO: Adapt to new API
+    def output(self, pages, target_path, metadata, table_of_contents):
         logger.info("Assembling DJVU.")
-        img_dir = path / 'data' / 'done'
-        djvu_file = path / 'data' / 'out' / "{0}.djvu".format(path.name)
-        cmd = ["djvubind", unicode(img_dir)]
-        if not img_dir.glob("*.html"):
-            cmd.append("--no-ocr")
+
+        tmpdir = Path(tempfile.mkdtemp())
+        for page in pages:
+            fpath = page.get_latest_processed(image_only=True)
+            if fpath is None:
+                fpath = page.raw_image
+            link_path = (tmpdir/fpath.name)
+            link_path.symlink_to(fpath)
+
+        djvu_file = target_path/"book.djvu"
+        cmd = ["djvubind", unicode(tmpdir), '--no-ocr']
         logger.debug("Running " + " ".join(cmd))
         subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         os.rename("book.djvu", unicode(djvu_file))
+        shutil.rmtree(unicode(tmpdir))
