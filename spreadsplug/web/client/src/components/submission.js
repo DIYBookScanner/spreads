@@ -61,6 +61,10 @@
       var workflow = this.props.workflow.clone(),
           config = {};
 
+      // Clear errors
+      this.setState({errors: {}});
+
+
       function loadTemplates() {
         jQuery.getJSON(
           '/api/remote/plugins/templates',
@@ -107,7 +111,8 @@
         }.bind(this));
     },
     handleSubmit: function() {
-      if (this.state.errors || !this.state.workflow) {
+      console.debug(this.state);
+      if (!_.isEmpty(this.state.errors) || !this.state.workflow) {
         return;
       }
       var start_process,
@@ -144,9 +149,11 @@
         }
       }.bind(this))
       window.router.events.on('submit:completed', function() {
+        /*
         this.setState({
           submissionWaiting: false
         });
+        */
         window.router.navigate('/', {trigger: true});
       }.bind(this));
     },
