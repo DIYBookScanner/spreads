@@ -276,23 +276,28 @@ def capture(config):
     workflow.finish_capture()
 
 
+def _update_callback(wf, changes):
+    if 'status' in changes and 'step_progress' in changes['status']:
+        draw_progress(changes['status']['step_progress'])
+
 def postprocess(config):
     path = config['path'].get()
     workflow = spreads.workflow.Workflow(config=config, path=path)
     draw_progress(0.0)
-    spreads.workflow.on_status_updated.connect(
-        lambda wf, status: draw_progress(status['step_progress']),
-        sender=workflow, weak=False)
+    spreads.workflow.on_modified.connect(_update_callback, sender=workflow,
+                                         weak=False)
     workflow.process()
 
 
 def output(config):
+    def update_callback(wf, changes):
+        if 'status' in changes and 'step_progress' in changes['status']:
+            draw_progress(changes['status']['step_progress'])
     path = config['path'].get()
     workflow = spreads.workflow.Workflow(config=config, path=path)
     draw_progress(0)
-    spreads.workflow.on_status_updated.connect(
-        lambda wf, status: draw_progress(status['step_progress']),
-        sender=workflow, weak=False)
+    spreads.workflow.on_modified.connect(_update_callback, sender=workflow,
+                                         weak=False)
     workflow.process()
     workflow.output()
 
