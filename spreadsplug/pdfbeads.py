@@ -19,8 +19,12 @@ from __future__ import division, unicode_literals
 
 import logging
 import os
+import shutil
 import subprocess
+import tempfile
 import time
+
+from spreads.vendor.pathlib import Path
 
 from spreads.plugin import HookPlugin, OutputHookMixin
 from spreads.util import MissingDependencyException, find_in_path
@@ -36,25 +40,46 @@ logger = logging.getLogger('spreadsplug.pdfbeads')
 class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
     __name__ = 'pdfbeads'
 
-    def output(self, path):
+    def output(self, pages, target_path, metadata, table_of_contents):
         logger.info("Assembling PDF.")
-        path = path.absolute()
-        img_dir = path / 'data' / 'done'
-        pdf_file = path / 'data' / 'out' / "{0}.pdf".format(path.name)
-        img_files = [unicode(x.name) for x in sorted(img_dir.glob('*.tif'))]
-        cmd = ["pdfbeads", "-d"] + img_files + ["-o", unicode(pdf_file)]
-        logger.debug("Running " + " ".join(cmd))
+
+        tmpdir = Path(tempfile.mkdtemp())
         # NOTE: pdfbeads only finds *html files for the text layer in the
-        #       working directory...
-        os.chdir(unicode(img_dir))
+        #       working directory, so we have to chdir() into it
+        old_path = os.path.abspath(os.path.curdir)
+        os.chdir(unicode(tmpdir))
+
+        images = []
+        for page in pages:
+            fpath = page.get_latest_processed(image_only=True)
+            if fpath is None:
+                fpath = page.raw_image
+            link_path = (tmpdir/fpath.name)
+            link_path.symlink_to(fpath)
+            if 'tesseract' in page.processed_images:
+                ocr_path = page.processed_images['tesseract']
+                (tmpdir/ocr_path.name).symlink_to(ocr_path)
+            images.append(link_path)
+
+        # TODO: Use metadata to create a METAFILE for pdfbeads
+        # TODO: Use table_of_contents to create a TOCFILE for pdfbeads
+        # TODO: Use page.page_label to create a LSPEC for pdfbeads
+
+        pdf_file = target_path/"book.pdf"
+        cmd = ["pdfbeads", "-d"]
+        cmd.extend([f.name for f in images])
+        cmd.extend(["-o", unicode(pdf_file)])
+        logger.debug("Running " + " ".join(cmd))
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
         last_count = 0
         while proc.poll() is None:
-            current_count = sum(1 for x in img_dir.glob('*.jbig2'))
+            current_count = sum(1 for x in tmpdir.glob('*.jbig2'))
             if current_count > last_count:
                 last_count = current_count
                 self.on_progressed.send(
-                    self, progress=float(current_count)/len(img_files))
+                    self, progress=float(current_count)/len(images))
             time.sleep(.01)
         logger.debug("Output:\n{0}".format(proc.stdout.read()))
+        os.chdir(old_path)
+        #shutil.rmtree(unicode(tmpdir))
