@@ -20,6 +20,7 @@ from __future__ import division
 import copy
 import logging
 import shutil
+import tempfile
 
 import blinker
 import requests
@@ -89,10 +90,12 @@ def upload_workflow(wf_id, base_path, endpoint, user_config,
     logger.debug("Uploading workflow to postprocessing server")
 
     workflow = Workflow.find_by_id(base_path, wf_id)
-    # Temporarily write the user-supplied configuration to the bag
+    # NOTE: This is kind of nasty.... We temporarily write the user-supplied
+    # configuration to the bag, update the tag-payload, create the zip, and
+    # once everything is done, we restore the old version
     tmp_cfg = copy.deepcopy(workflow.config)
     tmp_cfg.set(user_config)
-    tmp_cfg_path = workflow.path/'config.yaml'
+    tmp_cfg_path = workflow.path/'config.yml'
     tmp_cfg.dump(filename=unicode(tmp_cfg_path),
                  sections=(user_config['plugins'] + ["plugins", "device"]))
     workflow.bag.add_tagfiles(unicode(tmp_cfg_path))
@@ -141,9 +144,8 @@ def upload_workflow(wf_id, base_path, endpoint, user_config,
             requests.post(endpoint + "/{0}/output".format(wfid))
         signals['submit:completed'].send(workflow, remote_id=wfid)
 
-    # Remove configuration file again, since it does not match the scanner
-    # configuration/plugin selection
-    workflow.bag.remove_tagfiles(unicode(tmp_cfg_path))
+    # Restore our old configuration
+    workflow._save_config()
 
 
 @task_queue.task()

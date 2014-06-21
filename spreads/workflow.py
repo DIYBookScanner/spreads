@@ -474,7 +474,8 @@ class Workflow(object):
         cfg_file = self.path / 'config.yml'
         if value is None and cfg_file.exists():
             # Load workflow-specific configuration from file
-            value = confit.ConfigSource({}, unicode(cfg_file))
+            value = confit.ConfigSource(confit.load_yaml(unicode(cfg_file)),
+                                        unicode(cfg_file))
         if value is not None:
             # Load configuration from supplied ConfigSource or dictionary
             config = config.with_overlay(value)
