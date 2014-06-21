@@ -29,20 +29,17 @@ def config(pluginclass):
 
 @pytest.fixture
 def plugin(pluginclass, config):
+    with mock.patch('subprocess.check_output') as mock_co:
+        mock_co.return_value = "".join(chain(
+            repeat("\n", 7),
+            ("scantailor-cli [options] <images|directory|-> <output>",)))
         return pluginclass(config)
 
 
 @mock.patch('spreadsplug.scantailor.psutil.Process')
 @mock.patch('spreadsplug.scantailor.subprocess.Popen')
-def test_generate_configuration_noenhanced(popen, proc, config, pluginclass):
+def test_generate_configuration(popen, proc, plugin):
     proc.return_value.is_running.return_value = False
-    # TODO: Setup up some config variables
-    with mock.patch('subprocess.check_output') as mock_co:
-        mock_co.return_value = "".join(chain(
-            repeat("\n", 7),
-            ("scantailor-cli [options] <images|directory|-> <output>",))
-        )
-        plugin = pluginclass(config)
     in_paths = ['{0:03}.jpg'.format(idx) for idx in xrange(5)]
     proj_file = Path('/tmp/foo.st')
     out_dir = Path('/tmp/out')
