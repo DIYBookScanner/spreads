@@ -221,7 +221,7 @@
               <ul ref="pagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
                 {workflow.get('pages').slice(thumbStart, thumbStop).map(function(page) {
                     return (
-                      <PagePreview page={page} workflow={workflow} key={page.raw_image} imageType={this.state.imageType}
+                      <PagePreview page={page} workflow={workflow} key={page.capture_num} imageType={this.state.imageType}
                                    selected={_.contains(this.state.selectedPages, page)}
                                    selectCallback={function(){this.togglePageSelect(page)}.bind(this)}
                                    lightboxCallback={function(){this.toggleLightbox(workflow, page);}.bind(this)} />

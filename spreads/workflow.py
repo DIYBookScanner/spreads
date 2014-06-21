@@ -629,6 +629,10 @@ class Workflow(object):
             if util.get_free_space(self.path) < 50*(1024**2):
                 raise IOError("Insufficient disk space to take a capture.")
 
+            capture_numbers = [x.capture_num+1
+                               for x in self.pages[-num_devices:]]
+            if not capture_numbers:
+                capture_numbers = range(num_devices)
             if retake:
                 # Remove last n pages, where n == len(self.devices)
                 self.remove_pages(*self.pages[-num_devices:])
@@ -644,8 +648,11 @@ class Workflow(object):
                     futures.append(executor.submit(dev.capture, img_path))
             util.check_futures_exceptions(futures)
 
-            for img in sorted(captured_images):
-                self.pages.append(Page(img, int(img.stem)))
+            for idx, img in enumerate(sorted(captured_images)):
+                page = Page(raw_image=img,
+                            sequence_num=len(self.pages),
+                            capture_num=capture_numbers[idx])
+                self.pages.append(page)
 
             self._run_hook('capture', self.devices, self.path)
             # Queue new images for hashing
