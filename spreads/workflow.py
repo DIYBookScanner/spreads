@@ -455,12 +455,15 @@ class Workflow(object):
 
     def _update_status(self, **kwargs):
         trigger_event = True
-        if 'step_progress' in kwargs:
+        if 'step_progress' in kwargs and kwargs['step_progress'] != None:
             # Don't trigger event if we only made very little progress
             old_progress = self.status['step_progress']
             if old_progress is not None:
                 prog_diff = kwargs['step_progress'] - old_progress
-                trigger_event = prog_diff >= 0.01 or prog_diff == -1
+                trigger_event = (prog_diff >= 0.01     # Noticeable progress?
+                                 or prog_diff == -1    # New step?
+                                 or (old_progress < 1  # Completion?
+                                     and (old_progress + prog_diff) == 1))
                 if not trigger_event:
                     kwargs.pop('step_progress', None)
         for key, value in kwargs.items():
