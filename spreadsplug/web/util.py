@@ -29,6 +29,7 @@ from flask import abort
 from flask.json import JSONEncoder
 from jpegtran import JPEGImage
 from spreads.vendor.pathlib import Path
+from wand.image import Image
 from werkzeug.routing import BaseConverter
 
 from spreads.workflow import Workflow, signals as workflow_signals
@@ -165,6 +166,11 @@ class GeneratorIO(BufferedIOBase):
             raise UnsupportedOperation
 
 
+def convert_image(img_path, img_format):
+    with Image(filename=unicode(img_path)) as img:
+        return img.make_blob(format=img_format)
+
+
 def scale_image(img_path, width=None, height=None):
     def get_target_size(srcwidth, srcheight):
         aspect = srcwidth/srcheight
@@ -179,11 +185,10 @@ def scale_image(img_path, width=None, height=None):
         width, height = get_target_size(img.width, img.height)
         return img.downscale(width, height).as_blob()
     else:
-        from wand.image import Image
-        img = Image(filename=unicode(img_path))
-        width, height = get_target_size(img.width, img.height)
-        img.resize(width, height)
-        return img.make_blob(format='jpg')
+        with Image(filename=unicode(img_path)) as img:
+            width, height = get_target_size(img.width, img.height)
+            img.resize(width, height)
+            return img.make_blob(format='jpg')
 
 
 def get_thumbnail(img_path):

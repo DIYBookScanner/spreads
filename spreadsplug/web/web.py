@@ -25,7 +25,8 @@ from spreads.workflow import Workflow, ValidationError
 
 from spreadsplug.web import app
 from discovery import discover_servers
-from util import WorkflowConverter, get_thumbnail, find_stick, scale_image
+from util import (WorkflowConverter, get_thumbnail, find_stick, scale_image,
+                  convert_image)
 
 logger = logging.getLogger('spreadsplug.web')
 
@@ -465,43 +466,69 @@ def get_all_pages(workflow):
                          200, {'Content-Type': 'application/json'})
 
 
-@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>')
-def get_page_image(workflow, seq_num, img_type):
+@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>',
+           defaults={'plugname': None})
+@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>'
+           '/<plugname>')
+def get_page_image(workflow, seq_num, img_type, plugname):
     """ Return image for requested page. """
     if img_type not in ('raw', 'processed'):
         raise ApiException("Image type must be one of 'raw' or 'processed', "
                            "not '{0}'".format(img_type), 400)
     # Scale image if requested
     width = request.args.get('width', None)
+    img_format = request.args.get('format', None)
     page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
     if not page:
         raise ApiException("Could not find page with sequence number {0}"
                            .format(seq_num), 404)
-    img_path = page.raw_image if img_type == 'raw' else page.processed_image
-    if width:
-        return scale_image(img_path, width=int(width))
+    if img_type == 'raw':
+        fpath = page.raw_image
+    elif plugname is None:
+        fpath = page.get_latest_processed(image_only=True)
     else:
-        return send_file(unicode(img_path))
+        fpath = page.processed_images[plugname]
+    if width and fpath.suffix.lower() in ('.jpg', '.jpeg', '.tif', '.tiff',
+                                          '.png'):
+        return scale_image(fpath, width=int(width))
+    elif fpath.suffix.lower() in ('.tif', '.tiff') and img_format:
+        img_format = 'png' if img_format == 'browser' else img_format
+        return convert_image(fpath, img_format)
+    else:
+        return send_file(unicode(fpath))
 
 
-@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>'
-           '/thumb', methods=['GET'])
-def get_page_image_thumb(workflow, seq_num, img_type):
+@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>/'
+           'thumb', defaults={'plugname': None})
+@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>/'
+           '<plugname>/thumb', methods=['GET'])
+def get_page_image_thumb(workflow, seq_num, img_type, plugname):
     """ Return thumbnail for page image from requested workflow. """
     if img_type not in ('raw', 'processed'):
         raise ApiException("Image type must be one of 'raw' or 'processed', "
                            "not '{0}'".format(img_type), 400)
+    if img_type == 'processed' and plugname is None:
+        raise ApiException("Need to supply additional path parameter for "
+                           "plugin to get processed file for.", 400)
     page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
     if not page:
         raise ApiException("Could not find page with sequence number {0}"
                            .format(seq_num), 404)
-    img_path = page.raw_image if img_type == 'raw' else page.processed_image
-    cache_key = "{0}.{1}".format(workflow.id, page.raw_image)
+    if img_type == 'raw':
+        fpath = page.raw_image
+    elif plugname is None:
+        fpath = page.get_latest_processed(image_only=True)
+    else:
+        fpath = page.processed_images[plugname]
+    if fpath.suffix.lower() not in ('.jpg', '.jpeg', '.tif', '.tiff', '.png'):
+        raise ApiException("Can not serve thumbnails for files with type {0}"
+                           .format(fpath.suffix), 400)
+    cache_key = "{0}.{1}.{2}".format(workflow.id, img_type, fpath.name)
     thumbnail = None
     if not request.args:
         thumbnail = cache.get(cache_key)
     if thumbnail is None:
-        thumbnail = get_thumbnail(img_path)
+        thumbnail = get_thumbnail(fpath)
         cache.set(cache_key, thumbnail)
     return Response(thumbnail, mimetype='image/jpeg')
 
@@ -545,7 +572,7 @@ def crop_workflow_image(workflow, seq_num, img_type):
                  .format(page.raw_image, *params.values()))
     cropped = img.crop(**params)
     cropped.save(unicode(page.raw_image))
-    cache_key = "{0}.{1}".format(workflow.id, page.raw_image)
+    cache_key = "{0}.{1}.{2}".format(workflow.id, 'raw', page.raw_image.name)
     cache.delete(cache_key)
     return 'OK'
 
