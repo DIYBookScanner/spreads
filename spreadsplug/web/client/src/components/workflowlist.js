@@ -30,7 +30,7 @@
       column = foundation.column,
       modal = foundation.modal,
       confirmModal = foundation.confirmModal,
-      ActionBar, WorkflowItem;
+      ActionBar, WorkflowItem, StepStatus;
 
   ActionBar = React.createClass({
     displayName: "ActionBar",
@@ -128,6 +128,63 @@
                 </li>}
             </ul>}
           </div>
+        </row>
+      );
+    }
+  })
+
+  StepStatus = React.createClass({
+    displayName: "StepStatus",
+    render: function() {
+      var workflow = this.props.workflow,
+          pages = workflow.get('pages'),
+          step = workflow.get('status').step,
+          progress = workflow.get('status').step_progress,
+          captureDone = (pages.length > 0 && step !== 'capture'),
+          captureBusy = (step === 'capture'),
+          processDone = (!_.isEmpty(pages.slice(-1)[0].processed_images) &&
+                         (step !== 'process' || progress == 1)),
+          processBusy = (step === 'process' && progress < 1),
+          outputDone = (workflow.get('out_files').length > 0 &&
+                        (step !== 'output' || progress == 1)),
+          outputBusy = (step === 'output' && progress < 1);
+      return (
+        <row>
+          <column>
+            <ul className="fa-ul">
+              {window.config.web.mode === 'full' &&
+                <li>
+                  <span className="fa-li fa-stack fa-lg">
+                    { (captureDone || captureBusy)  &&
+                      <i className="fa fa-square fa-stack-2x"
+                        style={{color: captureBusy ? 'yellow': 'green'}}/>}
+                    { captureBusy ?
+                      <i className="fa fa-cog fa-spinner fa-stack-1x" />:
+                      <i className="fa fa-camera fa-stack-1x" />}
+                  </span> Captured
+                </li>}
+              <li>
+                <span className="fa-li fa-stack fa-lg">
+                  { (processDone || processBusy) &&
+                    <i className="fa fa-square fa-stack-2x"
+                       style={{color: processBusy ? 'yellow': 'green'}}/>}
+                  { processBusy ?
+                    <i className="fa fa-cog fa-spinner fa-stack-1x" />:
+                    <i className="fa fa-gears fa-stack-1x" />}
+                </span> Post-Processed
+              </li>
+              <li>
+                <span className="fa-li fa-stack fa-lg">
+                  { (outputDone || outputBusy) &&
+                    <i className="fa fa-square fa-stack-2x"
+                        style={{color: outputBusy ? 'yellow': 'green'}}/>}
+                  { outputBusy ?
+                    <i className="fa fa-cog fa-spinner fa-stack-1x" />:
+                    <i className="fa fa-file-pdf-o fa-stack-1x" />}
+                </span> Output generated
+              </li>
+            </ul>
+          </column>
         </row>
       );
     }
@@ -263,7 +320,7 @@
                               removalBlocked={removalBlocked}
                               smallDisplay={this.props.smallDisplay}/>);
       return (
-        <div>
+        <div className="workflow-item">
           <row>
             {/* Display waiting for download overlay? */}
             {this.state.downloadWaiting &&
@@ -305,7 +362,7 @@
               <row>
                 <column>
                   <h3><a title="View details"
-                      href={workflowUrl}>{workflow.get('name')}</a></h3>
+                         href={workflowUrl}>{workflow.get('name')}</a></h3>
                 </column>
               </row>
               <row>
@@ -313,10 +370,10 @@
                   <p>{workflow.has('pages') ? workflow.get('pages').length : 0} pages</p>
                 </column>
               </row>
+              {window.config.web.mode !== 'scanner' && <StepStatus workflow={workflow}/>}
               {_.contains(["process", "output"], workflow.get('status').step) &&
               <row>
                 <column>
-                  {workflow.get('status').step}:
                   <div className="progress">
                     <span className="meter" style={{width: workflow.get('status').step_progress*100 + '%'}}></span>
                   </div>
