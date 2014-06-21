@@ -553,6 +553,8 @@ def delete_page(workflow, seq_num):
     '/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>/crop',
     methods=['POST'])
 def crop_workflow_image(workflow, seq_num, img_type):
+    # TODO: Shouldn't this be a method in Workflow?
+    # TODO: We have to update the checksum!
     page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
     if not page:
         raise ApiException("Could not find page with sequence number {0}"

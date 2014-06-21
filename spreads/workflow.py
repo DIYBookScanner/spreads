@@ -41,9 +41,6 @@ import spreads.util as util
 from spreads.config import Configuration
 
 
-# TODO: Replace 'on_status_updated' and 'on_config_updated' with a more generic
-# 'on_updated' signal that is fired every time an attribute changes
-# (status, config, pages, output_files)
 signals = Namespace()
 on_created = signals.signal('workflow:created', doc="""\
 Sent by a :class:`Workflow` when a new workflow was created.
@@ -51,19 +48,11 @@ Sent by a :class:`Workflow` when a new workflow was created.
 :argument :class:`Workflow`:    the newly created Workflow
 """)
 
-on_status_updated = signals.signal('workflow:status-updated', doc="""\
-Sent by a :class:`Workflow` after its status has changed.
+on_modified = signals.signal('workflow:modified', doc="""\
+Sent by a :class:`Workflow` when it was modified.
 
-:argument :class:`Workflow`:      the Workflow that has made progress
-:keyword dict status:             the updated status
-""")
-
-on_config_updated = signals.signal('workflow:config-updated', doc="""\
-Sent by a :class:`Workflow` after modifications to its configuration were
-made.
-
-:argument :class:`Workflow`:  the Workflow whose configuration was modified
-:keyword dict changes:        the changed configuration items.
+:argument class:`Workflow`:     the workflow that was modified
+:keyword  dict changes          the modified attributes
 """)
 
 on_removed = signals.signal('workflow:removed', doc="""\
@@ -405,6 +394,7 @@ class Workflow(object):
                 entry.start_page = self.pages[page_idx+1]
             else:
                 entry.end_page = self.pages[page_idx-1]
+        self._save_toc()
 
     def remove_pages(self, *pages):
         for page in pages:
@@ -455,7 +445,7 @@ class Workflow(object):
 
     def _update_status(self, **kwargs):
         trigger_event = True
-        if 'step_progress' in kwargs and kwargs['step_progress'] != None:
+        if 'step_progress' in kwargs and kwargs['step_progress'] is not None:
             # Don't trigger event if we only made very little progress
             old_progress = self.status['step_progress']
             if old_progress is not None:
@@ -469,7 +459,7 @@ class Workflow(object):
         for key, value in kwargs.items():
             self.status[key] = value
         if trigger_event:
-            on_status_updated.send(self, status=copy.copy(self.status))
+            on_modified.send(self, changes={'status': copy.copy(self.status)})
 
     def _load_config(self, value):
         # Load default configuration
@@ -520,6 +510,8 @@ class Workflow(object):
             json.dump([x.to_dict() for x in self.table_of_contents], fp,
                       cls=util.CustomJSONEncoder, indent=2, ensure_ascii=False)
         self.bag.add_tagfiles(unicode(toc_path))
+        on_modified.send(self,
+                         changes={'table_of_contents': self.table_of_contents})
 
     def _load_pages(self):
         def from_dict(dikt):
@@ -545,6 +537,7 @@ class Workflow(object):
             json.dump([x.to_dict() for x in self.pages], fp,
                       cls=util.CustomJSONEncoder, indent=2, ensure_ascii=False)
         self.bag.add_tagfiles(unicode(fpath))
+        on_modified.send(self, changes={'pages': self.pages})
 
     def _run_hook(self, hook_name, *args):
         self._logger.debug("Running '{0}' hooks".format(hook_name))
@@ -697,6 +690,7 @@ class Workflow(object):
         self._run_hook('output', self.pages, out_path, self.metadata,
                        self.table_of_contents)
         self.bag.add_payload(str(out_path))
+        on_modified.send(self, changes={'out_files': self.out_files})
         self._logger.info("Done generating output files!")
 
     def update_configuration(self, values):
@@ -714,4 +708,4 @@ class Workflow(object):
         self.config.set(values)
         diff = diff_dicts(old_cfg, self.config.flatten())
         self._run_hook('update_configuration', diff['device'])
-        on_config_updated.send(self, changes=diff)
+        on_modified.send(self, {'config': self.config.flatten()})

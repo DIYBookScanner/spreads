@@ -231,7 +231,7 @@
     connectEvents: function(eventDispatcher) {
       eventDispatcher.on('workflow:created', function(data) {
         // Check for pending workflows, if there is one, it's the one that
-        // just triggered the event on the server and is just about to receive
+        // just triggered the event on the server and is about to receive
         // its data from the POST response
         // => Only add from an event if it wasn't us wo created the workflow
         if (this.where({id: undefined}).length != 1) {
@@ -253,14 +253,13 @@
       eventDispatcher.on('workflow:capture-succeeded', function(data) {
         var workflow = this.get(data.id);
         if (workflow) {
-          workflow.addPages(data.pages);
           workflow.trigger('capture-succeeded', data);
         }
       }, this);
-      eventDispatcher.on('workflow:status-updated', function(data) {
+      eventDispatcher.on('workflow:modified', function(data) {
         var workflow = this.get(data.id);
         if (workflow) {
-          workflow.set('status', data.status);
+          workflow.set(data.changes);
         }
       }, this);
     }
