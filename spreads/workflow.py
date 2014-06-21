@@ -40,13 +40,10 @@ import spreads.plugin as plugin
 import spreads.util as util
 from spreads.config import Configuration
 
-# TODO: Example status dict:
-# {
-#   'step': 'process',
-#   'step_progress': 0.5,
-#   'prepared': True,
-# }
 
+# TODO: Replace 'on_status_updated' and 'on_config_updated' with a more generic
+# 'on_updated' signal that is fired every time an attribute changes
+# (status, config, pages, output_files)
 signals = Namespace()
 on_created = signals.signal('workflow:created', doc="""\
 Sent by a :class:`Workflow` when a new workflow was created.
@@ -99,17 +96,16 @@ on_created.connect(lambda sender: Workflow._add_to_cache(sender))
 
 class Page(object):
     __slots__ = ["sequence_num", "capture_num", "raw_image", "page_label",
-                 "processed_image"]
+                 "processed_images"]
 
     def __init__(self, raw_image, sequence_num=None, capture_num=None,
-                 page_label=None, processed_image=None):
+                 page_label=None, processed_images=None):
 
         #: The path to the raw image
         self.raw_image = raw_image
 
-        #: The path to the processed image
-        # TODO: Make this a plugname -> Path dictionary
-        self.processed_image = processed_image
+        #: A dictionary of plugin names mapped to the path of a processed file
+        self.processed_images = processed_images or {}
 
         #: The capture number of the page, i.e. at what position in the
         #  workflow it was recorded, including aborted and retaken shots
@@ -141,13 +137,24 @@ class Page(object):
         else:
             self.page_label = unicode(self.sequence_num)
 
+    def get_latest_processed(self, image_only=True):
+        img_exts = ('.jpg', '.jpeg', '.png', '.tif', '.tiff')
+        paths = self.processed_images.values()
+        if image_only:
+            paths = [p for p in paths if p.suffix.lower() in img_exts]
+        try:
+            return sorted(paths,
+                          key=lambda p: p.stat().st_mtime, reverse=True)[0]
+        except IndexError:
+            return None
+
     def to_dict(self):
         return {
             'sequence_num': self.sequence_num,
             'capture_num': self.capture_num,
             'page_label': self.page_label,
             'raw_image': self.raw_image,
-            'processed_image': self.processed_image
+            'processed_images': self.processed_images,
         }
 
 
@@ -402,8 +409,8 @@ class Workflow(object):
     def remove_pages(self, *pages):
         for page in pages:
             page.raw_image.unlink()
-            if page.processed_image:
-                page.processed_image.unlink()
+            for fp in page.processed_images.itervalues():
+                fp.unlink()
             self._fix_page_numbers(page)
             self._fix_table_of_contents(page)
             self.pages.remove(page)
@@ -513,12 +520,12 @@ class Workflow(object):
     def _load_pages(self):
         def from_dict(dikt):
             raw_image = Path(dikt['raw_image'])
-            processed_image = dikt['processed_image']
-            if processed_image is not None:
-                processed_image = Path(processed_image)
+            processed_images = {}
+            for plugname, fpath in dikt['processed_images'].iteritems():
+                processed_images[plugname] = Path(fpath)
             return Page(raw_image=raw_image,
                         capture_num=dikt['capture_num'],
-                        processed_image=processed_image,
+                        processed_images=processed_images,
                         page_label=dikt['page_label'],
                         sequence_num=dikt['sequence_num'])
         fpath = self.path / 'pagemeta.json'
@@ -669,8 +676,12 @@ class Workflow(object):
     def process(self):
         self._update_status(step='process', step_progress=0)
         self._logger.info("Starting postprocessing...")
-        self._run_hook('process', self.path)
-        self.bag.add_payload(str(self.path/'data'/'done'))
+        processed_path = self.path/'data'/'done'
+        if not processed_path.exists():
+            processed_path.mkdir()
+        self._run_hook('process', self.pages, processed_path)
+        self.bag.add_payload(unicode(processed_path))
+        self._save_pages()
         self._logger.info("Done with postprocessing!")
 
     def output(self):
@@ -679,7 +690,8 @@ class Workflow(object):
         out_path = self.path / 'data' / 'out'
         if not out_path.exists():
             out_path.mkdir()
-        self._run_hook('output', self.path)
+        self._run_hook('output', self.pages, out_path, self.metadata,
+                       self.table_of_contents)
         self.bag.add_payload(str(out_path))
         self._logger.info("Done generating output files!")
 

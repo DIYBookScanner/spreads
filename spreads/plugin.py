@@ -302,19 +302,14 @@ class ProcessHookMixin(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def process(self, path):
+    def process(self, pages, target_path):
         """ Perform one or more actions that either modify the captured images
             or generate a different output.
 
-        .. note:
-            This method is intended to operate on the *done* subdfolder of
-            the project directory. At the beginning of postprocessing, it
-            will contain copies of the images in *raw*. This is to ensure that
-            a copy of the original, scanned images will always be available
-            for archival purposes.
-
-        :param path:        Project path
-        :type path:         pathlib.Path
+        :param pages:       Pages to be processed
+        :type pages:        list of Page objects
+        :param target_path: Target directory for processed files
+        :type target_path:  pathlib.Path
 
         """
         pass
@@ -324,16 +319,17 @@ class OutputHookMixin(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def output(self, path):
-        """ Assemble an output file from the postprocessed images.
+    def output(self, pages, target_path, metadata, table_of_contents):
+        """ Assemble an output file from the pages.
 
-        .. note:
-            This method is intended to take its input files from the *done*
-            subfolder of the project path and store its output in the
-            *out* subfolder.
-
-        :param path:        Project path
-        :type path:         pathlib.Path
+        :param pages:       Project path
+        :type pages:        list of Page objects
+        :param target_path: Target directory for processed files
+        :type target_path:  pathlib.Path
+        :param metadata:    Metadata for workflow
+        :type metadata:     bagit.BagInfo
+        :param table_of_contents: Table of Contents for workflow
+        :type table_of_contents: list(TocEntry)
 
         """
         pass
