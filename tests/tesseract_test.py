@@ -74,8 +74,8 @@ def test_output(plugin, tmpdir):
                  processed_images={'tesseract': Path('./tests/data/000.hocr')})
         )
     plugin.output(dummy_pages, tmpdir, None, None)
-    assert tmpdir.join('text.hocr').exists()
-    tree = ET.parse(unicode(tmpdir.join('text.hocr')))
+    assert tmpdir.join('text.html').exists()
+    tree = ET.parse(unicode(tmpdir.join('text.html')))
     assert len(tree.findall('.//span[@class="ocrx_word"]')) == 20*201
     assert len(tree.findall('.//span[@class="ocr_line"]')) == 20*26
     assert len(tree.findall('.//p[@class="ocr_par"]')) == 20*4

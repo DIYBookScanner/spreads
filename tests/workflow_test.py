@@ -36,27 +36,27 @@ def test_get_devices_no_device(workflow):
     TestDriver.num_devices = 2
 
 
-def test_get_next_filename(workflow):
+def test_get_next_capture_page(workflow):
     root_path = workflow.path/'data'/'raw'
-    fname = workflow._get_next_filename(target_page='odd')
-    assert unicode(fname) == unicode(root_path/"001.jpg")
-    fname = workflow._get_next_filename(target_page='even')
-    assert unicode(fname) == unicode(root_path/"000.jpg")
+    page = workflow._get_next_capture_page(target_page='odd')
+    assert unicode(page.raw_image) == unicode(root_path/"001.jpg")
+    page = workflow._get_next_capture_page(target_page='even')
+    assert unicode(page.raw_image) == unicode(root_path/"000.jpg")
 
     workflow.pages.append(Mock(capture_num=0))
     workflow.pages.append(Mock(capture_num=1))
 
-    fname = workflow._get_next_filename(target_page='odd')
-    assert unicode(fname) == unicode(root_path/"003.jpg")
-    fname = workflow._get_next_filename(target_page='even')
-    assert unicode(fname) == unicode(root_path/"002.jpg")
+    page = workflow._get_next_capture_page(target_page='odd')
+    assert unicode(page.raw_image) == unicode(root_path/"003.jpg")
+    page = workflow._get_next_capture_page(target_page='even')
+    assert unicode(page.raw_image) == unicode(root_path/"002.jpg")
 
     workflow.pages.append(Mock(capture_num=2))
     workflow.pages.append(Mock(capture_num=3))
 
     workflow.config['device']['shoot_raw'] = True
-    fname = workflow._get_next_filename(target_page='even')
-    assert unicode(fname) == unicode(root_path/"004.dng")
+    page = workflow._get_next_capture_page(target_page='even')
+    assert unicode(page.raw_image) == unicode(root_path/"004.dng")
 
 
 def test_prepare_capture(workflow):

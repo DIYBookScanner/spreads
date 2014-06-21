@@ -293,14 +293,16 @@ def test_start_processing(client):
         mock_tq.task.return_value = lambda x: x
         client.post('/api/workflow/{0}/process'.format(wfid))
     time.sleep(.1)
-    update_events = [
-        e['data']['status'] for e in json.loads(client.get('/api/events').data)
-        if e['name'] == 'workflow:status-updated']
-    assert len(update_events) == 3
+    update_events = [e['data']['changes']['status']
+                     for e in json.loads(client.get('/api/events').data)
+                     if (e['name'] == 'workflow:modified'
+                         and 'status' in e['data']['changes'])]
+    assert len(update_events) == 4
     assert all(e['step'] == 'process' for e in update_events)
-    assert update_events[0]['step_progress'] == 0
-    assert update_events[1]['step_progress'] == 0.5
-    assert update_events[2]['step_progress'] == 1.0
+    assert update_events[0]['step_progress'] == None
+    assert update_events[1]['step_progress'] == 0
+    assert update_events[2]['step_progress'] == 0.5
+    assert update_events[3]['step_progress'] == 1.0
     # TODO: Verify generation was completed (files?)
 
 
@@ -310,13 +312,15 @@ def test_start_outputting(client):
         mock_tq.task.return_value = lambda x: x
         client.post('/api/workflow/{0}/output'.format(wfid))
     time.sleep(.1)
-    update_events = [
-        e['data']['status'] for e in json.loads(client.get('/api/events').data)
-        if e['name'] == 'workflow:status-updated']
-    assert len(update_events) == 2
+    update_events = [e['data']['changes']['status']
+                     for e in json.loads(client.get('/api/events').data)
+                     if (e['name'] == 'workflow:modified'
+                         and 'status' in e['data']['changes'])]
+    assert len(update_events) == 3
     assert all(e['step'] == 'output' for e in update_events)
-    assert update_events[0]['step_progress'] == 0
-    assert update_events[1]['step_progress'] == 1.0
+    assert update_events[0]['step_progress'] == None
+    assert update_events[1]['step_progress'] == 0
+    assert update_events[2]['step_progress'] == 1.0
     # TODO: Verify generation was completed (files?)
 
 
