@@ -43,44 +43,18 @@ def client(app):
 
 @pytest.yield_fixture
 def mock_dbus(tmpdir):
-    try:
-        with mock.patch.multiple('dbus', SystemBus=mock.DEFAULT,
-                                 Interface=mock.DEFAULT) as values:
-            stickdir = tmpdir.join('stick')
-            stickdir.mkdir()
-            mockdevs = [mock.Mock(), mock.Mock()]*2
-            mockobj = mock.MagicMock()
-            mockobj.get_dbus_method.return_value.return_value = unicode(
-                stickdir)
-            mockobj.EnumerateDevices.return_value = mockdevs
-            mockobj.Get.side_effect = [True, 'usb', True]*2
-            values['Interface'].return_value = mockobj
-            yield mockobj
-    except ImportError:
-        with mock.patch('spreadsplug.web.util.subprocess') as sp:
-            sp.check_output.side_effect = ("""
-node /org/freedesktop/UDisks/devices {
-  node /org/freedesktop/UDisks/devices/sda {
-    interface org.freedesktop.UDisks.Device {
-      properties:
-        readonly s SomeVal = '';
-        readonly t DriveConnectionInterface = 'ata';
-        readonly b DeviceIsPartition = false;
-        readonly s DeviceFile = '/dev/sda';
-    };
-  };
-  node /org/freedesktop/UDisks/devices/sdc1 {
-    interface org.freedesktop.UDisks.Device {
-      properties:
-        readonly s SomeVal = '';
-        readonly t DriveConnectionInterface = 'usb';
-        readonly b DeviceIsPartition = true;
-        readonly s DeviceFile = '/dev/sdc1';
-    };
-  };
-};
-            """, tmpdir.join('stick'), True)
-            yield sp
+    with mock.patch.multiple('dbus', SystemBus=mock.DEFAULT,
+                                Interface=mock.DEFAULT) as values:
+        stickdir = tmpdir.join('stick')
+        stickdir.mkdir()
+        mockdevs = [mock.Mock(), mock.Mock()]*2
+        mockobj = mock.MagicMock()
+        mockobj.get_dbus_method.return_value.return_value = unicode(
+            stickdir)
+        mockobj.EnumerateDevices.return_value = mockdevs
+        mockobj.Get.side_effect = [True, 'usb', True]*2
+        values['Interface'].return_value = mockobj
+        yield mockobj
 
 
 @pytest.fixture
