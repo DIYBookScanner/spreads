@@ -100,7 +100,8 @@ setup(
         "colorama>=0.2.5",
         "PyYAML>=3.10",
         "futures >= 2.1.4",
-        "blinker == 1.3",
+        "blinker >= 1.3",
+        "roman >= 2.0.0",
     ],
     extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],
@@ -115,8 +116,8 @@ setup(
             "requests >= 2.2.0",
             "waitress >= 0.8.8",
             "zipstream >= 1.0.2",
-            "tornado == 3.2",
-            "Wand == 0.3.7"
+            "tornado >= 3.2",
+            "Wand >= 0.3.7",
         ]
     },
     cmdclass={'sdist': CustomSdistCommand}
