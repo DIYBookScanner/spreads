@@ -90,8 +90,9 @@ class CustomJSONEncoder(JSONEncoder):
             'metadata': dict(workflow.metadata),
             'status': workflow.status,
             'pages': workflow.pages,
-            'out_files': ([unicode(path) for path in workflow.out_files]
-                          if workflow.out_files else []),
+            'out_files': [{'name': path.name,
+                           'mimetype': path}
+                          for path in workflow.out_files],
             'config': {k: v for k, v in workflow.config.flatten().iteritems()
                        if k in workflow.config['plugins'].get()
                        or k in ('device', 'plugins')}

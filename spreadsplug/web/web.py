@@ -452,6 +452,17 @@ def submit_workflow(workflow):
     return 'OK'
 
 
+@app.route('/api/workflow/<workflow:workflow>/output/<fname>')
+def get_output_file(workflow, fname):
+    try:
+        fpath = next(fp for fp in workflow.out_files if fp.name == fname)
+    except StopIteration:
+        raise ApiException("Could not find file with name '{0}' amongst "
+                           "output files for workflow '{1}'"
+                           .format(fname, workflow.id), 404)
+    return send_file(unicode(fpath))
+
+
 # =============== #
 #  Page-related  #
 # =============== #

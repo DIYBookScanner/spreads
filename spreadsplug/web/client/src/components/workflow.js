@@ -233,16 +233,24 @@
           </row>}
 
           {/* Only show output file list if there are output files in the workflow */}
-          {(workflow.has('output_files') && workflow.get('output_files').length > 0) &&
+          {!_.isEmpty(workflow.get('out_files')) &&
           <row>
             <column size='12'>
               <h2>Output files</h2>
-              <ul ref="outputlist">
-                {workflow.get('output_files').map(function(outFile) {
+              <ul ref="outputlist" className="fa-ul">
+                {_.map(workflow.get('out_files'), function(outFile) {
+                    var fileUrl = '/api/workflow/' + this.props.workflow.id + '/output/' + outFile.name,
+                        classes = {
+                          'fa-li': true,
+                          'fa': true,
+                        };
+                    if (outFile.mimetype === "text/html") classes['fa-file-code-o'] = true;
+                    else if (outFile.mimetype === "application/pdf") classes['fa-file-pdf-o'] = true;
+                    else classes['fa-file'] = true;
                     return (
-                      <li key={outFile}><a href={outFile}>{outFile}</a></li>
+                      <li key={outFile.name}><a href={fileUrl}><i className={React.addons.classSet(classes)} /> {outFile.name}</a></li>
                     );
-                  })}
+                  }, this)}
               </ul>
             </column>
           </row>}
