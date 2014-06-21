@@ -243,6 +243,8 @@ def create_workflow():
         zfile.extractall(path=app.config['base_path'])
         wfname = os.path.dirname(zfile.filelist[0].filename)
         workflow = Workflow(path=os.path.join(app.config['base_path'], wfname))
+        from spreads.workflow import on_created
+        on_created.send(workflow, workflow=workflow)
     else:
         data = json.loads(request.data)
 
