@@ -662,6 +662,7 @@ def start_processing(workflow):
                            " 'full' mode.", 503)
     from tasks import process_workflow
     process_workflow(workflow.id, app.config['base_path'])
+    workflow._update_status(step='process', step_progress=None)
     return 'OK'
 
 
@@ -672,6 +673,7 @@ def start_output_generation(workflow):
                            " 'full' mode.", 503)
     from tasks import output_workflow
     output_workflow(workflow.id, app.config['base_path'])
+    workflow._update_status(step='output', step_progress=None)
     return 'OK'
 
 

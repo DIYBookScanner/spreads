@@ -144,10 +144,12 @@
           captureBusy = (step === 'capture'),
           processDone = (!_.isEmpty(pages.slice(-1)[0].processed_images) &&
                          (step !== 'process' || progress == 1)),
-          processBusy = (step === 'process' && progress < 1),
+          processWaiting = (step === 'process' && progress == null),
+          processBusy = (step === 'process' && progress !== null && progress < 1),
+          outputWaiting = (step === 'output' && progress == null),
           outputDone = (workflow.get('out_files').length > 0 &&
                         (step !== 'output' || progress == 1)),
-          outputBusy = (step === 'output' && progress < 1);
+          outputBusy = (step === 'output' && progress !== null && progress < 1);
       return (
         <row>
           <column>
@@ -159,27 +161,33 @@
                       <i className="fa fa-square fa-stack-2x"
                         style={{color: captureBusy ? 'yellow': 'green'}}/>}
                     { captureBusy ?
-                      <i className="fa fa-cog fa-spinner fa-stack-1x" />:
+                      <i className="fa fa-cog fa-spin fa-stack-1x" />:
                       <i className="fa fa-camera fa-stack-1x" />}
                   </span> Captured
                 </li>}
               <li>
                 <span className="fa-li fa-stack fa-lg">
-                  { (processDone || processBusy) &&
+                  { (processDone || processBusy || processWaiting) &&
                     <i className="fa fa-square fa-stack-2x"
-                       style={{color: processBusy ? 'yellow': 'green'}}/>}
-                  { processBusy ?
-                    <i className="fa fa-cog fa-spinner fa-stack-1x" />:
+                       style={{color: (processBusy || processWaiting) ? 'yellow': 'green'}}/>}
+                  {processWaiting &&
+                    <i className="fa fa-clock-o fa-stack-1x" />}
+                  { processBusy &&
+                    <i className="fa fa-cog fa-spin fa-stack-1x" />}
+                  {!processBusy && !processWaiting &&
                     <i className="fa fa-gears fa-stack-1x" />}
                 </span> Post-Processed
               </li>
               <li>
                 <span className="fa-li fa-stack fa-lg">
-                  { (outputDone || outputBusy) &&
+                  { (outputDone || outputBusy || outputWaiting) &&
                     <i className="fa fa-square fa-stack-2x"
-                        style={{color: outputBusy ? 'yellow': 'green'}}/>}
-                  { outputBusy ?
-                    <i className="fa fa-cog fa-spinner fa-stack-1x" />:
+                        style={{color: (outputBusy || outputWaiting) ? 'yellow': 'green'}}/>}
+                  {outputWaiting &&
+                    <i className="fa fa-clock-o fa-stack-1x" />}
+                  { outputBusy &&
+                    <i className="fa fa-cog fa-spin fa-stack-1x" />}
+                  {!outputBusy && !outputWaiting &&
                     <i className="fa fa-file-pdf-o fa-stack-1x" />}
                 </span> Output generated
               </li>
