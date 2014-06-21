@@ -556,17 +556,16 @@ class Workflow(object):
             getattr(plug, hook_name)(*args)
             self._update_status(step_progress=float(idx+1)/len(plugins))
 
-    def _get_next_filename(self, target_page=None):
-        """ Get next filename that a capture should be stored as.
+    def _get_next_capture_page(self, target_page=None):
+        """ Get next page that a capture should be stored as.
 
         If the workflow is shooting with two devices, this will select a
         filename that matches the device's target page (odd/even).
 
         :param target_page: target page of file ('odd/even')
         :type target_page:  str/unicode/None if not applicable
-        :return:            absolute path to next filename
-                            (e.g. /tmp/proj/003.jpg)
-        :rtype:             pathlib.Path
+        :return:            the target page object
+        :rtype:             Page
         """
         base_path = self.path / 'data' / 'raw'
         if not base_path.exists():
@@ -583,8 +582,10 @@ class Workflow(object):
         is_raw = ('shoot_raw' in self.config['device'].keys()
                   and self.config['device']['shoot_raw'].get(bool))
         next_num = (last_num+2 if target_page == 'odd' else last_num+1)
-        return base_path / "{0:03}.{1}".format(next_num,
-                                               'dng' if is_raw else 'jpg')
+        path =  base_path / "{0:03}.{1}".format(next_num,
+                                                'dng' if is_raw else 'jpg')
+        return Page(path, capture_num=next_num)
+
 
     def prepare_capture(self):
         self._logger.info("Preparing capture.")
@@ -629,39 +630,32 @@ class Workflow(object):
             if util.get_free_space(self.path) < 50*(1024**2):
                 raise IOError("Insufficient disk space to take a capture.")
 
-            capture_numbers = [x.capture_num+1
-                               for x in self.pages[-num_devices:]]
-            if not capture_numbers:
-                capture_numbers = range(num_devices)
             if retake:
                 # Remove last n pages, where n == len(self.devices)
                 self.remove_pages(*self.pages[-num_devices:])
 
             futures = []
-            captured_images = []
+            captured_pages = []
             with ThreadPoolExecutor(num_devices
                                     if parallel_capture else 1) as executor:
                 self._logger.debug("Sending capture command to devices")
                 for dev in self.devices:
-                    img_path = self._get_next_filename(dev.target_page)
-                    captured_images.append(img_path)
-                    futures.append(executor.submit(dev.capture, img_path))
+                    page = self._get_next_capture_page(dev.target_page)
+                    captured_pages.append(page)
+                    futures.append(executor.submit(dev.capture,
+                                                   page.raw_image))
             util.check_futures_exceptions(futures)
 
-            for idx, img in enumerate(sorted(captured_images)):
-                page = Page(raw_image=img,
-                            sequence_num=len(self.pages),
-                            capture_num=capture_numbers[idx])
+            for page in sorted(captured_pages, key=lambda p: p.sequence_num):
+                page.sequence_num = len(self.pages)
                 self.pages.append(page)
-
             self._run_hook('capture', self.devices, self.path)
             # Queue new images for hashing
             self._pool_executor.submit(
                 self.bag.add_payload,
-                *(unicode(x) for x in captured_images))
+                *(unicode(p.raw_image) for p in captured_pages))
         self._save_pages()
-        on_capture_succeeded.send(self, pages=self.pages[-num_devices:],
-                                  retake=retake)
+        on_capture_succeeded.send(self, pages=captured_pages, retake=retake)
 
     def finish_capture(self):
         if self._pool_executor:
@@ -715,4 +709,4 @@ class Workflow(object):
         self.config.set(values)
         diff = diff_dicts(old_cfg, self.config.flatten())
         self._run_hook('update_configuration', diff['device'])
-        on_modified.send(self, {'config': self.config.flatten()})
+        on_modified.send(self, changes={'config': self.config.flatten()})
