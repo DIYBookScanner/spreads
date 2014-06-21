@@ -58,6 +58,7 @@
 
   _.extend(EventDispatcher.prototype, Backbone.Events, {
     emitEvent: function emitEvent(event) {
+      if (event.name !== 'logrecord' && window.config.web.debug) console.log(event.name, event.data);
       this.trigger(event.name, event.data);
     },
     longPoll: function longPoll() {
