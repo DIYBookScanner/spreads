@@ -19,6 +19,7 @@ from __future__ import division
 
 import calendar
 import logging
+import mimetypes
 import time
 import traceback
 import uuid
@@ -72,7 +73,7 @@ class CustomJSONEncoder(JSONEncoder):
         elif isinstance(obj, Event):
             return self._event_to_dict(obj)
         elif isinstance(obj, Path):
-            return unicode(obj)
+            return mimetypes.guess_type(unicode(obj))[0]
         elif isinstance(obj, datetime):
             # Return datetime as an epoch timestamp with microsecond-resolution
             ts = (calendar.timegm(obj.timetuple())*1000
