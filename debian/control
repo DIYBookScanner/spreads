@@ -1,0 +1,31 @@
+Source: spreads
+Maintainer: Johannes Baiter <johannes.baiter@gmail.com>
+Section: python
+Priority: optional
+Build-Depends: python-setuptools (>= 0.6b3), python-all (>= 2.6.6-3), debhelper (>= 7.4.3)
+Standards-Version: 3.9.1
+
+Package: spreads
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}, python-usb, python-psutil, python-jpegtran, python-hidapi-cffi
+Description: Book digitization workflow suite
+ .
+ spreads is a tool that aims to streamline your book scanning workflow.
+ It takes care of every step: Setting up your capturing devices, handling
+ the capturing process, downloading the images to your machine,
+ post-processing them and finally assembling a variety of output formats.
+
+
+Package: spreads-gui
+Architecture: all
+Depends: ${misc:Depends}, python-pyside (>= 1.2.1)
+Description: Book digitization workflow suite
+ .
+ Plugin for graphical user interface
+
+Package: spreads-web
+Architecture: all
+Depends: ${misc:Depends}, python-flask (>= 0.10.1), python-requests (>= 2.2.0), python-waitress (>= 0.8), python-tornado (>= 3.2), python-wand (>= 0.3), python-zipstream
+Description: Book digitization workflow suite
+ .
+ Plugin for scanning and postprocessing server

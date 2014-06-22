@@ -1,0 +1,4 @@
+debian/spreads.egg-info /usr/lib/python2.7/dist-packages
+/usr/lib/python2.7/dist-packages/spreads
+/usr/lib/python2.7/dist-packages/spreadsplug/*.py
+/usr/lib/python2.7/dist-packages/spreadsplug/dev
