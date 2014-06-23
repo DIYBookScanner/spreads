@@ -11,5 +11,5 @@ cp -R debian debian_build/spreads-$VERSION
 cd debian_build/spreads-$VERSION
 debuild -S -us -uc
 cd ../../
-mv debian_build/*_* dist/
+mv debian_build/*dsc debian_build/*.orig.tar.gz debian_build/*.debian.tar.* dist/
 rm -rf debian_build
