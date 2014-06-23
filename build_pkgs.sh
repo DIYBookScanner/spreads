@@ -9,7 +9,7 @@ cp dist/spreads-$VERSION.tar.gz debian_build/spreads_$VERSION.orig.tar.gz
 tar xf dist/spreads-$VERSION.tar.gz -C debian_build
 cp -R debian debian_build/spreads-$VERSION
 cd debian_build/spreads-$VERSION
-dpkg-buildpackage -us -uc
+debuild -S -us -uc
 cd ../../
-mv debian_build/*deb dist/
+mv debian_build/*_* dist/
 rm -rf debian_build
