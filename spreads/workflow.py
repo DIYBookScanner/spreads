@@ -80,7 +80,9 @@ class ValidationError(Exception):
     def __init__(self, **kwargs):
         self.errors = kwargs
 
-on_created.connect(lambda sender: Workflow._add_to_cache(sender))
+# Put workflows into cache when they're created
+on_created.connect(lambda sender, **kwargs: Workflow._add_to_cache(sender),
+                   weak=False)
 
 
 class Page(object):
