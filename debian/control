@@ -8,6 +8,7 @@ Standards-Version: 3.9.1
 Package: spreads
 Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}, python-usb, python-psutil, python-jpegtran, python-hidapi-cffi
+Recommends: scantailor, djvubind, pdfbeads, chdkptp
 Description: Book digitization workflow suite
  .
  spreads is a tool that aims to streamline your book scanning workflow.
@@ -18,7 +19,7 @@ Description: Book digitization workflow suite
 
 Package: spreads-gui
 Architecture: all
-Depends: ${misc:Depends}, python-pyside (>= 1.2.1)
+Depends: ${misc:Depends}, python-pyside
 Description: Book digitization workflow suite
  .
  Plugin for graphical user interface
