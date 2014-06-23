@@ -56,6 +56,12 @@
       return [this.props.workflow];
     },
     getInitialState: function() {
+      // Try to load cropParams for this workflow from localStorage
+      var storageKey = 'crop-params.' + this.props.workflow.id,
+          cropParamJson = localStorage.getItem(storageKey),
+          cropparams;
+      if (cropParamJson) cropParams = JSON.parse(cropParamJson);
+      else cropparams = {};
       return {
         /** Display activity overlay? */
         waiting: false,
@@ -68,7 +74,7 @@
         /** Validation errors for device configuration */
         validationErrors: {},
         /** Crop parameters */
-        cropParams: {},
+        cropParams: cropParams,
         /** Whether we registered a function to crop on successful captures */
         cropOnSuccess: false,
       };
@@ -214,8 +220,10 @@
         this.props.workflow.on('capture-succeeded', this.cropLast, this);
         this.setState({cropOnSuccess: true})
       }
-      var origParams = this.state.cropParams;
+      var origParams = this.state.cropParams,
+          storageKey = 'crop-params.' + this.props.workflow.id;
       origParams[this.state.cropTarget] = params;
+      localStorage.setItem(JSON.stringify(origParams));
       this.setState({
         cropParams: origParams,
         cropTarget: undefined
