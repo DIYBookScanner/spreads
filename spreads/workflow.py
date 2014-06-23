@@ -219,14 +219,18 @@ class Workflow(object):
             found = cls._cache[location]
         else:
             found = []
-            for candidate in location.iterdir():
-                is_workflow = ((candidate/'bagit.txt').exists
-                               or (candidate/'raw').exists)
-                if not is_workflow:
-                    continue
+        for candidate in location.iterdir():
+            is_workflow = ((candidate/'bagit.txt').exists
+                           or (candidate/'raw').exists)
+            if not is_workflow:
+                continue
+            if not util.get_next(wf for wf in found if wf.path == candidate):
+                logging.debug(
+                    "Cache missed, instantiating workflow from {0}."
+                    .format(candidate))
                 workflow = cls(candidate)
                 found.append(workflow)
-            cls._cache[location] = found
+        cls._cache[location] = found
         return {getattr(wf, key): wf for wf in cls._cache[location]}
 
     @classmethod
