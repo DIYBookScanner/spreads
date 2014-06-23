@@ -30,7 +30,6 @@ class CustomSdistCommand(SdistCommand):
     def run(self):
         check_call(['make', '-C', 'spreadsplug/web/client', 'production'])
         SdistCommand.run(self)
-        check_call(['make', '-C', 'spreadsplug/web/client', 'clean'])
 
 setup(
     name="spreads",

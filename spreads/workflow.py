@@ -80,7 +80,9 @@ class ValidationError(Exception):
     def __init__(self, **kwargs):
         self.errors = kwargs
 
-on_created.connect(lambda sender: Workflow._add_to_cache(sender))
+# Put workflows into cache when they're created
+on_created.connect(lambda sender, **kwargs: Workflow._add_to_cache(sender),
+                   weak=False)
 
 
 class Page(object):
@@ -217,14 +219,18 @@ class Workflow(object):
             found = cls._cache[location]
         else:
             found = []
-            for candidate in location.iterdir():
-                is_workflow = ((candidate/'bagit.txt').exists
-                               or (candidate/'raw').exists)
-                if not is_workflow:
-                    continue
+        for candidate in location.iterdir():
+            is_workflow = ((candidate/'bagit.txt').exists
+                           or (candidate/'raw').exists)
+            if not is_workflow:
+                continue
+            if not util.get_next(wf for wf in found if wf.path == candidate):
+                logging.debug(
+                    "Cache missed, instantiating workflow from {0}."
+                    .format(candidate))
                 workflow = cls(candidate)
                 found.append(workflow)
-            cls._cache[location] = found
+        cls._cache[location] = found
         return {getattr(wf, key): wf for wf in cls._cache[location]}
 
     @classmethod
@@ -515,10 +521,10 @@ class Workflow(object):
 
     def _load_pages(self):
         def from_dict(dikt):
-            raw_image = Path(dikt['raw_image'])
+            raw_image = self.path/dikt['raw_image']
             processed_images = {}
             for plugname, fpath in dikt['processed_images'].iteritems():
-                processed_images[plugname] = Path(fpath)
+                processed_images[plugname] = self.path/fpath
             return Page(raw_image=raw_image,
                         capture_num=dikt['capture_num'],
                         processed_images=processed_images,
@@ -582,10 +588,9 @@ class Workflow(object):
         is_raw = ('shoot_raw' in self.config['device'].keys()
                   and self.config['device']['shoot_raw'].get(bool))
         next_num = (last_num+2 if target_page == 'odd' else last_num+1)
-        path =  base_path / "{0:03}.{1}".format(next_num,
-                                                'dng' if is_raw else 'jpg')
+        path = base_path / "{0:03}.{1}".format(next_num,
+                                               'dng' if is_raw else 'jpg')
         return Page(path, capture_num=next_num)
-
 
     def prepare_capture(self):
         self._logger.info("Preparing capture.")

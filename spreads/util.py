@@ -264,5 +264,12 @@ class CustomJSONEncoder(json.JSONEncoder):
         if hasattr(obj, 'to_dict'):
             return obj.to_dict()
         if isinstance(obj, Path):
-            return unicode(obj)
+            # Serialize paths that belong to a workflow as paths relative to
+            # its base directory
+            base = get_next(p for p in obj.parents
+                            if (p/'bagit.txt').exists())
+            if base:
+                return unicode(obj.relative_to(base))
+            else:
+                return unicode(obj)
         return json.JSONEncoder.default(self, obj)
