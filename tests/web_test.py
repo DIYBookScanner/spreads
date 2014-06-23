@@ -22,8 +22,7 @@ def app(config, tmpdir):
     config.load_defaults(overwrite=False)
 
     config['web']['mode'] = 'full'
-    config['web']['database'] = unicode(tmpdir.join('test.db'))
-    config['web']['project_dir'] = unicode(tmpdir)
+    config['web']['project_dir'] = unicode(tmpdir.join('workflows'))
     config['web']['debug'] = False
     config['web']['standalone_device'] = True
     setup_app(config)
