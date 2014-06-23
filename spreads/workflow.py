@@ -515,10 +515,10 @@ class Workflow(object):
 
     def _load_pages(self):
         def from_dict(dikt):
-            raw_image = Path(dikt['raw_image'])
+            raw_image = self.path/dikt['raw_image']
             processed_images = {}
             for plugname, fpath in dikt['processed_images'].iteritems():
-                processed_images[plugname] = Path(fpath)
+                processed_images[plugname] = self.path/fpath
             return Page(raw_image=raw_image,
                         capture_num=dikt['capture_num'],
                         processed_images=processed_images,
@@ -582,10 +582,9 @@ class Workflow(object):
         is_raw = ('shoot_raw' in self.config['device'].keys()
                   and self.config['device']['shoot_raw'].get(bool))
         next_num = (last_num+2 if target_page == 'odd' else last_num+1)
-        path =  base_path / "{0:03}.{1}".format(next_num,
-                                                'dng' if is_raw else 'jpg')
+        path = base_path / "{0:03}.{1}".format(next_num,
+                                               'dng' if is_raw else 'jpg')
         return Page(path, capture_num=next_num)
-
 
     def prepare_capture(self):
         self._logger.info("Preparing capture.")
