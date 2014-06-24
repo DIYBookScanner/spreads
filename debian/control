@@ -2,12 +2,13 @@ Source: spreads
 Maintainer: Johannes Baiter <johannes.baiter@gmail.com>
 Section: python
 Priority: optional
-Build-Depends: python-setuptools (>= 0.6b3), python-all (>= 2.6.6-3), debhelper (>= 7.4.3)
+Build-Depends: python-setuptools (>= 0.6b3), python2.7, debhelper (>= 7.4.3)
 Standards-Version: 3.9.1
 
 Package: spreads
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, python-usb, python-psutil, python-jpegtran, python-hidapi-cffi
+Depends: ${misc:Depends}, ${python:Depends}, python-usb (>= 1.0.0b1), python-psutil (>= 2.1.1), python-jpegtran (>= 0.5), python-hidapi-cffi (>= 0.2.1), python-roman(>= 2.0.0), python-concurrent.futures (>= 2.1.6)
+X-Python-Version: 2.7
 Recommends: scantailor, djvubind, pdfbeads, chdkptp
 Description: Book digitization workflow suite
  .
@@ -19,14 +20,16 @@ Description: Book digitization workflow suite
 
 Package: spreads-gui
 Architecture: all
-Depends: ${misc:Depends}, python-pyside
+Depends: ${misc:Depends}, spreads (== 0.5-20140623), python-pyside (>= 1.1)
+X-Python-Version: 2.7
 Description: Book digitization workflow suite
  .
  Plugin for graphical user interface
 
 Package: spreads-web
 Architecture: all
-Depends: ${misc:Depends}, python-flask (>= 0.10.1), python-requests (>= 2.2.0), python-waitress (>= 0.8), python-tornado (>= 3.2), python-wand (>= 0.3), python-zipstream
+Depends: ${misc:Depends}, spreads (== 0.5-20140623), python-flask (>= 0.10.1), python-requests (>= 2.2.0), python-waitress (>= 0.8), python-tornado (>= 3.2), python-wand (>= 0.3), python-zipstream
+X-Python-Version: 2.7
 Description: Book digitization workflow suite
  .
  Plugin for scanning and postprocessing server
