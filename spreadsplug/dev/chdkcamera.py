@@ -298,9 +298,10 @@ class CHDKCameraDevice(DevicePlugin):
         env = {'LUA_PATH': unicode(chdkptp_path / "lua/?.lua")}
         self.logger.debug("Calling chdkptp with arguments: {0}"
                           .format(cmd_args))
-        output = (subprocess.check_output(cmd_args, env=env,
-                                          stderr=subprocess.STDOUT)
-                  .splitlines())
+        output = subprocess.check_output(
+            cmd_args, env=env, stderr=subprocess.STDOUT,
+            close_fds=True  # see http://stackoverflow.com/a/1297785/487903
+        ).splitlines()
         self.logger.debug("Call returned:\n{0}".format(output))
         # Filter out connected message
         output = [x for x in output if not x.startswith('connected:')]

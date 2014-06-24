@@ -96,9 +96,9 @@ setup(
         ]
     },
     install_requires=[
-        "colorama>=0.2.5",
-        "PyYAML>=3.10",
-        "futures >= 2.1.4",
+        "colorama >= 0.2.4",
+        "PyYAML >= 3.10",
+        "futures >= 2.1",
         "blinker >= 1.3",
         "roman >= 2.0.0",
     ],
@@ -116,7 +116,7 @@ setup(
             "waitress >= 0.8.8",
             "zipstream >= 1.0.2",
             "tornado >= 3.2",
-            "Wand >= 0.3.7",
+            "Wand >= 0.3.5",
         ]
     },
     cmdclass={'sdist': CustomSdistCommand}
