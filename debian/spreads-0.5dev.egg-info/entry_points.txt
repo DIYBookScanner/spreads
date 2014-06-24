@@ -1,0 +1,13 @@
+[spreadsplug.devices]
+chdkcamera = spreadsplug.dev.chdkcamera:CHDKCameraDevice
+gphoto2camera = spreadsplug.dev.gphoto2camera:GPhoto2CameraDevice
+
+[spreadsplug.hooks]
+autorotate = spreadsplug.autorotate:AutoRotatePlugin
+djvubind = spreadsplug.djvubind:DjvuBindPlugin
+hidtrigger = spreadsplug.hidtrigger:HidTrigger
+intervaltrigger = spreadsplug.intervaltrigger:IntervalTrigger
+pdfbeads = spreadsplug.pdfbeads:PDFBeadsPlugin
+scantailor = spreadsplug.scantailor:ScanTailorPlugin
+tesseract = spreadsplug.tesseract:TesseractPlugin
+

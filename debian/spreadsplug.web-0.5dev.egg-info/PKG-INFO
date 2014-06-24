@@ -1,0 +1,9 @@
+Metadata-Version: 1.1
+Name: spreads-web
+Version: 0.5dev
+Summary: Book digitization workflow suite -- Web plugin
+Home-page: http://spreads.readthedocs.org
+Author: Johannes Baiter
+Author-email: johannes.baiter@gmail.com
+License: GNU AGPLv3
+Description: Spreads web plugin

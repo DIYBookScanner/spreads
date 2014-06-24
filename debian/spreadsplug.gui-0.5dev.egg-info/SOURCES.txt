@@ -1,0 +1,4 @@
+spreadsplug/gui/__init__.py
+spreadsplug/gui/gui.py
+spreadsplug/gui/gui_rc.py
+spreadsplug/gui/pixmaps/monk.png

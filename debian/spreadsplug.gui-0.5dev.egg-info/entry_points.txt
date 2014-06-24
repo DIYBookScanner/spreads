@@ -1,0 +1,3 @@
+[spreadsplug.hooks]
+gui = spreadsplug.gui:GuiCommand
+

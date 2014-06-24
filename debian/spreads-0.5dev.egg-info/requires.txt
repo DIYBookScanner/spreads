@@ -1,0 +1,21 @@
+colorama >= 0.2.4
+PyYAML >= 3.10
+futures >= 2.1
+blinker >= 1.3
+roman >= 0.8
+
+[scantailor]
+psutil == 2.0.0
+
+[gphoto2camera]
+piggyphoto >= 0.1
+
+[autorotate]
+jpegtran-cffi >= 0.4
+
+[chdkcamera]
+pyusb >= 1.0.0b1
+jpegtran-cffi >= 0.4
+
+[hidtrigger]
+hidapi-cffi >= 0.1
