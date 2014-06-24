@@ -1,0 +1,2 @@
+jpegtran_cffi python-jpegtran
+futures python-concurrent.futures
