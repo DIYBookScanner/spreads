@@ -59,9 +59,9 @@
       // Try to load cropParams for this workflow from localStorage
       var storageKey = 'crop-params.' + this.props.workflow.id,
           cropParamJson = localStorage.getItem(storageKey),
-          cropparams;
+          cropParams;
       if (cropParamJson) cropParams = JSON.parse(cropParamJson);
-      else cropparams = {};
+      else cropParams = {};
       return {
         /** Display activity overlay? */
         waiting: false,
