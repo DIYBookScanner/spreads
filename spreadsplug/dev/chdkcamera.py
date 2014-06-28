@@ -379,6 +379,7 @@ class CHDKCameraDevice(DevicePlugin):
         return self._execute_lua("get_focus()", get_result=True)
 
     def _set_focus(self):
+        self.logger.info("Running default focus")
         focus_distance = int(self.config['focus_distance'].get())
         self._execute_lua("set_aflock(0)")
         if focus_distance == 0:
@@ -445,6 +446,15 @@ class A2200(CHDKCameraDevice):
                               "do click(\"zoom_out\") end".format(level+1),
                               wait=True)
 
+    def _set_focus(self):
+        self.logger.info("Running A2200 focus")
+        focus_distance = int(self.config['focus_distance'].get())
+        self._execute_lua("set_aflock(1)")
+        time.sleep(0.5)
+	self._execute_lua("set_prop(require('propcase').AF_LOCK, 1)")
+        if focus_distance == 0:
+            return
+        self._execute_lua("set_focus({0:.0f})".format(focus_distance))
 
 class QualityFix(CHDKCameraDevice):
     """ Fixes a bug that prevents remote capture with the highest resolution
