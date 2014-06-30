@@ -1,6 +1,8 @@
 #!/usr/bin/env python2.7
 import os
+from subprocess import check_call
 from setuptools import setup
+from setuptools.command.sdist import sdist as SdistCommand
 
 import spreads
 
@@ -22,6 +24,12 @@ devices is made as painless as possible. You can also hook into any of the
 commands by implementing one of the available plugin hooks or even implement
 your own custom sub-commands.
 """
+
+
+class CustomSdistCommand(SdistCommand):
+    def run(self):
+        check_call(['make', '-C', 'spreadsplug/web/client', 'production'])
+        SdistCommand.run(self)
 
 setup(
     name="spreads",
@@ -64,15 +72,8 @@ setup(
         "spreadsplug.web",
     ],
     package_data={
-        'spreads': ['config_default.yaml'],
         'spreadsplug.gui': ['pixmaps/monk.png'],
-        'spreadsplug.web': ['client/index.html', 'client/spreads.css',
-                            'client/spreads.min.js', 'client/spreads.js',
-                            'client/foundation/css/*', 'client/foundation/fonts/*',
-                            'client/foundation/js/foundation.js',
-                            'client/foundation/js/foundation.min.js',
-                            'client/fonts/*',
-                            ]
+        'spreadsplug.web': ['client/index.html', 'client/build/*']
     },
     entry_points={
         'console_scripts': [
@@ -80,6 +81,7 @@ setup(
         ],
         'spreadsplug.devices': [
             "chdkcamera=spreadsplug.dev.chdkcamera:CHDKCameraDevice",
+            "gphoto2camera=spreadsplug.dev.gphoto2camera:GPhoto2CameraDevice",
         ],
         'spreadsplug.hooks': [
             "autorotate     =spreadsplug.autorotate:AutoRotatePlugin",
@@ -94,14 +96,16 @@ setup(
         ]
     },
     install_requires=[
-        "colorama>=0.2.5",
-        "PyYAML>=3.10",
-        "futures >= 2.1.4",
-        "blinker == 1.3",
-        "psutil == 2.1.0",
+        "colorama >= 0.2.4",
+        "PyYAML >= 3.10",
+        "futures >= 2.1",
+        "blinker >= 1.3",
+        "roman >= 2.0.0",
+        "psutil >= 2.0.0",
     ],
     extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],
+        "gphoto2camera": ["piggyphoto >= 0.1"],
         "autorotate": ["jpegtran-cffi >= 0.4"],
         "gui": ["PySide >= 1.2.1"],
         "hidtrigger": ["hidapi-cffi >= 0.1"],
@@ -111,7 +115,9 @@ setup(
             "requests >= 2.2.0",
             "waitress >= 0.8.8",
             "zipstream >= 1.0.2",
-            "tornado == 3.2"
+            "tornado >= 3.1",
+            "Wand >= 0.3.5",
         ]
-    }
+    },
+    cmdclass={'sdist': CustomSdistCommand}
 )

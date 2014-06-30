@@ -1,8 +1,7 @@
 from __future__ import division, unicode_literals
 
-import shutil
-
 import pytest
+from mock import Mock
 
 import spreads.util as util
 import spreads.workflow
@@ -37,27 +36,34 @@ def test_get_devices_no_device(workflow):
     TestDriver.num_devices = 2
 
 
-def test_get_next_filename(workflow):
-    root_path = workflow.path/'raw'
-    fname = workflow._get_next_filename(target_page='odd')
-    assert unicode(fname) == unicode(root_path/"001")
-    fname = workflow._get_next_filename(target_page='even')
-    assert unicode(fname) == unicode(root_path/"000")
+def test_get_next_capture_page(workflow):
+    root_path = workflow.path/'data'/'raw'
+    page = workflow._get_next_capture_page(target_page='odd')
+    assert unicode(page.raw_image) == unicode(root_path/"001.jpg")
+    page = workflow._get_next_capture_page(target_page='even')
+    assert unicode(page.raw_image) == unicode(root_path/"000.jpg")
 
-    shutil.copyfile('./tests/data/even.jpg', unicode(root_path/'000.jpg'))
-    shutil.copyfile('./tests/data/odd.jpg', unicode(root_path/'001.jpg'))
+    workflow.pages.append(Mock(capture_num=0))
+    workflow.pages.append(Mock(capture_num=1))
 
-    fname = workflow._get_next_filename(target_page='odd')
-    assert unicode(fname) == unicode(root_path/"003")
-    fname = workflow._get_next_filename(target_page='even')
-    assert unicode(fname) == unicode(root_path/"002")
+    page = workflow._get_next_capture_page(target_page='odd')
+    assert unicode(page.raw_image) == unicode(root_path/"003.jpg")
+    page = workflow._get_next_capture_page(target_page='even')
+    assert unicode(page.raw_image) == unicode(root_path/"002.jpg")
+
+    workflow.pages.append(Mock(capture_num=2))
+    workflow.pages.append(Mock(capture_num=3))
+
+    workflow.config['device']['shoot_raw'] = True
+    page = workflow._get_next_capture_page(target_page='even')
+    assert unicode(page.raw_image) == unicode(root_path/"004.dng")
 
 
 def test_prepare_capture(workflow):
     workflow.prepare_capture()
-    assert workflow.prepared
-    assert workflow.active
-    assert workflow.step == 'capture'
+    assert workflow.status['prepared']
+    assert workflow.status['step'] == 'capture'
+    workflow.finish_capture()
 
 
 def test_capture(workflow):
@@ -65,10 +71,12 @@ def test_capture(workflow):
     workflow.config['device']['flip_target_pages'] = False
     for dev in workflow.devices:
         dev.delay = 0.25
+    workflow.prepare_capture()
     workflow.capture()
-    assert workflow.pages_shot == 2
-    assert (workflow.images[1].stat().st_ctime -
-            workflow.images[0].stat().st_ctime) < 0.25
+    assert len(workflow.pages) == 2
+    assert (workflow.pages[1].raw_image.stat().st_ctime -
+            workflow.pages[0].raw_image.stat().st_ctime) < 0.25
+    workflow.finish_capture()
 
 
 def test_capture_noparallel(workflow):
@@ -76,20 +84,25 @@ def test_capture_noparallel(workflow):
     workflow.config['device']['flip_target_pages'] = False
     for dev in workflow.devices:
         dev.delay = 0.25
+    workflow.prepare_capture()
     workflow.capture()
-    assert workflow.pages_shot == 2
-    assert round(workflow.images[1].stat().st_ctime -
-                 workflow.images[0].stat().st_ctime, 2) >= 0.25
+    assert len(workflow.pages) == 2
+    assert round(workflow.pages[1].raw_image.stat().st_ctime -
+                 workflow.pages[0].raw_image.stat().st_ctime, 2) >= 0.25
+    workflow.finish_capture()
 
 
 def test_capture_flip_target_pages(workflow):
     workflow.config['device']['parallel_capture'] = False
     workflow.config['device']['flip_target_pages'] = True
+    workflow.prepare_capture()
     workflow.capture()
     # TODO: Verify
+    workflow.finish_capture()
 
 
 def test_finish_capture(workflow):
+    workflow.prepare_capture()
     workflow.finish_capture()
     # TODO: Verify
 

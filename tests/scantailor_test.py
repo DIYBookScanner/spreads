@@ -6,6 +6,8 @@ import pytest
 import spreads.vendor.confit as confit
 from spreads.vendor.pathlib import Path
 
+from spreads.workflow import Page
+
 
 @pytest.fixture
 def pluginclass(mock_findinpath):
@@ -30,8 +32,7 @@ def plugin(pluginclass, config):
     with mock.patch('subprocess.check_output') as mock_co:
         mock_co.return_value = "".join(chain(
             repeat("\n", 7),
-            ("scantailor-cli [options] <images|directory|-> <output>",))
-        )
+            ("scantailor-cli [options] <images|directory|-> <output>",)))
         return pluginclass(config)
 
 
@@ -39,34 +40,13 @@ def plugin(pluginclass, config):
 @mock.patch('spreadsplug.scantailor.subprocess.Popen')
 def test_generate_configuration(popen, proc, plugin):
     proc.return_value.is_running.return_value = False
-    # TODO: Setup up some config variables
-    imgdir = mock.MagicMock(wraps=Path('/tmp/raw'))
-    imgs = [imgdir/"foo.jpg", imgdir/"bar.jpg"]
-    imgdir.iterdir.return_value = imgs
-    plugin._generate_configuration(Path('/tmp/foo.st'),
-                                   imgdir,
-                                   Path('/tmp/out'))
-    # TODO: Check the sp.call for the correct parameters
-
-
-@mock.patch('spreadsplug.scantailor.psutil.Process')
-@mock.patch('spreadsplug.scantailor.subprocess.Popen')
-def test_generate_configuration_noenhanced(popen, proc, config, pluginclass):
-    proc.return_value.is_running.return_value = False
-    # TODO: Setup up some config variables
-    with mock.patch('subprocess.check_output') as mock_co:
-        mock_co.return_value = "".join(chain(
-            repeat("\n", 7),
-            ("scantailor-cli [options] <image, image, ...>"
-             " <output_directory>",))
-        )
-        plugin = pluginclass(config)
-    imgdir = mock.MagicMock(wraps=Path('/tmp/raw'))
-    imgs = [imgdir/"foo.jpg", imgdir/"bar.jpg"]
-    imgdir.iterdir.return_value = imgs
-    plugin._generate_configuration(Path('/tmp/foo.st'), imgdir,
-                                   Path('/tmp/out'))
-    assert (unicode(imgs[0]) in popen.call_args[0][0])
+    in_paths = ['{0:03}.jpg'.format(idx) for idx in xrange(5)]
+    proj_file = Path('/tmp/foo.st')
+    out_dir = Path('/tmp/out')
+    plugin._generate_configuration(in_paths, proj_file, out_dir)
+    args = popen.call_args[0][0]
+    for fp in in_paths:
+        assert fp in args
 
 
 def test_split_configuration(plugin, tmpdir):
@@ -88,15 +68,23 @@ def test_generate_output(popen, plugin):
 
 
 @mock.patch('spreadsplug.scantailor.subprocess.call')
-def test_process(call, plugin):
+def test_process(call, plugin, tmpdir):
+    def create_out_files(pf, out_dir, num):
+        for p in pages:
+            (out_dir/(p.raw_image.stem + '.tif')).touch()
     plugin._generate_configuration = mock.Mock()
-    plugin._generate_output = mock.Mock()
+    plugin._generate_output = create_out_files
     plugin.config['autopilot'] = True
-    imgdir = mock.MagicMock(wraps=Path('/tmp'))
-    imgs = [imgdir/"foo.jpg", imgdir/"bar.jpg"]
-    (imgdir/"raw").iterdir.return_value = imgs
-    plugin.process(imgdir)
+
+    pages = [Page(Path('{0:03}.jpg'.format(idx))) for idx in xrange(5)]
+    target_dir = Path(unicode(tmpdir))
+    plugin.process(pages, target_dir)
     assert call.call_count == 0
+    for p in pages:
+        assert 'scantailor' in p.processed_images
+        assert p.processed_images['scantailor'].parent == target_dir
+        assert p.processed_images['scantailor'].exists()
+
     plugin.config['autopilot'] = False
-    plugin.process(imgdir)
+    plugin.process(pages, target_dir)
     assert call.call_count == 1

@@ -1,4 +1,4 @@
-import itertools
+import logging
 import os.path
 import shutil
 import time
@@ -7,14 +7,15 @@ from random import randint
 
 import mock
 import pytest
-from spreads.workflow import Workflow
-from spreads.plugin import SpreadsPlugin
-from spreads.util import EventHandler
+import spreads.workflow as workflow
 
 import spreads.plugin as plugin
 import spreads.util as util
 import spreadsplug.web.web as web
 from spreads.config import Configuration, OptionTemplate
+
+logging.getLogger().level = logging.DEBUG
+
 
 class TestPluginProcess(plugin.HookPlugin,
                         plugin.ProcessHookMixin):
@@ -29,8 +30,11 @@ class TestPluginProcess(plugin.HookPlugin,
                     value=3.14, docstring="A float",
                     selectable=False)}
 
-    def process(self, path):
-        (path/'processed_a.txt').touch()
+    def process(self, pages, target_path):
+        for page in pages:
+            proc_path = target_path/(page.raw_image.name + "_a.txt")
+            proc_path.touch()
+            page.processed_images[self.__name__] = proc_path
 
 
 class TestPluginProcessB(TestPluginProcess):
@@ -45,8 +49,11 @@ class TestPluginProcessB(TestPluginProcess):
                     value=[1, 2, 3], docstring="A list",
                     selectable=False)}
 
-    def process(self, path):
-        (path/'processed_b.txt').touch()
+    def process(self, pages, target_path):
+        for page in pages:
+            proc_path = target_path/(page.raw_image.name + "_a.txt")
+            proc_path.touch()
+            page.processed_images[self.__name__] = proc_path
 
 
 class TestPluginOutput(plugin.HookPlugin,
@@ -72,8 +79,8 @@ class TestPluginOutput(plugin.HookPlugin,
     def test_command(config):
         pass
 
-    def output(self, path):
-        (path/'output.txt').touch()
+    def output(self, pages, target_path, metadata, table_of_contents):
+        (target_path/'output.txt').touch()
 
 
 class TestDriver(plugin.DevicePlugin):
@@ -111,9 +118,12 @@ class TestDriver(plugin.DevicePlugin):
         srcpath = os.path.abspath(
             './tests/data/{0}.jpg'.format(self.target_page or 'even')
         )
-        shutil.copyfile(srcpath, unicode(path)+'.jpg')
+        shutil.copyfile(srcpath, unicode(path))
 
     def finish_capture(self):
+        pass
+
+    def update_configuration(self, updated):
         pass
 
     def _acquire_focus(self):
@@ -155,14 +165,14 @@ def empty_device_cache():
     spreads.plugin.devices = None
 
 
-@pytest.fixture
+@pytest.yield_fixture
 def config():
-    with mock.patch('spreads.config.confit.LazyConfig.read'):
+    with mock.patch('spreads.config.confit.Configuration.read'):
         cfg = Configuration(appname='spreads_test')
-    cfg["driver"] = u"testdriver"
-    cfg["plugins"] = [u"test_output", u"test_process", u"test_process2"]
-    cfg["capture"]["capture_keys"] = ["b", " "]
-    return cfg
+        cfg["driver"] = u"testdriver"
+        cfg["plugins"] = [u"test_output", u"test_process", u"test_process2"]
+        cfg["capture"]["capture_keys"] = ["b", " "]
+        yield cfg
 
 
 @pytest.yield_fixture(scope='module')
@@ -186,6 +196,6 @@ def mock_findinpath():
 def fix_blinker():
     yield
     signals = chain(*(x.signals.values()
-                      for x in (Workflow, util.EventHandler, web)))
+                      for x in (workflow, util.EventHandler, web)))
     for signal in signals:
         signal._clear_state()

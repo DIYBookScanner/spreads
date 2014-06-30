@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import copy
 import logging
 
@@ -17,17 +34,22 @@ class OptionTemplate(object):
                       a list or tuple of acceptable values for this option,
                       with the first member being the default selection.
     :type selectable: bool
+    :attr advanced:   Whether the option is an advanced option
+    :type advanced:   bool
     """
 
-    def __init__(self, value, docstring=None, selectable=False):
+    def __init__(self, value, docstring=None, selectable=False,
+                 advanced=False):
         self.value = value
         self.docstring = docstring
         self.selectable = selectable
+        self.advanced = advanced
 
     def __repr__(self):
-        return ("OptionTemplate(value={0}, docstring={1}, selectable={2})"
+        return ("OptionTemplate(value={0}, docstring={1}, selectable={2}"
+                " advanced={3})"
                 .format(repr(self.value), repr(self.docstring),
-                        repr(self.selectable)))
+                        repr(self.selectable), repr(self.advanced)))
 
 
 CORE_OPTIONS = {
@@ -47,7 +69,7 @@ CORE_OPTIONS = {
 
 class Configuration(object):
     def __init__(self, appname='spreads'):
-        self._config = confit.LazyConfig(appname, __name__)
+        self._config = confit.Configuration(appname, __name__)
         self._config.read()
         if 'plugins' not in self._config.keys():
             self['plugins'] = []
@@ -64,8 +86,8 @@ class Configuration(object):
     def keys(self):
         return self._config.keys()
 
-    def dump(self, filename=None, full=True):
-        return self._config.dump(unicode(filename), full)
+    def dump(self, filename=None, full=True, sections=None):
+        return self._config.dump(unicode(filename), full, sections)
 
     def flatten(self):
         return self._config.flatten()
@@ -129,15 +151,18 @@ class Configuration(object):
         :param overwrite: Whether to overwrite already existing values
 
         """
+        old_settings = self[section].flatten()
+        settings = copy.deepcopy(old_settings)
         for key, option in template.iteritems():
             logging.info("Adding setting {0} from {1}"
                          .format(key, section))
-            if not overwrite and key in self[section].keys():
+            if not overwrite and key in old_settings:
                 continue
             if option.selectable:
-                self[section][key] = option.value[0]
+                settings[key] = option.value[0]
             else:
-                self[section][key] = option.value
+                settings[key] = option.value
+        self[section].set(settings)
 
     def set_from_args(self, args):
         """ Apply settings from parsed arguments.

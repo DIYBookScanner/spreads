@@ -11,27 +11,27 @@ import mock
 import pytest
 from multiprocessing.pool import ThreadPool
 
-from spreads.workflow import Workflow
+from spreads.workflow import signals as workflow_signals
+from conftest import TestPluginOutput, TestPluginProcess, TestPluginProcessB
 
 
 @pytest.yield_fixture
 def app(config, tmpdir):
-    import spreadsplug.web.persistence as persistence
     from spreadsplug.web import setup_app, setup_logging, setup_signals, app
     from spreadsplug.web.web import event_queue
     config.load_defaults(overwrite=False)
 
     config['web']['mode'] = 'full'
-    config['web']['database'] = unicode(tmpdir.join('test.db'))
-    config['web']['project_dir'] = unicode(tmpdir)
+    config['web']['project_dir'] = unicode(tmpdir.join('workflows'))
     config['web']['debug'] = False
     config['web']['standalone_device'] = True
     setup_app(config)
     setup_logging(config)
-    setup_signals()
+    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+        mock_tq.task.return_value = lambda x: x
+        setup_signals()
     app.config['TESTING'] = True
     event_queue.clear()
-    persistence.WorkflowCache = {}
     yield app
 
 
@@ -42,43 +42,18 @@ def client(app):
 
 @pytest.yield_fixture
 def mock_dbus(tmpdir):
-    try:
-        with mock.patch.multiple('dbus', SystemBus=mock.DEFAULT,
-                                 Interface=mock.DEFAULT) as values:
-            stickdir = tmpdir.join('stick')
-            stickdir.mkdir()
-            mockdevs = [mock.Mock(), mock.Mock()]*2
-            mockobj = mock.MagicMock()
-            mockobj.get_dbus_method.return_value.return_value = unicode(stickdir)
-            mockobj.EnumerateDevices.return_value = mockdevs
-            mockobj.Get.side_effect = [True, 'usb', True]*2
-            values['Interface'].return_value = mockobj
-            yield mockobj
-    except ImportError:
-        with mock.patch('spreadsplug.web.util.subprocess') as sp:
-            sp.check_output.side_effect = ("""
-node /org/freedesktop/UDisks/devices {
-  node /org/freedesktop/UDisks/devices/sda {
-    interface org.freedesktop.UDisks.Device {
-      properties:
-        readonly s SomeVal = '';
-        readonly t DriveConnectionInterface = 'ata';
-        readonly b DeviceIsPartition = false;
-        readonly s DeviceFile = '/dev/sda';
-    };
-  };
-  node /org/freedesktop/UDisks/devices/sdc1 {
-    interface org.freedesktop.UDisks.Device {
-      properties:
-        readonly s SomeVal = '';
-        readonly t DriveConnectionInterface = 'usb';
-        readonly b DeviceIsPartition = true;
-        readonly s DeviceFile = '/dev/sdc1';
-    };
-  };
-};
-            """, tmpdir.join('stick'), True)
-            yield sp
+    with mock.patch.multiple('dbus', SystemBus=mock.DEFAULT,
+                                Interface=mock.DEFAULT) as values:
+        stickdir = tmpdir.join('stick')
+        stickdir.mkdir()
+        mockdevs = [mock.Mock(), mock.Mock()]*2
+        mockobj = mock.MagicMock()
+        mockobj.get_dbus_method.return_value.return_value = unicode(
+            stickdir)
+        mockobj.EnumerateDevices.return_value = mockdevs
+        mockobj.Get.side_effect = [True, 'usb', True]*2
+        values['Interface'].return_value = mockobj
+        yield mockobj
 
 
 @pytest.fixture
@@ -116,7 +91,7 @@ def create_workflow(client, num_captures='random'):
 def test_index(client):
     rv = client.get('/')
     assert "<title>spreads</title>" in rv.data
-    assert "<script src=\"/static/spreads.min.js\"></script>" in rv.data
+    assert "<script src=\"/static/bundle.js\"></script>" in rv.data
 
     cfg = json.loads(re.findall(r"window.config = ({.*});", rv.data)[0])
     assert cfg['plugins'] == ['test_output', 'test_process', 'test_process2']
@@ -129,12 +104,36 @@ def test_index(client):
     assert 'string' in templates['test_output']
 
 
+def test_get_plugins(client):
+    exts = [mock.Mock(), mock.Mock(), mock.Mock()]
+    exts[0].name = "test_output"
+    exts[0].load.return_value = TestPluginOutput
+    exts[1].name = "test_process"
+    exts[1].load.return_value = TestPluginProcess
+    exts[2].name = "test_process2"
+    exts[2].load.return_value = TestPluginProcessB
+    with mock.patch('spreadsplug.web.web.pkg_resources') as pkgr:
+        pkgr.iter_entry_points.return_value = exts
+        rv = client.get('/api/plugins')
+    plugins = json.loads(rv.data)
+    assert plugins['output'] == ["test_output"]
+    assert plugins['postprocessing'] == ["test_process", "test_process2"]
+
+
+def test_get_plugin_templates(client):
+    rv = client.get('/api/plugins/templates')
+    templates = json.loads(rv.data)
+    assert 'a_boolean' in templates['test_process']
+    assert 'flip_target_pages' in templates['device']
+    assert 'string' in templates['test_output']
+
+
 def test_create_workflow(client, jsonworkflow):
     data = json.loads(client.post('/api/workflow', data=jsonworkflow).data)
     workflow_id = data['id']
     data = json.loads(client.get('/api/workflow/{0}'.format(workflow_id)).data)
     assert data['name'] == 'foobar'
-    assert data['id'] == 1
+    assert data['slug'] == 'foobar'
 
 
 def test_list_workflows(client):
@@ -150,17 +149,16 @@ def test_get_workflow(client):
     wfid = create_workflow(client)
     data = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)
     assert 'test_output' in data['config']['plugins']
-    assert data['step'] == 'capture'
 
 
 def test_update_workflow(client):
     wfid = create_workflow(client)
     workflow = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)
-    workflow['config']['foo'] = 'bar'
+    workflow['config']['device']['flip_target_pages'] = True
     data = json.loads(
         client.put('/api/workflow/{0}'.format(wfid), data=json.dumps(workflow))
         .data)
-    assert data['config']['foo'] == 'bar'
+    assert data['config']['device']['flip_target_pages']
 
 
 def test_delete_workflow(client):
@@ -174,7 +172,7 @@ def test_poll(client):
     pool = ThreadPool(processes=1)
     asyn_result = pool.apply_async(client.get, ('/api/poll', ))
     time.sleep(.1)
-    Workflow.on_removed.send(None, id=1)
+    workflow_signals['workflow:removed'].send(None, id=1)
     rv = asyn_result.get()
     assert rv.status_code == 200
     data = json.loads(rv.data)
@@ -188,7 +186,7 @@ def test_download_workflow(client):
                       follow_redirects=True)
     zfile = zipfile.ZipFile(StringIO.StringIO(resp.data))
     assert len([x for x in zfile.namelist()
-                if '/raw/' in x and x.endswith('jpg')]) == 20
+                if '/data/raw/' in x and x.endswith('jpg')]) == 20
 
 
 def test_transfer_workflow(client, mock_dbus, tmpdir):
@@ -196,64 +194,56 @@ def test_transfer_workflow(client, mock_dbus, tmpdir):
     with mock.patch('spreadsplug.web.task_queue') as mock_tq:
         mock_tq.task.return_value = lambda x: x
         client.post('/api/workflow/{0}/transfer'.format(wfid))
-    assert len([x for x in tmpdir.visit('stick/*/raw/*.jpg')]) == 20
+    assert len([x for x in tmpdir.visit('stick/*/data/raw/*.jpg')]) == 20
 
 
-def test_submit_workflow(app, tmpdir):
+@mock.patch('spreadsplug.web.tasks.requests')
+def test_submit_workflow(requests, app, tmpdir):
     app.config['postproc_server'] = 'http://127.0.0.1:5000'
     app.config['mode'] = 'scanner'
     client = app.test_client()
     wfid = create_workflow(client)
-    with mock.patch('spreadsplug.web.web.requests.post') as post:
-        post.return_value.json = {'id': 1}
-        client.post('/api/workflow/{0}/submit'.format(wfid))
-    wfname = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)['name']
-    for img in tmpdir.join(wfname, 'raw').listdir():
-        post.assert_any_call('http://127.0.0.1:5000/api/workflow/{0}/image'
-                             .format(wfid),
-                             files={'file': {
-                                 img.basename: img.open('rb').read()}})
+    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+        mock_tq.task.return_value = lambda x: x
+        requests.post.return_value.json.return_value = {'id': 1}
+        client.post('/api/workflow/{0}/submit'.format(wfid),
+                    content_type="application/json",
+                    data=json.dumps({'config': {'plugins': []},
+                                     'server': '127.0.0.1:5000'}))
+    assert requests.post.call_count == 1
+    # TODO: Iterate through data, assert events are emitted
+    # TODO: Assert completed are emitted
 
 
-def test_upload_workflow_image(client, tmpdir):
-    wfid = create_workflow(client, num_captures=None)
-    client.post('/api/workflow/{0}/image'.format(wfid),
-                data={'file': ('./tests/data/even.jpg', '000.jpg')})
-    wfdata = json.loads(client.get('/api/workflow/{0}'.format(wfid)).data)
-    assert len(wfdata['images']) == 1
-    assert tmpdir.join(wfdata['name'], 'raw', '000.jpg').exists()
-    resp = client.post('/api/workflow/{0}/image'.format(wfid),
-                       data={'file': ('./tests/data/even.jpg', '000.png')})
-    assert resp.status_code == 500
-
-
-def test_get_workflow_image(client):
+def test_get_page_image(client):
     wfid = create_workflow(client)
     with open(os.path.abspath('./tests/data/even.jpg'), 'rb') as fp:
         orig = fp.read()
-    fromapi = client.get('/api/workflow/{0}/image/0'.format(wfid)).data
+    fromapi = client.get('/api/workflow/{0}/page/0/raw'.format(wfid)).data
     assert orig == fromapi
 
 
-def test_get_workflow_image_scaled(client):
+def test_get_page_image_scaled(client):
     wfid = create_workflow(client)
-    img = jpegtran.JPEGImage(blob=client.get(
-        '/api/workflow/{0}/image/0?width=300'.format(wfid)).data)
+    rv = client.get('/api/workflow/{0}/page/0/raw?width=300'.format(wfid))
+    assert rv.status_code == 200
+    img = jpegtran.JPEGImage(blob=rv.data)
     assert img.width == 300
 
 
-def test_get_workflow_image_thumb(client):
+def test_get_page_image_thumb(client):
     # TODO: Use test images that actually have an EXIF thumbnail...
     wfid = create_workflow(client)
-    rv = client.get('/api/workflow/{0}/image/1/thumb'.format(wfid))
+    rv = client.get('/api/workflow/{0}/page/1/raw/thumb'.format(wfid))
     assert rv.status_code == 200
-    assert jpegtran.JPEGImage(blob=rv.data).width
+    assert jpegtran.JPEGImage(blob=rv.data).width == 196
 
 
 def test_prepare_capture(client):
     wfid = create_workflow(client, num_captures=None)
     rv = client.post('/api/workflow/{0}/prepare_capture'.format(wfid))
     assert rv.status_code == 200
+    client.post('/api/workflow/{0}/finish_capture'.format(wfid))
     # TODO: Verify workflow was prepared, verify right data
     #       was returned
 
@@ -265,6 +255,7 @@ def test_prepare_capture_when_other_active(client):
     wfid = create_workflow(client, num_captures=None)
     assert (client.post('/api/workflow/{0}/prepare_capture'.format(wfid))
             .status_code) == 200
+    client.post('/api/workflow/{0}/finish_capture'.format(wfid))
 
 
 def test_capture(client):
@@ -273,6 +264,7 @@ def test_capture(client):
             .status_code) == 200
     assert (client.post('/api/workflow/{0}/capture'.format(wfid))
             .status_code) == 200
+    client.post('/api/workflow/{0}/finish_capture'.format(wfid))
     # TODO: Verify it was triggered on the workflow, verify
     #       the right data was returned
 
@@ -292,6 +284,43 @@ def test_shutdown(client):
         client.post('/api/system/shutdown')
     sp.assert_called_once_with(['/usr/bin/sudo',
                                 '/sbin/shutdown', '-h', 'now'])
+
+
+def test_start_processing(client):
+    wfid = create_workflow(client, num_captures=None)
+    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+        mock_tq.task.return_value = lambda x: x
+        client.post('/api/workflow/{0}/process'.format(wfid))
+    time.sleep(.1)
+    update_events = [e['data']['changes']['status']
+                     for e in json.loads(client.get('/api/events').data)
+                     if (e['name'] == 'workflow:modified'
+                         and 'status' in e['data']['changes'])]
+    assert len(update_events) == 4
+    assert all(e['step'] == 'process' for e in update_events)
+    assert update_events[0]['step_progress'] == None
+    assert update_events[1]['step_progress'] == 0
+    assert update_events[2]['step_progress'] == 0.5
+    assert update_events[3]['step_progress'] == 1.0
+    # TODO: Verify generation was completed (files?)
+
+
+def test_start_outputting(client):
+    wfid = create_workflow(client, num_captures=None)
+    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+        mock_tq.task.return_value = lambda x: x
+        client.post('/api/workflow/{0}/output'.format(wfid))
+    time.sleep(.1)
+    update_events = [e['data']['changes']['status']
+                     for e in json.loads(client.get('/api/events').data)
+                     if (e['name'] == 'workflow:modified'
+                         and 'status' in e['data']['changes'])]
+    assert len(update_events) == 3
+    assert all(e['step'] == 'output' for e in update_events)
+    assert update_events[0]['step_progress'] == None
+    assert update_events[1]['step_progress'] == 0
+    assert update_events[2]['step_progress'] == 1.0
+    # TODO: Verify generation was completed (files?)
 
 
 def test_get_logs(client):

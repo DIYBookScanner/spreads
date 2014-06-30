@@ -1,5 +1,22 @@
 /** @jsx React.DOM */
 /* global require, module */
+
+/*
+ * Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 (function() {
   'use strict';
 
@@ -9,6 +26,7 @@
       CaptureInterface = require('./capture'),
       WorkflowDetails = require('./workflow'),
       WorkflowList = require('./workflowlist'),
+      SubmissionForm = require('./submission'),
       NavigationBar = require('./navbar'),
       LogDisplay = require('./logdisplay.js'),
       fnAlert = require('./foundation').alert;
@@ -19,7 +37,7 @@
    * Handles selection of display components and error messages.
    *
    * @property {Backbone.Collection<Workflow>} [workflows] - Associated workflows
-   * @property {number} [workflowId] - Associated workflow ID
+   * @property {string} [workflowSlug] - Associated workflow slug
    * @property {string} view - Name of view to display
    */
   module.exports = React.createClass({
@@ -27,7 +45,6 @@
 
     /** Register message change listeners */
     componentDidMount: function() {
-      // TODO: Listen for logging events, filter by level
       window.router.events.on('logrecord', function(record) {
         if (_.contains(["WARNING", "ERROR"], record.level)) {
           this.setState({
@@ -37,11 +54,12 @@
         }
       }, this);
       window.router.on('route:displayLog', function() {
-        this.setState(this.getInitialState());
+        this.setState({messages: [], numUnreadErrors: 0});
       }, this);
     },
     componentWillUnmount: function() {
       window.router.events.off('logrecord', null, this);
+      window.router.off(null, null, this);
     },
     getInitialState: function() {
       return {
@@ -59,7 +77,6 @@
       var mappings = {
         create:       "spreads: new workflow",
         capture:      "spreads: capture",
-        preferences:  "spreads: preferences",
         view:         "spreads: workflow details",
         edit:         "spreads: edit workflow",
         root:         "spreads: workflow list"
@@ -78,17 +95,21 @@
      */
     getViewComponent: function(viewName) {
       var workflows = this.props.workflows,
-          workflowId = this.props.workflowId;
+          displayed = this.props.workflowSlug && workflows.where({slug: this.props.workflowSlug})[0];
       switch (viewName) {
       case "create":
-        var newWorkflow = new workflows.model(null, {collection: workflows});
+        //var newWorkflow = new workflows.model(null, {collection: workflows});
+        var newWorkflow = new workflows.model();
+        workflows.add(newWorkflow);
         return <WorkflowForm workflow={newWorkflow} isNew={true}/>;
       case "capture":
-        return <CaptureInterface workflow={workflows.get(workflowId)}/>;
+        return <CaptureInterface workflow={displayed} />;
       case "view":
-        return <WorkflowDetails workflow={workflows.get(workflowId)}/>;
+        return <WorkflowDetails workflow={displayed} />;
       case "edit":
-        return <WorkflowForm workflow={workflows.get(workflowId)} isNew={false} />;
+        return <WorkflowForm workflow={displayed} isNew={false} />;
+      case "submit":
+        return <SubmissionForm workflow={displayed} />;
       case "log":
         return <LogDisplay />;
       default:

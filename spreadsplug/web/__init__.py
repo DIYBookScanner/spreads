@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import logging
 import logging.handlers
 import os
@@ -11,19 +28,20 @@ from spreads.vendor.pathlib import Path
 from flask import Flask
 
 import spreads.plugin as plugin
+import spreads.workflow as workflow
 from spreads.config import OptionTemplate
 from spreads.main import add_argument_from_template
 from spreads.util import get_data_dir
 from spreads.workflow import Workflow
 
 app = Flask('spreadsplug.web', static_url_path='/static',
-            static_folder='./client', template_folder='./client')
+            static_folder='./client/build', template_folder='./client')
 task_queue = None
 import web
-import persistence
 import util
 app.json_encoder = util.CustomJSONEncoder
 from websockets import WebSocketServer
+from discovery import DiscoveryListener
 
 
 logger = logging.getLogger('spreadsplug.web')
@@ -57,6 +75,8 @@ except ImportError:
 
 
 class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
+    __name__ = 'web'
+
     @classmethod
     def add_command_parser(cls, rootparser):
         cmdparser = rootparser.add_parser(
@@ -93,10 +113,6 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
                 value=u"~/scans",
                 docstring="Directory for project folders",
                 selectable=False),
-            'database': OptionTemplate(
-                value=os.path.join(get_data_dir(), 'workflows.db'),
-                docstring="Path to application database file",
-                selectable=False),
             'postprocessing_server': OptionTemplate(
                 value=u"",  # Cannot be None because of type deduction in
                             # option parser
@@ -106,7 +122,11 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
                 value=False,
                 docstring="Server runs on a standalone device dedicated to "
                           "scanning (e.g. 'spreadpi').",
-                selectable=False)
+                selectable=False),
+            'port': OptionTemplate(
+                value=5000,
+                docstring="TCP-Port to listen on",
+                selectable=False),
         }
 
 
@@ -114,14 +134,12 @@ def setup_app(config):
     mode = config['web']['mode'].get()
     logger.debug("Starting scanning station server in \"{0}\" mode"
                  .format(mode))
-    db_path = Path(config['web']['database'].get()).expanduser()
     project_dir = os.path.expanduser(config['web']['project_dir'].get())
     if not os.path.exists(project_dir):
         os.mkdir(project_dir)
 
     app.config['DEBUG'] = config['web']['debug'].get()
     app.config['mode'] = mode
-    app.config['database'] = db_path
     app.config['base_path'] = project_dir
     app.config['default_config'] = config
     app.config['standalone'] = config['web']['standalone_device'].get()
@@ -131,6 +149,13 @@ def setup_app(config):
             config['web']['postprocessing_server'].get())
 
 
+def setup_task_queue(config):
+    # Initialize huey task queue
+    global task_queue
+    db_location = config.cfg_path.parent / 'queue.db'
+    task_queue = SqliteHuey(location=unicode(db_location))
+
+
 def setup_logging(config):
     # Add in-memory log handler
     memoryhandler = logging.handlers.BufferingHandler(1024*10)
@@ -138,8 +163,8 @@ def setup_logging(config):
     logger.root.addHandler(memoryhandler)
 
     logging.getLogger('huey.consumer').setLevel(logging.INFO)
-    (logging.getLogger('huey.consumer.ConsumerThread')
-            .setLevel(logging.INFO))
+    logging.getLogger('huey.consumer.ConsumerThread').setLevel(logging.INFO)
+    logging.getLogger('bagit').setLevel(logging.ERROR)
 
 
 def setup_signals(ws_server=None):
@@ -154,8 +179,9 @@ def setup_signals(ws_server=None):
         return signal_callback
 
     # Register event handlers
+    import tasks
     signals = chain(*(x.signals.values()
-                      for x in (Workflow, util.EventHandler, web)))
+                      for x in (workflow, util.EventHandler, web, tasks)))
 
     for signal in signals:
         signal.connect(get_signal_callback_http(signal), weak=False)
@@ -164,15 +190,13 @@ def setup_signals(ws_server=None):
 
 
 def run_server(config):
-    ws_server = WebSocketServer(port=5001)
+    listening_port = config['web']['port'].get(int)
+    ws_server = WebSocketServer(port=listening_port+1)
     setup_app(config)
     setup_logging(config)
+    setup_task_queue(config)
     setup_signals(ws_server)
 
-    # Initialize huey task queue
-    global task_queue
-    db_location = os.path.join(get_data_dir(), 'queue.db')
-    task_queue = SqliteHuey(location=unicode(db_location))
     consumer = Consumer(task_queue)
 
     ip_address = get_ip_address()
@@ -183,7 +207,8 @@ def run_server(config):
             for cam in plugin.get_devices(config):
                 cam.show_textbox(
                     "\n    You can now access the web interface at:"
-                    "\n\n\n         http://{0}:5000".format(ip_address))
+                    "\n\n\n         http://{0}:{1}"
+                    .format(ip_address, listening_port))
         except plugin.DeviceException:
             logger.warn("No devices could be found at startup.")
 
@@ -191,16 +216,21 @@ def run_server(config):
     consumer.start()
     # Start websocket server
     ws_server.start()
+    if app.config['mode'] in ('processor', 'full'):
+        discovery_listener = DiscoveryListener(listening_port)
+        discovery_listener.start()
 
     try:
         import waitress
         # NOTE: We spin up this obscene number of threads since we have
         #       some long-polling going on, which will always block
         #       one worker thread.
-        waitress.serve(app, port=5000, threads=16)
+        waitress.serve(app, port=listening_port, threads=16)
     finally:
         consumer.shutdown()
         ws_server.stop()
+        if app.config['mode'] in ('processor', 'full'):
+            discovery_listener.stop()
 
 
 def run_windows_service(config):
@@ -211,21 +241,25 @@ def run_windows_service(config):
     setup_app(config)
     setup_logging(config)
     setup_signals(ws_server)
+    setup_task_queue(config)
 
-    # Initialize huey task queue
-    global task_queue
-    db_location = os.path.join(get_data_dir(), 'queue.db')
-    task_queue = SqliteHuey(location=unicode(db_location))
     consumer = Consumer(task_queue)
 
     def on_quit(systray):
         consumer.shutdown()
         ws_server.stop()
+        if app.config['mode'] in ('processor', 'full'):
+            discovery_listener.stop()
 
     # Start task consumer
     consumer.start()
     # Start websocket server
     ws_server.start()
+
+    if app.config['mode'] in ('processor', 'full'):
+        discovery_listener = DiscoveryListener(listening_port)
+        discovery_listener.start()
+
     server_thread = Thread(target=waitress.serve, args=(app,),
                            kwargs=dict(port=5000, threads=16))
     server_thread.daemon = True

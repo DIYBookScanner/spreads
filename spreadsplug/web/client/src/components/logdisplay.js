@@ -1,5 +1,22 @@
 /** @jsx React.DOM */
 /* global require, module */
+
+/*
+ * Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 (function() {
   'use strict';
 
@@ -7,7 +24,6 @@
       jQuery = require('jquery'),
       _ = require('underscore'),
       foundation = require('./foundation'),
-      events = require('../events'),
       column = foundation.column,
       row = foundation.row,
       pagination = foundation.pagination,
@@ -63,19 +79,19 @@
           </row>
           <row>
             <column size="6">
-              <a className="action-button fi-magnifying-glass"
+              <a className="action-button"
                  data-bypass={true}
                  href={"https://github.com/DIYBookScanner/spreads/search?q=" +
                        exception + "&type=Issues"}
-                  target="_blank"> Search for open issues</a>
+                  target="_blank"><i className="fa fa-search"/> Search for open issues</a>
             </column>
             <column size="6">
-              <a className="action-button fi-social-github"
+              <a className="action-button"
                  data-bypass={true}
                   href={"https://github.com/DIYBookScanner/spreads/issues/new" +
                         "?title=" + encodeURIComponent(exception) +
                         "&body=" + encodeURIComponent(bugreportTemplate) }
-                  target="_blank"> Open new issue</a>
+                  target="_blank"><i className="fa fa-github"/> Open new issue</a>
             </column>
           </row>
           <row>
@@ -176,7 +192,7 @@
     componentWillMount: function() {
       this.loadMessages();
       // Initialize polling
-      events.on('logrecord', function(message) {
+      window.router.events.on('logrecord', function(message) {
         if (!this.isMounted()) {
           return;
         }
@@ -190,7 +206,7 @@
       }, this);
     },
     componentWillUnmount: function() {
-      events.off('logrecord', null, this);
+      window.router.events.off('logrecord', null, this);
     },
     /** Callback when loglevel filter is changed */
     handleSetLevel: function(event) {

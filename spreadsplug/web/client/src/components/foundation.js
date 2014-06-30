@@ -1,5 +1,22 @@
 /** @jsx React.DOM */
 /* global module, require */
+
+/*
+ * Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 (function() {
   'use strict';
   var React = require('react/addons'),
@@ -15,7 +32,11 @@
    */
   row =  React.createClass({
     render: function() {
-      return this.transferPropsTo(<div className="row">{this.props.children}</div>);
+      var classes = classSet({
+        'row': true,
+        'collapse': this.props.collapse
+      });
+      return this.transferPropsTo(<div className={classes}>{this.props.children}</div>);
     }
   });
 
@@ -69,9 +90,9 @@
       });
       classes += " " + this.props.size;
       return (this.transferPropsTo(
-          <button onClick={this.props.callback} className={classes}>
+          <a onClick={this.props.callback} className={classes}>
               {this.props.children}
-          </button>));
+          </a>));
     }
   });
 
@@ -197,11 +218,17 @@
    * @property {React.Component[]} children - Child components
    */
   modal = React.createClass({
+    getDefaultProps: function() {
+      return {
+        small: true
+      };
+    },
     render: function() {
       var classes = classSet({
         'reveal-modal': true,
         'open': true,
-        'fixed': this.props.fixed
+        'fixed': this.props.fixed,
+        'small': this.props.small
       });
       return (
         <div className={classes}

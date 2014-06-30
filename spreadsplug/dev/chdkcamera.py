@@ -33,6 +33,17 @@ except ImportError:
         metadata.write()
 
 
+WHITEBALANCE_MODES = {
+    'Auto': 0,
+    'Daylight': 1,
+    'Cloudy': 2,
+    'Tungsten': 3,
+    'Fluorescent': 4,
+    'Fluorescent H': 5,
+    'Custom': 7
+}
+
+
 class CHDKPTPException(Exception):
     pass
 
@@ -61,13 +72,17 @@ class CHDKCameraDevice(DevicePlugin):
                  u"1/25", "The shutter speed as a fraction"),
              'zoom_level': OptionTemplate(3, "The default zoom level"),
              'dpi': OptionTemplate(300, "The capturing resolution"),
-             'shoot_raw': OptionTemplate(False, "Shoot in RAW format (DNG)"),
+             'shoot_raw': OptionTemplate(False, "Shoot in RAW format (DNG)",
+                                         advanced=True),
              'focus_distance': OptionTemplate(0, "Set focus distance"),
              'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
-             'chdkptp_path': OptionTemplate(
-                 u"/usr/local/lib/chdkptp",
-                 "Path to CHDKPTP binary/libraries"),
+             'wb_mode': OptionTemplate(value=sorted(WHITEBALANCE_MODES),
+                                       docstring='White balance mode',
+                                       selectable=True, advanced=True),
+             'chdkptp_path': OptionTemplate(u"/usr/local/lib/chdkptp",
+                                            "Path to CHDKPTP binary/libraries",
+                                            advanced=True),
              })
         return conf
 
@@ -180,7 +195,6 @@ class CHDKCameraDevice(DevicePlugin):
         os.remove(tmp_handle[1])
 
     def prepare_capture(self, path):
-        shoot_monochrome = self.config['monochrome'].get(bool)
         # Try to go into alt mode to prevent weird behaviour
         self._execute_lua("enter_alt()")
         # Try to put into record mode
@@ -189,25 +203,34 @@ class CHDKCameraDevice(DevicePlugin):
         except CHDKPTPException as e:
             self.logger.debug(e)
             self.logger.info("Camera already seems to be in recording mode")
-        self._set_zoom(int(self.config['zoom_level'].get()))
+        self._set_zoom()
         # Disable ND filter
         self._execute_lua("set_nd_filter(2)")
         self._set_focus()
-        if shoot_monochrome:
-            rv = self._execute_lua(
-                "capmode = require(\"capmode\")\n"
-                "return capmode.set(\"SCN_MONOCHROME\")",
-                get_result=True
-            )
-            if not rv:
-                self.logger.warn("Monochrome mode not supported on this "
-                                 "device, will be disabled.")
+        self._set_monochrome()
+        # Set White Balance mode
+        self._set_whitebalance()
         # Disable flash
-        self._execute_lua("while(get_flash_mode()<2) do click(\"right\") end")
+        self._execute_lua(
+            "props = require(\"propcase\")\n"
+            "if(get_flash_mode()~=2) then set_prop(props.FLASH_MODE, 2) end")
+        # Set Quality
         self._execute_lua("set_prop(require('propcase').QUALITY, {0})"
                           .format(self.MAX_QUALITY))
         self._execute_lua("set_prop(require('propcase').RESOLUTION, {0})"
                           .format(self.MAX_RESOLUTION))
+
+    def _set_monochrome(self):
+        if not self.config['monochrome'].get(bool):
+            return
+        rv = self._execute_lua(
+            "capmode = require(\"capmode\")\n"
+            "return capmode.set(\"SCN_MONOCHROME\")",
+            get_result=True
+        )
+        if not rv:
+            self.logger.warn("Monochrome mode not supported on this "
+                             "device, will be disabled.")
 
     def finish_capture(self):
         # Switch camera back to play mode.
@@ -231,14 +254,18 @@ class CHDKCameraDevice(DevicePlugin):
         shutter_speed = float(Fraction(self.config["shutter_speed"]
                               .get(unicode)))
         shoot_raw = self.config['shoot_raw'].get(bool)
+
+        # chdkptp expects that there is no file extension, so we temporarily
+        # strip it
+        noext_path = path.parent/path.stem
         if self._can_remote:
             cmd = ("remoteshoot -tv={0} -sv={1} {2} \"{3}\""
                    .format(shutter_speed, sensitivity*0.65,
-                           "-dng" if shoot_raw else "", path))
+                           "-dng" if shoot_raw else "", noext_path))
         else:
             cmd = ("shoot -tv={0} -sv={1} -dng={2} -rm -dl \"{3}\""
                    .format(shutter_speed, sensitivity*0.65,
-                           int(shoot_raw), path))
+                           int(shoot_raw), noext_path))
         try:
             self._run(cmd)
         except CHDKPTPException as e:
@@ -249,14 +276,20 @@ class CHDKCameraDevice(DevicePlugin):
                 self.logger.warn("Capture command failed.")
                 raise e
 
-        extension = 'dng' if shoot_raw else 'jpg'
-        local_path = "{0}.{1}".format(path, extension)
         # Set EXIF orientation
         self.logger.debug("Setting EXIF orientation on captured image")
         if self.target_page == 'odd':
-            update_exif_orientation(local_path, 6)  # -90°
+            update_exif_orientation(unicode(path), 6)  # -90°
         else:
-            update_exif_orientation(local_path, 8)  # 90°
+            update_exif_orientation(unicode(path), 8)  # 90°
+
+    def update_configuration(self, updated):
+        if 'zoom_level' in updated:
+            self._set_zoom()
+        if 'focus_distance' in updated:
+            self._set_focus()
+        if 'wb_mode' in updated:
+            self._set_whitebalance()
 
     def show_textbox(self, message):
         messages = message.split("\n")
@@ -279,9 +312,10 @@ class CHDKCameraDevice(DevicePlugin):
         env = {'LUA_PATH': unicode(chdkptp_path / "lua/?.lua")}
         self.logger.debug("Calling chdkptp with arguments: {0}"
                           .format(cmd_args))
-        output = (subprocess.check_output(cmd_args, env=env,
-                                          stderr=subprocess.STDOUT)
-                  .splitlines())
+        output = subprocess.check_output(
+            cmd_args, env=env, stderr=subprocess.STDOUT,
+            close_fds=True  # see http://stackoverflow.com/a/1297785/487903
+        ).splitlines()
         self.logger.debug("Call returned:\n{0}".format(output))
         # Filter out connected message
         output = [x for x in output if not x.startswith('connected:')]
@@ -334,7 +368,8 @@ class CHDKCameraDevice(DevicePlugin):
             raise ValueError("Could not read OWN.TXT")
         return target_page
 
-    def _set_zoom(self, level):
+    def _set_zoom(self):
+        level = int(self.config['zoom_level'].get())
         if level >= self._zoom_steps:
             raise ValueError("Zoom level {0} exceeds the camera's range!"
                              " (max: {1})".format(level, self._zoom_steps-1))
@@ -349,7 +384,7 @@ class CHDKCameraDevice(DevicePlugin):
         except CHDKPTPException as e:
             self.logger.debug(e)
             self.logger.info("Camera already seems to be in recording mode")
-        self._set_zoom(int(self.config['zoom_level'].get()))
+        self._set_zoom()
         self._execute_lua("set_aflock(0)")
         self._execute_lua("press('shoot_half')")
         time.sleep(0.8)
@@ -369,6 +404,11 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("release('shoot_half')")
         time.sleep(0.25)
         self._execute_lua("set_aflock(1)")
+
+    def _set_whitebalance(self):
+        value = WHITEBALANCE_MODES.get(self.config['wb_mode'].get())
+        self._execute_lua("set_prop(require('propcase').WB_MODE, {0})"
+                          .format(value))
 
 
 class A2200(CHDKCameraDevice):
@@ -393,7 +433,7 @@ class A2200(CHDKCameraDevice):
         # chdk 1.3, this is why we stub it out here.
         pass
 
-    def _set_zoom(self, level):
+    def _set_zoom(self):
         """ Set zoom level.
 
             The A2200 currently has a bug, where setting the zoom level
@@ -404,6 +444,7 @@ class A2200(CHDKCameraDevice):
         :type level:  int
 
         """
+        level = int(self.config['zoom_level'].get())
         if level >= self._zoom_steps:
             raise ValueError(
                 "Zoom level {0} exceeds the camera's range!"

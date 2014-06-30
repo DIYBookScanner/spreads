@@ -1,5 +1,6 @@
 @import "settings";
 @import "foundation";
+@import "font-awesome/font-awesome";
 
 @mixin animation ($animation, $duration, $iteration-count, $timing-function, $delay) {
   -webkit-animation: $animation $duration $iteration-count $timing-function $delay;
@@ -21,6 +22,25 @@
   -ms-transform: $transformation;
   -o-transform: $transformation;
   transform: $transformation;
+}
+
+.action-select {
+  width: 100%;
+  font-size: rem-calc(16) !important;
+}
+
+.button-list {
+  position: absolute;
+  z-index: 200;
+  list-style: none;
+  margin: 0;
+
+  .action-button.small {
+    width: 100%;
+    margin-bottom: 0;
+    text-align: left;
+    font-size: rem-calc(16);
+  }
 }
 
 .action-button {
@@ -47,17 +67,48 @@
   &.secondary { @include button-style($bg:$secondary-color); }
 
   &.complete { @include button-style($bg:$success-color); }
+
+  &.dropdown {
+    @include dropdown-button();
+    margin-bottom: 0;
+  }
 }
 
 .capture-preview {
   text-align: center;
 
+  li {
+    position: relative;
+    padding: 0;
+    margin-bottom: 1em;
+  }
+
+  .toggle-crop {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 0.25em;
+    background-color: rgba(255, 255, 255, 0.5);
+    z-index: 10;
+  }
+
+  .toggle-crop:hover {
+    background-color: rgba(255, 255, 255, 0.75);
+  }
+
+  .crop-preview {
+    position: absolute;
+    background-color: blue;
+    opacity: 0.5;
+  }
+
   img {
     @media #{$small-only} and (orientation: portrait) {
-      width: 75%
+      width: 100%
     }
     @media #{$medium-up} {
-      width: 100%;
+      width: 75%;
     }
   }
 }
@@ -77,17 +128,69 @@
   }
   li {
     .action-button {
+      @media #{$small-only} {
+        width: 20%;
+      }
       width: 10%;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
     }
     display: inline;
     list-style-type: none;
   }
   #retake-capture .action-button {
+    @media #{$small-only} {
+      width: 20%;
+    }
     width: 20%;
   }
   #trigger-capture .action-button {
+    @media #{$small-only} {
+      width: 40%;
+    }
     width: 45%;
   }
+}
+
+li.page-preview {
+  position: relative;
+  text-align: center;
+  padding: 0;
+  line-height: 1.5;
+
+  &.selected {
+    background-color: green;
+
+    img {
+      opacity: 0.75;
+    }
+  }
+
+  .toggle-zoom {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: calc(100% - 1.875rem);
+    padding: 0.25em;
+    margin-left: 0.9375rem;
+    background-color: rgba(255, 255, 255, 0.5);
+    z-index: 10;
+  }
+
+  .toggle-zoom:hover {
+    background-color: rgba(255, 255, 255, 0.75);
+  }
+
+}
+
+.select-image {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  opacity: 0.75;
+  font-size: 2.5em;
+  color: white;
+  text-shadow: black 0.1em 0.1em;
 }
 
 .shortcuts ul {
@@ -128,14 +231,23 @@
 }
 
 .reveal-modal {
-    width: 50%;
-    margin-left: -25%;
+  &.small {
+    @media #{$medium-up} {
+        width: 50%;
+        margin-left: -25%;
+    }
+  }
 
   &.fixed {
+    z-index: 100;
     position: fixed;
     margin-left: 0;
     top: 10%;
-    left: 25%;
+    min-height: 0;
+
+    @media #{$medium-up} {
+      left: 25%;
+    }
   }
 }
 
@@ -159,7 +271,9 @@
     outline: none;
 
     img {
-      max-width: 100%;
+      // Only works for Firefox 26+
+      image-orientation: from-image;
+      max-width: calc(100% - 160px);
       max-height: 100%;
     }
   }
@@ -220,6 +334,152 @@
   margin-bottom: 0;
 }
 
+.crop-container {
+  position: relative;
+
+  .cropbox {
+    position: absolute;
+    background-color: white;
+    opacity: 0.5;
+    cursor: move;
+    background-size: 3em;
+    background-repeat: no-repeat;
+    background-position: center;
+    border: 1px dashed black;
+
+    &.touch {
+      background-image: url("../img/icon-move.svg");
+    }
+
+    &.active {
+      background-color: royalblue;
+    }
+
+    .drag {
+      position: absolute;
+      width: 3em;
+      height: 3em;
+      text-align: center;
+      background-size: 3em;
+      background-repeat: no-repeat;
+      background-position: center;
+
+      &.active {
+        background-color: royalblue;
+      }
+
+      &.upper-left {
+        top: 0;
+        left: 0;
+        cursor: nw-resize;
+        &.touch {
+          border-right: 1px dashed black;
+          border-bottom: 1px dashed black;
+        }
+      }
+
+      &.touch.upper-left,
+      &.touch.lower-right {
+        background-size: 2em;
+        background-image: url("../img/icon-drag-corner1.svg");
+      }
+
+      &.upper-middle {
+        top: 0;
+        left: 3em;
+        width: calc(100% - 6em);
+        cursor: n-resize;
+        border: 0;
+        &.touch {
+          border-bottom: 1px dashed black;
+        }
+      }
+
+      &.touch.upper-middle,
+      &.touch.lower-middle {
+        background-image: url("../img/icon-drag-up.svg");
+      }
+
+      &.upper-right {
+        top: 0;
+        right: 0;
+        cursor: ne-resize;
+        &.touch {
+          border-left: 1px dashed black;
+          border-bottom: 1px dashed black;
+        }
+      }
+
+      &.touch.upper-right,
+      &.touch.lower-left {
+        background-size: 2em;
+        background-image: url("../img/icon-drag-corner2.svg");
+      }
+
+      &.middle-left {
+        top: 3em;
+        left: 0;
+        height: calc(100% - 6em);
+        cursor: w-resize;
+        border: 0;
+        &.touch {
+          border-right: 1px dashed black;
+        }
+      }
+
+      &.middle-right {
+        top: 3em;
+        right: 0;
+        height: calc(100% - 6em);
+        cursor: e-resize;
+        border: 0;
+        &.touch {
+          border-left: 1px dashed black;
+        }
+      }
+
+      &.touch.middle-left,
+      &.touch.middle-right {
+        background-image: url("../img/icon-drag-left.svg");
+      }
+
+      &.lower-left {
+        bottom: 0;
+        left: 0;
+        cursor: sw-resize;
+        &.touch {
+          border-right: 1px dashed black;
+          border-top: 1px dashed black;
+        }
+      }
+
+      &.lower-middle {
+        bottom: 0;
+        left: 3em;
+        width: calc(100% - 6em);
+        cursor: s-resize;
+        border: 0;
+        &.touch {
+          border-top: 1px dashed black;
+        }
+      }
+
+      &.lower-right {
+        bottom: 0;
+        right: 0;
+        cursor: se-resize;
+        &.touch {
+          border-left: 1px dashed black;
+          border-top: 1px dashed black;
+        }
+      }
+    }
+  }
+
+  img {
+    width: 100%;
+  }
+}
 /* ======= Animations ======== */
 @include keyframes(bounce) {
   0%, 100% {
@@ -234,59 +494,11 @@
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 300;
-  src: url('/static/fonts/OpenSans-Light-webfont.eot');
-  src: url('/static/fonts/OpenSans-Light-webfont.eot?#iefix') format('embedded-opentype'),
-       url('/static/fonts/OpenSans-Light-webfont.woff') format('woff'),
-       url('/static/fonts/OpenSans-Light-webfont.ttf') format('truetype'),
-       url('/static/fonts/OpenSans-Light-webfont.svg#open_sanslight') format('svg');
+  src: url('../fonts/OpenSans-Light-webfont.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 400;
-  src: url('/static/fonts/OpenSans-Regular-webfont.eot');
-  src: url('/static/fonts/OpenSans-Regular-webfont.eot?#iefix') format('embedded-opentype'),
-       url('/static/fonts/OpenSans-Regular-webfont.woff') format('woff'),
-       url('/static/fonts/OpenSans-Regular-webfont.ttf') format('truetype'),
-       url('/static/fonts/OpenSans-Regular-webfont.svg#open_sansregular') format('svg');
-}
-@font-face {
-  font-family: 'Open Sans';
-  font-style: normal;
-  font-weight: 700;
-  src: url('/static/fonts/OpenSans-Bold-webfont.eot');
-  src: url('/static/fonts/OpenSans-Bold-webfont.eot?#iefix') format('embedded-opentype'),
-       url('/static/fonts/OpenSans-Bold-webfont.woff') format('woff'),
-       url('/static/fonts/OpenSans-Bold-webfont.ttf') format('truetype'),
-       url('/static/fonts/OpenSans-Bold-webfont.svg#open_sansbold') format('svg');
-}
-@font-face {
-  font-family: 'Open Sans';
-  font-style: italic;
-  font-weight: 300;
-  src: url('/static/fonts/OpenSans-LightItalic-webfont.eot');
-  src: url('/static/fonts/OpenSans-LightItalic-webfont.eot?#iefix') format('embedded-opentype'),
-       url('/static/fonts/OpenSans-LightItalic-webfont.woff') format('woff'),
-       url('/static/fonts/OpenSans-LightItalic-webfont.ttf') format('truetype'),
-       url('/static/fonts/OpenSans-LightItalic-webfont.svg#open_sanslight_italic') format('svg');
-}
-@font-face {
-  font-family: 'Open Sans';
-  font-style: italic;
-  font-weight: 400;
-  src: url('/static/fonts/OpenSans-Italic-webfont.eot');
-  src: url('/static/fonts/OpenSans-Italic-webfont.eot?#iefix') format('embedded-opentype'),
-       url('/static/fonts/OpenSans-Italic-webfont.woff') format('woff'),
-       url('/static/fonts/OpenSans-Italic-webfont.ttf') format('truetype'),
-       url('/static/fonts/OpenSans-Italic-webfont.svg#open_sansitalic') format('svg');
-}
-@font-face {
-  font-family: 'Open Sans';
-  font-style: italic;
-  font-weight: 700;
-  src: url('/static/fonts/OpenSans-BoldItalic-webfont.eot');
-  src: url('/static/fonts/OpenSans-BoldItalic-webfont.eot?#iefix') format('embedded-opentype'),
-       url('/static/fonts/OpenSans-BoldItalic-webfont.woff') format('woff'),
-       url('/static/fonts/OpenSans-BoldItalic-webfont.ttf') format('truetype'),
-       url('/static/fonts/OpenSans-BoldItalic-webfont.svg#open_sansbold_italic') format('svg');
+  src: url('../fonts/OpenSans-Regular-webfont.ttf') format('truetype');
 }

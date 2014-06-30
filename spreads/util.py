@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2013 Johannes Baiter. All rights reserved.
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """ Various utility functions.
 """
@@ -26,12 +22,16 @@ from __future__ import division, unicode_literals
 
 import abc
 import itertools
+import json
 import logging
 import os
 import platform
+import re
+from unicodedata import normalize
 
 import blinker
 import psutil
+import roman
 from colorama import Fore, Back, Style
 from spreads.vendor.pathlib import Path
 
@@ -91,6 +91,35 @@ def check_futures_exceptions(futures):
 
 def get_free_space(path):
     return psutil.disk_usage(unicode(path)).free
+
+
+PUNCTUATION_REXP = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
+def slugify(text, delimiter=u'-'):
+    """Generates an ASCII-only slug.
+
+    Code adapted from Flask snipped by Armin Ronacher:
+    http://flask.pocoo.org/snippets/5/
+
+    :param text:        Text to create slug for
+    :type text:         unicode
+    :param delimiter:   Delimiter to use in slug
+    :type delimiter:    unicode
+    :return:            The generated slug
+    :rtype:             unicode
+    """
+    result = []
+    for word in PUNCTUATION_REXP.split(text.lower()):
+        word = normalize('NFKD', word).encode('ascii', 'ignore')
+        if word:
+            result.append(word)
+    return unicode(delimiter.join(result))
+
+
+def get_next(generator, default=None):
+    try:
+        return next(generator)
+    except StopIteration:
+        return default
 
 
 class _instancemethodwrapper(object):
@@ -222,3 +251,75 @@ def get_data_dir(create=False):
     if create and not app_path.exists():
         app_path.mkdir()
     return unicode(app_path)
+
+
+class RomanNumeral(object):
+    @staticmethod
+    def is_roman(value):
+        return bool(roman.romanNumeralPattern.match(value))
+
+    def __init__(self, value, case='upper'):
+        self._val = self._to_int(value)
+        self._case = case
+        if isinstance(value, basestring) and not self.is_roman(value):
+            self._case = 'lower'
+        elif isinstance(value, RomanNumeral):
+            self._case = value._case
+
+    def _to_int(self, value):
+        if isinstance(value, int):
+            return value
+        elif isinstance(value, basestring) and self.is_roman(value.upper()):
+            return roman.fromRoman(value.upper())
+        elif isinstance(value, RomanNumeral):
+            return value._val
+        else:
+            raise ValueError("Value must be a valid roman numeral, a string"
+                             " representing one or an integer: '{0}'"
+                             .format(value))
+
+    def __cmp__(self, other):
+        if self._val > self._to_int(other):
+            return 1
+        elif self._val == self._to_int(other):
+            return 0
+        elif self._val < self._to_int(other):
+            return -1
+
+    def __add__(self, other):
+        return RomanNumeral(self._val + self._to_int(other), self._case)
+
+    def __sub__(self, other):
+        return RomanNumeral(self._val - self._to_int(other), self._case)
+
+    def __int__(self):
+        return self._val
+
+    def __str__(self):
+        strval = roman.toRoman(self._val)
+        if self._case == 'lower':
+            return strval.lower()
+        else:
+            return strval
+
+    def __unicode__(self):
+        return unicode(str(self))
+
+    def __repr__(self):
+        return str(self)
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, 'to_dict'):
+            return obj.to_dict()
+        if isinstance(obj, Path):
+            # Serialize paths that belong to a workflow as paths relative to
+            # its base directory
+            base = get_next(p for p in obj.parents
+                            if (p/'bagit.txt').exists())
+            if base:
+                return unicode(obj.relative_to(base))
+            else:
+                return unicode(obj)
+        return json.JSONEncoder.default(self, obj)

@@ -1,32 +1,35 @@
 /** @jsx React.DOM */
 /* global module, require */
+
+/*
+ * Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 (function() {
   'use strict';
   var React = require('react/addons'),
       _ = require('underscore'),
       merge = require('react/lib/merge'),
       foundation = require('./foundation.js'),
-      ModelMixin = require('../../lib/backbonemixin.js'),
+      ModelMixin = require('../../vendor/backbonemixin.js'),
+      capitalize = require('../util.js').capitalize,
       row = foundation.row,
       column = foundation.column,
       fnButton = foundation.button,
       PluginOption, PluginWidget, PluginConfiguration;
 
-  /**
-   * Some helper mixins for underscore that we're going to need
-   *
-   * @mixin
-   */
-  _.mixin({
-    /**
-     * Convert the first letter of a given string to uppercase.
-     *
-     * @param {string} string
-     */
-    capitalize: function(string) {
-        return string.charAt(0).toUpperCase() + string.substring(1).toLowerCase();
-      }
-  });
 
   /**
    * A single option component for the workflow configuration.
@@ -43,14 +46,14 @@
           bindFunc = this.props.bindFunc,
           /* If there is a docstring, use it as the label, otherwise use
            * the capitalized name */
-          label =  <label htmlFor={name}>{option.docstring || _.capitalize(name)}</label>,
+          label =  <label htmlFor={name}>{option.docstring || capitalize(name)}</label>,
           input;
       if (option.selectable && _.isArray(option.value)) {
         /* Use a dropdown to represent selectable values */
         input = (
           <select id={name} multiple={false} valueLink={bindFunc(name)}>
             {_.map(option.value, function(key) {
-              return <option value={key}>{key}</option>;
+              return <option key={key} value={key}>{key}</option>;
             })}
           </select>
         );
@@ -102,6 +105,9 @@
             </row>
             {_.map(template, function(option, key) {
               var path = 'config.' + this.props.plugin + '.' + key;
+              if (!this.props.showAdvanced && option.advanced) {
+                  return;
+              }
               return (<PluginOption name={key} option={option} key={key}
                                     bindFunc={this.props.bindFunc}
                                     error={this.props.errors[path]} />);
@@ -143,12 +149,27 @@
     handleSelect: function(event) {
       this.setState({selectedPlugin: event.target.value});
     },
+    toggleAdvanced: function(){
+      this.setState({ advancedOpts: !this.state.advancedOpts });
+      this.forceUpdate();
+    },
     render: function() {
-      var templates = window.pluginTemplates,
+      var templates = this.props.templates,
+          plugins = _.filter(this.props.workflow.get('config').plugins, function(plugin) {
+            return !_.isEmpty(templates[plugin]);
+          }),
           /* If no plugin is explicitely selected, use the first one */
-          selectedPlugin = this.state.selectedPlugin || _.keys(templates)[0];
-      /* Don't display anything if there are no templates */
-      if (_.isEmpty(templates)) {
+          selectedPlugin = this.state.selectedPlugin;
+
+      if (window.config.web.mode !== 'processor') {
+          plugins.push('device');
+      }
+
+      if (!selectedPlugin || !_.contains(plugins, selectedPlugin)){
+        selectedPlugin = plugins[0];
+      }
+      /* Don't display anything if there are no plugins */
+      if (_.isEmpty(plugins)) {
         return <row />;
       }
       return (
@@ -156,15 +177,19 @@
           <column size='12'>
             <label>Configure plugin</label>
             <select onChange={this.handleSelect}>
-              {_.keys(templates).map(function(plugin) {
-                return <option key={plugin} value={plugin}>{_.capitalize(plugin)}</option>;
+              {plugins.map(function(plugin) {
+                return <option key={plugin} value={plugin}>{capitalize(plugin)}</option>;
               })}
             </select>
+            <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
+                    onChange={this.toggleAdvanced} />
+            <label htmlFor="check-advanced">Show advanced options</label>
             {/* NOTE: This is kind of nasty.... We can't use _'s 'partial',
                       since we want to provide the second argument and leave
                       the first one to the caller. */}
             <PluginWidget plugin={selectedPlugin}
                           template={templates[selectedPlugin]}
+                          showAdvanced={this.state.advancedOpts}
                           bindFunc={function(key) {
                             return this.bindTo(
                               this.props.workflow,

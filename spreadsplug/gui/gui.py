@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import logging
 import time
 
@@ -232,7 +249,7 @@ class CapturePage(QtGui.QWizardPage):
     def initializePage(self):
         self.setTitle("Capturing from devices")
         self.start_time = None
-        self.shot_count = None
+        self.shot_count = 0
 
         # TODO: Add horizontally scrolling box with thumbnails of all
         #       previously shot images
@@ -282,12 +299,12 @@ class CapturePage(QtGui.QWizardPage):
             self.doCapture()
 
     def updateControl(self):
-        images = self.wizard().workflow.images
+        images = [p.raw_image for p in self.wizard().workflow.pages[-2:]]
         self.control_odd.setPixmap(
-            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[-2]))
+            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[0]))
                                     .scaledToWidth(250)))
         self.control_even.setPixmap(
-            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[-1]))
+            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[1]))
                                     .scaledToWidth(250)))
 
     def retakeCapture(self):
@@ -304,16 +321,16 @@ class CapturePage(QtGui.QWizardPage):
                 time.sleep(0.001)
         self.capture_btn.setEnabled(True)
         self.capture_btn.setFocus()
-        pages_shot = self.wizard().workflow._pages_shot
+        self.shot_count += len(self.wizard().workflow.devices)
         if hasattr(self, '_start_time'):
             capture_speed = ((3600 / (time.time() - self._start_time))
-                             * pages_shot)
+                             * self.shot_count)
         else:
-            self._start_time = start_time
+            self._start_time = time.time()
             capture_speed = 0.0
         self.status.setText(
             "Shot {0} pages in {1:.0f} minutes ({2:.0f} pages/hour)"
-            .format(pages_shot, (time.time() - self._start_time) / 60,
+            .format(self.shot_count, (time.time() - self._start_time) / 60,
                     capture_speed))
         self.updateControl()
 
@@ -342,9 +359,13 @@ class PostprocessPage(QtGui.QWizardPage):
         QtCore.QTimer.singleShot(0, self.doPostprocess)
 
     def doPostprocess(self):
-        self.wizard().workflow.on_step_progressed.connect(
-            lambda x, **kwargs: self.progressbar.setValue(
-                int(kwargs['progress']*100)), weak=False)
+        def progress_callback(wf, changes):
+            if 'status' in changes and 'step_progress' in changes['status']:
+                self.progressbar.setValue(
+                    int(changes['status']['step_progress']*100))
+
+        workflow.on_modified.connect(progress_callback, weak=False,
+                                     sender=self.wizard().workflow)
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(self.wizard().workflow.process)
             while not future.done():
@@ -389,9 +410,13 @@ class OutputPage(QtGui.QWizardPage):
         QtCore.QTimer.singleShot(0, self.doGenerateOutput)
 
     def doGenerateOutput(self):
-        self.wizard().workflow.on_step_progressed.connect(
-            lambda x, **kwargs: self.progressbar.setValue(
-                int(kwargs['progress']*100)), weak=False)
+        def progress_callback(wf, changes):
+            if 'status' in changes and 'step_progress' in changes['status']:
+                self.progressbar.setValue(
+                    int(changes['status']['step_progress']*100))
+
+        workflow.on_modified.connect(progress_callback, weak=False,
+                                     sender=self.wizard().workflow)
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(self.wizard().workflow.output)
             while not future.done():

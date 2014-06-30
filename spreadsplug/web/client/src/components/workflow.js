@@ -1,15 +1,79 @@
 /** @jsx React.DOM */
 /* global module, require */
+
+/*
+ * Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 (function() {
   'use strict';
 
   var React = require('react/addons'),
-      ModelMixin = require('../workflow.js'),
+      jQuery = require('jquery'),
+      _ = require('underscore'),
+      ModelMixin = require('../../vendor/backbonemixin.js'),
       foundation = require('./foundation.js'),
       lightbox = require('./overlays.js').LightBox,
+      util = require('../util.js'),
       row = foundation.row,
       column = foundation.column,
-      pagination = foundation.pagination;
+      pagination = foundation.pagination,
+      PagePreview;
+
+  PagePreview = React.createClass({
+    displayName: "PagePreview",
+    getInitialState: function() {
+      // We always display the toolbar when we're on a touch device, since
+      // hover events are not available.
+      return { displayToolbar: util.isTouchDevice() };
+    },
+    toggleToolbar: function() {
+      if (!util.isTouchDevice()) {
+        this.setState({displayToolbar: !this.state.displayToolbar});
+      }
+    },
+    render: function() {
+      var cx = require('react/addons').addons.classSet,
+          liClasses = cx({
+            'th': true,
+            'page-preview': true,
+            'selected': this.props.selected
+          }),
+          page = this.props.page,
+          thumbUrl = util.getPageUrl(this.props.workflow, page, this.props.imageType, true);
+      return (
+        <li className={liClasses} title="Open full resolution image in lightbox"
+            onMouseEnter={this.toggleToolbar} onMouseLeave={this.toggleToolbar}>
+          <row>
+            <column>
+              <a onClick={this.props.selectCallback}
+                title={this.props.selected ? "Deselect image" : "Select image"}>
+                <img src={thumbUrl} />
+              </a>
+              {this.state.displayToolbar &&
+              <a onClick={this.props.lightboxCallback}  className="toggle-zoom fa fa-search-plus" />}
+            </column>
+          </row>
+          <row>
+            <column>
+              {page.page_label}
+            </column>
+          </row>
+        </li>);
+    }
+  })
 
   /**
    * Component that displays details for a single workflow along with
@@ -35,7 +99,11 @@
         /** Number of thumbnails to display */
         thumbCount: 24,
         /** Image to display in a lightobx overlay */
-        lightboxImage: undefined
+        lightboxImage: undefined,
+        lightboxNext: undefined,
+        lightboxPrevious: undefined,
+        imageType: 'raw',
+        selectedPages: []
       };
     },
     /**
@@ -46,9 +114,20 @@
      *
      * @param {string} [img] - URL for image to be displayed in lightbox
      */
-    toggleLightbox: function(img) {
+    toggleLightbox: function(workflow, page) {
+      console.debug(workflow, page);
+      var image, next, previous;
+      if (page) {
+        var allPages = workflow.get('pages'),
+            pageIdx = allPages.indexOf(page);
+        image = util.getPageUrl(this.props.workflow, page, this.state.imageType, false);
+        next = (pageIdx != (allPages.length-1)) && allPages[pageIdx+1];
+        previous = (pageIdx != 0) && allPages[pageIdx-1];
+      }
       this.setState({
-        lightboxImage: img
+        lightboxImage: image,
+        lightboxNext: next,
+        lightboxPrevious: previous
       });
     },
     /**
@@ -61,17 +140,48 @@
         thumbStart: (pageIdx-1)*this.state.thumbCount
       });
     },
+    togglePageSelect: function(page) {
+      var pages = this.state.selectedPages;
+      if (_.contains(pages, page)) {
+        this.setState({selectedPages: _.without(pages, page)});
+      } else {
+        pages.push(page);
+        this.setState({selectedPages: pages});
+      }
+    },
+    bulkDelete: function() {
+      this.props.workflow.deletePages(this.state.selectedPages);
+    },
+    handleImageTypeSelect: function(event) {
+      this.setState({
+        imageType: event.target.value
+      });
+    },
     render: function() {
       var workflow = this.props.workflow,
-          pageCount = Math.ceil(workflow.get('images').length / this.state.thumbCount),
+          pageCount = Math.ceil(workflow.get('pages').length / this.state.thumbCount),
           thumbStart = this.state.thumbStart,
-          thumbStop = this.state.thumbStart+this.state.thumbCount;
+          thumbStop = this.state.thumbStart+this.state.thumbCount,
+          deleteClasses = require('react/addons').addons.classSet({
+            'small': true,
+            'button': true,
+            'disabled': this.state.selectedPages.length === 0
+          }),
+          imageTypes = ['raw'].concat(_.without(_.keys(workflow.get('pages')[0].processed_images), 'tesseract'));
       return (
         <main>
           {/* Display image in lightbox overlay? */}
           {this.state.lightboxImage &&
             <lightbox onClose={function(){this.toggleLightbox();}.bind(this)}
-                      src={this.state.lightboxImage} />
+                      src={this.state.lightboxImage}
+                      handleNext={this.state.lightboxNext && function(e) {
+                        e.stopPropagation();
+                        this.toggleLightbox(workflow, this.state.lightboxNext);
+                      }.bind(this)}
+                      handlePrevious={this.state.lightboxPrevious && function(e) {
+                        e.stopPropagation();
+                        this.toggleLightbox(workflow, this.state.lightboxPrevious);
+                      }.bind(this)}/>
           }
           <row>
             <column size='12'>
@@ -82,9 +192,8 @@
             <column size='12'>
               <h2>Metadata</h2>
               <ul>
-                {workflow.has('step') ?
-                  <li>{workflow.get('step') + ': ' +
-                       (workflow.get('step_done') ? 'completed' : 'in progress')}</li>:
+                {workflow.get('status').step ?
+                  <li>{workflow.get('status').step}</li>:
                   <li>Current step: <em>inactive</em></li>
                 }
                 <li>Enabled plugins:{' '}{workflow.get('config').plugins.join(', ')}</li>
@@ -93,19 +202,29 @@
           </row>
 
           {/* Only show image thumbnails when there are images in the workflow */}
-          {(workflow.has('images') && workflow.get('images')) &&
+          {(workflow.has('pages') && workflow.get('pages')) &&
           <row>
             <column size='12'>
-              <h2>Captured images</h2>
-              <ul className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
-                {workflow.get('images').slice(thumbStart, thumbStop).map(function(image) {
+              <h2>Pages</h2>
+              <div className="button-bar">
+                <ul className="button-group">
+                  <li><a onClick={this.bulkDelete} className={deleteClasses}><i className="fa fa-trash-o" /> Delete</a></li>
+                  <li>
+                    <select onChange={this.handleImageTypeSelect}>
+                    {imageTypes.map(function(name) {
+                      return <option key={name} value={name}>{name}</option>;
+                    })}
+                    </select>
+                  </li>
+                </ul>
+              </div>
+              <ul ref="pagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
+                {workflow.get('pages').slice(thumbStart, thumbStop).map(function(page) {
                     return (
-                      <li key={image}>
-                        <a className="th" title="Open full resolution image in lightbox" onClick={
-                            function(){this.toggleLightbox(image);}.bind(this)}>
-                          <img src={image + '/thumb'} />
-                        </a>
-                      </li>
+                      <PagePreview page={page} workflow={workflow} key={page.capture_num} imageType={this.state.imageType}
+                                   selected={_.contains(this.state.selectedPages, page)}
+                                   selectCallback={function(){this.togglePageSelect(page)}.bind(this)}
+                                   lightboxCallback={function(){this.toggleLightbox(workflow, page);}.bind(this)} />
                     );
                   }.bind(this))}
               </ul>
@@ -114,16 +233,24 @@
           </row>}
 
           {/* Only show output file list if there are output files in the workflow */}
-          {(workflow.has('output_files') && workflow.get('output_files').length) &&
+          {!_.isEmpty(workflow.get('out_files')) &&
           <row>
             <column size='12'>
               <h2>Output files</h2>
-              <ul>
-                {workflow.get('output_files').map(function(outFile) {
+              <ul ref="outputlist" className="fa-ul">
+                {_.map(workflow.get('out_files'), function(outFile) {
+                    var fileUrl = '/api/workflow/' + this.props.workflow.id + '/output/' + outFile.name,
+                        classes = {
+                          'fa-li': true,
+                          'fa': true,
+                        };
+                    if (outFile.mimetype === "text/html") classes['fa-file-code-o'] = true;
+                    else if (outFile.mimetype === "application/pdf") classes['fa-file-pdf-o'] = true;
+                    else classes['fa-file'] = true;
                     return (
-                      <li key={outFile}><a href={outFile}>{outFile}</a></li>
+                      <li key={outFile.name}><a href={fileUrl}><i className={React.addons.classSet(classes)} /> {outFile.name}</a></li>
                     );
-                  })}
+                  }, this)}
               </ul>
             </column>
           </row>}

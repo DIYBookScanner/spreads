@@ -3,6 +3,7 @@ from contextlib import nested
 import mock
 import pytest
 import spreads.vendor.confit as confit
+from spreads.vendor.pathlib import Path
 
 import spreads.util as util
 import spreadsplug.dev.chdkcamera as chdkcamera
@@ -124,14 +125,14 @@ def test_set_target_page(write, camera):
 
 
 def test_prepare_capture(camera):
-    camera.prepare_capture('/tmp/foo')
+    camera.prepare_capture(Path('/tmp/foo.jpg'))
     camera._execute_lua.assert_any_call('enter_alt()')
     camera._run.assert_any_call('rec')
 
 
 def test_prepare_capture_withrec(camera):
     camera._run.side_effect = chdkcamera.CHDKPTPException()
-    camera.prepare_capture('/tmp/foo')
+    camera.prepare_capture(Path('/tmp/foo.jpg'))
     camera._execute_lua.assert_any_call('enter_alt()')
     camera._run.assert_any_call('rec')
 
@@ -151,9 +152,10 @@ def test_get_preview_image(mock_open, camera):
 @mock.patch('spreadsplug.dev.chdkcamera.JPEGImage')
 def test_capture(jpeg, camera):
     jpeg.return_value = mock.Mock()
-    camera.capture('/tmp/000')
+    camera.capture(Path('/tmp/000.jpg'))
     assert camera._run.call_count == 1
     assert camera._run.call_args_list[0][0][0].startswith('remoteshoot')
+    assert camera._run.call_args_list[0][0][0].endswith('"/tmp/000"')
     assert jpeg.called_once_with('/tmp/000.jpg')
     assert jpeg.return_value.exif_orientation == 6
     assert jpeg.return_value.save.called_once_with('/tmp/000.jpg')
@@ -163,9 +165,10 @@ def test_capture(jpeg, camera):
 def test_capture_raw(jpeg, camera):
     jpeg.return_value = mock.Mock()
     camera.config['shoot_raw'] = True
-    camera.capture('/tmp/000')
+    camera.capture(Path('/tmp/000.dng'))
     assert camera._run.call_count == 1
     assert "-dng " in camera._run.call_args_list[0][0][0]
+    assert camera._run.call_args_list[0][0][0].endswith('"/tmp/000"')
     assert jpeg.called_once_with('/tmp/000.dng')
 
 
@@ -174,7 +177,7 @@ def test_capture_noprepare(jpeg, camera):
     camera._run.side_effect = (
         chdkcamera.CHDKPTPException('dev not in rec mode'), None)
     with mock.patch.object(camera, 'prepare_capture') as prepare:
-        camera.capture('/tmp/000')
+        camera.capture(Path('/tmp/000.jpg'))
         assert prepare.call_count == 1
         assert camera._run.call_count == 2
 
@@ -183,7 +186,7 @@ def test_capture_noprepare(jpeg, camera):
 def test_capture_noremote(jpeg, camera):
     jpeg.return_value = mock.Mock()
     camera._can_remote = False
-    camera.capture('/tmp/000')
+    camera.capture(Path('/tmp/000.jpg'))
     assert camera._run.call_count == 1
     assert camera._run.call_args_list[0][0][0].startswith('shoot')
 
@@ -191,7 +194,7 @@ def test_capture_noremote(jpeg, camera):
 def test_capture_error(camera):
     camera._run.side_effect = chdkcamera.CHDKPTPException('foobar')
     with pytest.raises(chdkcamera.CHDKPTPException) as exc:
-        camera.capture('/tmp/000')
+        camera.capture(Path('/tmp/000.jpg'))
         assert exc is camera._run.side_effect
 
 
@@ -205,7 +208,7 @@ def test_run(sp, camera_nomock):
     sp.check_output.assert_called_with(
         [u'/tmp/chdkptp/chdkptp', '-c-d=002 -b=001', '-eset cli_verbose=2',
             '-efoobar'], env={'LUA_PATH': u'/tmp/chdkptp/lua/?.lua'},
-        stderr=sp.STDOUT)
+        stderr=sp.STDOUT, close_fds=True)
 
 
 @mock.patch('spreadsplug.dev.chdkcamera.subprocess')
@@ -270,9 +273,11 @@ def test_get_target_page_error(camera):
 
 def test_set_zoom(camera):
     camera._zoom_steps = 8
+    camera.config['zoom_level'] = 10
     with pytest.raises(ValueError):
-        camera._set_zoom(10)
-    camera._set_zoom(7)
+        camera._set_zoom()
+    camera.config['zoom_level'] = 7
+    camera._set_zoom()
     camera._execute_lua.assert_called_once_with("set_zoom(7)", wait=True)
 
 
@@ -332,11 +337,13 @@ def test_a2200_finish_capture(a2200):
 
 def test_a2200_set_zoom(a2200):
     a2200._zoom_steps = 8
+    a2200.config['zoom_level'] = 10
     with pytest.raises(ValueError):
-        a2200._set_zoom(10)
+        a2200._set_zoom()
     with mock.patch.object(a2200, '_execute_lua') as lua:
         lua.return_value = 1
-        a2200._set_zoom(7)
+        a2200.config['zoom_level'] = 7
+        a2200._set_zoom()
         lua.return_value = 8
-        a2200._set_zoom(7)
+        a2200._set_zoom()
         assert lua.call_count == 4

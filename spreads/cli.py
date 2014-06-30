@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2013 Johannes Baiter. All rights reserved.
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
 spreads CLI code.
@@ -25,14 +21,19 @@ spreads CLI code.
 
 from __future__ import division, unicode_literals, print_function
 
+import argparse
+import logging
+import logging.handlers
 import sys
 import time
 
 import colorama
+from spreads.vendor.pathlib import Path
 
+import spreads.workflow
 import spreads.plugin as plugin
-from spreads.util import DeviceException
-from spreads.workflow import Workflow
+from spreads.config import Configuration
+from spreads.util import DeviceException, ColourStreamHandler, EventHandler
 
 if sys.platform == 'win32':
     import msvcrt
@@ -70,23 +71,28 @@ def _select_driver():
     print(colorize("Please select a device driver from the following list:",
                    colorama.Fore.BLUE))
     available_drivers = plugin.available_drivers()
+    print("  [0]: None")
     for pos, ext in enumerate(plugin.available_drivers(), 1):
         print("  [{0}]: {1}".format(pos, ext))
     while True:
         selection = raw_input("Select a driver: ")
         if not selection.isdigit() or int(selection) > len(available_drivers):
-            print(colorize("Please select a number in the range of 1 to {0}"
+            print(colorize("Please select a number in the range of 0 to {0}"
                            .format(len(available_drivers)), colorama.Fore.RED))
             continue
+        if int(selection) == 0:
+            return None
         driver = unicode(available_drivers[int(selection)-1])
         print(colorize("Selected \"{0}\" as device driver".format(driver),
                        colorama.Fore.GREEN))
         return driver
 
 
-def _select_plugins(selected_plugins=None):
-    if selected_plugins is None:
+def _select_plugins(preselected=None):
+    if preselected is None:
         selected_plugins = []
+    else:
+        selected_plugins = preselected[:]
     print("Please select your desired plugins from the following list:")
     available_plugins = plugin.available_plugins()
     while True:
@@ -149,20 +155,25 @@ def _set_device_target_page(config, target_page):
 
 def configure(config):
     old_plugins = config["plugins"].get()
-    config["driver"] = _select_driver()
+    driver_name = _select_driver()
+    if driver_name:
+        config["driver"] = driver_name
+        driver = plugin.get_driver(config["driver"].get())
+    else:
+        driver = None
     config["plugins"] = _select_plugins(old_plugins)
     _setup_processing_pipeline(config)
 
     # Load default configuration for newly added plugins
     new_plugins = [x for x in config["plugins"].get() if x not in old_plugins]
     for name in new_plugins:
+        if not name in config.templates:
+            continue
         config.set_from_template(name, config.templates[name])
-
-    driver = plugin.get_driver(config["driver"].get())
 
     # We only need to set the device target_page if the driver supports
     # shooting with two devices
-    if plugin.DeviceFeatures.IS_CAMERA in driver.features:
+    if driver and plugin.DeviceFeatures.IS_CAMERA in driver.features:
         answer = raw_input(
             "Do you want to configure the target_page of your devices?\n"
             "(Required for shooting with two devices) [y/n]: ")
@@ -191,8 +202,8 @@ def configure(config):
 
 def capture(config):
     path = config['path'].get()
-    workflow = Workflow(config=config, path=path)
-    workflow.on_created.send(workflow=workflow)
+    workflow = spreads.workflow.Workflow(config=config, path=path)
+    spreads.workflow.on_created.send(workflow=workflow)
     capture_keys = workflow.config['core']['capture_keys'].as_str_seq()
 
     # Some closures
@@ -200,19 +211,19 @@ def capture(config):
         # Callback to print statistics
         if refresh_stats.start_time is not None:
             pages_per_hour = ((3600/(time.time() - refresh_stats.start_time))
-                              * workflow.pages_shot)
+                              * len(workflow.pages))
         else:
             pages_per_hour = 0.0
             refresh_stats.start_time = time.time()
         status = ("\rShot {0: >3} pages [{1: >4.0f}/h] "
-                  .format(unicode(workflow.pages_shot), pages_per_hour))
+                  .format(len(workflow.pages), pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
     refresh_stats.start_time = None
 
     def trigger_loop():
         is_posix = sys.platform != 'win32'
-        old_count = workflow.pages_shot
+        old_count = len(workflow.pages)
         if is_posix:
             import select
             old_settings = termios.tcgetattr(sys.stdin)
@@ -228,8 +239,8 @@ def capture(config):
                 tty.setcbreak(sys.stdin.fileno())
             while True:
                 time.sleep(0.01)
-                if workflow.pages_shot != old_count:
-                    old_count = workflow.pages_shot
+                if len(workflow.pages) != old_count:
+                    old_count = len(workflow.pages)
                     refresh_stats()
                 if not data_available():
                     continue
@@ -265,23 +276,29 @@ def capture(config):
     workflow.finish_capture()
 
 
+def _update_callback(wf, changes):
+    if 'status' in changes and 'step_progress' in changes['status']:
+        draw_progress(changes['status']['step_progress'])
+
 def postprocess(config):
     path = config['path'].get()
-    workflow = Workflow(config=config, path=path)
+    workflow = spreads.workflow.Workflow(config=config, path=path)
     draw_progress(0.0)
-    workflow.on_step_progressed.connect(
-        lambda x, **kwargs: draw_progress(kwargs['progress']),
-        sender=workflow, weak=False)
+    spreads.workflow.on_modified.connect(_update_callback, sender=workflow,
+                                         weak=False)
     workflow.process()
 
 
 def output(config):
+    def update_callback(wf, changes):
+        if 'status' in changes and 'step_progress' in changes['status']:
+            draw_progress(changes['status']['step_progress'])
     path = config['path'].get()
-    workflow = Workflow(config=config, path=path)
+    workflow = spreads.workflow.Workflow(config=config, path=path)
     draw_progress(0)
-    workflow.on_step_progressed.connect(
-        lambda x, **kwargs: draw_progress(kwargs['progress']),
-        sender=workflow, weak=False)
+    spreads.workflow.on_modified.connect(_update_callback, sender=workflow,
+                                         weak=False)
+    workflow.process()
     workflow.output()
 
 

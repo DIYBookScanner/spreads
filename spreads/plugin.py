@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2013 Johannes Baiter. All rights reserved.
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import division, unicode_literals
 
@@ -35,7 +31,7 @@ from spreads.util import (abstractclassmethod, DeviceException,
 
 logger = logging.getLogger("spreads.plugin")
 devices = None
-extensions = None
+extensions = dict()
 
 
 class ExtensionException(Exception):
@@ -203,6 +199,15 @@ class DevicePlugin(SpreadsPlugin):  # pragma: no cover
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def update_configuration(self, updated):
+        """ Update the device configuration.
+
+        :param updated:     Updated configuration values
+        :type updated:      dict
+        """
+        raise NotImplementedError
+
 
 class HookPlugin(SpreadsPlugin):
     """ Base class for HookPlugins.
@@ -300,19 +305,14 @@ class ProcessHookMixin(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def process(self, path):
+    def process(self, pages, target_path):
         """ Perform one or more actions that either modify the captured images
             or generate a different output.
 
-        .. note:
-            This method is intended to operate on the *done* subdfolder of
-            the project directory. At the beginning of postprocessing, it
-            will contain copies of the images in *raw*. This is to ensure that
-            a copy of the original, scanned images will always be available
-            for archival purposes.
-
-        :param path:        Project path
-        :type path:         pathlib.Path
+        :param pages:       Pages to be processed
+        :type pages:        list of Page objects
+        :param target_path: Target directory for processed files
+        :type target_path:  pathlib.Path
 
         """
         pass
@@ -322,16 +322,17 @@ class OutputHookMixin(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def output(self, path):
-        """ Assemble an output file from the postprocessed images.
+    def output(self, pages, target_path, metadata, table_of_contents):
+        """ Assemble an output file from the pages.
 
-        .. note:
-            This method is intended to take its input files from the *done*
-            subfolder of the project path and store its output in the
-            *out* subfolder.
-
-        :param path:        Project path
-        :type path:         pathlib.Path
+        :param pages:       Project path
+        :type pages:        list of Page objects
+        :param target_path: Target directory for processed files
+        :type target_path:  pathlib.Path
+        :param metadata:    Metadata for workflow
+        :type metadata:     bagit.BagInfo
+        :param table_of_contents: Table of Contents for workflow
+        :type table_of_contents: list(TocEntry)
 
         """
         pass
@@ -344,10 +345,10 @@ def available_plugins():
 
 def get_plugins(*names):
     global extensions
-    if extensions is None:
-        extensions = OrderedDict()
+    plugins = OrderedDict()
     for name in names:
         if name in extensions:
+            plugins[name] = extensions[name]
             continue
         try:
             logger.debug("Looking for extension \"{0}\"".format(name))
@@ -357,7 +358,9 @@ def get_plugins(*names):
             raise ExtensionException("Could not locate extension '{0}'"
                                      .format(name), name)
         try:
-            extensions[name] = ext.load()
+            plugin = ext.load()
+            plugins[name] = plugin
+            extensions[name] = plugin
         except ImportError as err:
             raise ExtensionException(
                 "Missing Python dependency for extension '{0}': {1}"
@@ -367,7 +370,7 @@ def get_plugins(*names):
                 "Error while locating external application dependency for "
                 "extension '{0}':\n{1}".format(err.message), name
                 )
-    return extensions
+    return plugins
 
 
 def available_drivers():
