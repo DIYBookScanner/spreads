@@ -38,7 +38,7 @@ if not find_in_path('tesseract'):
 
 logger = logging.getLogger('spreadsplug.tesseract')
 try:
-    AVAILABLE_LANGS = (subprocess.check_output(["tesseract", "--list-langfoo"],
+    AVAILABLE_LANGS = (subprocess.check_output(["tesseract", "--list-langs"],
                                                stderr=subprocess.STDOUT)
                        .split("\n")[1:-1])
 except subprocess.CalledProcessError:
