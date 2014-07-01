@@ -1,6 +1,7 @@
 import argparse
 import logging
 import logging.handlers
+import os
 import sys
 import traceback
 
@@ -142,6 +143,7 @@ def setup_parser(config):
 
 
 def run_config_windows():
+    os.environ['PATH'] += (";" + os.environ['PROGRAMFILES'])
     logging.basicConfig(loglevel=logging.ERROR)
     logger = logging.getLogger()
     config = Configuration()
@@ -151,6 +153,7 @@ def run_config_windows():
 
 
 def run_service_windows():
+    os.environ['PATH'] += (";" + os.environ['PROGRAMFILES'])
     logging.basicConfig(loglevel=logging.ERROR)
     logger = logging.getLogger()
     config = Configuration()
