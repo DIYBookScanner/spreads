@@ -1,8 +1,10 @@
 #!/usr/bin/env python2.7
 import os
+import shutil
 from subprocess import check_call
 from setuptools import setup
 from setuptools.command.sdist import sdist as SdistCommand
+from setuptools.command.bdist_wininst import bdist_wininst as WininstCommand
 
 import spreads
 
@@ -30,6 +32,16 @@ class CustomSdistCommand(SdistCommand):
     def run(self):
         check_call(['make', '-C', 'spreadsplug/web/client', 'production'])
         SdistCommand.run(self)
+
+class CustomWininstCommand(WininstCommand):
+    def run(self):
+        from buildmsi import build_msi
+        build_msi(bitness=32)
+        if not os.path.exists('./dist'):
+            os.mkdir('./dist')
+        shutil.copy(
+            './build/msi32/spreads_{0}.exe'.format(spreads.__version__),
+            './dist')
 
 setup(
     name="spreads",
@@ -71,14 +83,14 @@ setup(
         "spreadsplug.gui",
         "spreadsplug.web",
     ],
-    scripts=[
-        "spread"
-    ],
     package_data={
         'spreadsplug.gui': ['pixmaps/monk.png'],
         'spreadsplug.web': ['client/index.html', 'client/build/*']
     },
     entry_points={
+        'console_scripts': [
+            'spread = spreads.main:main',
+        ],
         'spreadsplug.devices': [
             "chdkcamera=spreadsplug.dev.chdkcamera:CHDKCameraDevice",
             "gphoto2camera=spreadsplug.dev.gphoto2camera:GPhoto2CameraDevice",
@@ -101,6 +113,7 @@ setup(
         "futures >= 2.1",
         "blinker >= 1.3",
         "roman >= 2.0.0",
+        "psutil >= 2.0.0",
     ],
     extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],
@@ -108,16 +121,16 @@ setup(
         "autorotate": ["jpegtran-cffi >= 0.4"],
         "gui": ["PySide >= 1.2.1"],
         "hidtrigger": ["hidapi-cffi >= 0.1"],
-        "scantailor": ["psutil == 2.0.0"],
         "web": [
             "Flask >= 0.10.1",
             "jpegtran-cffi >= 0.4",
             "requests >= 2.2.0",
             "waitress >= 0.8.8",
             "zipstream >= 1.0.2",
-            "tornado >= 3.2",
+            "tornado >= 3.1",
             "Wand >= 0.3.5",
         ]
     },
-    cmdclass={'sdist': CustomSdistCommand}
+    cmdclass={'sdist': CustomSdistCommand,
+              'bdist_wininst': CustomWininstCommand}
 )

@@ -188,7 +188,7 @@ def mock_path():
 @pytest.yield_fixture(scope='module')
 def mock_findinpath():
     with mock.patch('spreads.util.find_in_path') as find:
-        find.return_value = True
+        find.side_effect = lambda x: '/usr/bin/{0}'.format(x)
         yield find
 
 

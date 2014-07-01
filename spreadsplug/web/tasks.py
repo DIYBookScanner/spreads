@@ -19,6 +19,7 @@ from __future__ import division
 
 import copy
 import logging
+import platform
 import shutil
 import tempfile
 
@@ -28,7 +29,13 @@ from spreads.vendor.pathlib import Path
 
 from spreads.workflow import Workflow
 from spreadsplug.web import task_queue
-from util import find_stick, GeneratorIO
+from util import GeneratorIO
+
+IS_WIN = platform.system() == "Windows"
+if IS_WIN:
+    from util import find_stick_win as find_stick
+else:
+    from util import find_stick
 
 logger = logging.getLogger('spreadsplug.web.tasks')
 signals = blinker.Namespace()
@@ -51,10 +58,14 @@ def transfer_to_stick(wf_id, base_path):
                                     .replace('/', '_'))
     workflow.status['step'] = 'transfer'
     try:
-        mount = stick.get_dbus_method(
-            "FilesystemMount", dbus_interface="org.freedesktop.UDisks.Device")
-        mount_point = mount('', [])
-        target_path = Path(mount_point)/clean_name
+        if IS_WIN:
+            target_path = Path(stick)/clean_name
+        else:
+            mount = stick.get_dbus_method(
+                "FilesystemMount",
+                dbus_interface="org.freedesktop.UDisks.Device")
+            mount_point = mount('', [])
+            target_path = Path(mount_point)/clean_name
         if target_path.exists():
             shutil.rmtree(unicode(target_path))
         target_path.mkdir()

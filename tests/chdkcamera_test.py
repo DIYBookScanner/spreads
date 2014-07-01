@@ -208,7 +208,7 @@ def test_run(sp, camera_nomock):
     sp.check_output.assert_called_with(
         [u'/tmp/chdkptp/chdkptp', '-c-d=002 -b=001', '-eset cli_verbose=2',
             '-efoobar'], env={'LUA_PATH': u'/tmp/chdkptp/lua/?.lua'},
-        stderr=sp.STDOUT)
+        stderr=sp.STDOUT, close_fds=True)
 
 
 @mock.patch('spreadsplug.dev.chdkcamera.subprocess')

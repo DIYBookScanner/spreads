@@ -29,9 +29,9 @@ from spreads.plugin import HookPlugin, OutputHookMixin
 from spreads.util import MissingDependencyException, find_in_path
 
 if not find_in_path('djvubind'):
-    raise MissingDependencyException("Could not find executable `djvubind` in"
-                                     " $PATH. Please install the appropriate"
-                                     " package(s)!")
+    raise MissingDependencyException("Could not find executable `djvubind`. "
+                                     "Please install the appropriate "
+                                     "package(s)!")
 
 logger = logging.getLogger('spreadsplug.djvubind')
 
