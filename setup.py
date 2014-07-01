@@ -1,8 +1,10 @@
 #!/usr/bin/env python2.7
 import os
+import shutil
 from subprocess import check_call
 from setuptools import setup
 from setuptools.command.sdist import sdist as SdistCommand
+from setuptools.command.bdist_wininst import bdist_wininst as WininstCommand
 
 import spreads
 
@@ -30,6 +32,16 @@ class CustomSdistCommand(SdistCommand):
     def run(self):
         check_call(['make', '-C', 'spreadsplug/web/client', 'production'])
         SdistCommand.run(self)
+
+class CustomWininstCommand(WininstCommand):
+    def run(self):
+        from buildmsi import build_msi
+        build_msi(bitness=32)
+        if not os.path.exists('./dist'):
+            os.mkdir('./dist')
+        shutil.copy(
+            './build/msi32/spreads_{0}.exe'.format(spreads.__version__),
+            './dist')
 
 setup(
     name="spreads",
@@ -119,5 +131,6 @@ setup(
             "Wand >= 0.3.5",
         ]
     },
-    cmdclass={'sdist': CustomSdistCommand}
+    cmdclass={'sdist': CustomSdistCommand,
+              'bdist_wininst': CustomWininstCommand}
 )

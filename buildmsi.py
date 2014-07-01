@@ -178,7 +178,3 @@ def build_msi(bitness=32):
     )
     builder.run()
     os.chdir('..')
-
-if __name__ == '__main__':
-    for bitness in (32,64):
-        build_msi(bitness)
