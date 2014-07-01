@@ -41,9 +41,7 @@ class SourceDep(namedtuple('SourceDep', ['project_name', 'module_name'])):
 
 BINARY_PACKAGES = {
     "MarkupSafe": "MarkupSafe-0.19.{arch}-py2.7.exe",
-    "PIL": "Pillow-2.4.0.{arch}-py2.7.exe",
     "psutil": "psutil-2.1.0.{arch}-py2.7.exe",
-    "PySide": "PySide-1.2.1.{arch}-py2.7.exe",
     "PyYAML": "PyYAML-3.11.{arch}-py2.7.exe",
     "tornado": "tornado-3.2.{arch}-py2.7.exe",
     "setuptools": "setuptools-3.4.1.{arch}-py2.7.exe"
@@ -65,6 +63,8 @@ SOURCE_PACKAGES = [
     SourceDep("requests"),
     SourceDep("waitress"),
     SourceDep("zipstream"),
+    SourceDep("roman"),
+    SourceDep("Wand", "wand"),
 ]
 
 EXTRA_FILES = [
@@ -75,6 +75,7 @@ EXTRA_FILES = [
     "tesseract-ocr-setup-3.02.02.exe",
     "chdkptp",
     "pdfbeads.exe",
+    "jbig2.exe",
 ]
 
 
