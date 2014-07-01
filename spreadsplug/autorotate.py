@@ -43,8 +43,8 @@ try:
             rotated = img.exif_autotransform()
             rotated.save(out_path)
 except ImportError:
-    import PIL
     import pyexiv2
+    from wand.image import Image
 
     def autorotate_image(in_path, out_path):
         try:
@@ -57,28 +57,28 @@ except ImportError:
                 .format(in_path))
             return
 
-        img = PIL.Image(in_path)
+        img = Image(filename=in_path)
         if orient == 1:
             logger.info("Image {0} is already rotated.".format(in_path))
             shutil.copyfile(in_path, out_path)
             return
         elif orient == 2:
-            img.flip(PIL.Image.FLIP_LEFT_RIGHT)
+            img.flip()
         elif orient == 3:
-            img.flip(PIL.Image.ROTATE_180)
+            img.rotate(180)
         elif orient == 4:
-            img.flip(PIL.Image.FLIP_TOP_BOTTOM)
+            img.flop()
         elif orient == 5:
-            img.flip(PIL.Image.ROTATE_90)
-            img.flip(PIL.Image.FLIP_LEFT_RIGHT)
+            img.rotate(90)
+            img.flip()
         elif orient == 6:
-            img.flip(PIL.Image.ROTATE_90)
+            img.rotate(90)
         elif orient == 7:
-            img.flip(PIL.Image.ROTATE_270)
-            img.flip(PIL.Image.FLIP_LEFT_RIGHT)
+            img.rotate(270)
+            img.flip()
         elif orient == 8:
-            img.flip(PIL.Image.ROTATE_270)
-        img.save(out_path)
+            img.rotate(270)
+        img.save(filename=out_path)
 
 
 class AutoRotatePlugin(HookPlugin, ProcessHookMixin):
