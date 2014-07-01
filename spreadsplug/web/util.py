@@ -197,6 +197,26 @@ def scale_image(img_path, width=None, height=None):
             return img.make_blob(format='jpg')
 
 
+def crop_image(fname, left, top, width=None, height=None):
+    if HAS_JPEGTRAN:
+        img = JPEGImage(fname)
+    else:
+        img = Image(filename=fname)
+    width = (img.width - left) if width is None else width
+    height = (img.height - top) if height is None else height
+    if width > img.width:
+        width = img.width
+    if height > img.height:
+        width = img.height
+    logger.debug("Cropping \"{0}\" to x:{1} y:{2} w:{3} h:{4}"
+                 .format(fname, left, top, width, height))
+    cropped = img.crop(left, top, width=width, height=height)
+    if HAS_JPEGTRAN:
+        cropped.save(fname)
+    else:
+        img.save(filename=fname)
+
+
 def get_thumbnail(img_path):
     """ Return thumbnail for image.
 
