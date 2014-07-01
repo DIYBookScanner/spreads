@@ -167,7 +167,7 @@ def test_setup_parser(config):
     parser = main.setup_parser(config)
     subparsers = next(x._name_parser_map for x in parser._actions
                       if hasattr(x, '_name_parser_map'))
-    assert len(subparsers) == 6
+    assert len(subparsers) == 7
     assert 'test' in subparsers
     process_opts = subparsers['postprocess']._option_string_actions
     assert "--an-integer" in process_opts

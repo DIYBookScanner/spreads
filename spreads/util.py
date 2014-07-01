@@ -21,7 +21,6 @@
 from __future__ import division, unicode_literals
 
 import abc
-import itertools
 import json
 import logging
 import os
@@ -53,7 +52,7 @@ def find_in_path(name):
 
     :param name:  name of the executable
     :type name:   unicode
-    :returns:     bool -- True if *name* is found or False
+    :returns:     unicode -- Path to executable or None if not found
 
     """
     candidates = None
