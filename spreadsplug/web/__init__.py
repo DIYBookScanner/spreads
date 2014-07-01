@@ -19,6 +19,7 @@ import logging
 import logging.handlers
 import os
 import platform
+import sys
 from itertools import chain
 from threading import Thread
 
@@ -240,8 +241,8 @@ def run_windows_service(config):
     ws_server = WebSocketServer(port=5001)
     setup_app(config)
     setup_logging(config)
-    setup_signals(ws_server)
     setup_task_queue(config)
+    setup_signals(ws_server)
 
     consumer = Consumer(task_queue)
 
@@ -256,20 +257,22 @@ def run_windows_service(config):
     # Start websocket server
     ws_server.start()
 
+    listening_port = config['web']['port'].get(int)
     if app.config['mode'] in ('processor', 'full'):
         discovery_listener = DiscoveryListener(listening_port)
         discovery_listener.start()
 
     server_thread = Thread(target=waitress.serve, args=(app,),
-                           kwargs=dict(port=5000, threads=16))
+                           kwargs=dict(port=listening_port, threads=16))
     server_thread.daemon = True
     server_thread.start()
 
-    open_browser = lambda x: webbrowser.open_new_tab("http://127.0.0.1:5000")
+    open_browser = lambda x: webbrowser.open_new_tab("http://127.0.0.1:{0}"
+                                                     .format(listening_port))
     menu_options = (('Open in browser', None, open_browser),)
 
     SysTrayIcon(
-        icon='spreads.ico',
+        icon=os.path.join(os.path.dirname(sys.argv[0]), 'spreads.ico'),
         hover_text="Spreads Web Service",
         menu_options=menu_options,
         on_quit=on_quit,
