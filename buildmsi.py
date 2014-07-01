@@ -27,8 +27,8 @@ import tempfile
 import zipfile
 from collections import namedtuple
 
-import nsist
 import pkg_resources
+from nsist import InstallerBuilder
 from spreads.vendor.pathlib import Path
 
 import spreads
@@ -138,9 +138,9 @@ def build_msi(bitness=32):
         copy_info(pkg, pkg_dir)
 
     icon = os.path.abspath("spreads.ico")
-    extra_files = [unicode((Path('win_deps')/'extra'/
+    extra_files = [(unicode((Path('win_deps')/'extra'/
                             x.format(arch='.amd64' if bitness == 64 else ''))
-                           .absolute()) for x in EXTRA_FILES]
+                           .absolute()), None) for x in EXTRA_FILES]
     nsi_template = os.path.abspath("template.nsi")
 
     # NOTE: We need to remove the working directory from sys.path to force
@@ -150,7 +150,7 @@ def build_msi(bitness=32):
     if os.getcwd() in sys.path:
         sys.path.remove(os.getcwd())
     os.chdir(unicode(build_path))
-    nsist.all_steps(
+    builder = InstallerBuilder(
         appname="spreads",
         version=spreads.__version__,
         packages=[x.module_name for x in SOURCE_PACKAGES],
@@ -172,6 +172,7 @@ def build_msi(bitness=32):
                 'console': False}
         }
     )
+    builder.run()
     os.chdir('..')
 
 if __name__ == '__main__':
