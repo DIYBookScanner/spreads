@@ -1,5 +1,5 @@
-spreads (0.5dev-git20140624) unstable; urgency=low
+spreads (0.5dev-git20140702) unstable; urgency=low
 
   * source package automatically created by stdeb 0.6.0+git
 
- -- Johannes Baiter <johannes.baiter@gmail.com>  Wed, 18 Jun 2014 17:57:07 +0200
+ -- Johannes Baiter <johannes.baiter@gmail.com>  Wed, 2 Jul 2014 17:57:07 +0200
