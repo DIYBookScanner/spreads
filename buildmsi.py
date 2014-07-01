@@ -123,6 +123,9 @@ def copy_info(pkg, pkg_dir):
 
 
 def build_msi(bitness=32):
+    egg_path = Path('spreads.egg-info')
+    if egg_path.exists():
+        shutil.rmtree(unicode(egg_path))
     build_path = Path('build')
     if not build_path.exists():
         build_path.mkdir()
