@@ -368,8 +368,7 @@ def get_plugins(*names):
         except MissingDependencyException as err:
             raise ExtensionException(
                 "Error while locating external application dependency for "
-                "extension '{0}':\n{1}".format(err.message), name
-                )
+                "extension '{0}':\n{1}".format(err.message, name))
     return plugins
 
 
