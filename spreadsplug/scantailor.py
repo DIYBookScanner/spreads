@@ -69,7 +69,8 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
     def __init__(self, config):
         super(ScanTailorPlugin, self).__init__(config)
         self._enhanced = bool(re.match(r".*<images\|directory\|->.*",
-                              subprocess.check_output('scantailor-cli')
+                              subprocess.check_output(
+                                  find_in_path('scantailor-cli'))
                               .splitlines()[7]))
 
     def _generate_configuration(self, in_paths, projectfile, out_dir):
@@ -79,7 +80,7 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
         start_filter = filterconf.index(True)+1
         end_filter = len(filterconf) - list(reversed(filterconf)).index(True)
         marginconf = self.config['margins'].as_str_seq()
-        generation_cmd = ['scantailor-cli',
+        generation_cmd = [find_in_path('scantailor-cli'),
                           '--start-filter={0}'.format(start_filter),
                           '--end-filter={0}'.format(end_filter),
                           '--layout=1.5',
@@ -160,8 +161,9 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
         temp_dir = Path(tempfile.mkdtemp(prefix="spreads."))
         split_config = self._split_configuration(projectfile, temp_dir)
         logger.debug("Launching those subprocesses!")
-        processes = [subprocess.Popen(['scantailor-cli', '--start-filter=6',
-                                       unicode(cfgfile), unicode(out_dir)])
+        processes = [subprocess.Popen([find_in_path('scantailor-cli'),
+                                       '--start-filter=6', unicode(cfgfile),
+                                       unicode(out_dir)])
                      for cfgfile in split_config]
 
         last_count = 0
@@ -204,7 +206,7 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
 
         if not autopilot:
             logger.info("Opening ScanTailor GUI for manual adjustment")
-            subprocess.call(['scantailor', unicode(projectfile)])
+            subprocess.call([find_in_path('scantailor'), unicode(projectfile)])
 
         logger.info("Generating output images from ScanTailor configuration.")
         self._generate_output(projectfile, out_dir, len(pages))

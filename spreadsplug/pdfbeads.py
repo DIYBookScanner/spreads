@@ -66,7 +66,7 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
         # TODO: Use page.page_label to create a LSPEC for pdfbeads
 
         pdf_file = target_path/"book.pdf"
-        cmd = ["pdfbeads", "-d"]
+        cmd = [find_in_path("pdfbeads"), "-d"]
         cmd.extend([f.name for f in images])
         cmd.extend(["-o", unicode(pdf_file)])
         logger.debug("Running " + " ".join(cmd))
