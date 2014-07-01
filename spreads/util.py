@@ -58,13 +58,16 @@ def find_in_path(name):
     """
     candidates = None
     if platform.system() == "Windows":
-        import winreg
-        if name == 'scantailor':
+        import _winreg
+        if name.startswith('scantailor'):
             try:
-                cmd = winreg.QueryValue(
-                    winreg.HKEY_CLASSES_ROOT,
+                cmd = _winreg.QueryValue(
+                    _winreg.HKEY_CLASSES_ROOT,
                     'Scan Tailor Project\\shell\\open\\command')
-                return cmd.split('" "')[0][1:]
+                bin_path = cmd.split('" "')[0][1:]
+                if name.endswith('-cli'):
+                    bin_path = bin_path[:-4] + "-cli.exe"
+                return bin_path if os.path.exists(bin_path) else None
             except OSError:
                 return None
         else:
