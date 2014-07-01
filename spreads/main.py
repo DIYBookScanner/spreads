@@ -11,7 +11,6 @@ from spreads.vendor.pathlib import Path
 
 import spreads.cli as cli
 import spreads.plugin as plugin
-import spreads.tkconfigure as tkconfigure
 from spreads.config import Configuration
 from spreads.util import (ColourStreamHandler, EventHandler, DeviceException,
                           MissingDependencyException)
@@ -73,9 +72,14 @@ def setup_parser(config):
         'configure', help="Perform initial configuration")
     config_parser.set_defaults(subcommand=cli.configure)
 
-    guiconfig_parser = subparsers.add_parser(
-        'guiconfigure', help="Perform initial configuration with a GUI")
-    guiconfig_parser.set_defaults(subcommand=tkconfigure.configure)
+    try:
+        import spreads.tkconfigure as tkconfigure
+        guiconfig_parser = subparsers.add_parser(
+            'guiconfigure', help="Perform initial configuration with a GUI")
+        guiconfig_parser.set_defaults(subcommand=tkconfigure.configure)
+    except ImportError:
+        print "Could not load _tkinter module, disabling guiconfigure command"
+
 
     capture_parser = subparsers.add_parser(
         'capture', help="Start the capturing workflow")
