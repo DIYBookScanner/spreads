@@ -21,26 +21,64 @@ import logging
 import shutil
 
 from concurrent.futures import ProcessPoolExecutor
-from jpegtran import JPEGImage
 
 from spreads.plugin import HookPlugin, ProcessHookMixin
 
 logger = logging.getLogger('spreadsplug.autorotate')
 
+try:
+    from jpegtran import JPEGImage
 
-def autorotate_image(in_path, out_path):
-    img = JPEGImage(in_path)
-    if img.exif_orientation is None:
-        logger.warn("Image {0} did not have any EXIF rotation, did not rotate."
-                    .format(in_path))
-        return
-    elif img.exif_orientation == 1:
-        logger.info("Image {0} is already rotated, will simply copy it."
-                    .format(in_path))
-        shutil.copyfile(in_path, out_path)
-    else:
-        rotated = img.exif_autotransform()
-        rotated.save(out_path)
+    def autorotate_image(in_path, out_path):
+        img = JPEGImage(in_path)
+        if img.exif_orientation is None:
+            logger.warn(
+                "Image {0} did not have any EXIF rotation, did not rotate."
+                .format(in_path))
+            return
+        elif img.exif_orientation == 1:
+            logger.info("Image {0} is already rotated.".format(in_path))
+            shutil.copyfile(in_path, out_path)
+        else:
+            rotated = img.exif_autotransform()
+            rotated.save(out_path)
+except ImportError:
+    import pyexiv2
+    from wand.image import Image
+
+    def autorotate_image(in_path, out_path):
+        try:
+            metadata = pyexiv2.ImageMetadata(in_path)
+            metadata.read()
+            orient = int(metadata['Image.Exif.Orientation'])
+        except:
+            logger.warn(
+                "Image {0} did not have any EXIF rotation, did not rotate."
+                .format(in_path))
+            return
+
+        img = Image(filename=in_path)
+        if orient == 1:
+            logger.info("Image {0} is already rotated.".format(in_path))
+            shutil.copyfile(in_path, out_path)
+            return
+        elif orient == 2:
+            img.flip()
+        elif orient == 3:
+            img.rotate(180)
+        elif orient == 4:
+            img.flop()
+        elif orient == 5:
+            img.rotate(90)
+            img.flip()
+        elif orient == 6:
+            img.rotate(90)
+        elif orient == 7:
+            img.rotate(270)
+            img.flip()
+        elif orient == 8:
+            img.rotate(270)
+        img.save(filename=out_path)
 
 
 class AutoRotatePlugin(HookPlugin, ProcessHookMixin):

@@ -18,7 +18,10 @@
 import logging
 import logging.handlers
 import os
+import platform
+import sys
 from itertools import chain
+from threading import Thread
 
 from spreads.vendor.huey import SqliteHuey
 from spreads.vendor.huey.consumer import Consumer
@@ -28,7 +31,9 @@ from flask import Flask
 import spreads.plugin as plugin
 import spreads.workflow as workflow
 from spreads.config import OptionTemplate
-from spreads.cli import add_argument_from_template
+from spreads.main import add_argument_from_template
+from spreads.util import get_data_dir
+from spreads.workflow import Workflow
 
 app = Flask('spreadsplug.web', static_url_path='/static',
             static_folder='./client/build', template_folder='./client')
@@ -78,9 +83,19 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
         cmdparser = rootparser.add_parser(
             'web', help="Start the web interface")
         cmdparser.set_defaults(subcommand=run_server)
+
+        if platform.system() == "Windows":
+            wincmdparser = rootparser.add_parser(
+                'web-service', help="Start the web interface as a service."
+            )
+            wincmdparser.set_defaults(subcommand=run_windows_service)
+
         for key, option in cls.configuration_template().iteritems():
             try:
                 add_argument_from_template('web', key, option, cmdparser)
+                if platform.system() == "Windows":
+                    add_argument_from_template('web', key, option,
+                                               wincmdparser)
             except:
                 continue
 
@@ -217,3 +232,49 @@ def run_server(config):
         ws_server.stop()
         if app.config['mode'] in ('processor', 'full'):
             discovery_listener.stop()
+
+
+def run_windows_service(config):
+    import waitress
+    import webbrowser
+    from winservice import SysTrayIcon
+    ws_server = WebSocketServer(port=5001)
+    setup_app(config)
+    setup_logging(config)
+    setup_task_queue(config)
+    setup_signals(ws_server)
+
+    consumer = Consumer(task_queue)
+
+    def on_quit(systray):
+        consumer.shutdown()
+        ws_server.stop()
+        if app.config['mode'] in ('processor', 'full'):
+            discovery_listener.stop()
+
+    # Start task consumer
+    consumer.start()
+    # Start websocket server
+    ws_server.start()
+
+    listening_port = config['web']['port'].get(int)
+    if app.config['mode'] in ('processor', 'full'):
+        discovery_listener = DiscoveryListener(listening_port)
+        discovery_listener.start()
+
+    server_thread = Thread(target=waitress.serve, args=(app,),
+                           kwargs=dict(port=listening_port, threads=16))
+    server_thread.daemon = True
+    server_thread.start()
+
+    open_browser = lambda x: webbrowser.open_new_tab("http://127.0.0.1:{0}"
+                                                     .format(listening_port))
+    menu_options = (('Open in browser', None, open_browser),)
+
+    SysTrayIcon(
+        icon=os.path.join(os.path.dirname(sys.argv[0]), 'spreads.ico'),
+        hover_text="Spreads Web Service",
+        menu_options=menu_options,
+        on_quit=on_quit,
+        default_menu_index=1,
+        on_click=open_browser)

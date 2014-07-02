@@ -28,7 +28,6 @@ from io import BufferedIOBase, UnsupportedOperation
 
 from flask import abort
 from flask.json import JSONEncoder
-from jpegtran import JPEGImage
 from spreads.vendor.pathlib import Path
 from wand.image import Image
 from werkzeug.routing import BaseConverter
@@ -36,6 +35,11 @@ from werkzeug.routing import BaseConverter
 from spreads.workflow import Workflow, signals as workflow_signals
 from spreads.util import EventHandler
 
+try:
+    from jpegtran import JPEGImage
+    HAS_JPEGTRAN = True
+except ImportError:
+    HAS_JPEGTRAN = False
 logger = logging.getLogger('spreadsplug.web.util')
 
 # NOTE: This is a workaround for a known datetime/time race condition, see
@@ -182,7 +186,7 @@ def scale_image(img_path, width=None, height=None):
 
     if width is None and height is None:
         raise ValueError("Please specify either width or height")
-    if img_path.suffix.lower() in ('.jpg', '.jpeg'):
+    if HAS_JPEGTRAN and img_path.suffix.lower() in ('.jpg', '.jpeg'):
         img = JPEGImage(unicode(img_path))
         width, height = get_target_size(img.width, img.height)
         return img.downscale(width, height).as_blob()
@@ -193,6 +197,26 @@ def scale_image(img_path, width=None, height=None):
             return img.make_blob(format='jpg')
 
 
+def crop_image(fname, left, top, width=None, height=None):
+    if HAS_JPEGTRAN:
+        img = JPEGImage(fname)
+    else:
+        img = Image(filename=fname)
+    width = (img.width - left) if width is None else width
+    height = (img.height - top) if height is None else height
+    if width > img.width:
+        width = img.width
+    if height > img.height:
+        width = img.height
+    logger.debug("Cropping \"{0}\" to x:{1} y:{2} w:{3} h:{4}"
+                 .format(fname, left, top, width, height))
+    cropped = img.crop(left, top, width=width, height=height)
+    if HAS_JPEGTRAN:
+        cropped.save(fname)
+    else:
+        img.save(filename=fname)
+
+
 def get_thumbnail(img_path):
     """ Return thumbnail for image.
 
@@ -201,7 +225,7 @@ def get_thumbnail(img_path):
     :return:          The thumbnail
     :rtype:           bytestring
     """
-    if img_path.suffix.lower() in ('.jpg', '.jpeg'):
+    if HAS_JPEGTRAN and img_path.suffix.lower() in ('.jpg', '.jpeg'):
         img = JPEGImage(unicode(img_path))
         thumb = img.exif_thumbnail
         if thumb:
@@ -233,3 +257,11 @@ def find_stick():
                        iudisks.FindDeviceByDeviceFile(
                            istick.Get("", "DeviceFile"))),
         "org.freedesktop.DBus.UDisks.Device")
+
+
+def find_stick_win():
+    import win32api
+    import win32file
+    for drive in win32api.GetLogicalDriveStrings().split("\x00")[:-1]:
+        if win32file.GetDriveType(drive) == win32file.DRIVE_REMOVABLE:
+            return drive

@@ -4,6 +4,7 @@ import pytest
 from mock import Mock, patch
 
 import spreads.cli as cli
+import spreads.main as main
 from spreads.util import DeviceException
 
 from conftest import TestDriver
@@ -163,10 +164,10 @@ def test_wizard(capture, postprocess, output, config):
 
 
 def test_setup_parser(config):
-    parser = cli.setup_parser(config)
+    parser = main.setup_parser(config)
     subparsers = next(x._name_parser_map for x in parser._actions
                       if hasattr(x, '_name_parser_map'))
-    assert len(subparsers) == 6
+    assert len(subparsers) == 7
     assert 'test' in subparsers
     process_opts = subparsers['postprocess']._option_string_actions
     assert "--an-integer" in process_opts
@@ -181,7 +182,7 @@ def test_setup_parser(config):
     assert output_opts["--selectable"].choices == ['a', 'b', 'c']
 
 
-@patch('spreads.cli.Configuration')
+@patch('spreads.main.Configuration')
 @patch('os.path.exists')
 def test_main(exists, mock_cfgcls, config, tmpdir):
     config["loglevel"] = "info"
@@ -190,5 +191,5 @@ def test_main(exists, mock_cfgcls, config, tmpdir):
     mock_cfgcls.return_value = config
     exists.return_value = False
     # NOTE: We mock out parser, since it interferes with pytest's parser
-    with patch('spreads.cli.argparse.ArgumentParser'):
-        cli.main()
+    with patch('spreads.main.argparse.ArgumentParser'):
+        main.run()

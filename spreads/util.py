@@ -21,14 +21,15 @@
 from __future__ import division, unicode_literals
 
 import abc
-import itertools
 import json
 import logging
 import os
+import platform
 import re
 from unicodedata import normalize
 
 import blinker
+import psutil
 import roman
 from colorama import Fore, Back, Style
 from spreads.vendor.pathlib import Path
@@ -51,12 +52,37 @@ def find_in_path(name):
 
     :param name:  name of the executable
     :type name:   unicode
-    :returns:     bool -- True if *name* is found or False
+    :returns:     unicode -- Path to executable or None if not found
 
     """
-    return name in itertools.chain(*tuple(os.listdir(x)
-                                   for x in os.environ.get('PATH').split(':')
-                                   if os.path.exists(x)))
+    candidates = None
+    if platform.system() == "Windows":
+        import _winreg
+        if name.startswith('scantailor'):
+            try:
+                cmd = _winreg.QueryValue(
+                    _winreg.HKEY_CLASSES_ROOT,
+                    'Scan Tailor Project\\shell\\open\\command')
+                bin_path = cmd.split('" "')[0][1:]
+                if name.endswith('-cli'):
+                    bin_path = bin_path[:-4] + "-cli.exe"
+                return bin_path if os.path.exists(bin_path) else None
+            except OSError:
+                return None
+        else:
+            path_dirs = os.environ.get('PATH').split(';')
+            path_dirs.append(os.getcwd())
+            path_exts = os.environ.get('PATHEXT').split(';')
+            candidates = (os.path.join(p, name + e)
+                          for p in path_dirs
+                          for e in path_exts)
+    else:
+        candidates = (os.path.join(p, name)
+                      for p in os.environ.get('PATH').split(':'))
+    try:
+        return next(c for c in candidates if os.path.exists(c))
+    except StopIteration:
+        return None
 
 
 def check_futures_exceptions(futures):
@@ -66,9 +92,7 @@ def check_futures_exceptions(futures):
 
 
 def get_free_space(path):
-    # TODO: Add path for windows
-    st = os.statvfs(unicode(path))
-    return (st.f_bavail * st.f_frsize)
+    return psutil.disk_usage(unicode(path)).free
 
 
 PUNCTUATION_REXP = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
@@ -201,6 +225,34 @@ class EventHandler(logging.Handler):
 
     def emit(self, record):
         self.on_log_emit.send(record=record)
+
+
+def get_data_dir(create=False):
+    UNIX_DIR_VAR = 'XDG_DATA_DIRS'
+    UNIX_DIR_FALLBACK = '~/.config'
+    WINDOWS_DIR_VAR = 'APPDATA'
+    WINDOWS_DIR_FALLBACK = '~\\AppData\\Roaming'
+    MAC_DIR = '~/Library/Application Support'
+    base_dir = None
+    if platform.system() == 'Darwin':
+        if Path(UNIX_DIR_FALLBACK).exists:
+            base_dir = UNIX_DIR_FALLBACK
+        else:
+            base_dir = MAC_DIR
+    elif platform.system() == 'Windows':
+        if WINDOWS_DIR_VAR in os.environ:
+            base_dir = os.environ[WINDOWS_DIR_VAR]
+        else:
+            base_dir = WINDOWS_DIR_FALLBACK
+    else:
+        if UNIX_DIR_VAR in os.environ:
+            base_dir = os.environ[UNIX_DIR_VAR]
+        else:
+            base_dir = UNIX_DIR_FALLBACK
+    app_path = Path(base_dir)/'spreads'
+    if create and not app_path.exists():
+        app_path.mkdir()
+    return unicode(app_path)
 
 
 class RomanNumeral(object):

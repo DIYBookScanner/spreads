@@ -5,6 +5,7 @@ import itertools
 import logging
 import logging.handlers
 import os
+import platform
 import StringIO
 import subprocess
 import time
@@ -16,7 +17,6 @@ import pkg_resources
 import requests
 from flask import (abort, json, jsonify, request, send_file, render_template,
                    url_for, redirect, make_response, Response)
-from jpegtran import JPEGImage
 from werkzeug.contrib.cache import SimpleCache
 
 import spreads.plugin as plugin
@@ -25,8 +25,13 @@ from spreads.workflow import Workflow, ValidationError
 
 from spreadsplug.web import app
 from discovery import discover_servers
-from util import (WorkflowConverter, get_thumbnail, find_stick, scale_image,
-                  convert_image)
+from util import (WorkflowConverter, get_thumbnail, scale_image, convert_image,
+                  crop_image)
+
+if platform.system() == "Windows":
+    from util import find_stick_win as find_stick
+else:
+    from util import find_stick
 
 logger = logging.getLogger('spreadsplug.web')
 
@@ -564,7 +569,6 @@ def delete_page(workflow, seq_num):
     '/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>/crop',
     methods=['POST'])
 def crop_workflow_image(workflow, seq_num, img_type):
-    # TODO: Shouldn't this be a method in Workflow?
     # TODO: We have to update the checksum!
     page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
     if not page:
@@ -572,21 +576,11 @@ def crop_workflow_image(workflow, seq_num, img_type):
                            .format(seq_num), 404)
     if img_type != 'raw':
         raise ApiException("Can only crop raw images.", 400)
-    img = JPEGImage(unicode(page.raw_image))
-    params = {
-        'x': int(request.args.get('left', 0)),
-        'y': int(request.args.get('top', 0)),
-    }
+    left = int(request.args.get('left', 0))
+    top = int(request.args.get('top', 0))
     width = int(request.args.get('width', img.width - params['x']))
     height = int(request.args.get('height', img.height - params['y']))
-    if width > img.width:
-        width = img.width
-    if height > img.height:
-        width = img.height
-    params['width'] = width
-    params['height'] = height
-    logger.debug("Cropping \"{0}\" to x:{1} y:{2} w:{3} h:{4}"
-                 .format(page.raw_image, *params.values()))
+    crop_image(unicode(page.raw_image), left, top, width, height)
     cropped = img.crop(**params)
     cropped.save(unicode(page.raw_image))
     cache_key = "{0}.{1}.{2}".format(workflow.id, 'raw', page.raw_image.name)

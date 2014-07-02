@@ -9,12 +9,28 @@ from fractions import Fraction
 from itertools import chain
 
 import usb
-from jpegtran import JPEGImage
 from spreads.vendor.pathlib import Path
 
 from spreads.config import OptionTemplate
 from spreads.plugin import DevicePlugin, DeviceFeatures
 from spreads.util import DeviceException
+
+
+try:
+    from jpegtran import JPEGImage
+
+    def update_exif_orientation(fpath, orientation):
+        img = JPEGImage(fpath)
+        img.exif_orientation = orientation
+        img.save(fpath)
+except ImportError:
+    import pyexiv2
+
+    def update_exif_orientation(fpath, orientation):
+        metadata = pyexiv2.ImageMetadata(fpath)
+        metadata.read()
+        metadata['Exif.Image.Orientation'] = int(orientation)
+        metadata.write()
 
 
 WHITEBALANCE_MODES = {
@@ -267,12 +283,10 @@ class CHDKCameraDevice(DevicePlugin):
 
         # Set EXIF orientation
         self.logger.debug("Setting EXIF orientation on captured image")
-        img = JPEGImage(unicode(path))
         if self.target_page == 'odd':
-            img.exif_orientation = 6  # -90°
+            update_exif_orientation(unicode(path), 6)  # -90°
         else:
-            img.exif_orientation = 8  # 90°
-        img.save(unicode(path))
+            update_exif_orientation(unicode(path), 8)  # 90°
 
     def update_configuration(self, updated):
         if 'zoom_level' in updated:
