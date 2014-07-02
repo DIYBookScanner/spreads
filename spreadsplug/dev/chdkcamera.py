@@ -92,7 +92,12 @@ class CHDKCameraDevice(DevicePlugin):
             (0x4a9, 0x322b): QualityFix,
             (0x4a9, 0x322c): QualityFix,
         }
-        for dev in usb.core.find(find_all=True):
+        # only match ptp devices in find_all
+        def is_ptp(dev):
+            for cfg in dev:
+                if usb.util.find_descriptor(cfg, bInterfaceClass=6, bInterfaceSubClass=1) is not None:
+                    return True
+        for dev in usb.core.find(find_all=True, custom_match=is_ptp):
             cfg = dev.get_active_configuration()[(0, 0)]
             ids = (dev.idVendor, dev.idProduct)
             is_ptp = (hex(cfg.bInterfaceClass) == "0x6"
