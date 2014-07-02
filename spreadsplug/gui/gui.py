@@ -394,6 +394,7 @@ class PostprocessPage(QtGui.QWizardPage):
 
 class OutputPage(QtGui.QWizardPage):
     done = False
+    progress = QtCore.Signal(int)
 
     def initializePage(self):
         self.setTitle("Generating output files")
