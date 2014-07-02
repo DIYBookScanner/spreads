@@ -111,15 +111,11 @@ class CHDKCameraDevice(DevicePlugin):
         # only match ptp devices in find_all
         def is_ptp(dev):
             for cfg in dev:
-                if usb.util.find_descriptor(cfg, bInterfaceClass=6, bInterfaceSubClass=1) is not None:
+                if usb.util.find_descriptor(cfg, bInterfaceClass=6,
+                        bInterfaceSubClass=1) is not None:
                     return True
         for dev in usb.core.find(find_all=True, custom_match=is_ptp):
-            cfg = dev.get_active_configuration()[(0, 0)]
             ids = (dev.idVendor, dev.idProduct)
-            is_ptp = (hex(cfg.bInterfaceClass) == "0x6"
-                      and hex(cfg.bInterfaceSubClass) == "0x1")
-            if not is_ptp:
-                continue
             if ids in SPECIAL_CASES:
                 yield SPECIAL_CASES[ids](config, dev)
             else:
