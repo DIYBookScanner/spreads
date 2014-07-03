@@ -448,7 +448,7 @@
                     <li>Edit its configuration</li>
                     <li>Delete it</li>
                     <li>Download it</li>
-                    {this.window.config.web.mode !== 'processor' &&
+                    {window.config.web.mode !== 'processor' &&
                     <div>
                       <li>Open its capture view</li>
                       <li>Transfer it to a removable storage device</li>
