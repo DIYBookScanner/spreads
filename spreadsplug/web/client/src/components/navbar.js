@@ -73,9 +73,10 @@
               <li className="toggle-topbar"><a className="fa fa-list"></a></li>
             </ul>
             <section className="top-bar-section">
+              {window.config.web.mode !== 'processor' &&
               <ul className="left">
                 <li><a href="/workflow/new"><i className="fa fa-plus"></i> New workflow</a></li>
-              </ul>
+              </ul>}
               <ul className="right">
                 <li>
                   <a href="/logging">

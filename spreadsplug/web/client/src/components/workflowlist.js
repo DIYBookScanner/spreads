@@ -420,6 +420,9 @@
       }.bind(this));
     },
     render: function() {
+      var verb;
+      if (window.config.web.mode == 'processor') verb = 'uploaded'
+      else verb = 'scanned';
       return(
         <main>
           <row>
@@ -430,23 +433,27 @@
           <div>
             {this.props.workflows.length > 0 ?
               this.props.workflows.map(function(workflow) {
+                if(!workflow.id) return;
                 return <WorkflowItem key={workflow.id} workflow={workflow}
                                      smallDisplay={this.state.mqSmall}/>;
               }, this):
               <row>
                 <column><h2>No workflows yet!</h2>
                 <p>
-                  Once you have scanned a book, you can see it (and all
-                  other books you have scanned so far) and do the following
+                  Once you have {verb} a book, you can see it (and all
+                  other books you have {verb} so far) and do the following
                   things with it:
                   <ul>
                     <li>Open its detailed view</li>
                     <li>Edit its configuration</li>
                     <li>Delete it</li>
                     <li>Download it</li>
-                    <li>Open its capture view</li>
-                    <li>Transfer it to a removable storage device</li>
-                    <li>Upload it to a remote postprocessing server</li>
+                    {this.window.config.web.mode !== 'processor' &&
+                    <div>
+                      <li>Open its capture view</li>
+                      <li>Transfer it to a removable storage device</li>
+                      <li>Upload it to a remote postprocessing server</li>
+                    </div>}
                   </ul>
                 </p>
                 <p>
