@@ -50,7 +50,7 @@ class IntervalTrigger(HookPlugin, TriggerHooksMixin):
 
     def _trigger_loop(self, capture_func):
         interval = self.config['interval'].get(float)
-        while True:
+        while True and interval > 0.0:
             sleep_time = 0
             while sleep_time < interval:
                 if self._exit_event.is_set():

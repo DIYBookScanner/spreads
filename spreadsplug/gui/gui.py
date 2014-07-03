@@ -337,6 +337,7 @@ class CapturePage(QtGui.QWizardPage):
 
 class PostprocessPage(QtGui.QWizardPage):
     done = False
+    progress = QtCore.Signal(int)
 
     def initializePage(self):
         self.setTitle("Postprocessing")
@@ -359,10 +360,16 @@ class PostprocessPage(QtGui.QWizardPage):
         QtCore.QTimer.singleShot(0, self.doPostprocess)
 
     def doPostprocess(self):
+        # Workaround for Qt threading issue:
+        # QWidget::repaint: Recursive repaint detected, Segfaults
+        # Use Qt event loop instead, it's thread safe
         def progress_callback(wf, changes):
             if 'status' in changes and 'step_progress' in changes['status']:
-                self.progressbar.setValue(
+                self.progress.emit(
                     int(changes['status']['step_progress']*100))
+
+        QtCore.QObject.connect(self, QtCore.SIGNAL("progress(int)"),
+                               self.progressbar, QtCore.SLOT("setValue(int)"))
 
         workflow.on_modified.connect(progress_callback, weak=False,
                                      sender=self.wizard().workflow)
@@ -387,6 +394,7 @@ class PostprocessPage(QtGui.QWizardPage):
 
 class OutputPage(QtGui.QWizardPage):
     done = False
+    progress = QtCore.Signal(int)
 
     def initializePage(self):
         self.setTitle("Generating output files")
@@ -410,10 +418,16 @@ class OutputPage(QtGui.QWizardPage):
         QtCore.QTimer.singleShot(0, self.doGenerateOutput)
 
     def doGenerateOutput(self):
+        # Workaround for Qt threading issue:
+        # QWidget::repaint: Recursive repaint detected, Segfaults
+        # Use Qt event loop instead, it's thread safe
         def progress_callback(wf, changes):
             if 'status' in changes and 'step_progress' in changes['status']:
-                self.progressbar.setValue(
+                self.progress.emit(
                     int(changes['status']['step_progress']*100))
+
+        QtCore.QObject.connect(self, QtCore.SIGNAL("progress(int)"),
+                               self.progressbar, QtCore.SLOT("setValue(int)"))
 
         workflow.on_modified.connect(progress_callback, weak=False,
                                      sender=self.wizard().workflow)
