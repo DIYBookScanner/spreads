@@ -1,18 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
+import shutil
 import time
 import urllib2
 
 from spreads.config import OptionTemplate
 from spreads.plugin import DevicePlugin, DeviceFeatures
 from spreads.vendor.pathlib import Path
-
-BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
-TEST_IMGS = {
-    'even': urllib2.urlopen("http://jbaiter.de/files/even.jpg").read(),
-    'odd':  urllib2.urlopen("http://jbaiter.de/files/odd.jpg").read()
-}
 
 
 class DummyDevice(DevicePlugin):
@@ -36,6 +31,17 @@ class DummyDevice(DevicePlugin):
         return [cls(config, None, 'even'), cls(config, None, 'odd')]
 
     def __init__(self, config, device, target_page):
+        base_path = Path(os.path.expanduser('~/.config/spreads'))
+        self._test_imgs = {
+            'even': base_path / 'even.jpg',
+            'odd': base_path / 'odd.jpg'
+        }
+        if any(not p.exists() for p in self._test_imgs.values()):
+            for target, img_path in self._test_imgs.items():
+                with img_path.open('wb') as fp:
+                    fp.write(urllib2.urlopen(
+                        "http://jbaiter.de/files/{0}.jpg".format(target)
+                    ).read())
         self.target_page = target_page
         super(DummyDevice, self).__init__(config, device)
         self.logger = logging.getLogger(
@@ -57,8 +63,7 @@ class DummyDevice(DevicePlugin):
         self.logger.info("Capturing image into '{0}'".format(path))
         time.sleep(1)
         self.logger.debug(self.config['test'].get())
-        with open(unicode(path), 'wb') as fp:
-            fp.write(TEST_IMGS[self.target_page])
+        shutil.copy(unicode(self._test_imgs[self.target_page]), unicode(path))
 
     def finish_capture(self):
         self.logger.info("Finishing capture")
