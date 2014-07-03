@@ -36,8 +36,8 @@
       return {
         selectedServer: undefined,
         availableServers: [],
-        plugins: {},
-        templates: {},
+        availablePlugins: {},
+        configTemplates: {},
         workflow: undefined,
         /** Errors from validation */
         errors: {},
@@ -58,26 +58,19 @@
     loadServerData: function() {
       // NOTE: To take advantage of the things Backbone provides, we clone
       // our workflow here. **This clone is never persisted**
-      var workflow = this.props.workflow.clone(),
-          config = {};
+      var workflow = this.props.workflow.clone();
 
       // Clear errors
       this.setState({errors: {}});
-
 
       function loadTemplates() {
         jQuery.getJSON(
           '/api/remote/plugins/templates',
           {'server': this.state.selectedServer},
           function(data) {
-            var config = this.state.config,
-                plugins = this.state.plugins['postprocessing'].concat(this.state.plugins['output']);
             this.setState({
-              templates: data
+              configTemplates: data
             });
-            _.each(plugins, function(plugName) {
-              this.loadDefaultConfig(plugName);
-            }, this);
           }.bind(this))
           .fail(function(xhr) {
             this.setState({
@@ -91,10 +84,8 @@
         '/api/remote/plugins',
         {'server': this.state.selectedServer},
         function(data) {
-          config.plugins = data.postprocessing.concat(data.output);
-          workflow.set('config', config);
           this.setState({
-            plugins: data,
+            availablePlugins: data,
             workflow: workflow
           });
           loadTemplates.bind(this)()
@@ -119,10 +110,10 @@
           start_output,
           selected_plugins = this.state.workflow.get('config').plugins;
       start_process = _.some(selected_plugins, function(plugName) {
-        return _.contains(this.state.plugins.postprocessing, plugName);
+        return _.contains(this.state.availablePlugins.postprocessing, plugName);
       }, this);
       start_output = _.some(selected_plugins, function(plugName) {
-        return _.contains(this.state.plugins.output, plugName);
+        return _.contains(this.state.availablePlugins.output, plugName);
       }, this);
       jQuery.ajax('/api/workflow/' + this.props.workflow.id + '/submit', {
         type: 'POST',
@@ -163,35 +154,6 @@
         templates: {},
         selectedServer: event.target.value
       }, this.loadServerData);
-    },
-    handlePluginToggle: function(enabled, pluginName) {
-      var config = this.state.workflow.get('config');
-      if (enabled) {
-        config.plugins.push(pluginName);
-        this.loadDefaultConfig(pluginName);
-      } else {
-        config.plugins = _.without(config.plugins, pluginName);
-        delete config[pluginName];
-      }
-      this.state.workflow.set('config', config);
-      this.forceUpdate();
-    },
-    handlePluginSelect: function(event) {
-      this.setState({
-        selectedPlugin: event.target.value
-      });
-    },
-    loadDefaultConfig: function(pluginName) {
-      if (_.has(this.state.templates, pluginName)) {
-        var template = this.state.templates[pluginName],
-            config = this.state.workflow.get('config');
-        config[pluginName] = {};
-        _.each(template, function(option, key) {
-          config[pluginName][key] = option.value;
-        });
-        this.state.workflow.set('config', config);
-        this.forceUpdate();
-      }
     },
     render: function() {
       return (
@@ -239,49 +201,21 @@
                 </row>
               </column>
             </row>
-            {this.state.selectedServer &&
+            {this.state.selectedServer && this.state.workflow &&
+             !_.isEmpty(this.state.templates) &&
             <div>
-            <row>
-              <column size={[12,9]}>
-                {this.state.plugins && _.map(this.state.plugins.postprocessing, function(plugin) {
-                  var key = 'toggle-' + plugin;
-                  return (
-                    <div key={key}>
-                      <input id={key} type="checkbox" defaultChecked={true}
-                            onChange={function(e){this.handlePluginToggle(e.target.checked, plugin);}.bind(this)} />
-                      <label htmlFor={key}> {plugin} </label>
-                    </div>
-                  );
-                }.bind(this))}
-              </column>
-            </row>
-            <row>
-              <column size={[12,9]}>
-                {this.state.plugins && _.map(this.state.plugins.output, function(plugin) {
-                  var key = 'toggle-' + plugin;
-                  return (
-                    <div key={key}>
-                      <input id={key} type="checkbox" defaultChecked={true}
-                              onChange={function(e) {this.handlePluginToggle(e.target.checked, plugin)}.bind(this)}/>
-                      <label htmlFor={key}>{plugin}</label>
-                    </div>
-                  );
-                }.bind(this))}
-              </column>
-            </row>
-            {(this.state.workflow && !_.isEmpty(this.state.templates)) &&
-            <PluginConfiguration workflow={this.state.workflow}
-                                 errors={this.state.errors}
-                                 templates={this.state.templates} />}
-            <row>
-              <column size={[12,9]}>
-                <button className={_.isEmpty(this.state.errors) ? '': 'disabled'}>Submit</button>
-              </column>
-            </row>
-          </div>
-          }
+              <PluginConfiguration workflow={this.state.workflow}
+                                  errors={this.state.errors}
+                                  templates={this.state.templates}
+                                  availablePlugins={this.state.availablePlugins}/>}
+              <row>
+                <column size={[12,9]}>
+                  <button className={_.isEmpty(this.state.errors) ? '': 'disabled'}>Submit</button>
+                </column>
+              </row>
+            </div>}
           </form>
-          </section>
+        </section>
       );
     }
   });
