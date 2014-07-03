@@ -111,7 +111,7 @@ class CHDKCameraDevice(DevicePlugin):
         def is_ptp(dev):
             for cfg in dev:
                 if usb.util.find_descriptor(cfg, bInterfaceClass=6,
-                        bInterfaceSubClass=1):
+                                            bInterfaceSubClass=1):
                     return True
 
         for dev in usb.core.find(find_all=True, custom_match=is_ptp):

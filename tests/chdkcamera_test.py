@@ -59,6 +59,7 @@ def test_configuration_template():
     assert 'parallel_capture' in tmpl
     assert 'flip_target_pages' in tmpl
 
+
 @mock.patch('spreadsplug.dev.chdkcamera.CHDKCameraDevice._execute_lua')
 @mock.patch('spreadsplug.dev.chdkcamera.usb')
 def test_yield_devices(usb, lua, config):
@@ -78,23 +79,24 @@ def test_yield_devices(usb, lua, config):
         dev.get_active_configuration.return_value = {(0, 0): nomatch_cfg}
         dev.__iter__.return_value = [nomatch_cfg]
     m1, m2 = mock.MagicMock(), mock.MagicMock()
-    mock_devs.extend((m1,m2))
+    mock_devs.extend((m1, m2))
     m1.get_active_configuration.return_value = {(0, 0): match_cfg}
     m1.bus, m1.address = 1, 1
     m2.get_active_configuration.return_value = {(0, 0): match_cfg}
     m2.bus, m2.address = 2, 1
     m1.__iter__.return_value = [match_cfg]
     m2.__iter__.return_value = [match_cfg]
-    
+
     # reroute calls to pyusb into these functions
     def newusb_find(find_all=False, backend=None, **args):
-        assert find_all == True
+        assert find_all is True
         return [dev for dev in mock_devs if args["custom_match"](dev)]
     usb.core.find.side_effect = newusb_find
 
     def newusb_util_find(desc, **args):
-        if (int(desc.bInterfaceClass) == args["bInterfaceClass"] and 
-            int(desc.bInterfaceSubClass) == args["bInterfaceSubClass"]):
+        match = (int(desc.bInterfaceClass) == args["bInterfaceClass"] and
+                 int(desc.bInterfaceSubClass) == args["bInterfaceSubClass"])
+        if match:
             return desc
     usb.util.find_descriptor.side_effect = newusb_util_find
 
@@ -336,12 +338,13 @@ def test_a2200_yield_devices(usb, lua, config):
     nomatch_cfg.bInterfaceSubClass = 0x3
     nomatch_cfg.__iter__.return_value = [nomatch_cfg]
     nomatch_cfg.name = "nomatch_cfg"
-    mock_devs = [mock.MagicMock(idProduct=0xff, idVendor=0xff) for x in xrange(10)]
+    mock_devs = [mock.MagicMock(idProduct=0xff, idVendor=0xff)
+                 for x in xrange(10)]
     for dev in mock_devs:
         dev.get_active_configuration.return_value = {(0, 0): nomatch_cfg}
         dev.__iter__.return_value = [nomatch_cfg]
     m1, m2 = mock.MagicMock(), mock.MagicMock()
-    mock_devs.extend((m1,m2))
+    mock_devs.extend((m1, m2))
     m1.get_active_configuration.return_value = {(0, 0): match_cfg}
     m1.bus, m1.address = 1, 1
     m1.idProduct, m1.idVendor = 0x322a, 0x4a9
@@ -350,16 +353,17 @@ def test_a2200_yield_devices(usb, lua, config):
     m2.idProduct, m2.idVendor = 0x322a, 0x4a9
     m1.__iter__.return_value = [match_cfg]
     m2.__iter__.return_value = [match_cfg]
-    
+
     # reroute calls to pyusb into these functions
     def newusb_find(find_all=False, backend=None, **args):
-        assert find_all == True
+        assert find_all is True
         return [dev for dev in mock_devs if args["custom_match"](dev)]
     usb.core.find.side_effect = newusb_find
 
     def newusb_util_find(desc, **args):
-        if (int(desc.bInterfaceClass) == args["bInterfaceClass"] and 
-            int(desc.bInterfaceSubClass) == args["bInterfaceSubClass"]):
+        match = (int(desc.bInterfaceClass) == args["bInterfaceClass"] and
+                 int(desc.bInterfaceSubClass) == args["bInterfaceSubClass"])
+        if match:
             return desc
     usb.util.find_descriptor.side_effect = newusb_util_find
 
@@ -376,11 +380,7 @@ def test_a2200_yield_devices(usb, lua, config):
     assert devs[1]._serial_number == '87654321'
 
 
-
-
 def test_a2200_finish_capture(a2200):
     with mock.patch.object(a2200, '_run') as run:
         a2200.finish_capture()
         assert run.call_count == 0
-
-
