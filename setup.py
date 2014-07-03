@@ -95,6 +95,7 @@ setup(
         'spreadsplug.devices': [
             "chdkcamera=spreadsplug.dev.chdkcamera:CHDKCameraDevice",
             "gphoto2camera=spreadsplug.dev.gphoto2camera:GPhoto2CameraDevice",
+            "dummy=spreadsplug.dev.dummy:DummyDevice"
         ],
         'spreadsplug.hooks': [
             "autorotate     =spreadsplug.autorotate:AutoRotatePlugin",
