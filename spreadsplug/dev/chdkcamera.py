@@ -15,7 +15,6 @@ from spreads.config import OptionTemplate
 from spreads.plugin import DevicePlugin, DeviceFeatures
 from spreads.util import DeviceException
 
-
 try:
     from jpegtran import JPEGImage
 
@@ -108,13 +107,15 @@ class CHDKCameraDevice(DevicePlugin):
             (0x4a9, 0x322b): QualityFix,
             (0x4a9, 0x322c): QualityFix,
         }
-        for dev in usb.core.find(find_all=True):
-            cfg = dev.get_active_configuration()[(0, 0)]
+        # only match ptp devices in find_all
+        def is_ptp(dev):
+            for cfg in dev:
+                if usb.util.find_descriptor(cfg, bInterfaceClass=6,
+                        bInterfaceSubClass=1):
+                    return True
+
+        for dev in usb.core.find(find_all=True, custom_match=is_ptp):
             ids = (dev.idVendor, dev.idProduct)
-            is_ptp = (hex(cfg.bInterfaceClass) == "0x6"
-                      and hex(cfg.bInterfaceSubClass) == "0x1")
-            if not is_ptp:
-                continue
             if ids in SPECIAL_CASES:
                 yield SPECIAL_CASES[ids](config, dev)
             else:
