@@ -33,6 +33,7 @@ class CustomSdistCommand(SdistCommand):
         check_call(['make', '-C', 'spreadsplug/web/client', 'production'])
         SdistCommand.run(self)
 
+
 class CustomWininstCommand(WininstCommand):
     def run(self):
         from buildmsi import build_msi
@@ -94,6 +95,7 @@ setup(
         'spreadsplug.devices': [
             "chdkcamera=spreadsplug.dev.chdkcamera:CHDKCameraDevice",
             "gphoto2camera=spreadsplug.dev.gphoto2camera:GPhoto2CameraDevice",
+            "dummy=spreadsplug.dev.dummy:DummyDevice"
         ],
         'spreadsplug.hooks': [
             "autorotate     =spreadsplug.autorotate:AutoRotatePlugin",

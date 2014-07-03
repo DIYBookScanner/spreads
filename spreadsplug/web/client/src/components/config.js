@@ -138,7 +138,7 @@
     getInitialState: function() {
       return {
         /** Currently selected plugin */
-        selectedPlugin: undefined
+        selectedSection: undefined
       };
     },
     /**
@@ -147,57 +147,119 @@
      * @param {React.event} event - Event that triggered the method call
      */
     handleSelect: function(event) {
-      this.setState({selectedPlugin: event.target.value});
+      this.setState({selectedSection: event.target.value});
+    },
+    handlePluginToggle: function(enabled, pluginName) {
+      var config = this.state.workflow.get('config');
+      if (enabled) {
+        config.plugins.push(pluginName);
+        config[pluginName] = this.loadDefaultConfig(pluginName);
+      } else {
+        config.plugins = _.without(config.plugins, pluginName);
+        delete config[pluginName];
+      }
+      this.state.workflow.set('config', config);
+      this.forceUpdate();
     },
     toggleAdvanced: function(){
       this.setState({ advancedOpts: !this.state.advancedOpts });
       this.forceUpdate();
     },
+    getDefaultConfig: function(pluginName) {
+      if (!_.has(this.props.templates, pluginName)) return;
+      var template = this.props.templates[pluginName],
+          config = {};
+      _.each(template, function(option, key) {
+        config[key] = option.value;
+      });
+    },
     render: function() {
       var templates = this.props.templates,
-          plugins = _.filter(this.props.workflow.get('config').plugins, function(plugin) {
-            return !_.isEmpty(templates[plugin]);
-          }),
-          /* If no plugin is explicitely selected, use the first one */
-          selectedPlugin = this.state.selectedPlugin;
+          workflow = this.props.workflow,
+          configSections = [],
+          selectedSection;
+
+      if (this.props.workflow.get('config')) {
+          configSections = _.filter(
+            this.props.workflow.get('config').plugins, function(plugin) {
+              return !_.isEmpty(templates[plugin]);
+            });
+      }
 
       if (window.config.web.mode !== 'processor') {
-          plugins.push('device');
+          configSections.push('device');
       }
 
-      if (!selectedPlugin || !_.contains(plugins, selectedPlugin)){
-        selectedPlugin = plugins[0];
-      }
-      /* Don't display anything if there are no plugins */
-      if (_.isEmpty(plugins)) {
+      /* Don't display anything if there are no selectable sections */
+      if (_.isEmpty(configSections)) {
         return <row />;
       }
+
+      /* If no section is explicitely selected, use the first one */
+      selectedSection = this.state.selectedSection;
+      if (!selectedSection || !_.contains(plugins, selectedSection)){
+        selectedSection = configSections[0];
+      }
       return (
-        <row>
-          <column size='12'>
-            <label>Configure plugin</label>
-            <select onChange={this.handleSelect}>
-              {plugins.map(function(plugin) {
-                return <option key={plugin} value={plugin}>{capitalize(plugin)}</option>;
-              })}
-            </select>
-            <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
-                    onChange={this.toggleAdvanced} />
-            <label htmlFor="check-advanced">Show advanced options</label>
-            {/* NOTE: This is kind of nasty.... We can't use _'s 'partial',
-                      since we want to provide the second argument and leave
-                      the first one to the caller. */}
-            <PluginWidget plugin={selectedPlugin}
-                          template={templates[selectedPlugin]}
-                          showAdvanced={this.state.advancedOpts}
-                          bindFunc={function(key) {
-                            return this.bindTo(
-                              this.props.workflow,
-                              'config.' + selectedPlugin + '.' + key);
-                          }.bind(this)}
-                          errors={this.props.errors}/>
-          </column>
-        </row>
+        <div>
+          {this.props.availablePlugins &&
+          <row>
+            <column size={[12,9]}>
+              {_.map(this.props.availablePlugins.postprocessing, function(plugin) {
+                var key = 'toggle-' + plugin;
+                return (
+                  <div key={key}>
+                    <input id={key} type="checkbox"
+                           checked={_.contains(workflow.get('config').plugins, plugin)}
+                           onChange={function(e){this.handlePluginToggle(e.target.checked, plugin);}.bind(this)} />
+                    <label htmlFor={key}> {plugin} </label>
+                  </div>
+                );
+              }.bind(this))}
+            </column>
+          </row>}
+          {this.props.availablePlugins &&
+          <row>
+            <column size={[12,9]}>
+              {_.map(this.props.availablePlugins.output, function(plugin) {
+                var key = 'toggle-' + plugin;
+                return (
+                  <div key={key}>
+                    <input id={key} type="checkbox"
+                           checked={_.contains(workflow.get('config').plugins, plugin)}
+                           onChange={function(e) {this.handlePluginToggle(e.target.checked, plugin)}.bind(this)}/>
+                    <label htmlFor={key}>{plugin}</label>
+                  </div>
+                );
+              }.bind(this))}
+            </column>
+          </row>}
+          <row>
+            <column size='12'>
+              <label>Configure plugin</label>
+              <select onChange={this.handleSelect}>
+                {configSections.map(function(section) {
+                  return <option key={section} value={section}>{capitalize(section)}</option>;
+                })}
+              </select>
+              <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
+                      onChange={this.toggleAdvanced} />
+              <label htmlFor="check-advanced">Show advanced options</label>
+              {/* NOTE: This is kind of nasty.... We can't use _'s 'partial',
+                        since we want to provide the second argument and leave
+                        the first one to the caller. */}
+              <PluginWidget plugin={selectedSection}
+                            template={templates[selectedSection]}
+                            showAdvanced={this.state.advancedOpts}
+                            bindFunc={function(key) {
+                              return this.bindTo(
+                                this.props.workflow,
+                                'config.' + selectedSection + '.' + key);
+                            }.bind(this)}
+                            errors={this.props.errors}/>
+            </column>
+          </row>
+        </div>
       );
     }
   });

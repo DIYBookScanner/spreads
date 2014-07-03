@@ -88,36 +88,46 @@ def index():
         "index.html",
         debug=app.config['DEBUG'],
         default_config=default_config,
-        plugin_templates=templates
+        plugins=list_plugins(),
+        plugin_templates=templates,
     )
+
+
+def list_plugins():
+    config = app.config['default_config']
+    plugins = plugin.get_plugins(*config['plugins'].get())
+    return {
+        'capture': [name for name, cls in plugins.iteritems()
+                    if issubclass(cls, plugin.CaptureHooksMixin)],
+        'trigger': [name for name, cls in plugins.iteritems()
+                    if issubclass(cls, plugin.TriggerHooksMixin)],
+        'postprocessing': [name for name, cls in plugins.iteritems()
+                           if issubclass(cls, plugin.ProcessHookMixin)],
+        'output': [name for name, cls in plugins.iteritems()
+                   if issubclass(cls, plugin.OutputHookMixin)]
+    }
 
 
 def get_plugin_templates():
     """ Return the names of all globally activated plugins and their
         configuration templates.
     """
+    plugins = list_plugins()
     config = app.config['default_config']
-    plugins = plugin.get_plugins(*config['plugins'].get())
-    scanner_exts = [name for name, cls in plugins.iteritems()
-                    if any(issubclass(cls, mixin) for mixin in
-                           (plugin.CaptureHooksMixin,
-                            plugin.TriggerHooksMixin))]
-    processor_exts = [name for name, cls in plugins.iteritems()
-                      if any(issubclass(cls, mixin) for mixin in
-                             (plugin.ProcessHookMixin,
-                              plugin.OutputHookMixin))]
     if app.config['mode'] == 'scanner':
         templates = {section: config.templates[section]
                      for section in config.templates
-                     if section in scanner_exts or section == 'device'}
+                     if section in plugins['capture'] or
+                     section in plugins['trigger'] or
+                     section == 'device'}
     elif app.config['mode'] == 'processor':
         templates = {section: config.templates[section]
                      for section in config.templates
-                     if section in processor_exts}
+                     if section in plugins['postprocessing']}
     elif app.config['mode'] == 'full':
         templates = {section: config.templates[section]
                      for section in config.templates
-                     if section != 'core'}
+                     if section in itertools.chain(*plugins.values())}
     rv = dict()
     for plugname, options in templates.iteritems():
         if options is None:
@@ -578,11 +588,9 @@ def crop_workflow_image(workflow, seq_num, img_type):
         raise ApiException("Can only crop raw images.", 400)
     left = int(request.args.get('left', 0))
     top = int(request.args.get('top', 0))
-    width = int(request.args.get('width', img.width - params['x']))
-    height = int(request.args.get('height', img.height - params['y']))
+    width = int(request.args.get('width', 0)) or None
+    height = int(request.args.get('height', 0)) or None
     crop_image(unicode(page.raw_image), left, top, width, height)
-    cropped = img.crop(**params)
-    cropped.save(unicode(page.raw_image))
     cache_key = "{0}.{1}.{2}".format(workflow.id, 'raw', page.raw_image.name)
     cache.delete(cache_key)
     return 'OK'

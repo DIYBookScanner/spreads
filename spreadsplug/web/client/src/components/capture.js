@@ -57,11 +57,6 @@
     },
     getInitialState: function() {
       // Try to load cropParams for this workflow from localStorage
-      var storageKey = 'crop-params.' + this.props.workflow.id,
-          cropParamJson = localStorage.getItem(storageKey),
-          cropparams;
-      if (cropParamJson) cropParams = JSON.parse(cropParamJson);
-      else cropparams = {};
       return {
         /** Display activity overlay? */
         waiting: false,
@@ -74,7 +69,7 @@
         /** Validation errors for device configuration */
         validationErrors: {},
         /** Crop parameters */
-        cropParams: cropParams,
+        cropParams: {},
         /** Whether we registered a function to crop on successful captures */
         cropOnSuccess: false,
       };
@@ -92,7 +87,7 @@
       this.props.workflow.on('capture-succeeded', this.toggleWaiting, this);
       this.props.workflow.on('status-updated', function(status) {
         if (status.step !== 'capture') this.handleFinish();
-      }.bind(this));
+      }, this);
       // Finish workflow before closing the window
       window.addEventListener("beforeunload", this.handleUnload);
       _.each(window.config.core.capture_keys, function(key) {
@@ -103,13 +98,29 @@
       Mousetrap.bind('f', this.handleFinish);
       this.props.workflow.prepareCapture(this.toggleWaiting);
     },
+    componentDidMount: function() {
+      var storageKey = 'crop-params.' + this.props.workflow.id,
+          cropParamJson = localStorage.getItem(storageKey),
+          cropParams;
+      if (!cropParamJson) return;
+      // If there are crop parameters in the localStorage for this scan,
+      // the pages preceding the first shot are (likely, TODO) already cropped,
+      // so we only register the crop callback after the first capture has
+      // already happened.
+      this.props.workflow.once('capture-succeeded', this.bindCropEvents, this);
+      this.setState({
+        cropParams: JSON.parse(cropParamJson),
+        cropTarget: undefined
+      });
+    },
     /**
      * Triggers finish of capture on workflow.
      */
     componentWillUnmount: function() {
       console.log("Wrapping up capture process");
 
-      // Remove global event listeners
+      // Remove event listeners
+      this.props.workflow.off(null, null, this);
       _.each(window.config.core.capture_key, function(key) {
         if (key === ' ') key = 'space';
         Mousetrap.unbind(key);
@@ -211,19 +222,26 @@
         cropTarget: targetPage
       });
     },
+    bindCropEvents: function() {
+      if (!this.state.cropOnSuccess) {
+        this.props.workflow.on('capture-succeeded', this.cropLast, this);
+        this.setState({cropOnSuccess: true})
+      }
+    },
     setCropParams: function(params) {
       // Register event to crop the previous picture for any new picture taken
       // We don't send this manually with each capture trigger, since we also
       // want to catch captures triggered from the backend (i.e. via the
       // hidtrigger plugin)
-      if (_.isEmpty(this.state.cropParams) && !this.state.cropOnSuccess) {
-        this.props.workflow.on('capture-succeeded', this.cropLast, this);
-        this.setState({cropOnSuccess: true})
-      }
       var origParams = this.state.cropParams,
-          storageKey = 'crop-params.' + this.props.workflow.id;
+          storageKey = 'crop-params.' + this.props.workflow.id,
+          paramJson;
+      this.bindCropEvents();
       origParams[this.state.cropTarget] = params;
-      localStorage.setItem(JSON.stringify(origParams));
+      paramJson = JSON.stringify(origParams);
+      if (paramJson != localStorage.getItem(storageKey)) {
+        localStorage.setItem(storageKey, paramJson);
+      }
       this.setState({
         cropParams: origParams,
         cropTarget: undefined
@@ -358,7 +376,7 @@
                       <img className="even" src={evenImage+"/thumb?"+randomSuffix} ref="thumb-even"/>
                     </a>:
                     <img className="placeholder even" src={placeholderImg}/>}
-                  {this.state.cropParams.even &&
+                  {this.isMounted() && this.state.cropOnSuccess && this.state.cropParams.even &&
                       <div className="crop-preview" style={this.getCropPreviewStyle('even')}/>
                   }
                 </li>
@@ -369,7 +387,7 @@
                     <img className="odd" src={oddImage+"/thumb?"+randomSuffix} ref="thumb-odd"/>
                   </a>:
                   <img className="placeholder odd" src={placeholderImg}/>}
-                  {this.state.cropParams.odd &&
+                  {this.isMounted() && this.state.cropOnSuccess && this.state.cropParams.odd &&
                     <div className="crop-preview" style={this.getCropPreviewStyle('odd')}/>
                   }
                 </li>

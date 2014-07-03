@@ -220,8 +220,9 @@ class Workflow(object):
         else:
             found = []
         for candidate in location.iterdir():
-            is_workflow = ((candidate/'bagit.txt').exists
-                           or (candidate/'raw').exists)
+            is_workflow = (location.is_dir() and
+                           ((candidate/'bagit.txt').exists
+                            or (candidate/'raw').exists))
             if not is_workflow:
                 continue
             if not util.get_next(wf for wf in found if wf.path == candidate):
