@@ -33,6 +33,7 @@ class CustomSdistCommand(SdistCommand):
         check_call(['make', '-C', 'spreadsplug/web/client', 'production'])
         SdistCommand.run(self)
 
+
 class CustomWininstCommand(WininstCommand):
     def run(self):
         from buildmsi import build_msi

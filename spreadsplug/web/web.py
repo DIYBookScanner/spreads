@@ -579,10 +579,8 @@ def crop_workflow_image(workflow, seq_num, img_type):
     left = int(request.args.get('left', 0))
     top = int(request.args.get('top', 0))
     width = int(request.args.get('width', img.width - params['x']))
-    height = int(request.args.get('height', img.height - params['y']))
+    height = int(request.args.get('height', 0)) or None
     crop_image(unicode(page.raw_image), left, top, width, height)
-    cropped = img.crop(**params)
-    cropped.save(unicode(page.raw_image))
     cache_key = "{0}.{1}.{2}".format(workflow.id, 'raw', page.raw_image.name)
     cache.delete(cache_key)
     return 'OK'
