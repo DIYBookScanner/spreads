@@ -335,15 +335,3 @@ def test_a2200_finish_capture(a2200):
         assert run.call_count == 0
 
 
-def test_a2200_set_zoom(a2200):
-    a2200._zoom_steps = 8
-    a2200.config['zoom_level'] = 10
-    with pytest.raises(ValueError):
-        a2200._set_zoom()
-    with mock.patch.object(a2200, '_execute_lua') as lua:
-        lua.return_value = 1
-        a2200.config['zoom_level'] = 7
-        a2200._set_zoom()
-        lua.return_value = 8
-        a2200._set_zoom()
-        assert lua.call_count == 4
