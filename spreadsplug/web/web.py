@@ -127,7 +127,8 @@ def get_plugin_templates():
     elif app.config['mode'] == 'full':
         templates = {section: config.templates[section]
                      for section in config.templates
-                     if section in itertools.chain(*plugins.values())}
+                     if section in itertools.chain(*plugins.values())
+                     or section == 'device'}
     rv = dict()
     for plugname, options in templates.iteritems():
         if options is None:
