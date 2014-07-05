@@ -25,15 +25,12 @@ from threading import Thread
 
 from spreads.vendor.huey import SqliteHuey
 from spreads.vendor.huey.consumer import Consumer
-from spreads.vendor.pathlib import Path
 from flask import Flask
 
 import spreads.plugin as plugin
 import spreads.workflow as workflow
 from spreads.config import OptionTemplate
 from spreads.main import add_argument_from_template
-from spreads.util import get_data_dir
-from spreads.workflow import Workflow
 
 app = Flask('spreadsplug.web', static_url_path='/static',
             static_folder='./client/build', template_folder='./client')
@@ -71,7 +68,7 @@ except ImportError:
             return next(
                 ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
                 if not ip.startswith("127."))
-        except StopIteration:
+        except (StopIteration, socket.gaierror):
             return None
 
 
