@@ -15,7 +15,6 @@ from spreads.config import OptionTemplate
 from spreads.plugin import DevicePlugin, DeviceFeatures
 from spreads.util import DeviceException
 
-
 try:
     from jpegtran import JPEGImage
 
@@ -108,13 +107,15 @@ class CHDKCameraDevice(DevicePlugin):
             (0x4a9, 0x322b): QualityFix,
             (0x4a9, 0x322c): QualityFix,
         }
-        for dev in usb.core.find(find_all=True):
-            cfg = dev.get_active_configuration()[(0, 0)]
+        # only match ptp devices in find_all
+        def is_ptp(dev):
+            for cfg in dev:
+                if usb.util.find_descriptor(cfg, bInterfaceClass=6,
+                                            bInterfaceSubClass=1):
+                    return True
+
+        for dev in usb.core.find(find_all=True, custom_match=is_ptp):
             ids = (dev.idVendor, dev.idProduct)
-            is_ptp = (hex(cfg.bInterfaceClass) == "0x6"
-                      and hex(cfg.bInterfaceSubClass) == "0x1")
-            if not is_ptp:
-                continue
             if ids in SPECIAL_CASES:
                 yield SPECIAL_CASES[ids](config, dev)
             else:
@@ -393,6 +394,7 @@ class CHDKCameraDevice(DevicePlugin):
         return self._execute_lua("get_focus()", get_result=True)
 
     def _set_focus(self):
+        self.logger.info("Running default focus")
         focus_distance = int(self.config['focus_distance'].get())
         self._execute_lua("set_aflock(0)")
         if focus_distance == 0:
@@ -433,31 +435,15 @@ class A2200(CHDKCameraDevice):
         # chdk 1.3, this is why we stub it out here.
         pass
 
-    def _set_zoom(self):
-        """ Set zoom level.
-
-            The A2200 currently has a bug, where setting the zoom level
-            directly via set_zoom crashes the camera quite frequently, so
-            we work around that by simulating button presses.
-
-        :param level: The zoom level to be used
-        :type level:  int
-
-        """
-        level = int(self.config['zoom_level'].get())
-        if level >= self._zoom_steps:
-            raise ValueError(
-                "Zoom level {0} exceeds the camera's range!"
-                " (max: {1})".format(level, self._zoom_steps-1))
-        zoom = self._execute_lua("get_zoom()", get_result=True)
-        if zoom < level:
-            self._execute_lua("while(get_zoom()<{0}) do click(\"zoom_in\") end"
-                              .format(level+1),
-                              wait=True)
-        elif zoom > level:
-            self._execute_lua("while(get_zoom()>{0}) "
-                              "do click(\"zoom_out\") end".format(level+1),
-                              wait=True)
+    def _set_focus(self):
+        self.logger.info("Running A2200 focus")
+        focus_distance = int(self.config['focus_distance'].get())
+        self._execute_lua("set_aflock(1)")
+        time.sleep(0.5)
+        self._execute_lua("set_prop(require('propcase').AF_LOCK, 1)")
+        if focus_distance == 0:
+            return
+        self._execute_lua("set_focus({0:.0f})".format(focus_distance))
 
 
 class QualityFix(CHDKCameraDevice):
