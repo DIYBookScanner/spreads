@@ -29,6 +29,7 @@ Description: Book digitization workflow suite
 Package: spreads-web
 Architecture: all
 Depends: ${misc:Depends}, spreads (>= 0.5dev-git20140705), python-flask (>= 0.10.1), python-requests (>= 2.2.0), python-waitress (>= 0.8), python-tornado (>= 3.1), python-wand (>= 0.3), python-zipstream
+Recommends: python-netifaces
 X-Python-Version: 2.7
 Description: Book digitization workflow suite
  .
