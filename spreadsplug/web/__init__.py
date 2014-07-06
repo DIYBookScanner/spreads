@@ -222,10 +222,7 @@ def run_server(config):
 
     try:
         import waitress
-        # NOTE: We spin up this obscene number of threads since we have
-        #       some long-polling going on, which will always block
-        #       one worker thread.
-        waitress.serve(app, port=listening_port, threads=16)
+        waitress.serve(app, port=listening_port)
     finally:
         consumer.shutdown()
         ws_server.stop()
