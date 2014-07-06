@@ -71,7 +71,7 @@ class TestPluginOutput(plugin.HookPlugin,
                     selectable=True)}
 
     @classmethod
-    def add_command_parser(cls, rootparser):
+    def add_command_parser(cls, rootparser, config):
         testparser = rootparser.add_parser('test', help="test subcommand")
         testparser.set_defaults(subcommand=cls.test_command)
 

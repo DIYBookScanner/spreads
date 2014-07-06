@@ -16,11 +16,9 @@ from spreads.util import (ColourStreamHandler, EventHandler, DeviceException,
                           MissingDependencyException)
 
 
-def add_argument_from_template(extname, key, template, parser):
+def add_argument_from_template(extname, key, template, parser, current_val):
     flag = "--{0}".format(key.replace('_', '-'))
-    default = (template.value
-               if not template.selectable
-               else template.value[0])
+    default = current_val
     kwargs = {'help': ("{0} [default: {1}]"
                        .format(template.docstring, default)),
               'dest': "{0}{1}".format(extname, '.'+key if extname else key)}
@@ -29,7 +27,7 @@ def add_argument_from_template(extname, key, template, parser):
         kwargs['metavar'] = "<str>"
     elif isinstance(template.value, bool):
         kwargs['help'] = template.docstring
-        if template.value:
+        if current_val:
             flag = "--no-{0}".format(key.replace('_', '-'))
             kwargs['help'] = ("Disable {0}"
                               .format(template.docstring.lower()))
@@ -58,7 +56,8 @@ def setup_parser(config):
     subparsers = rootparser.add_subparsers()
     for key, option in config.templates['core'].iteritems():
         try:
-            add_argument_from_template('core', key, option, rootparser)
+            add_argument_from_template('core', key, option, rootparser,
+                                       config['core'][key].get())
         except TypeError:
             continue
 
@@ -80,7 +79,6 @@ def setup_parser(config):
     except ImportError:
         print "Could not load _tkinter module, disabling guiconfigure command"
 
-
     capture_parser = subparsers.add_parser(
         'capture', help="Start the capturing workflow")
     capture_parser.add_argument(
@@ -96,7 +94,8 @@ def setup_parser(config):
         for ext in ext_names:
             for key, tmpl in config.templates.get(ext, {}).iteritems():
                 try:
-                    add_argument_from_template(ext, key, tmpl, parser)
+                    add_argument_from_template(ext, key, tmpl, parser,
+                                               config[ext][key].get())
                 except TypeError:
                     continue
 
@@ -116,7 +115,8 @@ def setup_parser(config):
         for ext in ext_names:
             for key, tmpl in config.templates.get(ext, {}).iteritems():
                 try:
-                    add_argument_from_template(ext, key, tmpl, parser)
+                    add_argument_from_template(ext, key, tmpl, parser,
+                                               config[ext][key].get())
                 except TypeError:
                     continue
 
@@ -133,7 +133,8 @@ def setup_parser(config):
         for ext in ext_names:
             for key, tmpl in config.templates.get(ext, {}).iteritems():
                 try:
-                    add_argument_from_template(ext, key, tmpl, parser)
+                    add_argument_from_template(ext, key, tmpl, parser,
+                                               config[ext][key].get())
                 except TypeError:
                     continue
 
@@ -142,7 +143,7 @@ def setup_parser(config):
         classes = (cls for cls in plugins.values()
                    if issubclass(cls, plugin.SubcommandHookMixin))
         for cls in classes:
-            cls.add_command_parser(subparsers)
+            cls.add_command_parser(subparsers, config)
     return rootparser
 
 
@@ -197,16 +198,15 @@ def run():
     stdout_handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
     logger.addHandler(stdout_handler)
     logger.addHandler(EventHandler())
-    if 'logfile' in config.keys():
-        logfile = Path(config['core']['logfile'].as_filename())
-        if not logfile.parent.exists():
-            logfile.parent.mkdir()
-        file_handler = logging.handlers.RotatingFileHandler(
-            filename=unicode(logfile), maxBytes=512*1024, backupCount=1)
-        file_handler.setFormatter(logging.Formatter(
-            "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
-        file_handler.setLevel(loglevel)
-        logger.addHandler(file_handler)
+    logfile = Path(config['core']['logfile'].as_filename())
+    if not logfile.parent.exists():
+        logfile.parent.mkdir()
+    file_handler = logging.handlers.RotatingFileHandler(
+        filename=unicode(logfile), maxBytes=512*1024, backupCount=1)
+    file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
+    file_handler.setLevel(loglevel)
+    logger.addHandler(file_handler)
 
     logger.setLevel(logging.DEBUG)
 

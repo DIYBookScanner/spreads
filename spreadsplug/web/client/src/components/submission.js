@@ -59,6 +59,7 @@
       // NOTE: To take advantage of the things Backbone provides, we clone
       // our workflow here. **This clone is never persisted**
       var workflow = this.props.workflow.clone();
+      workflow.set('config', {});
 
       // Clear errors
       this.setState({errors: {}});
@@ -151,7 +152,6 @@
     handleServerSelect: function(event) {
       this.setState({
         plugins: {},
-        templates: {},
         selectedServer: event.target.value
       }, this.loadServerData);
     },
@@ -202,12 +202,12 @@
               </column>
             </row>
             {this.state.selectedServer && this.state.workflow &&
-             !_.isEmpty(this.state.templates) &&
+             !_.isEmpty(this.state.configTemplates) &&
             <div>
               <PluginConfiguration workflow={this.state.workflow}
-                                  errors={this.state.errors}
-                                  templates={this.state.templates}
-                                  availablePlugins={this.state.availablePlugins}/>}
+                                   errors={this.state.errors}
+                                   templates={this.state.configTemplates}
+                                   availablePlugins={this.state.availablePlugins}/>}
               <row>
                 <column size={[12,9]}>
                   <button className={_.isEmpty(this.state.errors) ? '': 'disabled'}>Submit</button>

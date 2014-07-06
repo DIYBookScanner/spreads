@@ -25,15 +25,12 @@ from threading import Thread
 
 from spreads.vendor.huey import SqliteHuey
 from spreads.vendor.huey.consumer import Consumer
-from spreads.vendor.pathlib import Path
 from flask import Flask
 
 import spreads.plugin as plugin
 import spreads.workflow as workflow
 from spreads.config import OptionTemplate
 from spreads.main import add_argument_from_template
-from spreads.util import get_data_dir
-from spreads.workflow import Workflow
 
 app = Flask('spreadsplug.web', static_url_path='/static',
             static_folder='./client/build', template_folder='./client')
@@ -71,7 +68,7 @@ except ImportError:
             return next(
                 ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
                 if not ip.startswith("127."))
-        except StopIteration:
+        except (StopIteration, socket.gaierror):
             return None
 
 
@@ -79,7 +76,7 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
     __name__ = 'web'
 
     @classmethod
-    def add_command_parser(cls, rootparser):
+    def add_command_parser(cls, rootparser, config):
         cmdparser = rootparser.add_parser(
             'web', help="Start the web interface")
         cmdparser.set_defaults(subcommand=run_server)
@@ -92,11 +89,13 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
 
         for key, option in cls.configuration_template().iteritems():
             try:
-                add_argument_from_template('web', key, option, cmdparser)
+                add_argument_from_template('web', key, option, cmdparser,
+                                           config['web'][key].get())
                 if platform.system() == "Windows":
                     add_argument_from_template('web', key, option,
-                                               wincmdparser)
-            except:
+                                               wincmdparser,
+                                               config['web'][key].get())
+            except TypeError:
                 continue
 
     @classmethod
@@ -223,10 +222,7 @@ def run_server(config):
 
     try:
         import waitress
-        # NOTE: We spin up this obscene number of threads since we have
-        #       some long-polling going on, which will always block
-        #       one worker thread.
-        waitress.serve(app, port=listening_port, threads=16)
+        waitress.serve(app, port=listening_port)
     finally:
         consumer.shutdown()
         ws_server.stop()
