@@ -198,16 +198,15 @@ def run():
     stdout_handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
     logger.addHandler(stdout_handler)
     logger.addHandler(EventHandler())
-    if 'logfile' in config.keys():
-        logfile = Path(config['core']['logfile'].as_filename())
-        if not logfile.parent.exists():
-            logfile.parent.mkdir()
-        file_handler = logging.handlers.RotatingFileHandler(
-            filename=unicode(logfile), maxBytes=512*1024, backupCount=1)
-        file_handler.setFormatter(logging.Formatter(
-            "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
-        file_handler.setLevel(loglevel)
-        logger.addHandler(file_handler)
+    logfile = Path(config['core']['logfile'].as_filename())
+    if not logfile.parent.exists():
+        logfile.parent.mkdir()
+    file_handler = logging.handlers.RotatingFileHandler(
+        filename=unicode(logfile), maxBytes=512*1024, backupCount=1)
+    file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
+    file_handler.setLevel(loglevel)
+    logger.addHandler(file_handler)
 
     logger.setLevel(logging.DEBUG)
 
