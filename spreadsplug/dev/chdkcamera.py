@@ -107,6 +107,7 @@ class CHDKCameraDevice(DevicePlugin):
             (0x4a9, 0x322b): QualityFix,
             (0x4a9, 0x322c): QualityFix,
         }
+
         # only match ptp devices in find_all
         def is_ptp(dev):
             for cfg in dev:
@@ -274,8 +275,11 @@ class CHDKCameraDevice(DevicePlugin):
                 self.prepare_capture(None)
                 self.capture(path)
             else:
-                self.logger.warn("Capture command failed.")
+                self.logger.error("Capture command failed.")
                 raise e
+        except Exception as e:
+            self.logger.error("Capture command failed.")
+            raise e
 
         # Set EXIF orientation
         self.logger.debug("Setting EXIF orientation on captured image")
