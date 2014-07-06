@@ -110,16 +110,11 @@ class IntroPage(QtGui.QWizardPage):
         dirpick_layout.addWidget(self.line_edit)
         dirpick_layout.addWidget(browse_btn)
         browse_btn.clicked.connect(self.show_filepicker)
-
-        self.stack_widget = QtGui.QStackedWidget()
-        page_combobox = QtGui.QComboBox()
-        page_combobox.activated.connect(self.stack_widget.setCurrentIndex)
-        #QtCore.QObject.connect(page_combobox, SIGNAL("activated(int)"),
-        #        self.stack_widget, SLOT("setCurrentIndex(int)"))
+        self.tab_widget = QtGui.QTabWidget()
+       
         # Add configuration widgets from plugins
         self.plugin_widgets = {}
-      
-        
+
         for name, tmpl in wizard.config.initialized_templates.iteritems():
             if not tmpl:
                 continue
@@ -134,8 +129,7 @@ class IntroPage(QtGui.QWizardPage):
                 else:
                     layout.addRow(label, widget)
             page.setLayout(layout)
-            self.stack_widget.addWidget(page)
-            page_combobox.addItem(name.title())
+            self.tab_widget.addTab(page, name.title())
 
         self.save_btn = QtGui.QPushButton("&Save as defaults")
         self.save_btn.clicked.connect(self.saveSettings)
@@ -151,8 +145,7 @@ class IntroPage(QtGui.QWizardPage):
         )
         main_layout.addLayout(dirpick_layout)
         main_layout.addSpacing(30)
-        main_layout.addWidget(page_combobox)
-        main_layout.addWidget(self.stack_widget)
+        main_layout.addWidget(self.tab_widget)
         main_layout.addLayout(save_layout)
         main_layout.setSizeConstraint(QtGui.QLayout.SetNoConstraint)
 
