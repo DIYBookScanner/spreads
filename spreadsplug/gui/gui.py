@@ -118,7 +118,9 @@ class IntroPage(QtGui.QWizardPage):
         #        self.stack_widget, SLOT("setCurrentIndex(int)"))
         # Add configuration widgets from plugins
         self.plugin_widgets = {}
-        for name, tmpl in wizard.config.templates.iteritems():
+      
+        
+        for name, tmpl in wizard.config.initialized_templates.iteritems():
             if not tmpl:
                 continue
             page = QtGui.QGroupBox()
@@ -135,6 +137,12 @@ class IntroPage(QtGui.QWizardPage):
             self.stack_widget.addWidget(page)
             page_combobox.addItem(name.title())
 
+        self.save_btn = QtGui.QPushButton("&Save as defaults")
+        self.save_btn.clicked.connect(self.saveSettings)
+        save_layout = QtGui.QHBoxLayout()
+        save_layout.addStretch(1)
+        save_layout.addWidget(self.save_btn)
+
         main_layout = QtGui.QVBoxLayout()
         main_layout.addWidget(intro_label)
         main_layout.addSpacing(30)
@@ -145,6 +153,7 @@ class IntroPage(QtGui.QWizardPage):
         main_layout.addSpacing(30)
         main_layout.addWidget(page_combobox)
         main_layout.addWidget(self.stack_widget)
+        main_layout.addLayout(save_layout)
         main_layout.setSizeConstraint(QtGui.QLayout.SetNoConstraint)
 
         self.setLayout(main_layout)
@@ -159,14 +168,18 @@ class IntroPage(QtGui.QWizardPage):
             if (option.selectable and
                     any(isinstance(option.value, x) for x in (list, tuple))):
                 widget = QtGui.QComboBox()
+                i, index = 0, 0
                 for each in option.value:
                     widget.addItem(each)
-                widget.setCurrentIndex(0)
+                    if each == option.config_value:
+                        index = i
+                    i += 1
+                widget.setCurrentIndex(index)
             # Do we need a checkbox?
             elif isinstance(option.value, bool):
                 widget = QtGui.QCheckBox(label)
                 widget.setCheckState(QtCore.Qt.Checked
-                                     if option.value
+                                     if option.config_value
                                      else QtCore.Qt.Unchecked)
             elif any(isinstance(option.value, x) for x in (list, tuple)):
                 # NOTE: We skip options with sequences for a value for now,
@@ -177,17 +190,19 @@ class IntroPage(QtGui.QWizardPage):
             # Seems like we need another value...
             elif isinstance(option.value, int):
                 widget = QtGui.QSpinBox()
-                widget.setMaximum(1024)
-                widget.setMinimum(-1024)
-                widget.setValue(option.value)
+                maxVlu = max(1024, option.value * 2)
+                widget.setMaximum(maxVlu)
+                widget.setMinimum(-maxVlu)
+                widget.setValue(option.config_value)
             elif isinstance(option.value, float):
                 widget = QtGui.QDoubleSpinBox()
-                widget.setMaximum(1024.0)
-                widget.setMinimum(-1024.0)
-                widget.setValue(option.value)
+                maxVlu = max(1024.0, option.value * 2)
+                widget.setMaximum(maxVlu)
+                widget.setMinimum(-maxVlu)
+                widget.setValue(option.config_value)
             else:
                 widget = QtGui.QLineEdit()
-                widget.setText(option.value)
+                widget.setText(option.config_value)
             widgets[key] = (label, widget)
         return widgets
 
@@ -216,6 +231,12 @@ class IntroPage(QtGui.QWizardPage):
                                             config=wizard.config)
         wizard.workflow.prepare_capture()
         return True
+
+    def saveSettings(self):
+        self._update_config_from_plugin_widgets()
+        config = self.wizard().config
+        print("Writing configuration file to '{0}'".format(config.cfg_path))
+        config.dump(filename=config.cfg_path)
 
     def _update_config_from_plugin_widgets(self):
         config = self.wizard().config
