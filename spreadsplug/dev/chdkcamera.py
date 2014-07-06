@@ -297,17 +297,20 @@ class CHDKCameraDevice(DevicePlugin):
             self._set_whitebalance()
 
     def show_textbox(self, message):
+        self._execute_lua("enter_alt()")
         messages = message.split("\n")
         script = [
-            'screen_width = get_gui_screen_width();',
-            'screen_height = get_gui_screen_height();',
-            'draw_rect_filled(0, 0, screen_width, screen_height, 256, 256);'
+            'require("drawings");'
+            'draw.add("rectf", 0, 0, get_gui_screen_width(), '
+            '         get_gui_screen_height(), 256, 256);',
         ]
-        script.extend(
-            ['draw_string(0, 0+(screen_height/10)*{0}, "{1}", 258, 256);'
-             .format(idx, msg) for idx, msg in enumerate(messages, 1)]
-        )
-        self._execute_lua("\n".join(script), wait=False, get_result=False)
+        script.extend([
+            'draw.add("string", 0, 0+(get_gui_screen_height()/10)*{0}, '
+            '         "{1}", 258, 256);'
+            .format(idx, msg) for idx, msg in enumerate(messages, 1)
+        ])
+        script.append("draw.overdraw();")
+        self._execute_lua("\n".join(script), get_result=True)
 
     def _run(self, *commands):
         chdkptp_path = Path(self.config["chdkptp_path"].get(unicode))
@@ -331,7 +334,7 @@ class CHDKCameraDevice(DevicePlugin):
 
     def _execute_lua(self, script, wait=True, get_result=False, timeout=256):
         if get_result and not "return" in script:
-            script = "return({0})".format(script)
+            script = "return{{{0}}}".format(script)
         cmd = "luar" if wait else "lua"
         output = self._run("{0} {1}".format(cmd, script))
         if not get_result:
