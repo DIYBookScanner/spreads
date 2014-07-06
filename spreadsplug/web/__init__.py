@@ -76,7 +76,7 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
     __name__ = 'web'
 
     @classmethod
-    def add_command_parser(cls, rootparser):
+    def add_command_parser(cls, rootparser, config):
         cmdparser = rootparser.add_parser(
             'web', help="Start the web interface")
         cmdparser.set_defaults(subcommand=run_server)
@@ -89,11 +89,13 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
 
         for key, option in cls.configuration_template().iteritems():
             try:
-                add_argument_from_template('web', key, option, cmdparser)
+                add_argument_from_template('web', key, option, cmdparser,
+                                           config['web'][key].get())
                 if platform.system() == "Windows":
                     add_argument_from_template('web', key, option,
-                                               wincmdparser)
-            except:
+                                               wincmdparser,
+                                               config['web'][key].get())
+            except TypeError:
                 continue
 
     @classmethod

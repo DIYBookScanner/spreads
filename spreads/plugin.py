@@ -223,7 +223,7 @@ class SubcommandHookMixin(object):
     __metaclass__ = abc.ABCMeta
 
     @abstractclassmethod
-    def add_command_parser(cls, rootparser):
+    def add_command_parser(cls, rootparser, config):
         """ Allows a plugin to register a new command with the command-line
             parser. The subparser that is added to :param rootparser: should
             set the class' ``__call__`` method as the ``func`` (via
@@ -233,6 +233,8 @@ class SubcommandHookMixin(object):
         :param rootparser: The root parser that this plugin should add a
                            subparser to.
         :type rootparser:  argparse.ArgumentParser
+        :param config:     The application configuration
+        :type config:      Configuration
 
         """
         pass
