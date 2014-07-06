@@ -136,7 +136,7 @@ class Configuration(object):
         """
         templates = {}
         for plugname, tmpl in self.templates.iteritems():
-            name = plugname if plugname != "device" else "driver"
+            name = plugname if plugname != "driver" else "device"
             plug = {}
             for key, view in tmpl.items():
                 plug[key] = ConfigOption(view, self[plugname][key].get())
