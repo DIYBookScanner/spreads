@@ -203,7 +203,7 @@ def configure(config):
 def capture(config):
     path = config['path'].get()
     workflow = spreads.workflow.Workflow(config=config, path=path)
-    spreads.workflow.on_created.send(workflow=workflow)
+    spreads.workflow.on_created.send(workflow)
     capture_keys = workflow.config['core']['capture_keys'].as_str_seq()
 
     # Some closures
