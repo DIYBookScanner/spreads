@@ -21,6 +21,7 @@
 from __future__ import division, unicode_literals
 
 import abc
+import glob
 import json
 import logging
 import os
@@ -93,6 +94,26 @@ def check_futures_exceptions(futures):
 
 def get_free_space(path):
     return psutil.disk_usage(unicode(path)).free
+
+
+def wildcardify(pathnames):
+    """ Generate a single path with wildcards that matches all `pathnames`.
+    
+    :param pathnames:   List of pathnames to find a wildcard string for
+    :type pathanmes:    List of str/unicode
+    :return:            The wildcard string or None if none was found
+    :rtype:             unicode or None
+    """
+    wildcard_str = ""
+    for idx, char in enumerate(pathnames[0]):
+        if all(p[idx] == char for p in pathnames[1:]):
+            wildcard_str += char
+        elif not wildcard_str or wildcard_str[-1] != "*":
+            wildcard_str += "*"
+    matched_paths = glob.glob(wildcard_str)
+    if not sorted(pathnames) == sorted(matched_paths):
+        return None
+    return wildcard_str
 
 
 PUNCTUATION_REXP = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')

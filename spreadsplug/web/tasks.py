@@ -45,6 +45,7 @@ on_transfer_completed = signals.signal('transfer:completed')
 on_submit_started = signals.signal('submit:started')
 on_submit_progressed = signals.signal('submit:progressed')
 on_submit_completed = signals.signal('submit:completed')
+on_submit_error = signals.signal('submit:error')
 
 
 @task_queue.task()

@@ -150,7 +150,7 @@
       this.setState({selectedSection: event.target.value});
     },
     handlePluginToggle: function(enabled, pluginName) {
-      var config = this.state.workflow.get('config');
+      var config = this.props.workflow.get('config');
       if (enabled) {
         config.plugins.push(pluginName);
         config[pluginName] = this.loadDefaultConfig(pluginName);
@@ -158,14 +158,14 @@
         config.plugins = _.without(config.plugins, pluginName);
         delete config[pluginName];
       }
-      this.state.workflow.set('config', config);
+      this.props.workflow.set('config', config);
       this.forceUpdate();
     },
     toggleAdvanced: function(){
       this.setState({ advancedOpts: !this.state.advancedOpts });
       this.forceUpdate();
     },
-    getDefaultConfig: function(pluginName) {
+    loadDefaultConfig: function(pluginName) {
       if (!_.has(this.props.templates, pluginName)) return;
       var template = this.props.templates[pluginName],
           config = {};
@@ -186,18 +186,14 @@
             });
       }
 
-      if (window.config.web.mode !== 'processor') {
+      if (window.config.web.mode !== 'processor' &&
+          !_.isEmpty(templates['device'])) {
           configSections.push('device');
-      }
-
-      /* Don't display anything if there are no selectable sections */
-      if (_.isEmpty(configSections)) {
-        return <row />;
       }
 
       /* If no section is explicitely selected, use the first one */
       selectedSection = this.state.selectedSection;
-      if (!selectedSection || !_.contains(plugins, selectedSection)){
+      if (!_.isEmpty(configSections) && !selectedSection) {
         selectedSection = configSections[0];
       }
       return (
@@ -234,6 +230,7 @@
               }.bind(this))}
             </column>
           </row>}
+          {!_.isEmpty(configSections) &&
           <row>
             <column size='12'>
               <label>Configure plugin</label>
@@ -258,7 +255,7 @@
                             }.bind(this)}
                             errors={this.props.errors}/>
             </column>
-          </row>
+          </row>}
         </div>
       );
     }

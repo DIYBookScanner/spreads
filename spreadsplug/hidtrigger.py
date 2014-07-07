@@ -71,7 +71,12 @@ class HidTrigger(HookPlugin, TriggerHooksMixin):
                     while not dev.read(8):
                         time.sleep(0.01)
                         continue
-                    capture_func()
+                    try:
+                        capture_func()
+                    except Exception as e:
+                        self._logger.error(
+                            "Error occured when invoking capture function.")
+                        self._logger.exception(e)
                 else:
                     time.sleep(0.01)
 

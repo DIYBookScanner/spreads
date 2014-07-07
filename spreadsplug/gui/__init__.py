@@ -30,7 +30,7 @@ class GuiCommand(HookPlugin, SubcommandHookMixin):
     __name__ = 'gui'
 
     @classmethod
-    def add_command_parser(cls, rootparser):
+    def add_command_parser(cls, rootparser, config):
         guiparser = rootparser.add_parser(
             'gui', help="Start the GUI wizard")
         guiparser.set_defaults(subcommand=GuiCommand.wizard)

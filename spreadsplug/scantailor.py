@@ -20,6 +20,7 @@ from __future__ import division, unicode_literals
 import logging
 import math
 import multiprocessing
+import platform
 import re
 import shutil
 import subprocess
@@ -32,12 +33,15 @@ from spreads.vendor.pathlib import Path
 
 from spreads.config import OptionTemplate
 from spreads.plugin import HookPlugin, ProcessHookMixin
-from spreads.util import find_in_path, MissingDependencyException
+from spreads.util import (find_in_path, MissingDependencyException,
+                          SpreadsException, wildcardify)
 
 if not find_in_path('scantailor-cli'):
     raise MissingDependencyException("Could not find executable"
                                      " `scantailor-cli`. Please" " install the"
                                      " appropriate package(s)!")
+
+IS_WIN = platform.system() == 'Windows'
 
 logger = logging.getLogger('spreadsplug.scantailor')
 
@@ -99,7 +103,18 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
                 '--margins-bottom={0}'.format(marginconf[2]),
                 '--margins-left={0}'.format(marginconf[3]),
             ])
-        generation_cmd.extend(in_paths)
+        # NOTE: We cannot pass individual filenames on windows, since we have
+        # a limit of 32,768 characters for commands. Thus, we first try to
+        # find a wildcard for our paths that matches only them, and if that
+        # fails, throw an Exception and tell the user to use a proper OS...
+        wildcard = wildcardify(in_paths)
+        if not wildcard and IS_WIN:
+            raise SpreadsException("Please use a proper operating system.")
+        elif not wildcard:
+            generation_cmd.extend(in_paths)
+        else:
+            generation_cmd.append(wildcard)
+
         generation_cmd.append(unicode(out_dir))
         logger.debug(" ".join(generation_cmd))
         proc = psutil.Process(subprocess.Popen(generation_cmd).pid)
@@ -205,11 +220,18 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
                                      projectfile, out_dir)
 
         if not autopilot:
+            logger.warn("If you are changing output settings (in the last "
+                        "step, you *have* to run the last step from the GUI. "
+                        "Due to a bug in ScanTailor, your settings would "
+                        "otherwise be ignored.")
+            time.sleep(5)
             logger.info("Opening ScanTailor GUI for manual adjustment")
             subprocess.call([find_in_path('scantailor'), unicode(projectfile)])
-
-        logger.info("Generating output images from ScanTailor configuration.")
-        self._generate_output(projectfile, out_dir, len(pages))
+        # Check if the user already generated output files from the GUI
+        if not sum(1 for x in out_dir.glob('*.tif')) == len(pages):
+            logger.info("Generating output images from ScanTailor "
+                        "configuration.")
+            self._generate_output(projectfile, out_dir, len(pages))
 
         # Associate generated output files with our pages
         for fname in out_dir.glob('*.tif'):

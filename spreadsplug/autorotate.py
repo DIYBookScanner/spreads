@@ -50,7 +50,7 @@ except ImportError:
         try:
             metadata = pyexiv2.ImageMetadata(in_path)
             metadata.read()
-            orient = int(metadata['Image.Exif.Orientation'])
+            orient = int(metadata['Exif.Image.Orientation'].value)
         except:
             logger.warn(
                 "Image {0} did not have any EXIF rotation, did not rotate."

@@ -67,21 +67,21 @@ def draw_progress(progress):
     sys.stdout.flush()
 
 
-def _select_driver():
+def _select_driver(current):
     print(colorize("Please select a device driver from the following list:",
                    colorama.Fore.BLUE))
-    available_drivers = plugin.available_drivers()
-    print("  [0]: None")
-    for pos, ext in enumerate(plugin.available_drivers(), 1):
+    available_drivers = plugin.available_drivers() + [None]
+    print("  [0]: Keep current ({0})".format(current))
+    for pos, ext in enumerate(available_drivers, 1):
         print("  [{0}]: {1}".format(pos, ext))
     while True:
         selection = raw_input("Select a driver: ")
+        if not selection or int(selection) == 0:
+            return current
         if not selection.isdigit() or int(selection) > len(available_drivers):
             print(colorize("Please select a number in the range of 0 to {0}"
                            .format(len(available_drivers)), colorama.Fore.RED))
             continue
-        if int(selection) == 0:
-            return None
         driver = unicode(available_drivers[int(selection)-1])
         print(colorize("Selected \"{0}\" as device driver".format(driver),
                        colorama.Fore.GREEN))
@@ -123,8 +123,12 @@ def _setup_processing_pipeline(config):
     print("\n".join(" - {0}".format(ext) for ext in exts))
     while True:
         answer = raw_input("Please enter the extensions in the order that they"
-                           " should be invoked, separated by commas:\n")
-        plugins = [x.strip() for x in answer.split(',')]
+                           " should be invoked, separated by commas or hit"
+                           " enter to keep the current order:\n")
+        if not answer:
+            plugins = exts
+        else:
+            plugins = [x.strip() for x in answer.split(',')]
         if any(x not in exts for x in plugins):
             print(colorize("At least one of the entered extensions was not"
                            "found, please try again!", colorama.Fore.RED))
@@ -155,12 +159,16 @@ def _set_device_target_page(config, target_page):
 
 def configure(config):
     old_plugins = config["plugins"].get()
-    driver_name = _select_driver()
+    driver_name = _select_driver(config["driver"].get()
+                                        if 'driver' in config.keys() else None)
     if driver_name:
         config["driver"] = driver_name
         driver = plugin.get_driver(config["driver"].get())
     else:
         driver = None
+    # Save driver
+    config.dump(filename=config.cfg_path)
+
     config["plugins"] = _select_plugins(old_plugins)
     _setup_processing_pipeline(config)
 
@@ -171,12 +179,15 @@ def configure(config):
             continue
         config.set_from_template(name, config.templates[name])
 
+    # Save plugins
+    config.dump(filename=config.cfg_path)
+
     # We only need to set the device target_page if the driver supports
     # shooting with two devices
     if driver and plugin.DeviceFeatures.IS_CAMERA in driver.features:
         answer = raw_input(
             "Do you want to configure the target_page of your devices?\n"
-            "(Required for shooting with two devices) [y/n]: ")
+            "(Required for shooting with two devices) [y/N]: ")
         answer = True if answer.lower() == 'y' else False
         if answer:
             print("Setting target page on cameras")
@@ -184,7 +195,7 @@ def configure(config):
                 _set_device_target_page(config, target_page)
 
         answer = raw_input("Do you want to setup the focus for your cameras? "
-                           "[y/n]: ")
+                           "[y/N]: ")
         answer = True if answer.lower() == 'y' else False
         if answer:
             print("Please turn on one of your capture devices.\n"
@@ -196,14 +207,14 @@ def configure(config):
             getch()
             focus = devs[0]._acquire_focus()
             config['device']['focus_distance'] = focus
-    print("Writing configuration file to '{0}'".format(config.cfg_path))
+    print("Configuration file written to '{0}'".format(config.cfg_path))
     config.dump(filename=config.cfg_path)
 
 
 def capture(config):
     path = config['path'].get()
     workflow = spreads.workflow.Workflow(config=config, path=path)
-    spreads.workflow.on_created.send(workflow=workflow)
+    spreads.workflow.on_created.send(workflow)
     capture_keys = workflow.config['core']['capture_keys'].as_str_seq()
 
     # Some closures

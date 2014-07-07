@@ -228,6 +228,9 @@
   module.exports = Backbone.Collection.extend({
     model: Workflow,
     url: '/api/workflow',
+    comparator: function(workflow) {
+      return -workflow.get('last_modified');
+    },
     connectEvents: function(eventDispatcher) {
       eventDispatcher.on('workflow:created', function(data) {
         // Check for pending workflows, if there is one, it's the one that
@@ -258,9 +261,12 @@
       }, this);
       eventDispatcher.on('workflow:modified', function(data) {
         var workflow = this.get(data.id);
+        var changes = data.changes;
+        changes.last_modified = new Date().getTime() / 1000;
         if (workflow) {
-          workflow.set(data.changes);
+          workflow.set(changes);
         }
+        this.sort();
       }, this);
     }
   });
