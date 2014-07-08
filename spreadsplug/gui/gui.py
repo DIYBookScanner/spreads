@@ -115,12 +115,12 @@ class IntroPage(QtGui.QWizardPage):
         # Add configuration widgets from plugins
         self.plugin_widgets = {}
 
-        for name, tmpl in wizard.config.initialized_templates.iteritems():
+        for name, tmpl in wizard.config.templates.iteritems():
             if not tmpl:
                 continue
             page = QtGui.QGroupBox()
             layout = QtGui.QFormLayout()
-            widgets = self._get_plugin_config_widgets(tmpl)
+            widgets = self._get_plugin_config_widgets(tmpl, name)
             self.plugin_widgets[name] = widgets
             for label, widget in widgets.values():
                 # We don't need a label for QCheckBoxes
@@ -152,11 +152,12 @@ class IntroPage(QtGui.QWizardPage):
         self.setLayout(main_layout)
         self.adjustSize()
 
-    def _get_plugin_config_widgets(self, plugin_tmpl):
-        widgets = {}
+    def _get_plugin_config_widgets(self, plugin_tmpl, plugname):
+        widgets, config = {}, self.wizard().config
         for key, option in plugin_tmpl.items():
             label = (option.docstring
                      if not option.docstring is None else key.title())
+            cur_value = config[plugname][key].get()
             # Do we need a dropdown?
             if (option.selectable and
                     any(isinstance(option.value, x) for x in (list, tuple))):
@@ -164,7 +165,7 @@ class IntroPage(QtGui.QWizardPage):
                 i, index = 0, 0
                 for each in option.value:
                     widget.addItem(unicode(each))
-                    if each == option.config_value:
+                    if each == cur_value:
                         index = i
                     i += 1
                 widget.setCurrentIndex(index)
@@ -172,7 +173,7 @@ class IntroPage(QtGui.QWizardPage):
             elif isinstance(option.value, bool):
                 widget = QtGui.QCheckBox(label)
                 widget.setCheckState(QtCore.Qt.Checked
-                                     if option.config_value
+                                     if cur_value
                                      else QtCore.Qt.Unchecked)
             elif any(isinstance(option.value, x) for x in (list, tuple)):
                 # NOTE: We skip options with sequences for a value for now,
@@ -186,16 +187,16 @@ class IntroPage(QtGui.QWizardPage):
                 maxVlu = max(1024, option.value * 2)
                 widget.setMaximum(maxVlu)
                 widget.setMinimum(-maxVlu)
-                widget.setValue(option.config_value)
+                widget.setValue(cur_value)
             elif isinstance(option.value, float):
                 widget = QtGui.QDoubleSpinBox()
                 maxVlu = max(1024.0, option.value * 2)
                 widget.setMaximum(maxVlu)
                 widget.setMinimum(-maxVlu)
-                widget.setValue(option.config_value)
+                widget.setValue(cur_value)
             else:
                 widget = QtGui.QLineEdit()
-                widget.setText(option.config_value)
+                widget.setText(cur_value)
             widgets[key] = (label, widget)
         return widgets
 

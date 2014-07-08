@@ -51,21 +51,6 @@ class OptionTemplate(object):
                 .format(repr(self.value), repr(self.docstring),
                         repr(self.selectable), repr(self.advanced)))
 
-class ConfigOption(OptionTemplate):
-    def __init__(self, optiontemplate, config_value):
-        self.config_value = config_value
-        super(ConfigOption, self).__init__(optiontemplate.value,
-                                           optiontemplate.docstring,
-                                           optiontemplate.selectable,
-                                           optiontemplate.advanced)
-
-    def __repr__(self):
-        return ("ConfigOption(config_value={0}, value={1}, docstring={2}, "
-                "selectable={3}, advanced={4})"
-                .format(repr(self.config_value), repr(self.value),
-                        repr(self.docstring), repr(self.selectable),
-                        repr(self.advanced)))
-
 CORE_OPTIONS = {
     'verbose': OptionTemplate(value=False,
                               docstring="Enable verbose output"),
@@ -125,21 +110,6 @@ class Configuration(object):
             tmpl = plugin.configuration_template()
             if tmpl:
                 templates[name] = tmpl
-        return templates
-
-    @property
-    def initialized_templates(self):
-        """ Gets all Templates as in templates but
-            values are set to their config values
-
-        :rtype dict
-        """
-        templates = {}
-        for plugname, tmpl in self.templates.iteritems():
-            plug = {}
-            for key, view in tmpl.items():
-                plug[key] = ConfigOption(view, self[plugname][key].get())
-            templates[plugname] = plug
         return templates
 
     @property
