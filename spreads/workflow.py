@@ -185,9 +185,7 @@ class Workflow(object):
             raise ValidationError(
                 name="A workflow with that name already exists")
         wf = cls(path=location/name, config=config, metadata=metadata)
-        if not location in cls._cache:
-            cls._cache[location] = []
-        cls._cache[location].append(wf)
+        cls._add_to_cache(wf)
         return wf
 
     @classmethod
