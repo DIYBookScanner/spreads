@@ -80,10 +80,6 @@ class ValidationError(Exception):
     def __init__(self, **kwargs):
         self.errors = kwargs
 
-# Put workflows into cache when they're created
-on_created.connect(lambda sender, **kwargs: Workflow._add_to_cache(sender),
-                   weak=False)
-
 
 class Page(object):
     __slots__ = ["sequence_num", "capture_num", "raw_image", "page_label",
@@ -177,6 +173,12 @@ class TocEntry(object):
 class Workflow(object):
     _cache = {}
 
+    def __new__(cls, *args, **kwargs):
+        # Put workflows into cache when they're created
+        on_created.connect(lambda sender, **kwargs: cls._add_to_cache(sender),
+                           weak=False)
+        return super(Workflow, cls).__new__(cls, *args, **kwargs)
+
     @classmethod
     def create(cls, location, name, config=None, metadata=None):
         if not isinstance(location, Path):
@@ -185,9 +187,6 @@ class Workflow(object):
             raise ValidationError(
                 name="A workflow with that name already exists")
         wf = cls(path=location/name, config=config, metadata=metadata)
-        if not location in cls._cache:
-            cls._cache[location] = []
-        cls._cache[location].append(wf)
         return wf
 
     @classmethod
