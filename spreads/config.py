@@ -136,13 +136,14 @@ class Configuration(object):
         """
         templates = {}
         for plugname, tmpl in self.templates.iteritems():
-            name = plugname if plugname != "driver" else "device"
+            #name = plugname #if plugname != "device" else "driver"
             plug = {}
             for key, view in tmpl.items():
                 plug[key] = ConfigOption(view, self[plugname][key].get())
-            templates[name] = plug
+            templates[plugname] = plug
         return templates
 
+    @property
     def cfg_path(self):
         return Path(self._config.config_dir()) / confit.CONFIG_FILENAME
 

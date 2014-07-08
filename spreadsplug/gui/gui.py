@@ -111,7 +111,7 @@ class IntroPage(QtGui.QWizardPage):
         dirpick_layout.addWidget(browse_btn)
         browse_btn.clicked.connect(self.show_filepicker)
         self.tab_widget = QtGui.QTabWidget()
-       
+
         # Add configuration widgets from plugins
         self.plugin_widgets = {}
 
@@ -163,7 +163,7 @@ class IntroPage(QtGui.QWizardPage):
                 widget = QtGui.QComboBox()
                 i, index = 0, 0
                 for each in option.value:
-                    widget.addItem(each)
+                    widget.addItem(unicode(each))
                     if each == option.config_value:
                         index = i
                     i += 1
@@ -228,7 +228,7 @@ class IntroPage(QtGui.QWizardPage):
     def saveSettings(self):
         self._update_config_from_plugin_widgets()
         config = self.wizard().config
-        print("Writing configuration file to '{0}'".format(config.cfg_path))
+        logger.debug("Writing configuration file to '{0}'".format(config.cfg_path))
         config.dump(filename=config.cfg_path)
 
     def _update_config_from_plugin_widgets(self):
