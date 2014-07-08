@@ -707,6 +707,16 @@ def shutdown():
     return ''
 
 
+@app.route('/api/system/reboot', methods=['POST'])
+def reboot():
+    if not app.config['standalone']:
+        abort(503)
+    # NOTE: This requires that the user running spreads can execute
+    #       /sbin/shutdown via sudo.
+    subprocess.call("/usr/bin/sudo /sbin/shutdown -r now".split())
+    return ''
+
+
 @app.route('/<path:path>')
 def redirect_pushstate(path):
     return redirect("/#{0}".format(path))

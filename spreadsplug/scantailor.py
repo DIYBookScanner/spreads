@@ -220,11 +220,18 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
                                      projectfile, out_dir)
 
         if not autopilot:
+            logger.warn("If you are changing output settings (in the last "
+                        "step, you *have* to run the last step from the GUI. "
+                        "Due to a bug in ScanTailor, your settings would "
+                        "otherwise be ignored.")
+            time.sleep(5)
             logger.info("Opening ScanTailor GUI for manual adjustment")
             subprocess.call([find_in_path('scantailor'), unicode(projectfile)])
-
-        logger.info("Generating output images from ScanTailor configuration.")
-        self._generate_output(projectfile, out_dir, len(pages))
+        # Check if the user already generated output files from the GUI
+        if not sum(1 for x in out_dir.glob('*.tif')) == len(pages):
+            logger.info("Generating output images from ScanTailor "
+                        "configuration.")
+            self._generate_output(projectfile, out_dir, len(pages))
 
         # Associate generated output files with our pages
         for fname in out_dir.glob('*.tif'):

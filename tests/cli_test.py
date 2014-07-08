@@ -36,8 +36,8 @@ def test_getch(tty, termios, stdin):
 def test_select_driver(mock_input):
     driver = Mock()
     driver.name = "testdriver"
-    mock_input.side_effect = ('a', '1')
-    assert cli._select_driver() == 'testdriver'
+    mock_input.side_effect = ('1')
+    assert cli._select_driver(None) == 'testdriver'
 
 
 def test_select_plugins(mock_input):

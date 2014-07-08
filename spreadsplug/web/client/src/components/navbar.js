@@ -21,8 +21,11 @@
   'use strict';
   var React = require('react/addons'),
       jQuery = require('jquery'),
-      confirmModal = require('./foundation.js').confirmModal,
-      fnLabel = require('./foundation.js').label;
+      modal = require('./foundation.js').modal,
+      fnLabel = require('./foundation.js').label,
+      row = require('./foundation.js').row,
+      column = require('./foundation.js').column,
+      fnButton = require('./foundation.js').button;
 
   /**
    * Global navigation bar for the application
@@ -50,6 +53,12 @@
         shutdownModal: false
       });
     },
+    doReboot: function() {
+      jQuery.ajax({
+        type: "POST",
+        url: "/api/system/rebot"
+      });
+    },
     /** Display shutdown modal to ask user to confirm shutdown */
     handleShutdown: function() {
       this.setState({
@@ -60,13 +69,22 @@
       return (
         <div className="contain-to-grid fixed">
           {this.state.shutdownModal &&
-            <confirmModal
-              onCancel={function(){this.setState({shutdownModal: false});}.bind(this)}
-              onConfirm={this.doShutdown} fixed={true}>
-              <h1>Shut down</h1>
-              <p>Do you really want to shut down the device?</p>
-              <p><strong>If you do, please make sure that you turn off your devices before confirming!</strong></p>
-            </confirmModal>}
+            <modal onClose={function(){this.setState({shutdownModal: false});}.bind(this)}>
+              <row><column><h1>Shut down/Reboot</h1></column></row>
+              <row><column><p>Do you really want to shut down the device?</p></column></row>
+              <row><column><p><strong>If you do, please make sure that you turn off your devices before confirming!</strong></p></column></row>
+              <row>
+                <column size="4">
+                  <fnButton callback={this.doShutdown} size="small">Shut Down</fnButton>
+                </column>
+                <column size="4">
+                  <fnButton callback={this.doReboot} size="small">Reboot</fnButton>
+                </column>
+                <column size="4">
+                  <fnButton callback={this.props.onClose} size="small">Cancel</fnButton>
+                </column>
+              </row>
+            </modal>}
           <nav className="top-bar" data-topbar>
             <ul className="title-area">
               <li className="name"> <h1><a href="/" title="Return to workflow list"><i className="fa fa-home" /> {this.props.title}</a></h1> </li>

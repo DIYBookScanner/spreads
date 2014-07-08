@@ -172,7 +172,7 @@ def config():
         cfg["driver"] = u"testdriver"
         cfg["plugins"] = [u"test_output", u"test_process", u"test_process2"]
         cfg["capture"]["capture_keys"] = ["b", " "]
-        cfg.load_defaults(overwrite=False)
+        cfg.load_defaults()
         yield cfg
 
 

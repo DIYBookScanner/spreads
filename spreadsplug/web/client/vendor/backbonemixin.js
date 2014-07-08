@@ -33,7 +33,7 @@
           }
         }.bind(this, null);
         model.__updater = updater;
-        model.on('add change remove', updater, this);
+        model.on('add change remove sort', updater, this);
       }
     },
     bindTo: function(model, key){

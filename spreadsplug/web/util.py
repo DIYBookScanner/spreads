@@ -17,7 +17,6 @@
 
 from __future__ import division
 
-import calendar
 import logging
 import mimetypes
 import time
@@ -80,9 +79,7 @@ class CustomJSONEncoder(JSONEncoder):
             return mimetypes.guess_type(unicode(obj))[0]
         elif isinstance(obj, datetime):
             # Return datetime as an epoch timestamp with microsecond-resolution
-            ts = (calendar.timegm(obj.timetuple())*1000
-                  + obj.microsecond)/1000.0
-            return ts
+            return (time.mktime(obj.timetuple())*1000 + obj.microsecond)/1000.0
         else:
             return JSONEncoder.default(self, obj)
 
@@ -93,6 +90,7 @@ class CustomJSONEncoder(JSONEncoder):
             'name': workflow.path.name,
             'metadata': dict(workflow.metadata),
             'status': workflow.status,
+            'last_modified': workflow.last_modified,
             'pages': workflow.pages,
             'out_files': [{'name': path.name,
                            'mimetype': path}
