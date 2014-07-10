@@ -39,11 +39,10 @@
       }
     },
     validation: {
-      name: {
-        required: true,
-        // All printable ASCII characters, except '/' and '''
-        pattern: /^[\x20-\x27\x29-\x2E\x30-\x7E]*$/,
-        msg: 'Please enter a valid name (ASCII only and no "/" or "\'")'
+      metadata: function(value) {
+        if (!_.has(value, 'title')) {
+          return "The metadata has to contain at least a title.";
+        }
       }
     },
     validate: function() {

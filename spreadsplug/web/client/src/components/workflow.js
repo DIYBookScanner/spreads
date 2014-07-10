@@ -167,7 +167,8 @@
             'button': true,
             'disabled': this.state.selectedPages.length === 0
           }),
-          imageTypes = ['raw'].concat(_.without(_.keys(workflow.get('pages')[0].processed_images), 'tesseract'));
+          imageTypes = ['raw'].concat(_.without(_.keys(workflow.get('pages')[0].processed_images), 'tesseract')),
+          metadata = workflow.get('metadata');
       return (
         <main>
           {/* Display image in lightbox overlay? */}
@@ -185,19 +186,32 @@
           }
           <row>
             <column size='12'>
-              <h1>{workflow.get('name')}</h1>
+              <h1>{metadata.title}</h1>
             </column>
           </row>
-          <row>
+          <row className="metadata-view">
             <column size='12'>
               <h2>Metadata</h2>
-              <ul>
-                {workflow.get('status').step ?
-                  <li>{workflow.get('status').step}</li>:
-                  <li>Current step: <em>inactive</em></li>
+              {_.map(window.metadataSchema, function(field) {
+                if (!_.has(metadata, field.key)) return;
+                var valueNode,
+                    value = metadata[field.key];
+                if (field.multivalued) {
+                  valueNode = (
+                    <ul>
+                    {_.map(value, function(item) {
+                      return <li key={item}>{item}</li>;
+                    })}
+                    </ul>);
+                } else {
+                  valueNode = value;
                 }
-                <li>Enabled plugins:{' '}{workflow.get('config').plugins.join(', ')}</li>
-              </ul>
+                return (
+                  <row key={field.key}>
+                    <column size={2}>{field.description}</column>
+                    <column size={10}>{valueNode}</column>
+                  </row>);
+                })}
             </column>
           </row>
 

@@ -39,6 +39,7 @@ from spreads.vendor.pathlib import Path
 import spreads.plugin as plugin
 import spreads.util as util
 from spreads.config import Configuration
+from spreads.metadata import Metadata
 
 
 signals = Namespace()
@@ -180,13 +181,17 @@ class Workflow(object):
         return super(Workflow, cls).__new__(cls, *args, **kwargs)
 
     @classmethod
-    def create(cls, location, name, config=None, metadata=None):
+    def create(cls, location, metadata=None, config=None):
         if not isinstance(location, Path):
             location = Path(location)
-        if (location/name).exists():
+        if metadata is None or not 'title' in metadata:
             raise ValidationError(
-                name="A workflow with that name already exists")
-        wf = cls(path=location/name, config=config, metadata=metadata)
+                metadata={'title': 'Please specify at least a title'})
+        path = Path(location/util.slugify(metadata['title']))
+        if path.exists():
+            raise ValidationError(
+                name="A workflow with that title already exists")
+        wf = cls(path=path, config=config, metadata=metadata)
         return wf
 
     @classmethod
@@ -291,8 +296,11 @@ class Workflow(object):
             self.config = config.as_view()
         else:
             self.config = self._load_config(config)
+        self._metadata = Metadata(self.path)
+
         if metadata:
             self.metadata = metadata
+
         self._capture_lock = threading.RLock()
         self._devices = None
         self._pluginmanager = None
@@ -423,26 +431,16 @@ class Workflow(object):
 
     @property
     def metadata(self):
-        if not hasattr(self, '_dcmeta'):
-            try:
-                fpath = next(x for x in self.bag.tagfiles
-                             if x.endswith('/dcmeta.txt'))
-            except StopIteration:
-                fpath = unicode(self.path/'dcmeta.txt')
-            self._dcmeta = bagit.BagInfo(fpath,
-                                         save_callback=self.bag.add_tagfiles)
-        return self._dcmeta
+        return self._metadata
 
     @metadata.setter
     def metadata(self, value):
-        if hasattr(self, '_dcmeta'):
-            self._dcmeta = None
-            # Remove old metadata file
-            (self.path/'dcmeta.txt').unlink()
-        if not hasattr(value, 'items'):
-            raise ValueError("Metadata must be a dict-like object.")
+        # Empty old metadata
+        for k in self._metadata:
+            del self._metadata[k]
+        # Save new metadata
         for k, v in value.items():
-            self._dcmeta[k] = v
+            self._metadata[k] = v
 
     def save(self):
         self._save_config()
@@ -713,5 +711,6 @@ class Workflow(object):
         old_cfg = self.config.flatten()
         self.config.set(values)
         diff = diff_dicts(old_cfg, self.config.flatten())
-        self._run_hook('update_configuration', diff['device'])
+        if 'device' in diff:
+            self._run_hook('update_configuration', diff['device'])
         on_modified.send(self, changes={'config': self.config.flatten()})

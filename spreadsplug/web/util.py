@@ -87,7 +87,6 @@ class CustomJSONEncoder(JSONEncoder):
         return {
             'id': workflow.id,
             'slug': workflow.slug,
-            'name': workflow.path.name,
             'metadata': dict(workflow.metadata),
             'status': workflow.status,
             'last_modified': workflow.last_modified,

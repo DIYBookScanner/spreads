@@ -370,7 +370,7 @@
               <row>
                 <column>
                   <h3><a title="View details"
-                         href={workflowUrl}>{workflow.get('name')}</a></h3>
+                         href={workflowUrl}>{workflow.get('metadata').title}</a></h3>
                 </column>
               </row>
               <row>

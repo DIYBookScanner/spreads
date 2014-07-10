@@ -480,6 +480,38 @@ li.page-preview {
     width: 100%;
   }
 }
+
+.autocomplete-suggestions {
+  list-style: none;
+  margin-left: 0.5em;
+
+  li {
+    padding: 0.5em 0;
+  }
+  li:hover {
+    background-color: lightblue;
+  }
+}
+
+.metadata-fieldset {
+  .error {
+    margin-top: -1rem;
+  }
+  label {
+    text-align: right;
+  }
+}
+.metadata-view {
+  .row {
+    margin-top: 0.5rem;
+  }
+  ul {
+    list-style: none;
+    margin-left: 0;
+    margin-bottom: 0;
+    line-height: 1;
+  }
+}
 /* ======= Animations ======== */
 @include keyframes(bounce) {
   0%, 100% {

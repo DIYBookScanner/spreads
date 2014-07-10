@@ -165,6 +165,7 @@ def setup_logging(config):
     logging.getLogger('huey.consumer').setLevel(logging.INFO)
     logging.getLogger('huey.consumer.ConsumerThread').setLevel(logging.INFO)
     logging.getLogger('bagit').setLevel(logging.ERROR)
+    logging.getLogger('isbnlib.dev.webservice').setLevel(logging.ERROR)
 
 
 def setup_signals(ws_server=None):

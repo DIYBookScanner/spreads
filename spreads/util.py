@@ -98,7 +98,7 @@ def get_free_space(path):
 
 def wildcardify(pathnames):
     """ Generate a single path with wildcards that matches all `pathnames`.
-    
+
     :param pathnames:   List of pathnames to find a wildcard string for
     :type pathanmes:    List of str/unicode
     :return:            The wildcard string or None if none was found
