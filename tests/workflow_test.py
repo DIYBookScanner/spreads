@@ -70,12 +70,12 @@ def test_capture(workflow):
     workflow.config['device']['parallel_capture'] = True
     workflow.config['device']['flip_target_pages'] = False
     for dev in workflow.devices:
-        dev.delay = 0.25
+        dev.delay = 1.0 # subsecond checks fails on some filesystems
     workflow.prepare_capture()
     workflow.capture()
     assert len(workflow.pages) == 2
     assert (workflow.pages[1].raw_image.stat().st_ctime -
-            workflow.pages[0].raw_image.stat().st_ctime) < 0.25
+            workflow.pages[0].raw_image.stat().st_ctime) < 1.0
     workflow.finish_capture()
 
 
@@ -83,12 +83,12 @@ def test_capture_noparallel(workflow):
     workflow.config['device']['parallel_capture'] = False
     workflow.config['device']['flip_target_pages'] = False
     for dev in workflow.devices:
-        dev.delay = 0.25
+        dev.delay = 1.0 # subsecond checks fails on some filesystems
     workflow.prepare_capture()
     workflow.capture()
     assert len(workflow.pages) == 2
     assert round(workflow.pages[1].raw_image.stat().st_ctime -
-                 workflow.pages[0].raw_image.stat().st_ctime, 2) >= 0.25
+                 workflow.pages[0].raw_image.stat().st_ctime, 2) >= 1.0
     workflow.finish_capture()
 
 

@@ -51,7 +51,6 @@ class OptionTemplate(object):
                 .format(repr(self.value), repr(self.docstring),
                         repr(self.selectable), repr(self.advanced)))
 
-
 CORE_OPTIONS = {
     'verbose': OptionTemplate(value=False,
                               docstring="Enable verbose output"),
