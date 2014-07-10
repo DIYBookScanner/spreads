@@ -162,6 +162,7 @@ def test_prepare_capture_withrec(camera):
     camera._run.assert_any_call('rec')
 
 
+@pytest.mark.xfail  # See docstring for `finish_capture` for details
 def test_finish_capture(camera):
     camera.finish_capture()
     camera._run.assert_called_once_with('play')

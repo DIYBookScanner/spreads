@@ -235,9 +235,11 @@ class CHDKCameraDevice(DevicePlugin):
                              "device, will be disabled.")
 
     def finish_capture(self):
-        # Switch camera back to play mode.
-        # This will retract the lens and protect it from dust.
-        self._run("play")
+        # NOTE: We should retract the lenses to protect them from dust by
+        # switching back to play mode (`self._run("play")`), but due to a bug
+        # in a majority of CHDK devices, we currently cannot do that, so we
+        # just do nothing here. See issue #114 on GitHub for more details
+        pass
 
     def get_preview_image(self):
         fpath = tempfile.mkstemp()[1]
@@ -436,11 +438,6 @@ class A2200(CHDKCameraDevice):
                 'A2200Device[{0}]'.format(self.target_page))
         else:
             self.logger = logging.getLogger('A2200Device')
-
-    def finish_capture(self):
-        # Putting the device back into play mode crashes the a2200 with
-        # chdk 1.3, this is why we stub it out here.
-        pass
 
     def _set_focus(self):
         self.logger.info("Running A2200 focus")
