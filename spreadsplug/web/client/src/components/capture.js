@@ -39,6 +39,17 @@
 
   placeholderImg = "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4AQMAAABPbGssAAAAA1BMVEWZmZl86KQWAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gQIFjciiRhnwgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAZSURBVEjH7cEBDQAAAMKg909tDwcUAAAPBgnYAAHW6F1SAAAAAElFTkSuQmCC";
 
+  var CaptureProgress = React.createClass({
+    render: function() {
+      var progress = Math.min(1, this.props.current/this.props.total);
+      return (
+        <div className="nice secondary progress">
+          <span className="meter" style={{width: progress*100+'%'}} />
+        </div>
+      );
+    }
+  });
+
 
   /**
    * Screen component to control the capture process.
@@ -329,6 +340,12 @@
         evenImage = util.getPageUrl(workflow, lastPages[0], 'raw');
         oddImage = util.getPageUrl(workflow, lastPages[1], 'raw');
       }
+
+      // This is only >0 when the 'extent' metadata field is a number, this
+      // allows us to display a progress bar that allows for some visual
+      // feedback on how far a long the user is with a capture.
+      var expectedTotal = (workflow.get('metadata').extent | 0);
+
       return (
         <div>
           {/* Display loading overlay? */}
@@ -397,6 +414,7 @@
               </ul>
             </column>
           </row>
+          {expectedTotal && <CaptureProgress total={expectedTotal} current={workflow.get('pages').length} />}
           <row className="capture-info">
             <column size="6">
               <span className="pagecount">{workflow.get('pages').length} pages</span>
