@@ -344,12 +344,15 @@
                 <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
                        onChange={this.toggleAdvanced} />
                 <label htmlFor="check-advanced">Show advanced options</label>
-                <PluginWidget plugin="device" template={window.pluginTemplates.device}
+                <PluginWidget template={window.pluginTemplates.device}
+                              cfgValues={this.props.workflow.get('config').device}
+                              errors={this.state.validationErrors}
                               showAdvanced={this.state.advancedOpts}
-                              bindFunc={function(key) {
-                                return this.bindTo(this.props.workflow,
-                                                    'config.device.' + key);
-                              }.bind(this)} errors={[]} />
+                              onChange={function(vals) {
+                                var config = _.clone(this.props.workflow.get('config'));
+                                config.device = vals;
+                                this.props.workflow.set('config', config);
+                              }.bind(this)} />
               </confirmModal>
             </form>
           }

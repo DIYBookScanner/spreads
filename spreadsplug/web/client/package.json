@@ -22,7 +22,6 @@
     "underscore": "~1.6.0",
     "backbone": "~1.1.2",
     "jquery": "~2.1.0",
-    "backbone-validation": "~0.9.1",
     "mousetrap": "0.0.1"
   },
   "jest": {

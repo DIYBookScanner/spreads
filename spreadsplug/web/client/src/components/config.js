@@ -28,7 +28,7 @@
       row = foundation.row,
       column = foundation.column,
       fnButton = foundation.button,
-      PluginOption, PluginWidget, PluginConfiguration;
+      PluginOption, PluginWidget, PluginConfiguration, PluginSelector;
 
 
   /**
@@ -43,15 +43,15 @@
     render: function() {
       var name = this.props.name,
           option = this.props.option,
-          bindFunc = this.props.bindFunc,
           /* If there is a docstring, use it as the label, otherwise use
            * the capitalized name */
           label =  <label htmlFor={name}>{option.docstring || capitalize(name)}</label>,
           input;
       if (option.selectable && _.isArray(option.value)) {
-        /* Use a dropdown to represent selectable values */
+        /* Use a dropdown to represent selectable cfgValues */
         input = (
-          <select id={name} multiple={false} valueLink={bindFunc(name)}>
+          <select id={name} multiple={false} value={this.props.value}
+                  onChange={this.props.onChange}>
             {_.map(option.value, function(key) {
               return <option key={key} value={key}>{key}</option>;
             })}
@@ -60,26 +60,31 @@
       } else if (_.isArray(option.value)) {
         /* TODO: Currently we cannot deal with multi-valued options,
          *       change this! */
-        input = <em>oops</em>;
       } else if (typeof option.value === "boolean") {
-        /* Use a checkbox to represent boolean values */
-        input = <input id={name} type={"checkbox"} checkedLink={bindFunc(name)} />;
+        /* Use a checkbox to represent boolean cfgValues */
+        input = <input id={name} type={"checkbox"} checked={this.props.value}
+                       onChange={this.props.onChange} />;
       } else {
-        /* Use a regular input to represent number or string values */
+        /* Use a regular input to represent number or string cfgValues */
         var types = { "number": "number",
                       "string": "text" };
 
-        input = <input id={name} type={types[typeof option.value]} valueLink={bindFunc(name)} />;
+        input = <input id={name} type={types[typeof option.value]}
+                       value={this.props.value} onChange={this.props.onChange} />;
       }
+      var error = this.props.error && (<small className="error">{this.props.error}</small>);
       return (
         <row>
-          <column size='12'>
+        {input &&
+          <column>
+            <row>
             {/* Labels are to the left of all inputs, except for checkboxes */}
-            {input.props.type === 'checkbox' ? input : label}
-            {input.props.type === 'checkbox' ? label : input}
-            {/* Display error, if it is defined */}
-            {this.props.error && <small className="error">{this.props.error}</small>}
-          </column>
+            {input.props.type === 'checkbox' ?
+              <column size={1}>{input}</column> : <column size={5}>{label}{error}</column>}
+            {input.props.type === 'checkbox' ?
+              <column size={11}>{label}</column> : <column size={7}>{input}{error}</column>}
+            </row>
+          </column>}
         </row>
       );
     }
@@ -93,28 +98,54 @@
    * @property {function} bindFunc     - Function to call to establish databinding
    */
   PluginWidget = React.createClass({
+    getHandleChange: function(key) {
+      return function(e) {
+        var cfgValues = _.clone(this.props.cfgValues);
+        cfgValues[key] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        this.props.onChange(cfgValues);
+      }.bind(this);
+    },
     render: function() {
-      var template = this.props.template;
+      var template = this.props.template,
+          cfgValues = this.props.cfgValues;
       return (
-        <row>
-          <column size='12'>
-            <row>
-              <column size='12'>
-                <h3>{this.props.plugin}</h3>
-              </column>
-            </row>
-            {_.map(template, function(option, key) {
-              var path = 'config.' + this.props.plugin + '.' + key;
-              if (!this.props.showAdvanced && option.advanced) {
-                  return;
-              }
-              return (<PluginOption name={key} option={option} key={key}
-                                    bindFunc={this.props.bindFunc}
-                                    error={this.props.errors[path]} />);
-            }, this)}
-          </column>
-        </row>
+        <div>
+        {_.map(template, function(option, key) {
+          if (!this.props.showAdvanced && option.advanced) {
+              return;
+          }
+          return (<PluginOption name={key} option={option} key={key}
+                                value={this.props.cfgValues[key]}
+                                error={this.props.errors[key]}
+                                onChange={this.getHandleChange(key)} />);
+        }, this)}
+        </div>
       );
+    }
+  });
+
+  PluginSelector = React.createClass({
+    render: function() {
+      return (
+      <row className="plugin-select">
+        <column size={3}><label>Select {this.props.type} plugins</label></column>
+        <column size={9} className="select-pane">
+          {_.map(this.props.available, function(plugin) {
+            var key = 'toggle-' + plugin;
+            return (
+              <row key={key}>
+                <column>
+                  <input id={key} type="checkbox"
+                         checked={_.contains(this.props.enabled, plugin)}
+                         onChange={function(e){
+                            this.props.onChange(e.target.checked, plugin);
+                         }.bind(this)} />
+                  <label htmlFor={key}> {plugin} </label>
+                </column>
+              </row>);
+          }.bind(this))}
+        </column>
+      </row>);
     }
   });
 
@@ -128,62 +159,60 @@
    *
    */
   PluginConfiguration = React.createClass({
-    /** Enables two-way databinding with Backbone model */
-    mixins: [ModelMixin],
-
-    /** Activates databinding for `workflow` model property. */
-    getBackboneModels: function() {
-      return [this.props.workflow];
-    },
     getInitialState: function() {
       return {
         /** Currently selected plugin */
-        selectedSection: undefined
+        selectedSection: undefined,
+        /** Validation errors (from components themselves */
+        internalErrors: {},
+        /** Only for initialization purposes, not intended to be kept in sync
+         *  at all times. */
+        config: this.props.config || {},
+        advancedOpts: false
       };
     },
-    /**
-     * Change selected plugin
-     *
-     * @param {React.event} event - Event that triggered the method call
-     */
-    handleSelect: function(event) {
-      this.setState({selectedSection: event.target.value});
+    handleChange: function(section, cfgValues) {
+      var config = _.clone(this.state.config);
+      config[section] = cfgValues;
+      this.setState({config: config});
     },
     handlePluginToggle: function(enabled, pluginName) {
-      var config = this.props.workflow.get('config');
+      var config = this.state.config;
+      if (_.isUndefined(config.plugins)) config.plugins = [];
       if (enabled) {
         config.plugins.push(pluginName);
-        config[pluginName] = this.loadDefaultConfig(pluginName);
       } else {
         config.plugins = _.without(config.plugins, pluginName);
         delete config[pluginName];
       }
-      this.props.workflow.set('config', config);
-      this.forceUpdate();
+      this.setState({config: config});
     },
     toggleAdvanced: function(){
       this.setState({ advancedOpts: !this.state.advancedOpts });
-      this.forceUpdate();
     },
-    loadDefaultConfig: function(pluginName) {
+    getDefaultConfig: function(pluginName) {
       if (!_.has(this.props.templates, pluginName)) return;
       var template = this.props.templates[pluginName],
           config = {};
       _.each(template, function(option, key) {
-        config[key] = option.value;
+        var value = window.config[pluginName][key] || option.value;
+        config[key] = _.isArray(option.value) ? option.value[0] : option.value;
       });
+      return config;
     },
     render: function() {
       var templates = this.props.templates,
-          workflow = this.props.workflow,
+          config = this.state.config,
           configSections = [],
+          errors = merge(this.state.internalErrors, this.props.errors),
+          availablePlugins = this.props.availablePlugins || window.plugins || {},
+          canProcess = window.config.web.mode !== 'scanner',
           selectedSection;
 
-      if (this.props.workflow.get('config')) {
-          configSections = _.filter(
-            this.props.workflow.get('config').plugins, function(plugin) {
-              return !_.isEmpty(templates[plugin]);
-            });
+      if (_.has(config, 'plugins')) {
+        configSections = _.filter(config.plugins, function(plugin) {
+            return !_.isEmpty(templates[plugin]);
+        });
       }
 
       if (window.config.web.mode !== 'processor' &&
@@ -197,67 +226,67 @@
         selectedSection = configSections[0];
       }
       return (
-        <div>
-          {this.props.availablePlugins &&
-          <row>
-            <column size={[12,9]}>
-              {_.map(this.props.availablePlugins.postprocessing, function(plugin) {
-                var key = 'toggle-' + plugin;
-                return (
-                  <div key={key}>
-                    <input id={key} type="checkbox"
-                           checked={_.contains(workflow.get('config').plugins, plugin)}
-                           onChange={function(e){this.handlePluginToggle(e.target.checked, plugin);}.bind(this)} />
-                    <label htmlFor={key}> {plugin} </label>
-                  </div>
-                );
-              }.bind(this))}
-            </column>
-          </row>}
-          {this.props.availablePlugins &&
-          <row>
-            <column size={[12,9]}>
-              {_.map(this.props.availablePlugins.output, function(plugin) {
-                var key = 'toggle-' + plugin;
-                return (
-                  <div key={key}>
-                    <input id={key} type="checkbox"
-                           checked={_.contains(workflow.get('config').plugins, plugin)}
-                           onChange={function(e) {this.handlePluginToggle(e.target.checked, plugin)}.bind(this)}/>
-                    <label htmlFor={key}>{plugin}</label>
-                  </div>
-                );
-              }.bind(this))}
-            </column>
-          </row>}
-          {!_.isEmpty(configSections) &&
-          <row>
-            <column size='12'>
-              <label>Configure plugin</label>
-              <select onChange={this.handleSelect}>
-                {configSections.map(function(section) {
-                  return <option key={section} value={section}>{capitalize(section)}</option>;
-                })}
-              </select>
-              <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
-                      onChange={this.toggleAdvanced} />
-              <label htmlFor="check-advanced">Show advanced options</label>
-              {/* NOTE: This is kind of nasty.... We can't use _'s 'partial',
-                        since we want to provide the second argument and leave
-                        the first one to the caller. */}
-              <PluginWidget plugin={selectedSection}
-                            template={templates[selectedSection]}
-                            showAdvanced={this.state.advancedOpts}
-                            bindFunc={function(key) {
-                              return this.bindTo(
-                                this.props.workflow,
-                                'config.' + selectedSection + '.' + key);
-                            }.bind(this)}
-                            errors={this.props.errors}/>
-            </column>
-          </row>}
-        </div>
-      );
+        <row>
+          <column size={['12', '10', '8']}>
+            <fieldset className="config">
+              <legend>Configuration</legend>
+              {canProcess && availablePlugins.postprocessing &&
+                <PluginSelector type="postprocessing"
+                                available={availablePlugins.postprocessing}
+                                enabled={config.plugins}
+                                onChange={this.handlePluginToggle} />}
+              {canProcess && availablePlugins.output &&
+                <PluginSelector type="output"
+                                available={availablePlugins.output}
+                                enabled={config.plugins}
+                                onChange={this.handlePluginToggle} />}
+              <row style={{"border-top": "1px solid lightgray",
+                           "padding-top": "1em"}}>
+                <column>
+                  <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
+                          onChange={this.toggleAdvanced} />
+                  <label htmlFor="check-advanced">Show advanced options</label>
+                </column>
+              </row>
+              {!_.isEmpty(configSections) &&
+              <row className="plugin-config">
+                <column size={3}>
+                {_.map(configSections, function(section) {
+                  var active = selectedSection === section,
+                      classes = React.addons.classSet({
+                        "plugin-label": true,
+                        active: active
+                      });
+                  return (
+                    <row>
+                      <column>
+                        <a onClick={function() {
+                          this.setState({selectedSection: section});
+                        }.bind(this)}>
+                          <label className={classes}>
+                            {capitalize(section)}
+                            {active && <i style={{"margin-right": "1rem",
+                                                  "line-height": "inherit"}}
+                                          className="fa fa-caret-right right" />}
+                          </label>
+                        </a>
+                      </column>
+                    </row>);
+                }, this)}
+                </column>
+                <column size={9} className="config-pane">
+                  <PluginWidget template={templates[selectedSection]}
+                                showAdvanced={this.state.advancedOpts}
+                                cfgValues={this.state.config[selectedSection] || this.getDefaultConfig(selectedSection)}
+                                errors={errors[selectedSection] || {}}
+                                onChange={function(cfgValues) {
+                                  this.handleChange(selectedSection, cfgValues);
+                                }.bind(this)} />
+                </column>
+              </row>}
+            </fieldset>
+          </column>
+        </row>);
     }
   });
 

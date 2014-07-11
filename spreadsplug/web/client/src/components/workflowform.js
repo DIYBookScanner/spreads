@@ -71,6 +71,7 @@
     },
     handleSave: function() {
       this.props.workflow.set('metadata', this.refs.metadata.state.metadata);
+      this.props.workflow.set('config', this.refs.config.state.config);
       /* Save workflow and open capture screen when successful */
       this.setState({submitting: true});
       //this.props.workflow.set('metadata', this.refs.metadata.value());
@@ -112,8 +113,9 @@
             </row>
             <MetadataEditor ref="metadata" metadata={this.props.workflow.get('metadata')}
                             errors={this.state.errors.metadata}/>
-            <PluginConfiguration workflow={this.props.workflow}
-                                 errors={this.state.errors}
+            <PluginConfiguration ref="config"
+                                 config={this.props.workflow.get('config')}
+                                 errors={this.state.errors || {}}
                                  templates={window.pluginTemplates}/>
             <row>
                 <column size='12'>
