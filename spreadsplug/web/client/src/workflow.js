@@ -23,8 +23,10 @@
       _ = require('underscore'),
       jQuery = require('jquery'),
       Workflow;
+      _.mixin(require('underscore.deep'));
+
   // Custom third party extension to Backbone, see below
-  Backbone.DeepModel = require('../vendor/backbone-deep-model.js');
+  Backbone.DeepModel = require('backbone-deep-model').DeepModel;
 
   /* We extend DeepModel instead of Model so we can listen on changes for
    * nested objects like workflow.config. */
