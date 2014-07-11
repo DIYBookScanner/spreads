@@ -662,7 +662,7 @@ class Workflow(object):
 
     def finish_capture(self):
         if self._pool_executor:
-            self._pool_executor.shutdown(wait=False)
+            self._pool_executor.shutdown(wait=True)
             self._pool_executor = None
         with ThreadPoolExecutor(len(self.devices)) as executor:
             futures = []
