@@ -142,7 +142,7 @@
           progress = workflow.get('status').step_progress,
           captureDone = (pages.length > 0 && step !== 'capture'),
           captureBusy = (step === 'capture'),
-          processDone = (!_.isEmpty(pages.slice(-1)[0].processed_images) &&
+          processDone = (!_.isEmpty(pages) && !_.isEmpty(pages.slice(-1)[0].processed_images) &&
                          (step !== 'process' || progress == 1)),
           processWaiting = (step === 'process' && progress == null),
           processBusy = (step === 'process' && progress !== null && progress < 1),

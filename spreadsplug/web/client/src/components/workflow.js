@@ -159,7 +159,8 @@
     },
     render: function() {
       var workflow = this.props.workflow,
-          pageCount = Math.ceil(workflow.get('pages').length / this.state.thumbCount),
+          pages = workflow.get('pages'),
+          pageCount = pages.length / this.state.thumbCount,
           thumbStart = this.state.thumbStart,
           thumbStop = this.state.thumbStart+this.state.thumbCount,
           deleteClasses = require('react/addons').addons.classSet({
@@ -167,8 +168,12 @@
             'button': true,
             'disabled': this.state.selectedPages.length === 0
           }),
-          imageTypes = ['raw'].concat(_.without(_.keys(workflow.get('pages')[0].processed_images), 'tesseract')),
+          imageTypes = ['raw'],
           metadata = workflow.get('metadata');
+          if (pages.length > 0) {
+            imageTypes = imageTypes.concat(_.without(_.keys(pages[0].processed_images),
+                                                     'tesseract'));
+          }
       return (
         <main>
           {/* Display image in lightbox overlay? */}
@@ -216,7 +221,7 @@
           </row>
 
           {/* Only show image thumbnails when there are images in the workflow */}
-          {(workflow.has('pages') && workflow.get('pages')) &&
+          {pages.length > 0 &&
           <row>
             <column size='12'>
               <h2>Pages</h2>
@@ -233,7 +238,7 @@
                 </ul>
               </div>
               <ul ref="pagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
-                {workflow.get('pages').slice(thumbStart, thumbStop).map(function(page) {
+                {pages.slice(thumbStart, thumbStop).map(function(page) {
                     return (
                       <PagePreview page={page} workflow={workflow} key={page.capture_num} imageType={this.state.imageType}
                                    selected={_.contains(this.state.selectedPages, page)}
