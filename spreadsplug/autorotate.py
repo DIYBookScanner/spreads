@@ -100,6 +100,10 @@ class AutoRotatePlugin(HookPlugin, ProcessHookMixin):
             num_total = len(pages)
             for (idx, page) in enumerate(pages):
                 in_path = page.get_latest_processed(image_only=True)
+                if self.__name__ in page.processed_images:
+                    logger.info(
+                        "Image was previously rotated already, skipping.")
+                    continue
                 if in_path is None:
                     in_path = page.raw_image
                 if in_path.suffix.lower() not in ('.jpg', '.jpeg'):
