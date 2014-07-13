@@ -164,6 +164,7 @@ def run_service_windows():
     config = Configuration()
     logger.addHandler(EventHandler())
     from spreadsplug.web import run_windows_service
+    config['web']['mode'] = 'processor'
     run_windows_service(config)
 
 
