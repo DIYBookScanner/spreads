@@ -185,8 +185,8 @@ def setup_logging(config):
     file_handler.setLevel(loglevel)
     logger.addHandler(file_handler)
 
-    # Set root logger level
-    logger.setLevel(loglevel)
+    # Set root logger level (needed for web plugin)
+    logger.setLevel(logging.DEBUG)
 
 
 def run_config_windows():
