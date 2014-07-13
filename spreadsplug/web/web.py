@@ -6,7 +6,6 @@ import itertools
 import logging
 import logging.handlers
 import os
-import platform
 import StringIO
 import subprocess
 import time
@@ -23,7 +22,7 @@ from werkzeug.contrib.cache import SimpleCache
 
 import spreads.metadata
 import spreads.plugin as plugin
-from spreads.util import get_next
+from spreads.util import get_next, is_os
 from spreads.workflow import Workflow, ValidationError
 
 from spreadsplug.web import app
@@ -31,7 +30,7 @@ from discovery import discover_servers
 from util import (WorkflowConverter, get_thumbnail, scale_image, convert_image,
                   crop_image)
 
-if platform.system() == "Windows":
+if is_os('windows'):
     from util import find_stick_win as find_stick
 else:
     from util import find_stick

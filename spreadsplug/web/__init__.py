@@ -18,7 +18,6 @@
 import logging
 import logging.handlers
 import os
-import platform
 import sys
 from itertools import chain
 from threading import Thread
@@ -28,6 +27,7 @@ from spreads.vendor.huey.consumer import Consumer
 from flask import Flask
 
 import spreads.plugin as plugin
+import spreads.util as util
 import spreads.workflow as workflow
 from spreads.config import OptionTemplate
 from spreads.main import add_argument_from_template
@@ -36,8 +36,8 @@ app = Flask('spreadsplug.web', static_url_path='/static',
             static_folder='./client/build', template_folder='./client')
 task_queue = None
 import web
-import util
-app.json_encoder = util.CustomJSONEncoder
+import util as webutil
+app.json_encoder = webutil.CustomJSONEncoder
 from websockets import WebSocketServer
 from discovery import DiscoveryListener
 
@@ -81,7 +81,7 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
             'web', help="Start the web interface")
         cmdparser.set_defaults(subcommand=run_server)
 
-        if platform.system() == "Windows":
+        if util.is_os('windows'):
             wincmdparser = rootparser.add_parser(
                 'web-service', help="Start the web interface as a service."
             )
@@ -91,7 +91,7 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
             try:
                 add_argument_from_template('web', key, option, cmdparser,
                                            config['web'][key].get())
-                if platform.system() == "Windows":
+                if util.is_os('windows'):
                     add_argument_from_template('web', key, option,
                                                wincmdparser,
                                                config['web'][key].get())
@@ -171,18 +171,18 @@ def setup_logging(config):
 def setup_signals(ws_server=None):
     def get_signal_callback_http(signal):
         def signal_callback(sender, **kwargs):
-            web.event_queue.append(util.Event(signal, sender, kwargs))
+            web.event_queue.append(webutil.Event(signal, sender, kwargs))
         return signal_callback
 
     def get_signal_callback_websockets(signal):
         def signal_callback(sender, **kwargs):
-            ws_server.send_event(util.Event(signal, sender, kwargs))
+            ws_server.send_event(webutil.Event(signal, sender, kwargs))
         return signal_callback
 
     # Register event handlers
     import tasks
     signals = chain(*(x.signals.values()
-                      for x in (workflow, util.EventHandler, web, tasks)))
+                      for x in (workflow, webutil.EventHandler, web, tasks)))
 
     for signal in signals:
         signal.connect(get_signal_callback_http(signal), weak=False)

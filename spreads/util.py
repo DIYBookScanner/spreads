@@ -57,7 +57,7 @@ def find_in_path(name):
 
     """
     candidates = None
-    if platform.system() == "Windows":
+    if is_os('windows'):
         import _winreg
         if name.startswith('scantailor'):
             try:
@@ -84,6 +84,10 @@ def find_in_path(name):
         return next(c for c in candidates if os.path.exists(c))
     except StopIteration:
         return None
+
+
+def is_os(osname):
+    return platform.system().lower() == osname
 
 
 def check_futures_exceptions(futures):
@@ -255,12 +259,12 @@ def get_data_dir(create=False):
     WINDOWS_DIR_FALLBACK = '~\\AppData\\Roaming'
     MAC_DIR = '~/Library/Application Support'
     base_dir = None
-    if platform.system() == 'Darwin':
+    if is_os('darwin'):
         if Path(UNIX_DIR_FALLBACK).exists:
             base_dir = UNIX_DIR_FALLBACK
         else:
             base_dir = MAC_DIR
-    elif platform.system() == 'Windows':
+    elif is_os('windows'):
         if WINDOWS_DIR_VAR in os.environ:
             base_dir = os.environ[WINDOWS_DIR_VAR]
         else:
