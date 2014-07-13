@@ -38,7 +38,6 @@
         availableServers: [],
         availablePlugins: {},
         configTemplates: {},
-        workflow: undefined,
         /** Errors from validation */
         errors: {},
         submissionWaiting: false,
@@ -56,11 +55,6 @@
       }.bind(this));
     },
     loadServerData: function() {
-      // NOTE: To take advantage of the things Backbone provides, we clone
-      // our workflow here. **This clone is never persisted**
-      var workflow = this.props.workflow.clone();
-      workflow.set('config', {});
-
       // Clear errors
       this.setState({errors: {}});
 
@@ -86,14 +80,9 @@
         {'server': this.state.selectedServer},
         function(data) {
           this.setState({
-            availablePlugins: data,
-            workflow: workflow
+            availablePlugins: data
           });
           loadTemplates.bind(this)()
-          /* Update `errors` if there were validation errors. */
-          workflow.on('validated:invalid', function(workflow, errors) {
-            this.setState({errors: errors});
-          }, this);
         }.bind(this))
         .fail(function(xhr) {
           this.setState({
@@ -104,12 +93,13 @@
     },
     handleSubmit: function() {
       console.debug(this.state);
-      if (!_.isEmpty(this.state.errors) || !this.state.workflow) {
+      if (!_.isEmpty(this.state.errors) || !this.props.workflow) {
         return;
       }
       var start_process,
           start_output,
-          selected_plugins = this.state.workflow.get('config').plugins;
+          config = this.refs.configuration.state.config,
+          selected_plugins = config.plugins;
       start_process = _.some(selected_plugins, function(plugName) {
         return _.contains(this.state.availablePlugins.postprocessing, plugName);
       }, this);
@@ -119,7 +109,7 @@
       jQuery.ajax('/api/workflow/' + this.props.workflow.id + '/submit', {
         type: 'POST',
         data: JSON.stringify(
-          { config: this.state.workflow.get('config'),
+          { config: config,
             start_process: start_process,
             start_output: start_output,
             server: this.state.selectedServer }),
@@ -141,11 +131,6 @@
         }
       }.bind(this))
       window.router.events.on('submit:completed', function() {
-        /*
-        this.setState({
-          submissionWaiting: false
-        });
-        */
         window.router.navigate('/', {trigger: true});
       }.bind(this));
     },
@@ -201,22 +186,24 @@
                 </row>
               </column>
             </row>
-            {this.state.selectedServer && this.state.workflow &&
+            {this.state.selectedServer && this.props.workflow &&
              !_.isEmpty(this.state.configTemplates) &&
             <div>
-              <PluginConfiguration workflow={this.state.workflow}
-                                   errors={this.state.errors}
+              <PluginConfiguration ref="configuration"
+                                   config={this.props.workflow.get('config')}
+                                   errors={this.state.errors || {}}
                                    templates={this.state.configTemplates}
-                                   availablePlugins={this.state.availablePlugins}/>}
+                                   availablePlugins={this.state.availablePlugins} />
               <row>
                 <column size={[12,9]}>
-                  <button className={_.isEmpty(this.state.errors) ? '': 'disabled'}>Submit</button>
+                  <button className={_.isEmpty(this.state.errors) ? '': 'disabled'}>
+                    Submit
+                  </button>
                 </column>
               </row>
             </div>}
           </form>
-        </section>
-      );
+        </section>);
     }
   });
 }());
