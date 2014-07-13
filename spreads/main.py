@@ -208,12 +208,13 @@ def run_service_windows():
 
 def run():
     config = Configuration()
-    setup_logging(config)
 
     parser = setup_parser(config)
     args = parser.parse_args()
     # Set configuration from parsed arguments
     config.set_from_args(args)
+
+    setup_logging(config)
 
     # Run subcommand
     args.subcommand(config)
