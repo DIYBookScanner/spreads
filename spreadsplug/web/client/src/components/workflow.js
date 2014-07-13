@@ -160,7 +160,7 @@
     render: function() {
       var workflow = this.props.workflow,
           pages = workflow.get('pages'),
-          pageCount = pages.length / this.state.thumbCount,
+          pageCount = Math.ceil(pages.length / this.state.thumbCount),
           thumbStart = this.state.thumbStart,
           thumbStop = this.state.thumbStart+this.state.thumbCount,
           deleteClasses = require('react/addons').addons.classSet({
