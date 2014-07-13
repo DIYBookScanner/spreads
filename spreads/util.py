@@ -27,6 +27,7 @@ import logging
 import os
 import platform
 import re
+import subprocess
 from unicodedata import normalize
 
 import blinker
@@ -98,6 +99,15 @@ def check_futures_exceptions(futures):
 
 def get_free_space(path):
     return psutil.disk_usage(unicode(path)).free
+
+
+def get_subprocess(cmdline, **kwargs):
+    if subprocess.mswindows and not 'startupinfo' in kwargs:
+        su = subprocess.STARTUPINFO()
+        su.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        su.wShowWindow = subprocess.SW_HIDE
+        kwargs['startupinfo'] = su
+    return subprocess.Popen(cmdline, **kwargs)
 
 
 def wildcardify(pathnames):
