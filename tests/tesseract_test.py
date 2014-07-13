@@ -13,8 +13,9 @@ from spreads.workflow import Page
 
 @pytest.fixture
 def pluginclass(mock_findinpath):
-    with mock.patch('subprocess.check_output') as co:
-        co.return_value = "x\ndeu\nfra\neng\nx"
+    with mock.patch('spreads.util.get_subprocess') as get_sp:
+        (get_sp.return_value
+               .communicate.return_value) = ("x\ndeu\nfra\neng\nx",)
         import spreadsplug.tesseract as tesseract
         return tesseract.TesseractPlugin
 
@@ -48,8 +49,8 @@ def test_perform_ocr(plugin, tmpdir):
             shutil.copyfile('./tests/data/000.hocr', args[2]+'.html')
         return mock.Mock(side_effect=dummy_poll)
     in_paths = [Path('{0:03}.tif'.format(idx)) for idx in xrange(10)]
-    with mock.patch('spreadsplug.tesseract.subprocess.Popen') as popen:
-        popen.side_effect = dummy_popen
+    with mock.patch('spreads.util.get_subprocess') as get_sp:
+        get_sp.side_effect = dummy_popen
         plugin._perform_ocr(in_paths, tmpdir, 'eng')
     for img in in_paths:
         assert tmpdir.join(img.stem + '.html').exists()
