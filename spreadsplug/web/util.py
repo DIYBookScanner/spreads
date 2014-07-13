@@ -190,7 +190,7 @@ def scale_image(img_path, width=None, height=None):
     else:
         with Image(filename=unicode(img_path)) as img:
             width, height = get_target_size(img.width, img.height)
-            img.resize(width, height)
+            img.sample(width, height)
             return img.make_blob(format='jpg')
 
 
