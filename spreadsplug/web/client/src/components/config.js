@@ -205,9 +205,18 @@
           config = this.state.config,
           configSections = [],
           errors = merge(this.state.internalErrors, this.props.errors),
-          availablePlugins = this.props.availablePlugins || window.plugins || {},
-          canProcess = window.config.web.mode !== 'scanner',
+          availablePlugins = this.props.availablePlugins,
           selectedSection;
+
+      if (_.isUndefined(availablePlugins) && !_.isUndefined(window.plugins)) {
+        if (window.config.mode == 'scanner') {
+          availablePlugins = _.omit(window.plugins, "postprocessing", "output");
+        } else {
+          availablePlugins = window.plugins;
+        }
+      } else if (_.isUndefined(availablePlugins)) {
+        availablePlugins = {};
+      }
 
       if (_.has(config, 'plugins')) {
         configSections = _.filter(config.plugins, function(plugin) {
@@ -230,12 +239,12 @@
           <column size={['12', '10', '8']}>
             <fieldset className="config">
               <legend>Configuration</legend>
-              {canProcess && availablePlugins.postprocessing &&
+              {availablePlugins.postprocessing &&
                 <PluginSelector type="postprocessing"
                                 available={availablePlugins.postprocessing}
                                 enabled={config.plugins}
                                 onChange={this.handlePluginToggle} />}
-              {canProcess && availablePlugins.output &&
+              {availablePlugins.output &&
                 <PluginSelector type="output"
                                 available={availablePlugins.output}
                                 enabled={config.plugins}
