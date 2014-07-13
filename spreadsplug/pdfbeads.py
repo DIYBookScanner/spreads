@@ -17,6 +17,7 @@
 
 from __future__ import division, unicode_literals
 
+import codecs
 import logging
 import os
 import shutil
@@ -53,6 +54,15 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
         old_path = os.path.abspath(os.path.curdir)
         os.chdir(unicode(tmpdir))
 
+        meta_file = tmpdir/'metadata.txt'
+        with codecs.open(unicode(meta_file), "w", "utf-8") as fp:
+            for key, value in metadata.iteritems():
+                if key == 'title':
+                    fp.write("Title: \"{0}\"\n".format(value))
+                if key == 'creator':
+                    for author in value:
+                        fp.write("Author: \"{0}\"\n".format(author))
+
         images = []
         for page in pages:
             fpath = page.get_latest_processed(image_only=True)
@@ -72,12 +82,11 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
                     (tmpdir/ocr_path.name).symlink_to(ocr_path)
             images.append(link_path)
 
-        # TODO: Use metadata to create a METAFILE for pdfbeads
         # TODO: Use table_of_contents to create a TOCFILE for pdfbeads
         # TODO: Use page.page_label to create a LSPEC for pdfbeads
 
         pdf_file = target_path/"book.pdf"
-        cmd = [BIN, "-d"]
+        cmd = [BIN, "-d", "-M", unicode(meta_file)]
         cmd.extend(util.wildcardify(tuple(f.name for f in images)))
         cmd.extend(["-o", unicode(pdf_file)])
         logger.debug("Running " + " ".join(cmd))
