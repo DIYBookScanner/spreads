@@ -130,6 +130,18 @@ def wildcardify(pathnames):
     return wildcard_str
 
 
+def diff_dicts(old, new):
+    out = {}
+    for key, value in old.iteritems():
+        if new[key] != value:
+            out[key] = new[key]
+        elif isinstance(value, dict):
+            diff = diff_dicts(value, new[key])
+            if diff:
+                out[key] = diff
+    return out
+
+
 PUNCTUATION_REXP = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
 def slugify(text, delimiter=u'-'):
     """Generates an ASCII-only slug.
