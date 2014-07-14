@@ -76,9 +76,10 @@ class CHDKCameraDevice(DevicePlugin):
              'focus_distance': OptionTemplate(0, "Set focus distance"),
              'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
-             'wb_mode': OptionTemplate(value=sorted(WHITEBALANCE_MODES),
-                                       docstring='White balance mode',
-                                       selectable=True, advanced=True),
+             'whitebalance': OptionTemplate(
+                 value=sorted(WHITEBALANCE_MODES),
+                 docstring='White balance mode', selectable=True,
+                 advanced=True),
              'chdkptp_path': OptionTemplate(u"/usr/local/lib/chdkptp",
                                             "Path to CHDKPTP binary/libraries",
                                             advanced=True),
