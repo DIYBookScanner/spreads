@@ -441,6 +441,7 @@ class Workflow(object):
         # Save new metadata
         for k, v in value.items():
             self._metadata[k] = v
+        on_modified.send(self, changes={'metadata': value})
 
     def save(self):
         self._save_config()
