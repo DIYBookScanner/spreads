@@ -239,12 +239,12 @@
           <column size={['12', '10', '8']}>
             <fieldset className="config">
               <legend>Configuration</legend>
-              {availablePlugins.postprocessing &&
+              {!_.isEmpty(availablePlugins.postprocessing) &&
                 <PluginSelector type="postprocessing"
                                 available={availablePlugins.postprocessing}
                                 enabled={config.plugins}
                                 onChange={this.handlePluginToggle} />}
-              {availablePlugins.output &&
+              {!_.isEmpty(availablePlugins.output) &&
                 <PluginSelector type="output"
                                 available={availablePlugins.output}
                                 enabled={config.plugins}
