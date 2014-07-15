@@ -296,7 +296,7 @@ class CHDKCameraDevice(DevicePlugin):
             self._set_zoom()
         if 'focus_distance' in updated:
             self._set_focus()
-        if 'wb_mode' in updated:
+        if 'whitebalance' in updated:
             self._set_whitebalance()
 
     def show_textbox(self, message):
@@ -418,7 +418,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("set_aflock(1)")
 
     def _set_whitebalance(self):
-        value = WHITEBALANCE_MODES.get(self.config['wb_mode'].get())
+        value = WHITEBALANCE_MODES.get(self.config['whitebalance'].get())
         self._execute_lua("set_prop(require('propcase').WB_MODE, {0})"
                           .format(value))
 
