@@ -4,88 +4,76 @@
    :target: http://travis-ci.org/jbaiter/spreads
    :alt: Build status
 
-.. image:: https://coveralls.io/repos/jbaiter/spreads/badge.png?branch=master
-   :target: https://coveralls.io/r/jbaiter/spreads?branch=master
-   :alt: Coverage status
 
-.. image:: https://pypip.in/v/spreads/badge.png
-    :target: https://crate.io/packages/spreads/
-    :alt: Latest PyPI version
+*spreads* is a software suite for the digitization of printed material. Its main focus is to integrate existing solutions for individual parts of the scanning workflow into a cohesive package that is intuitive to use and easy to extend.
 
-*spreads* is a tool that aims to streamline your book scanning workflow.
-It takes care of every step: Setting up your capturing devices, handling
-the capturing process, downloading the images to your machine,
-post-processing them and finally assembling a variety of output formats.
+At its core, it handles the communication with the imaging devices, the post-processing of the captured material and its assembly into output formats like PDF or ePub. On top of this base layer, we have built a variety of interfaces that should fit into most use cases: A full-fledged and mobile-friendly web interface that can be servied from even the most low-powered devices (like a Raspberry Pi), a graphical wizard for classical desktop users and a bare-bones command-line interface for purists.
 
-Along the way you can always fine-tune the auto-generated results either
-by supplying arguments or changing the configuration beforehand, or by
-inspecting the output and applying your modifications.
-
-*spreads* is meant to be fully customizable. This means, `adding support for
-new devices` is made as painless as possible. You can also hook into any of the
-*spread* commands by implementing one of the available `plugin hooks` or even
-`implement your own custom sub-commands`.
-
-
-Quickstart
-----------
-First, make sure you have installed all of the requirements (see below).
-Once this is done, *spreads* can be easily installed from PyPi::
-
-    $ pip install spreads
-
-To select your desired plugins and configure your devices::
-
-    $ spread configure
-
-*spreads* offers an interactive wizard that takes you from a physical book
-to a digitized version in one single workflow with minimal user input::
-
-    $ spread wizard ~/my_scanning_project
-
+As for extensibility, we offer a plugin API that allows developers to hook into almost every part of the architecture and extend the application according to their needs. There are interfaces for developing a device driver to communicate with new hardware and for writing new postprocessing or output plugins to take advantage of a as of yet unsupported third-party software. There is even the possibility to create a completely new user interface that is better suited for specific environments.
 
 Features
 --------
-* Shoot with both cameras **simultaneously**, directly storing the images
-  in a single directory on your computer in the right order.
-* Automatically rotate the images and optionally adjust the white balance
-  (if a gray card has been used during shooting).
-* Create a ScanTailor project file that the user can customize as desired.
+* Support for cameras running CHDK as well as cameras supported by libgphoto2
+  (experimental), with extensive configuration options.
+* Cropping of the images during capture (only supported in web interface)
+* Shoot with two devices simultaneously, directly storing the images in a
+  single directory on your computer in the right order.
+* Automatically rotate images
+* Run captured images through ScanTailor (attended or unattended)
+* Recognize text from the images through Tesseract OCR
 * Generate PDF and DJVU files with hidden text layers
-* Interactive Wizard-Mode that handles the full workflow from image
-  capturing to post-processing, either from the command-line or via graphical
-  interface.
+* Every project is stored in a directory on your computer and contains all the
+  information that is needed in human-readable form, laid out according to the
+  BagIt specification. This makes it easy to exchange projects between
+  computers.
 
-Requirements
-------------
-* Python 2.7 with pip_ installed
-* libusb with headers installed
-* exiftool_
-* An up-to date version of ScanTailor-enhanced_
+Interfaces
+----------
 
-*Optional:*
+- **Web**
+  > animated gif of capture process
 
-* For the GUI: PySide_
-* For CHDK cameras: An up-to-date version of chdkptp_
-* For the ScanTailor plugin: ScanTailor-enhanced_
-* For PDF output: pdfbeads_
-* For DJVU output: djvubind_
-* For OCR: tesseract_
+  The interface with the most features. You have the choice between three modes: *scanner*, *processor* and *full*. The first is ideal for slim scanning workstations that just deal with the capturing of the images and little more. From it, you can transfer your scans either to an USB stick or another instance of spreads running in one of the other two modes (all from your browser!), where they will be post-processed. It is currently the only interface to support cropping during capture and on-the-fly changing of settings during capture.
+
+- **GUI**
+  > animated gif of capture process
+
+  A graphical wizard that guides you through every step, from setting up the devices to postprocessing the images
+
+- **CLI**
+  > animated gif of capture process
+
+  A text-only command-line interface that exposes each step as a subcommand. Ideal for controlling a scanner over SSH and for comand-line fetishists.
+
+
+Getting Started
+---------------
+
+If you are on Debian unstable, Ubuntu 14.04 or Raspbian stable, you can use our APT repositories. Just add one of the below lines to your `sources.list`::
+
+    # Debian unstable/sid (i386, amd64)
+    deb http://spreads.jbaiter.de/debian unstable main
+
+    # Ubuntu 14.04 LTS (i386, amd64)
+    deb http://spreads.jbaiter.de/ubuntu trusty main
+
+    # Raspbian stable/wheezy (armhf)
+    deb http://spreads.jbaiter.de/debian unstable main
+
+Now run `apt-get update` and install one of `spreads`, `spreads-web` or `spreads-gui`.
+
+On other distributions you will have to install it yourself with `pip`, please refer to the documentation for details.
 
 Documentation
 -------------
-More documentation is available on readthedocs_
 
-.. _adding support for new devices: http://spreads.readthedocs.org/en/latest/extending.html#adding-support-for-new-devices
-.. _plugin hooks: http://spreads.readthedocs.org/en/latest/api.html#spreads-plugin
-.. _implement your own custom sub-commands: http://spreads.readthedocs.org/en/latest/extending.html#adding-new-commands
-.. _ppmunwarp: http://diybookscanner.org/forum/viewtopic.php?f=19&t=2589&p=14281#p14281
-.. _readthedocs: http://spreads.readthedocs.org
-.. _pip: http://www.pip-installer.org
-.. _ScanTailor-enhanced: http://sourceforge.net/p/scantailor/code/ci/enhanced/tree/
-.. _pdfbeads: http://rubygems.org/gems/pdfbeads
-.. _djvubind: http://code.google.com/p/djvubind/
-.. _exiftool: http://www.sno.phy.queensu.ca/~phil/exiftool/
-.. _chdkptp: https://www.assembla.com/spaces/chdkptp/wiki
-.. _tesseract: http://code.google.com/p/tesseract-ocr/
-.. _PySide: http://qt-project.org/wiki/PySide
+You can find the detailed manual for users and developers at http://spreads.readthedocs.org
+Please not that it is currently woefully incomplete and partially out of date. If you want to help with it, please get in touch!
+
+Getting Help
+------------
+
+- IRC: irc.freenode.net, #diybookscanner
+- Forums: http://diybookscanner.org/forums
+- Bugtracker: https://github.com/DIYBookScanner/spreads/issues
+
