@@ -17,6 +17,7 @@
 
 from __future__ import division, unicode_literals
 
+import codecs
 import logging
 import os
 import shutil
@@ -26,13 +27,17 @@ import time
 
 from spreads.vendor.pathlib import Path
 
+import spreads.util as util
 from spreads.plugin import HookPlugin, OutputHookMixin
-from spreads.util import MissingDependencyException, find_in_path
 
-if not find_in_path('pdfbeads'):
-    raise MissingDependencyException("Could not find executable `pdfbeads`."
-                                     "Please install the appropriate "
-                                     "package(s)!")
+BIN = util.find_in_path('pdfbeads')
+IS_WIN = util.is_os('windows')
+
+if not BIN:
+    raise util.MissingDependencyException(
+        "Could not find executable `pdfbeads`. Please install the appropriate "
+        "package(s)!")
+
 
 logger = logging.getLogger('spreadsplug.pdfbeads')
 
@@ -49,37 +54,63 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
         old_path = os.path.abspath(os.path.curdir)
         os.chdir(unicode(tmpdir))
 
+        meta_file = tmpdir/'metadata.txt'
+        with codecs.open(unicode(meta_file), "w", "utf-8") as fp:
+            for key, value in metadata.iteritems():
+                if key == 'title':
+                    fp.write("Title: \"{0}\"\n".format(value))
+                if key == 'creator':
+                    for author in value:
+                        fp.write("Author: \"{0}\"\n".format(author))
+
         images = []
         for page in pages:
             fpath = page.get_latest_processed(image_only=True)
             if fpath is None:
                 fpath = page.raw_image
             link_path = (tmpdir/fpath.name)
-            link_path.symlink_to(fpath)
+            if IS_WIN:
+                shutil.copy(unicode(fpath), unicode(link_path))
+            else:
+                link_path.symlink_to(fpath)
             if 'tesseract' in page.processed_images:
                 ocr_path = page.processed_images['tesseract']
-                (tmpdir/ocr_path.name).symlink_to(ocr_path)
+                if IS_WIN:
+                    shutil.copy(unicode(ocr_path),
+                                unicode(tmpdir/ocr_path.name))
+                else:
+                    (tmpdir/ocr_path.name).symlink_to(ocr_path)
             images.append(link_path)
 
-        # TODO: Use metadata to create a METAFILE for pdfbeads
         # TODO: Use table_of_contents to create a TOCFILE for pdfbeads
         # TODO: Use page.page_label to create a LSPEC for pdfbeads
 
         pdf_file = target_path/"book.pdf"
-        cmd = [find_in_path("pdfbeads"), "-d"]
-        cmd.extend([f.name for f in images])
+        cmd = [BIN, "-d", "-M", unicode(meta_file)]
+        cmd.extend(util.wildcardify(tuple(f.name for f in images)))
         cmd.extend(["-o", unicode(pdf_file)])
         logger.debug("Running " + " ".join(cmd))
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-        last_count = 0
-        while proc.poll() is None:
-            current_count = sum(1 for x in tmpdir.glob('*.jbig2'))
-            if current_count > last_count:
-                last_count = current_count
-                self.on_progressed.send(
-                    self, progress=float(current_count)/len(images))
-            time.sleep(.01)
-        logger.debug("Output:\n{0}".format(proc.stdout.read()))
+        proc = util.get_subprocess(cmd, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        if IS_WIN:
+            # NOTE: Due to a bug in the jbig2enc version for Windows, the error
+            #       output gets huge, creating a deadlock. Hence, we go the
+            #       safe way and use `communicate()`, though this means no
+            #       progress notification for the user.
+            output, errors = proc.communicate()
+        else:
+            last_count = 0
+            while proc.poll() is None:
+                current_count = sum(1 for x in tmpdir.glob('*.jbig2'))
+                print current_count
+                if current_count > last_count:
+                    last_count = current_count
+                    self.on_progressed.send(
+                        self, progress=float(current_count)/len(images))
+                time.sleep(.01)
+            output = proc.stdout.read()
+            errors = proc.stderr.read()
+        logger.debug("pdfbeads stdout:\n{0}".format(output))
+        logger.debug("pdfbeads stderr:\n{0}".format(errors))
         os.chdir(old_path)
-        #shutil.rmtree(unicode(tmpdir))
+        shutil.rmtree(unicode(tmpdir))

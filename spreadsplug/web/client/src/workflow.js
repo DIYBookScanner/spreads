@@ -23,34 +23,14 @@
       _ = require('underscore'),
       jQuery = require('jquery'),
       Workflow;
+      _.mixin(require('underscore.deep'));
+
   // Custom third party extension to Backbone, see below
-  Backbone.DeepModel = require('../vendor/backbone-deep-model.js');
-  // Load Backbone.Validation extension
-  require('backbone-validation');
-  _.extend(Backbone.DeepModel.prototype, Backbone.Validation.mixin);
+  Backbone.DeepModel = require('backbone-deep-model').DeepModel;
 
   /* We extend DeepModel instead of Model so we can listen on changes for
    * nested objects like workflow.config. */
   Workflow = Backbone.DeepModel.extend({
-    initialize: function() {
-      this._setPluginValidators();
-      if (this.isNew()) {
-        this._setDefaultConfiguration();
-      }
-    },
-    validation: {
-      name: {
-        required: true,
-        // All printable ASCII characters, except '/' and '''
-        pattern: /^[\x20-\x27\x29-\x2E\x30-\x7E]*$/,
-        msg: 'Please enter a valid name (ASCII only and no "/" or "\'")'
-      }
-    },
-    validate: function() {
-      // NOTE: We monkey patch the stupid Backbone.Validation mixin, as it
-      // pretends as if validation is always successful...
-      return Backbone.Validation.mixin.validate.bind(this)();
-    },
     /**
      * Initiates the submission of the workflow to a remote postprocessing
      * server for postprocessing and output generation.
@@ -180,48 +160,6 @@
         .fail(function() {
           console.error("Could not crop page " + pageNum);
         });
-    },
-    /**
-     * Set default configuration from our global `pluginTemplates` object.
-     *
-     * @private
-     */
-    _setDefaultConfiguration: function() {
-      var templates = window.pluginTemplates;
-      _.each(templates, function(template, plugin) {
-        _.each(template, function(option, name) {
-          var path = 'config.' + plugin + '.' + name;
-          if (option.selectable) {
-            this.set(path, option.value[0]);
-          } else {
-            this.set(path, option.value);
-          }
-        }, this);
-      }, this);
-    },
-    /**
-     * Auto-generate Backbone validators for our configuration fields from
-     * the global `pluginTemplates` object.
-     *
-     * @private
-     */
-    _setPluginValidators: function() {
-      var templates = window.pluginTemplates;
-      _.each(templates, function(template, plugin) {
-        _.each(template, function(option, name) {
-          var path = 'config.' + plugin + '.' + name;
-          if (option.selectable) {
-            this.validation[path] = {
-              oneOf: option.value
-            };
-          } else if (_.isNumber(option.value)) {
-            this.validation[path] = {
-              pattern: 'number',
-              msg: 'Must be a number.'
-            };
-          }
-        }, this);
-      }, this);
     }
   });
 

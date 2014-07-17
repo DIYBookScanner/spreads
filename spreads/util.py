@@ -27,6 +27,7 @@ import logging
 import os
 import platform
 import re
+import subprocess
 from unicodedata import normalize
 
 import blinker
@@ -57,7 +58,7 @@ def find_in_path(name):
 
     """
     candidates = None
-    if platform.system() == "Windows":
+    if is_os('windows'):
         import _winreg
         if name.startswith('scantailor'):
             try:
@@ -86,6 +87,10 @@ def find_in_path(name):
         return None
 
 
+def is_os(osname):
+    return platform.system().lower() == osname
+
+
 def check_futures_exceptions(futures):
     if any(x.exception() for x in futures):
         exc = next(x for x in futures if x.exception()).exception()
@@ -96,9 +101,18 @@ def get_free_space(path):
     return psutil.disk_usage(unicode(path)).free
 
 
+def get_subprocess(cmdline, **kwargs):
+    if subprocess.mswindows and not 'startupinfo' in kwargs:
+        su = subprocess.STARTUPINFO()
+        su.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        su.wShowWindow = subprocess.SW_HIDE
+        kwargs['startupinfo'] = su
+    return subprocess.Popen(cmdline, **kwargs)
+
+
 def wildcardify(pathnames):
     """ Generate a single path with wildcards that matches all `pathnames`.
-    
+
     :param pathnames:   List of pathnames to find a wildcard string for
     :type pathanmes:    List of str/unicode
     :return:            The wildcard string or None if none was found
@@ -114,6 +128,18 @@ def wildcardify(pathnames):
     if not sorted(pathnames) == sorted(matched_paths):
         return None
     return wildcard_str
+
+
+def diff_dicts(old, new):
+    out = {}
+    for key, value in old.iteritems():
+        if new[key] != value:
+            out[key] = new[key]
+        elif isinstance(value, dict):
+            diff = diff_dicts(value, new[key])
+            if diff:
+                out[key] = diff
+    return out
 
 
 PUNCTUATION_REXP = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
@@ -255,12 +281,12 @@ def get_data_dir(create=False):
     WINDOWS_DIR_FALLBACK = '~\\AppData\\Roaming'
     MAC_DIR = '~/Library/Application Support'
     base_dir = None
-    if platform.system() == 'Darwin':
+    if is_os('darwin'):
         if Path(UNIX_DIR_FALLBACK).exists:
             base_dir = UNIX_DIR_FALLBACK
         else:
             base_dir = MAC_DIR
-    elif platform.system() == 'Windows':
+    elif is_os('windows'):
         if WINDOWS_DIR_VAR in os.environ:
             base_dir = os.environ[WINDOWS_DIR_VAR]
         else:

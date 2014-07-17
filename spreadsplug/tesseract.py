@@ -26,25 +26,29 @@ import time
 import xml.etree.cElementTree as ET
 from itertools import chain
 
+import spreads.util as util
 from spreads.config import OptionTemplate
 from spreads.plugin import HookPlugin, ProcessHookMixin
-from spreads.util import find_in_path, MissingDependencyException
 from spreads.vendor.pathlib import Path
 
-if not find_in_path('tesseract'):
-    raise MissingDependencyException("Could not find executable `tesseract`."
-                                     "Please install the appropriate "
-                                     "package(s)!")
+BIN = util.find_in_path('tesseract')
+if not BIN:
+    raise util.MissingDependencyException(
+        "Could not find executable `tesseract`. Please install the appropriate"
+        " package(s)!")
 
-logger = logging.getLogger('spreadsplug.tesseract')
 try:
-    AVAILABLE_LANGS = (subprocess.check_output(["tesseract", "--list-langs"],
-                                               stderr=subprocess.STDOUT)
+    AVAILABLE_LANGS = (util.get_subprocess([BIN, "--list-langs"],
+                                           stderr=subprocess.STDOUT,
+                                           stdout=subprocess.PIPE)
+                       .communicate()[0]
                        .split("\n")[1:-1])
 except subprocess.CalledProcessError:
     AVAILABLE_LANGS = [x.stem for x in
                        Path('/usr/share/tesseract-ocr/tessdata')
                        .glob('*.traineddata')]
+
+logger = logging.getLogger('spreadsplug.tesseract')
 
 
 class TesseractPlugin(HookPlugin, ProcessHookMixin):
@@ -110,10 +114,10 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
             while len(processes) >= max_procs:
                 _clean_processes()
                 time.sleep(0.01)
-            cmd = ["tesseract", unicode(fpath), unicode(out_dir / fpath.stem),
+            cmd = [BIN, unicode(fpath), unicode(out_dir / fpath.stem),
                    "-l", language, "hocr"]
             logger.debug(cmd)
-            proc = subprocess.Popen(cmd, stderr=FNULL, stdout=FNULL)
+            proc = util.get_subprocess(cmd, stderr=FNULL, stdout=FNULL)
             processes.append(proc)
         # Wait for remaining processes to finish
         while processes:

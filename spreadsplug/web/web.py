@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import division
 
 import copy
@@ -5,12 +6,12 @@ import itertools
 import logging
 import logging.handlers
 import os
-import platform
 import StringIO
 import subprocess
 import time
 import zipfile
 from collections import deque
+from isbnlib import is_isbn10, is_isbn13
 
 import blinker
 import pkg_resources
@@ -19,8 +20,9 @@ from flask import (abort, json, jsonify, request, send_file, render_template,
                    url_for, redirect, make_response, Response)
 from werkzeug.contrib.cache import SimpleCache
 
+import spreads.metadata
 import spreads.plugin as plugin
-from spreads.util import get_next
+from spreads.util import get_next, is_os
 from spreads.workflow import Workflow, ValidationError
 
 from spreadsplug.web import app
@@ -28,7 +30,7 @@ from discovery import discover_servers
 from util import (WorkflowConverter, get_thumbnail, scale_image, convert_image,
                   crop_image)
 
-if platform.system() == "Windows":
+if is_os('windows'):
     from util import find_stick_win as find_stick
 else:
     from util import find_stick
@@ -90,6 +92,7 @@ def index():
         default_config=default_config,
         plugins=list_plugins(),
         plugin_templates=templates,
+        metaschema=spreads.metadata.Metadata.SCHEMA,
     )
 
 
@@ -188,6 +191,7 @@ def get_remote_plugins():
     server = request.args.get("server")
     if not server:
         raise ApiException("Missing 'server' parameter", 400)
+    logger.debug("Trying to get list of plugins from {0}".format(server))
     try:
         resp = requests.get('http://{0}/api/plugins'.format(server))
     except requests.ConnectionError:
@@ -243,16 +247,40 @@ def get_logs():
                    messages=msgs[start:start+count])
 
 
+@app.route('/api/isbn')
+def query_isbn():
+    query = request.args.get('q')
+    if query:
+        return jsonify(results=spreads.metadata.get_isbn_suggestions(query))
+    return make_response(
+        json.dumps(dict(errors={'q': 'Missing parameter'})), 400,
+        {'Content-Type': 'application/json'})
+
+
+@app.route('/api/isbn/<isbn>')
+def get_isbn_info(isbn):
+    if isbn.lower().startswith('isbn:'):
+        isbn = isbn[5:]
+    is_isbn = is_isbn10(isbn) or is_isbn13(isbn)
+    if not is_isbn:
+        errors = {'isbn': 'Not a valid ISBN.'}
+        return make_response(json.dumps(dict(errors=errors)), 400,
+                             {'Content-Type': 'application/json'})
+    match = spreads.metadata.get_isbn_metadata(isbn)
+    if match is None:
+        return make_response(
+            json.dumps({'errors': {'isbn': 'Could not find match for ISBN.'}}),
+            404, {'Content-Type': 'application/json'})
+    else:
+        return jsonify(match)
+
+
 # ================== #
 #  Workflow-related  #
 # ================== #
 @app.route('/api/workflow', methods=['POST'])
 def create_workflow():
     """ Create a new workflow.
-
-    Payload should be a JSON object. The only required attribute is 'name' for
-    the desired workflow name. Optionally, 'config' can be set to a
-    configuration object in the form "plugin_name: { setting: value, ...}".
 
     Returns the newly created workflow as a JSON object.
     """
@@ -276,7 +304,6 @@ def create_workflow():
 
         try:
             workflow = Workflow.create(location=app.config['base_path'],
-                                       name=unicode(data['name']),
                                        config=config,
                                        metadata=metadata)
         except ValidationError as e:
@@ -307,21 +334,20 @@ def update_workflow(workflow):
 
     Payload should be a JSON object, as returned by the '/workflow/<id>'
     endpoint.
-    Currently the only attribute that can be updated from the client
-    is the configuration.
+    Currently the only attributes that can be updated from the client
+    are `config` and `metadata`.
 
     Returns the updated workflow as a JSON object.
     """
-    # TODO: Support renaming a workflow, i.e. rename directory as well
     data = json.loads(request.data)
-    name = data.get('name')
-    if workflow.path.name != name:
-        new_path = workflow.path.parent/name
-        workflow.path.rename(new_path)
-        workflow.path = new_path
     config = data.get('config')
+    metadata = data.get('metadata')
     # Update workflow configuration
-    workflow.update_configuration(config)
+    if config:
+        workflow.update_configuration(config)
+    # Update metadata
+    if metadata:
+        workflow.metadata = metadata
     # Persist to disk
     workflow.save()
     return make_response(json.dumps(workflow),
@@ -704,6 +730,16 @@ def shutdown():
     #       /sbin/shutdown via sudo.
     logger.info("Shutting device down")
     subprocess.call("/usr/bin/sudo /sbin/shutdown -h now".split())
+    return ''
+
+
+@app.route('/api/system/reboot', methods=['POST'])
+def reboot():
+    if not app.config['standalone']:
+        abort(503)
+    # NOTE: This requires that the user running spreads can execute
+    #       /sbin/shutdown via sudo.
+    subprocess.call("/usr/bin/sudo /sbin/shutdown -r now".split())
     return ''
 
 

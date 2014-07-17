@@ -24,6 +24,7 @@
       merge = require('react/lib/merge'),
       foundation = require('./foundation.js'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
+      MetadataEditor = require('./metaeditor.js'),
       PluginConfiguration = require('./config.js').PluginConfiguration,
       row = foundation.row,
       column = foundation.column,
@@ -69,29 +70,34 @@
       this.props.workflow.off('all', null, this);
     },
     handleSave: function() {
+      this.props.workflow.set('metadata', this.refs.metadata.state.metadata);
+      this.props.workflow.set('config', this.refs.config.state.config);
       /* Save workflow and open capture screen when successful */
       this.setState({submitting: true});
+      //this.props.workflow.set('metadata', this.refs.metadata.value());
       var rv = this.props.workflow.save({wait: true});
       if (!rv) {
         this.setState({submitting: false});
         return;
       }
       rv.success(function(workflow) {
-          var route;
-          if (this.props.isNew) {
-            route = '/workflow/' + this.props.workflow.get('slug') + '/capture';
-          } else {
-            route = '/';
-          }
-          window.router.navigate(route, {trigger: true});
-        }.bind(this)).error(function(xhr) {
-          this.setState({errors: merge(this.state.errors, xhr.responseJSON.errors)});
-        }.bind(this))
-        .complete(function() {
-          if (this.isMounted()) {
-            this.setState({submitting: false});
-          }
-        }.bind(this));
+        var route;
+        if (this.props.isNew) {
+          route = '/workflow/' + this.props.workflow.get('slug') + '/capture';
+        } else {
+          route = '/';
+        }
+        window.router.navigate(route, {trigger: true});
+      }.bind(this));
+      rv.fail(function(xhr) {
+        if (_.isUndefined(xhr.responseJSON)) return;
+        this.setState({errors: merge(this.state.errors, xhr.responseJSON.errors)});
+      }.bind(this));
+      rv.complete(function() {
+        if (this.isMounted()) {
+          this.setState({submitting: false});
+        }
+      }.bind(this));
     },
     render: function() {
       return (
@@ -101,21 +107,15 @@
                 <column size='12'>
                 <h2>{this.props.isNew ?
                         'Create workflow' :
-                        'Edit workflow ' + this.props.workflow.get('name')}
+                        'Edit workflow'}
                 </h2>
                 </column>
             </row>
-            <row>
-                <column size={[12, 9]}>
-                <label>Workflow name</label>
-                <input type="text" placeholder="Workflow name"
-                        valueLink={this.bindTo(this.props.workflow, 'name')}
-                />
-                {this.state.errors.name && <small className="error">{this.state.errors.name}</small>}
-                </column>
-            </row>
-            <PluginConfiguration workflow={this.props.workflow}
-                                 errors={this.state.errors}
+            <MetadataEditor ref="metadata" metadata={this.props.workflow.get('metadata')}
+                            errors={this.state.errors.metadata}/>
+            <PluginConfiguration ref="config"
+                                 config={this.props.workflow.get('config')}
+                                 errors={this.state.errors || {}}
                                  templates={window.pluginTemplates}/>
             <row>
                 <column size='12'>

@@ -1,6 +1,8 @@
 @import "settings";
-@import "foundation";
-@import "font-awesome/font-awesome";
+@import "../node_modules/zurb-foundation/scss/foundation";
+
+$fa-font-path: "../node_modules/font-awesome/fonts";
+@import "../node_modules/font-awesome/scss/font-awesome";
 
 @mixin animation ($animation, $duration, $iteration-count, $timing-function, $delay) {
   -webkit-animation: $animation $duration $iteration-count $timing-function $delay;
@@ -480,6 +482,61 @@ li.page-preview {
     width: 100%;
   }
 }
+
+.autocomplete-suggestions {
+  list-style: none;
+  margin-left: 0.5em;
+
+  li {
+    padding: 0.5em 0;
+  }
+  li:hover {
+    background-color: lightblue;
+  }
+}
+
+.metadata-fieldset {
+  .error {
+    margin-top: -1rem;
+  }
+  label {
+    text-align: right;
+  }
+}
+.metadata-view {
+  .row {
+    margin-top: 0.5rem;
+  }
+  ul {
+    list-style: none;
+    margin-left: 0;
+    margin-bottom: 0;
+    line-height: 1;
+  }
+}
+
+fieldset.config {
+  .plugin-config {
+    border-top: 1px solid lightgray;
+    padding-top: 1em;
+
+    .plugin-label {
+      &.active {
+        font-weight: bold;
+      }
+    }
+  }
+
+  .config-pane, .select-pane {
+    border-left: 1px solid lightgray;
+    padding-left: 1.5em;
+
+    label {
+      max-width: 80%;
+    }
+  }
+}
+
 /* ======= Animations ======== */
 @include keyframes(bounce) {
   0%, 100% {
@@ -494,11 +551,11 @@ li.page-preview {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 300;
-  src: url('../fonts/OpenSans-Light-webfont.ttf') format('truetype');
+  src: url('../node_modules/connect-fonts-opensans/fonts/default/opensans-light.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 400;
-  src: url('../fonts/OpenSans-Regular-webfont.ttf') format('truetype');
+  src: url('../node_modules/connect-fonts-opensans/fonts/default/opensans-regular.ttf') format('truetype');
 }

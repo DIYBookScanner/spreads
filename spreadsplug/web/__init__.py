@@ -18,7 +18,6 @@
 import logging
 import logging.handlers
 import os
-import platform
 import sys
 from itertools import chain
 from threading import Thread
@@ -29,6 +28,7 @@ from flask import Flask
 
 import spreads.plugin as plugin
 import spreads.workflow as workflow
+from spreads.util import is_os
 from spreads.config import OptionTemplate
 from spreads.main import add_argument_from_template
 
@@ -81,7 +81,7 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
             'web', help="Start the web interface")
         cmdparser.set_defaults(subcommand=run_server)
 
-        if platform.system() == "Windows":
+        if is_os('windows'):
             wincmdparser = rootparser.add_parser(
                 'web-service', help="Start the web interface as a service."
             )
@@ -91,7 +91,7 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
             try:
                 add_argument_from_template('web', key, option, cmdparser,
                                            config['web'][key].get())
-                if platform.system() == "Windows":
+                if is_os('windows'):
                     add_argument_from_template('web', key, option,
                                                wincmdparser,
                                                config['web'][key].get())
@@ -165,6 +165,7 @@ def setup_logging(config):
     logging.getLogger('huey.consumer').setLevel(logging.INFO)
     logging.getLogger('huey.consumer.ConsumerThread').setLevel(logging.INFO)
     logging.getLogger('bagit').setLevel(logging.ERROR)
+    logging.getLogger('isbnlib.dev.webservice').setLevel(logging.ERROR)
 
 
 def setup_signals(ws_server=None):

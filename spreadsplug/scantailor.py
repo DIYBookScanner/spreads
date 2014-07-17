@@ -20,28 +20,28 @@ from __future__ import division, unicode_literals
 import logging
 import math
 import multiprocessing
-import platform
 import re
 import shutil
 import subprocess
 import tempfile
 import time
-from xml.etree.cElementTree import ElementTree as ET
+import xml.etree.cElementTree as ET
 
 import psutil
 from spreads.vendor.pathlib import Path
 
+import spreads.util as util
 from spreads.config import OptionTemplate
 from spreads.plugin import HookPlugin, ProcessHookMixin
-from spreads.util import (find_in_path, MissingDependencyException,
-                          SpreadsException, wildcardify)
 
-if not find_in_path('scantailor-cli'):
-    raise MissingDependencyException("Could not find executable"
-                                     " `scantailor-cli`. Please" " install the"
-                                     " appropriate package(s)!")
+IS_WIN = util.is_os('windows')
+CLI_BIN = util.find_in_path('scantailor-cli')
+GUI_BIN = util.find_in_path('scantailor')
 
-IS_WIN = platform.system() == 'Windows'
+if not CLI_BIN:
+    raise util.MissingDependencyException(
+        "Could not find executable `scantailor-cli`. Please" " install the"
+        " appropriate package(s)!")
 
 logger = logging.getLogger('spreadsplug.scantailor')
 
@@ -72,10 +72,10 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
 
     def __init__(self, config):
         super(ScanTailorPlugin, self).__init__(config)
+        help_out = util.get_subprocess([CLI_BIN],
+                                       stdout=subprocess.PIPE).communicate()[0]
         self._enhanced = bool(re.match(r".*<images\|directory\|->.*",
-                              subprocess.check_output(
-                                  find_in_path('scantailor-cli'))
-                              .splitlines()[7]))
+                              help_out.splitlines()[7]))
 
     def _generate_configuration(self, in_paths, projectfile, out_dir):
         filterconf = [self.config[x].get(bool)
@@ -84,7 +84,7 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
         start_filter = filterconf.index(True)+1
         end_filter = len(filterconf) - list(reversed(filterconf)).index(True)
         marginconf = self.config['margins'].as_str_seq()
-        generation_cmd = [find_in_path('scantailor-cli'),
+        generation_cmd = [CLI_BIN,
                           '--start-filter={0}'.format(start_filter),
                           '--end-filter={0}'.format(end_filter),
                           '--layout=1.5',
@@ -103,21 +103,22 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
                 '--margins-bottom={0}'.format(marginconf[2]),
                 '--margins-left={0}'.format(marginconf[3]),
             ])
-        # NOTE: We cannot pass individual filenames on windows, since we have
-        # a limit of 32,768 characters for commands. Thus, we first try to
-        # find a wildcard for our paths that matches only them, and if that
-        # fails, throw an Exception and tell the user to use a proper OS...
-        wildcard = wildcardify(in_paths)
-        if not wildcard and IS_WIN:
-            raise SpreadsException("Please use a proper operating system.")
-        elif not wildcard:
-            generation_cmd.extend(in_paths)
+        if IS_WIN:
+            # NOTE: Due to Window's commandline length limit of 8192 chars,
+            #       we have to pipe in the list of files via stdin
+            generation_cmd.append("-")
         else:
-            generation_cmd.append(wildcard)
+            generation_cmd.extend(in_paths)
 
         generation_cmd.append(unicode(out_dir))
         logger.debug(" ".join(generation_cmd))
-        proc = psutil.Process(subprocess.Popen(generation_cmd).pid)
+        if IS_WIN:
+            sp = util.get_subprocess(generation_cmd, stdin=subprocess.PIPE)
+            sp.stdin.write(" ".join(in_paths))
+            sp.stdin.close()
+        else:
+            sp = util.get_subprocess(generation_cmd)
+        proc = psutil.Process(sp.pid)
 
         num_images = len(in_paths)
         num_steps = (end_filter - start_filter)+1
@@ -143,16 +144,16 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
             progress = 0.5*((finished_steps*num_images+last_fileidx) /
                             float(num_steps*num_images))
             self.on_progressed.send(self, progress=progress)
+        # TODO: Check exit status for errors
 
     def _split_configuration(self, projectfile, temp_dir):
         num_pieces = multiprocessing.cpu_count()
-        tree = ET(file=unicode(projectfile))
+        tree = ET.parse(unicode(projectfile))
+        root = tree.getroot()
         num_files = len(tree.findall('./files/file'))
         splitfiles = []
         files_per_job = int(math.ceil(float(num_files)/num_pieces))
         for idx in xrange(num_pieces):
-            tree = ET(file=unicode(projectfile))
-            root = tree.getroot()
             start = idx*files_per_job
             end = start + files_per_job
             if end > num_files:
@@ -176,9 +177,8 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
         temp_dir = Path(tempfile.mkdtemp(prefix="spreads."))
         split_config = self._split_configuration(projectfile, temp_dir)
         logger.debug("Launching those subprocesses!")
-        processes = [subprocess.Popen([find_in_path('scantailor-cli'),
-                                       '--start-filter=6', unicode(cfgfile),
-                                       unicode(out_dir)])
+        processes = [util.get_subprocess([CLI_BIN, '--start-filter=6',
+                                          unicode(cfgfile), unicode(out_dir)])
                      for cfgfile in split_config]
 
         last_count = 0
@@ -196,8 +196,8 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
 
     def process(self, pages, target_path):
         autopilot = self.config['autopilot'].get(bool)
-        if not autopilot and not find_in_path('scantailor'):
-            raise MissingDependencyException(
+        if not autopilot and not util.find_in_path('scantailor'):
+            raise util.MissingDependencyException(
                 "Could not find executable `scantailor` in"
                 " $PATH. Please install the appropriate"
                 " package(s)!")
@@ -226,7 +226,7 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
                         "otherwise be ignored.")
             time.sleep(5)
             logger.info("Opening ScanTailor GUI for manual adjustment")
-            subprocess.call([find_in_path('scantailor'), unicode(projectfile)])
+            util.get_subprocess([GUI_BIN, unicode(projectfile)])
         # Check if the user already generated output files from the GUI
         if not sum(1 for x in out_dir.glob('*.tif')) == len(pages):
             logger.info("Generating output images from ScanTailor "
@@ -248,4 +248,11 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
 
         # Remove temporary files/directories
         shutil.rmtree(unicode(out_dir))
-        projectfile.unlink()
+        # FIXME: This fails on Windows since there seems to be some non-gcable
+        #        reference to the file around, but I currently cannot figure
+        #        out where, so we just ignore the error...
+        try:
+            projectfile.unlink()
+        except WindowsError as e:
+            if e.errno == 32:
+                pass

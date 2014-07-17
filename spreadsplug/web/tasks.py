@@ -19,19 +19,18 @@ from __future__ import division
 
 import copy
 import logging
-import platform
 import shutil
-import tempfile
 
 import blinker
 import requests
 from spreads.vendor.pathlib import Path
 
+import spreads.util as util
 from spreads.workflow import Workflow
 from spreadsplug.web import task_queue
 from util import GeneratorIO
 
-IS_WIN = platform.system() == "Windows"
+IS_WIN = util.is_os('windows')
 if IS_WIN:
     from util import find_stick_win as find_stick
 else:

@@ -27,8 +27,8 @@
 
   // Load stylesheets
   require('../scss/app.scss');
-  require("imports?this=>window,Modernizr=../src/util.js,jQuery=jquery!../vendor/foundation.js");
-  require("imports?this=>window,Modernizr=../src/util.js,jQuery=jquery!../vendor/foundation.topbar.js");
+  require("imports?this=>window,Modernizr=../../../../src/util.js,jQuery=jquery!../node_modules/zurb-foundation/js/foundation/foundation.js");
+  require("imports?this=>window,Modernizr=../../../../src/util.js,jQuery=jquery!../node_modules/zurb-foundation/js/foundation/foundation.topbar.js");
 
   // Assign jQuery to Backbone
   Backbone.$ = jQuery;

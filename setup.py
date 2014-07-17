@@ -116,6 +116,7 @@ setup(
         "blinker >= 1.3",
         "roman >= 2.0.0",
         "psutil >= 2.0.0",
+        "isbnlib >= 3.3.8",
     ],
     extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],

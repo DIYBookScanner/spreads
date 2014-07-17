@@ -65,6 +65,7 @@ SOURCE_PACKAGES = [
     SourceDep("zipstream"),
     SourceDep("roman"),
     SourceDep("Wand", "wand"),
+    SourceDep("isbnlib"),
 ]
 
 EXTRA_FILES = [

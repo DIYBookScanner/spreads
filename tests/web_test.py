@@ -43,7 +43,7 @@ def client(app):
 @pytest.yield_fixture
 def mock_dbus(tmpdir):
     with mock.patch.multiple('dbus', SystemBus=mock.DEFAULT,
-                                Interface=mock.DEFAULT) as values:
+                             Interface=mock.DEFAULT) as values:
         stickdir = tmpdir.join('stick')
         stickdir.mkdir()
         mockdevs = [mock.Mock(), mock.Mock()]*2
@@ -54,13 +54,6 @@ def mock_dbus(tmpdir):
         mockobj.Get.side_effect = [True, 'usb', True]*2
         values['Interface'].return_value = mockobj
         yield mockobj
-
-
-@pytest.fixture
-def jsonworkflow():
-    return json.dumps({
-        'name': 'foobar'
-    })
 
 
 @pytest.yield_fixture
@@ -75,7 +68,7 @@ def worker():
 
 def create_workflow(client, num_captures='random'):
     workflow = {
-        'name': 'test{0}'.format(random.randint(0, 8192)),
+        'metadata': {'title': 'test{0}'.format(random.randint(0, 8192))},
     }
     data = json.loads(client.post('/api/workflow',
                       data=json.dumps(workflow)).data)
@@ -128,12 +121,15 @@ def test_get_plugin_templates(client):
     assert 'string' in templates['test_output']
 
 
-def test_create_workflow(client, jsonworkflow):
-    data = json.loads(client.post('/api/workflow', data=jsonworkflow).data)
+def test_create_workflow(client):
+    wf = json.dumps({
+        'metadata': {'title': 'A Test Workflow'}
+    })
+    data = json.loads(client.post('/api/workflow', data=wf).data)
     workflow_id = data['id']
     data = json.loads(client.get('/api/workflow/{0}'.format(workflow_id)).data)
-    assert data['name'] == 'foobar'
-    assert data['slug'] == 'foobar'
+    assert data['metadata'] == {'title': 'A Test Workflow'}
+    assert data['slug'] == 'a-test-workflow'
 
 
 def test_list_workflows(client):
@@ -298,7 +294,7 @@ def test_start_processing(client):
                          and 'status' in e['data']['changes'])]
     assert len(update_events) == 4
     assert all(e['step'] == 'process' for e in update_events)
-    assert update_events[0]['step_progress'] == None
+    assert update_events[0]['step_progress'] is None
     assert update_events[1]['step_progress'] == 0
     assert update_events[2]['step_progress'] == 0.5
     assert update_events[3]['step_progress'] == 1.0
@@ -317,7 +313,7 @@ def test_start_outputting(client):
                          and 'status' in e['data']['changes'])]
     assert len(update_events) == 3
     assert all(e['step'] == 'output' for e in update_events)
-    assert update_events[0]['step_progress'] == None
+    assert update_events[0]['step_progress'] is None
     assert update_events[1]['step_progress'] == 0
     assert update_events[2]['step_progress'] == 1.0
     # TODO: Verify generation was completed (files?)

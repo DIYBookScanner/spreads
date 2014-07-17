@@ -162,9 +162,9 @@ class Bag(object):
         new_num, additional_size = self._add_files(self._get_path('data'),
                                                    self.manifest_files,
                                                    *paths)
-        old_length, old_num = map(int, (self.info['Payload-Oxum']
+        old_length, old_num = map(int, (self.info['payload-oxum']
                                         .split('.')))
-        self.info['Payload-Oxum'] = "{0}.{1}".format(
+        self.info['payload-oxum'] = "{0}.{1}".format(
             old_length+additional_size, old_num+new_num)
 
     def remove_payload(self, *paths):
@@ -173,9 +173,9 @@ class Bag(object):
         num_removed = self._remove_files(self._get_path('data'),
                                          self.manifest_files,
                                          *paths)
-        old_size, old_num = map(int, self.info['Payload-Oxum'].split('.'))
+        old_size, old_num = map(int, self.info['payload-oxum'].split('.'))
         new_size = sum(os.stat(f).st_size for f in self.payload)
-        self.info['Payload-Oxum'] = "{0}.{1}".format(new_size,
+        self.info['payload-oxum'] = "{0}.{1}".format(new_size,
                                                      old_num-num_removed)
 
     def add_tagfiles(self, *paths):
@@ -275,14 +275,15 @@ class Bag(object):
         self.tagmanifest_files = dict(
             (alg, Manifest(self._get_path('tagmanifest-{0}.txt'.format(alg))))
             for alg in self._checksum_algs)
-        self.info['Bagging-Date'] = datetime.date.strftime(
+        self.info['bagging-date'] = datetime.date.strftime(
             datetime.date.today(), "%Y-%m-%d")
-        self.info['Bag-Software-Agent'] = SOFTWARE_AGENT
-        self.info['Payload-Oxum'] = "0.0"
+        self.info['bag-software-agent'] = SOFTWARE_AGENT
+        self.info['payload-oxum'] = "0.0"
         os.mkdir(self._get_path('data'))
 
     def _read_bag(self):
-        version = BagInfo(self._get_path('bagit.txt'))['BagIt-Version']
+        with open(self._get_path('bagit.txt')) as fp:
+            version = fp.readlines()[0].split(':')[1].strip()
         if version != BAGIT_VERSION:
             raise BagError("BagIt version {0} is not supported, bag needs"
                            " to comply with version {1} of the"
@@ -297,8 +298,8 @@ class Bag(object):
         for alg in self._checksum_algs:
             fpath = self._get_path("tagmanifest-{0}.txt".format(alg))
             self.tagmanifest_files[alg] = Manifest(fpath)
-        if 'Payload-Oxum' not in self.info:
-            self.info['Payload-Oxum'] = "0.0"
+        if 'payload-oxum' not in self.info:
+            self.info['payload-oxum'] = "0.0"
 
     def _get_path(self, fname):
         return os.path.join(self.path, fname)
@@ -694,7 +695,6 @@ class BagInfo(BaseInfo):
         # Line folding is handled by storing values only after we encounter the
         # start of a new tag, or if we pass the EOF.
         def store(key, value):
-            key = self.__keytransform__(key)
             existing = key in self._store
             if existing and self._duplicates:
                 if isinstance(self._store[key], tuple):
@@ -729,14 +729,15 @@ class BagInfo(BaseInfo):
                     store(key, value)
 
                 parts = line.strip().split(':', 1)
-                key = parts[0].strip()
+                key = parts[0].strip().lower()
                 value = parts[1].strip()
             store(key, value)
 
     def save(self):
         with open(self._path, "wb") as fp:
             for key, value in self._store.items():
-                if isinstance(value, tuple):
+                key = "-".join(x.capitalize() for x in key.split("-"))
+                if type(value) in (list, tuple):
                     for subval in value:
                         fp.write(self._to_file_entry(key, subval)
                                  .encode('utf-8'))
@@ -761,9 +762,6 @@ class BagInfo(BaseInfo):
                     formatted += " "
                 formatted += "{elem}".format(elem=elem)
         return formatted + "\n"
-
-    def __keytransform__(self, key):
-        return "-".join(x.capitalize() for x in key.split("-"))
 
 
 class Manifest(BaseInfo):

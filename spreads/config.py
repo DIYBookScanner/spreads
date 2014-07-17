@@ -21,6 +21,8 @@ import logging
 import spreads.vendor.confit as confit
 from spreads.vendor.pathlib import Path
 
+import spreads.util as util
+
 
 class OptionTemplate(object):
     """ A configuration option.
@@ -51,12 +53,12 @@ class OptionTemplate(object):
                 .format(repr(self.value), repr(self.docstring),
                         repr(self.selectable), repr(self.advanced)))
 
-
 CORE_OPTIONS = {
     'verbose': OptionTemplate(value=False,
                               docstring="Enable verbose output"),
-    'logfile': OptionTemplate(value="~/.config/spreads/spreads.log",
-                              docstring="Path to logfile"),
+    'logfile': OptionTemplate(
+        value=unicode(Path(util.get_data_dir())/'spreads.log'),
+        docstring="Path to logfile"),
     'loglevel': OptionTemplate(value=['info', 'critical', 'error',
                                       'warning', 'debug'],
                                docstring="Logging level for logfile",

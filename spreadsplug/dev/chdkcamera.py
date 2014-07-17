@@ -76,9 +76,10 @@ class CHDKCameraDevice(DevicePlugin):
              'focus_distance': OptionTemplate(0, "Set focus distance"),
              'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
-             'wb_mode': OptionTemplate(value=sorted(WHITEBALANCE_MODES),
-                                       docstring='White balance mode',
-                                       selectable=True, advanced=True),
+             'whitebalance': OptionTemplate(
+                 value=sorted(WHITEBALANCE_MODES),
+                 docstring='White balance mode', selectable=True,
+                 advanced=True),
              'chdkptp_path': OptionTemplate(u"/usr/local/lib/chdkptp",
                                             "Path to CHDKPTP binary/libraries",
                                             advanced=True),
@@ -235,9 +236,11 @@ class CHDKCameraDevice(DevicePlugin):
                              "device, will be disabled.")
 
     def finish_capture(self):
-        # Switch camera back to play mode.
-        # This will retract the lens and protect it from dust.
-        self._run("play")
+        # NOTE: We should retract the lenses to protect them from dust by
+        # switching back to play mode (`self._run("play")`), but due to a bug
+        # in a majority of CHDK devices, we currently cannot do that, so we
+        # just do nothing here. See issue #114 on GitHub for more details
+        pass
 
     def get_preview_image(self):
         fpath = tempfile.mkstemp()[1]
@@ -293,7 +296,7 @@ class CHDKCameraDevice(DevicePlugin):
             self._set_zoom()
         if 'focus_distance' in updated:
             self._set_focus()
-        if 'wb_mode' in updated:
+        if 'whitebalance' in updated:
             self._set_whitebalance()
 
     def show_textbox(self, message):
@@ -415,7 +418,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._execute_lua("set_aflock(1)")
 
     def _set_whitebalance(self):
-        value = WHITEBALANCE_MODES.get(self.config['wb_mode'].get())
+        value = WHITEBALANCE_MODES.get(self.config['whitebalance'].get())
         self._execute_lua("set_prop(require('propcase').WB_MODE, {0})"
                           .format(value))
 
@@ -436,11 +439,6 @@ class A2200(CHDKCameraDevice):
                 'A2200Device[{0}]'.format(self.target_page))
         else:
             self.logger = logging.getLogger('A2200Device')
-
-    def finish_capture(self):
-        # Putting the device back into play mode crashes the a2200 with
-        # chdk 1.3, this is why we stub it out here.
-        pass
 
     def _set_focus(self):
         self.logger.info("Running A2200 focus")

@@ -39,6 +39,17 @@
 
   placeholderImg = "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4AQMAAABPbGssAAAAA1BMVEWZmZl86KQWAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gQIFjciiRhnwgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAZSURBVEjH7cEBDQAAAMKg909tDwcUAAAPBgnYAAHW6F1SAAAAAElFTkSuQmCC";
 
+  var CaptureProgress = React.createClass({
+    render: function() {
+      var progress = Math.min(1, this.props.current/this.props.total);
+      return (
+        <div className="nice secondary progress">
+          <span className="meter" style={{width: progress*100+'%'}} />
+        </div>
+      );
+    }
+  });
+
 
   /**
    * Screen component to control the capture process.
@@ -329,6 +340,12 @@
         evenImage = util.getPageUrl(workflow, lastPages[0], 'raw');
         oddImage = util.getPageUrl(workflow, lastPages[1], 'raw');
       }
+
+      // This is only >0 when the 'extent' metadata field is a number, this
+      // allows us to display a progress bar that allows for some visual
+      // feedback on how far a long the user is with a capture.
+      var expectedTotal = (workflow.get('metadata').extent | 0);
+
       return (
         <div>
           {/* Display loading overlay? */}
@@ -344,12 +361,15 @@
                 <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
                        onChange={this.toggleAdvanced} />
                 <label htmlFor="check-advanced">Show advanced options</label>
-                <PluginWidget plugin="device" template={window.pluginTemplates.device}
+                <PluginWidget template={window.pluginTemplates.device}
+                              cfgValues={this.props.workflow.get('config').device}
+                              errors={this.state.validationErrors}
                               showAdvanced={this.state.advancedOpts}
-                              bindFunc={function(key) {
-                                return this.bindTo(this.props.workflow,
-                                                    'config.device.' + key);
-                              }.bind(this)} errors={[]} />
+                              onChange={function(vals) {
+                                var config = _.clone(this.props.workflow.get('config'));
+                                config.device = vals;
+                                this.props.workflow.set('config', config);
+                              }.bind(this)} />
               </confirmModal>
             </form>
           }
@@ -394,6 +414,7 @@
               </ul>
             </column>
           </row>
+          {expectedTotal && <CaptureProgress total={expectedTotal} current={workflow.get('pages').length} />}
           <row className="capture-info">
             <column size="6">
               <span className="pagecount">{workflow.get('pages').length} pages</span>

@@ -123,8 +123,9 @@ class DevicePlugin(SpreadsPlugin):  # pragma: no cover
                     docstring="Trigger capture on multiple devices at once.",
                     selectable=False),
                 "flip_target_pages": OptionTemplate(
-                    value=False, docstring="Temporarily switch target pages"
-                                           "(useful for e.g. East-Asian books")
+                    value=False,
+                    docstring="Temporarily switch target pages (useful for "
+                              "e.g. East-Asian books)")
             }
 
     @abstractclassmethod

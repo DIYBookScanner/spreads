@@ -11,9 +11,8 @@ from spreads.vendor.pathlib import Path
 
 import spreads.cli as cli
 import spreads.plugin as plugin
+import spreads.util as util
 from spreads.config import Configuration
-from spreads.util import (ColourStreamHandler, EventHandler, DeviceException,
-                          MissingDependencyException)
 
 
 def add_argument_from_template(extname, key, template, parser, current_val):
@@ -147,37 +146,7 @@ def setup_parser(config):
     return rootparser
 
 
-def run_config_windows():
-    os.environ['PATH'] += (";" + os.environ['PROGRAMFILES'])
-    logging.basicConfig(loglevel=logging.ERROR)
-    logger = logging.getLogger()
-    config = Configuration()
-    logger.addHandler(EventHandler())
-    from spreads.tkconfigure import configure
-    configure(config)
-
-
-def run_service_windows():
-    os.environ['PATH'] += (";" + os.environ['PROGRAMFILES'])
-    logging.basicConfig(loglevel=logging.ERROR)
-    logger = logging.getLogger()
-    config = Configuration()
-    logger.addHandler(EventHandler())
-    from spreadsplug.web import run_windows_service
-    run_windows_service(config)
-
-
-def run():
-    # Set to ERROR so we can see errors during plugin loading.
-    logging.basicConfig(loglevel=logging.ERROR)
-
-    config = Configuration()
-
-    parser = setup_parser(config)
-    args = parser.parse_args()
-    # Set configuration from parsed arguments
-    config.set_from_args(args)
-
+def setup_logging(config):
     loglevel = config['core']['loglevel'].as_choice({
         'none':     logging.NOTSET,
         'info':     logging.INFO,
@@ -186,18 +155,26 @@ def run():
         'error':    logging.ERROR,
         'critical': logging.CRITICAL,
     })
-
-    # Set up logger
     logger = logging.getLogger()
+    # Remove previous handlers
     if logger.handlers:
         for handler in logger.handlers:
             logger.removeHandler(handler)
-    stdout_handler = ColourStreamHandler()
+
+    # Add stderr handler
+    if util.is_os('windows'):
+        stdout_handler = logging.StreamHandler()
+    else:
+        stdout_handler = util.ColourStreamHandler()
     stdout_handler.setLevel(logging.DEBUG if config['core']['verbose'].get()
                             else logging.WARNING)
     stdout_handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
     logger.addHandler(stdout_handler)
-    logger.addHandler(EventHandler())
+
+    # Add event handler
+    logger.addHandler(util.EventHandler())
+
+    # Add logfile handler
     logfile = Path(config['core']['logfile'].as_filename())
     if not logfile.parent.exists():
         logfile.parent.mkdir()
@@ -208,8 +185,38 @@ def run():
     file_handler.setLevel(loglevel)
     logger.addHandler(file_handler)
 
+    # Set root logger level (needed for web plugin)
     logger.setLevel(logging.DEBUG)
 
+
+def run_config_windows():
+    os.environ['PATH'] += (";" + os.environ['PROGRAMFILES'])
+    config = Configuration()
+    setup_logging(config)
+    from spreads.tkconfigure import configure
+    configure(config)
+
+
+def run_service_windows():
+    os.environ['PATH'] += (";" + os.environ['PROGRAMFILES'])
+    config = Configuration()
+    setup_logging(config)
+    from spreadsplug.web import run_windows_service
+    config['web']['mode'] = 'processor'
+    run_windows_service(config)
+
+
+def run():
+    config = Configuration()
+
+    parser = setup_parser(config)
+    args = parser.parse_args()
+    # Set configuration from parsed arguments
+    config.set_from_args(args)
+
+    setup_logging(config)
+
+    # Run subcommand
     args.subcommand(config)
 
 
@@ -218,7 +225,7 @@ def main():
     colorama.init()
     try:
         run()
-    except DeviceException as e:
+    except util.DeviceException as e:
         typ, val, tb = sys.exc_info()
         logging.debug("".join(traceback.format_exception(typ, val, tb)))
         print(colorama.Fore.RED + "There is a problem with your device"
@@ -230,7 +237,7 @@ def main():
         print(colorama.Fore.RED +
               "There is a problem with your configuration file(s):")
         print(colorama.Fore.RED + e.message)
-    except MissingDependencyException as e:
+    except util.MissingDependencyException as e:
         typ, val, tb = sys.exc_info()
         logging.debug("".join(traceback.format_exception(typ, val, tb)))
         print(colorama.Fore.RED +
@@ -249,4 +256,5 @@ def main():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(loglevel=logging.ERROR)
     main()

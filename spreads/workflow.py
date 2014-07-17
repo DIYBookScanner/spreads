@@ -39,6 +39,7 @@ from spreads.vendor.pathlib import Path
 import spreads.plugin as plugin
 import spreads.util as util
 from spreads.config import Configuration
+from spreads.metadata import Metadata
 
 
 signals = Namespace()
@@ -79,10 +80,6 @@ Sent by a :class:`Workflow` after a capture was successfully executed.
 class ValidationError(Exception):
     def __init__(self, **kwargs):
         self.errors = kwargs
-
-# Put workflows into cache when they're created
-on_created.connect(lambda sender, **kwargs: Workflow._add_to_cache(sender),
-                   weak=False)
 
 
 class Page(object):
@@ -177,17 +174,24 @@ class TocEntry(object):
 class Workflow(object):
     _cache = {}
 
+    def __new__(cls, *args, **kwargs):
+        # Put workflows into cache when they're created
+        on_created.connect(lambda sender, **kwargs: cls._add_to_cache(sender),
+                           weak=False)
+        return super(Workflow, cls).__new__(cls, *args, **kwargs)
+
     @classmethod
-    def create(cls, location, name, config=None, metadata=None):
+    def create(cls, location, metadata=None, config=None):
         if not isinstance(location, Path):
             location = Path(location)
-        if (location/name).exists():
+        if metadata is None or not 'title' in metadata:
             raise ValidationError(
-                name="A workflow with that name already exists")
-        wf = cls(path=location/name, config=config, metadata=metadata)
-        if not location in cls._cache:
-            cls._cache[location] = []
-        cls._cache[location].append(wf)
+                metadata={'title': 'Please specify at least a title'})
+        path = Path(location/util.slugify(metadata['title']))
+        if path.exists():
+            raise ValidationError(
+                name="A workflow with that title already exists")
+        wf = cls(path=path, config=config, metadata=metadata)
         return wf
 
     @classmethod
@@ -292,8 +296,11 @@ class Workflow(object):
             self.config = config.as_view()
         else:
             self.config = self._load_config(config)
+        self._metadata = Metadata(self.path)
+
         if metadata:
             self.metadata = metadata
+
         self._capture_lock = threading.RLock()
         self._devices = None
         self._pluginmanager = None
@@ -424,26 +431,17 @@ class Workflow(object):
 
     @property
     def metadata(self):
-        if not hasattr(self, '_dcmeta'):
-            try:
-                fpath = next(x for x in self.bag.tagfiles
-                             if x.endswith('/dcmeta.txt'))
-            except StopIteration:
-                fpath = unicode(self.path/'dcmeta.txt')
-            self._dcmeta = bagit.BagInfo(fpath,
-                                         save_callback=self.bag.add_tagfiles)
-        return self._dcmeta
+        return self._metadata
 
     @metadata.setter
     def metadata(self, value):
-        if hasattr(self, '_dcmeta'):
-            self._dcmeta = None
-            # Remove old metadata file
-            (self.path/'dcmeta.txt').unlink()
-        if not hasattr(value, 'items'):
-            raise ValueError("Metadata must be a dict-like object.")
+        # Empty old metadata
+        for k in self._metadata:
+            del self._metadata[k]
+        # Save new metadata
         for k, v in value.items():
-            self._dcmeta[k] = v
+            self._metadata[k] = v
+        on_modified.send(self, changes={'metadata': value})
 
     def save(self):
         self._save_config()
@@ -665,7 +663,7 @@ class Workflow(object):
 
     def finish_capture(self):
         if self._pool_executor:
-            self._pool_executor.shutdown(wait=False)
+            self._pool_executor.shutdown(wait=True)
             self._pool_executor = None
         with ThreadPoolExecutor(len(self.devices)) as executor:
             futures = []
@@ -701,18 +699,9 @@ class Workflow(object):
         self._logger.info("Done generating output files!")
 
     def update_configuration(self, values):
-        def diff_dicts(old, new):
-            out = {}
-            for key, value in old.iteritems():
-                if new[key] != value:
-                    out[key] = new[key]
-                elif isinstance(value, dict):
-                    diff = diff_dicts(value, new[key])
-                    if diff:
-                        out[key] = diff
-            return out
         old_cfg = self.config.flatten()
         self.config.set(values)
-        diff = diff_dicts(old_cfg, self.config.flatten())
-        self._run_hook('update_configuration', diff['device'])
+        diff = util.diff_dicts(old_cfg, self.config.flatten())
+        if 'device' in diff:
+            self._run_hook('update_configuration', diff['device'])
         on_modified.send(self, changes={'config': self.config.flatten()})

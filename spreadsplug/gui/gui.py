@@ -21,6 +21,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from PySide import QtCore, QtGui
 
+import spreads.plugin as plugin
 import spreads.workflow as workflow
 
 import gui_rc
@@ -110,20 +111,25 @@ class IntroPage(QtGui.QWizardPage):
         dirpick_layout.addWidget(self.line_edit)
         dirpick_layout.addWidget(browse_btn)
         browse_btn.clicked.connect(self.show_filepicker)
+        self.tab_widget = QtGui.QTabWidget()
 
-        self.stack_widget = QtGui.QStackedWidget()
-        page_combobox = QtGui.QComboBox()
-        page_combobox.activated.connect(self.stack_widget.setCurrentIndex)
-        #QtCore.QObject.connect(page_combobox, SIGNAL("activated(int)"),
-        #        self.stack_widget, SLOT("setCurrentIndex(int)"))
         # Add configuration widgets from plugins
         self.plugin_widgets = {}
+
+        # Filter out subcommand plugins
+        available = [
+            name for name, cls
+            in plugin.get_plugins(*wizard.config['plugins'].get()).items()
+            if not issubclass(cls, plugin.SubcommandHookMixin)
+        ]
+        available.append('device')
+
         for name, tmpl in wizard.config.templates.iteritems():
-            if not tmpl:
+            if not tmpl or name not in available:
                 continue
             page = QtGui.QGroupBox()
             layout = QtGui.QFormLayout()
-            widgets = self._get_plugin_config_widgets(tmpl)
+            widgets = self._get_plugin_config_widgets(tmpl, name)
             self.plugin_widgets[name] = widgets
             for label, widget in widgets.values():
                 # We don't need a label for QCheckBoxes
@@ -132,8 +138,13 @@ class IntroPage(QtGui.QWizardPage):
                 else:
                     layout.addRow(label, widget)
             page.setLayout(layout)
-            self.stack_widget.addWidget(page)
-            page_combobox.addItem(name.title())
+            self.tab_widget.addTab(page, name.title())
+
+        self.save_btn = QtGui.QPushButton("&Save as defaults")
+        self.save_btn.clicked.connect(self.saveSettings)
+        save_layout = QtGui.QHBoxLayout()
+        save_layout.addStretch(1)
+        save_layout.addWidget(self.save_btn)
 
         main_layout = QtGui.QVBoxLayout()
         main_layout.addWidget(intro_label)
@@ -143,30 +154,35 @@ class IntroPage(QtGui.QWizardPage):
         )
         main_layout.addLayout(dirpick_layout)
         main_layout.addSpacing(30)
-        main_layout.addWidget(page_combobox)
-        main_layout.addWidget(self.stack_widget)
+        main_layout.addWidget(self.tab_widget)
+        main_layout.addLayout(save_layout)
         main_layout.setSizeConstraint(QtGui.QLayout.SetNoConstraint)
 
         self.setLayout(main_layout)
         self.adjustSize()
 
-    def _get_plugin_config_widgets(self, plugin_tmpl):
-        widgets = {}
+    def _get_plugin_config_widgets(self, plugin_tmpl, plugname):
+        widgets, config = {}, self.wizard().config
         for key, option in plugin_tmpl.items():
             label = (option.docstring
                      if not option.docstring is None else key.title())
+            cur_value = config[plugname][key].get()
             # Do we need a dropdown?
             if (option.selectable and
                     any(isinstance(option.value, x) for x in (list, tuple))):
                 widget = QtGui.QComboBox()
+                i, index = 0, 0
                 for each in option.value:
-                    widget.addItem(each)
-                widget.setCurrentIndex(0)
+                    widget.addItem(unicode(each))
+                    if each == cur_value:
+                        index = i
+                    i += 1
+                widget.setCurrentIndex(index)
             # Do we need a checkbox?
             elif isinstance(option.value, bool):
                 widget = QtGui.QCheckBox(label)
                 widget.setCheckState(QtCore.Qt.Checked
-                                     if option.value
+                                     if cur_value
                                      else QtCore.Qt.Unchecked)
             elif any(isinstance(option.value, x) for x in (list, tuple)):
                 # NOTE: We skip options with sequences for a value for now,
@@ -177,17 +193,19 @@ class IntroPage(QtGui.QWizardPage):
             # Seems like we need another value...
             elif isinstance(option.value, int):
                 widget = QtGui.QSpinBox()
-                widget.setMaximum(1024)
-                widget.setMinimum(-1024)
-                widget.setValue(option.value)
+                maxVlu = max(1024, option.value * 2)
+                widget.setMaximum(maxVlu)
+                widget.setMinimum(-maxVlu)
+                widget.setValue(cur_value)
             elif isinstance(option.value, float):
                 widget = QtGui.QDoubleSpinBox()
-                widget.setMaximum(1024.0)
-                widget.setMinimum(-1024.0)
-                widget.setValue(option.value)
+                maxVlu = max(1024.0, option.value * 2)
+                widget.setMaximum(maxVlu)
+                widget.setMinimum(-maxVlu)
+                widget.setValue(cur_value)
             else:
                 widget = QtGui.QLineEdit()
-                widget.setText(option.value)
+                widget.setText(cur_value)
             widgets[key] = (label, widget)
         return widgets
 
@@ -216,6 +234,12 @@ class IntroPage(QtGui.QWizardPage):
                                             config=wizard.config)
         wizard.workflow.prepare_capture()
         return True
+
+    def saveSettings(self):
+        self._update_config_from_plugin_widgets()
+        config = self.wizard().config
+        logger.debug("Writing configuration file to '{0}'".format(config.cfg_path))
+        config.dump(filename=config.cfg_path)
 
     def _update_config_from_plugin_widgets(self):
         config = self.wizard().config

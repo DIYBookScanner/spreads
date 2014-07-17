@@ -159,7 +159,8 @@
     },
     render: function() {
       var workflow = this.props.workflow,
-          pageCount = Math.ceil(workflow.get('pages').length / this.state.thumbCount),
+          pages = workflow.get('pages'),
+          pageCount = Math.ceil(pages.length / this.state.thumbCount),
           thumbStart = this.state.thumbStart,
           thumbStop = this.state.thumbStart+this.state.thumbCount,
           deleteClasses = require('react/addons').addons.classSet({
@@ -167,7 +168,12 @@
             'button': true,
             'disabled': this.state.selectedPages.length === 0
           }),
-          imageTypes = ['raw'].concat(_.without(_.keys(workflow.get('pages')[0].processed_images), 'tesseract'));
+          imageTypes = ['raw'],
+          metadata = workflow.get('metadata');
+          if (pages.length > 0) {
+            imageTypes = imageTypes.concat(_.without(_.keys(pages[0].processed_images),
+                                                     'tesseract'));
+          }
       return (
         <main>
           {/* Display image in lightbox overlay? */}
@@ -185,24 +191,37 @@
           }
           <row>
             <column size='12'>
-              <h1>{workflow.get('name')}</h1>
+              <h1>{metadata.title}</h1>
             </column>
           </row>
-          <row>
+          <row className="metadata-view">
             <column size='12'>
               <h2>Metadata</h2>
-              <ul>
-                {workflow.get('status').step ?
-                  <li>{workflow.get('status').step}</li>:
-                  <li>Current step: <em>inactive</em></li>
+              {_.map(window.metadataSchema, function(field) {
+                if (!_.has(metadata, field.key)) return;
+                var valueNode,
+                    value = metadata[field.key];
+                if (field.multivalued) {
+                  valueNode = (
+                    <ul>
+                    {_.map(value, function(item) {
+                      return <li key={item}>{item}</li>;
+                    })}
+                    </ul>);
+                } else {
+                  valueNode = value;
                 }
-                <li>Enabled plugins:{' '}{workflow.get('config').plugins.join(', ')}</li>
-              </ul>
+                return (
+                  <row key={field.key}>
+                    <column size={2}>{field.description}</column>
+                    <column size={10}>{valueNode}</column>
+                  </row>);
+                })}
             </column>
           </row>
 
           {/* Only show image thumbnails when there are images in the workflow */}
-          {(workflow.has('pages') && workflow.get('pages')) &&
+          {pages.length > 0 &&
           <row>
             <column size='12'>
               <h2>Pages</h2>
@@ -219,7 +238,7 @@
                 </ul>
               </div>
               <ul ref="pagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
-                {workflow.get('pages').slice(thumbStart, thumbStop).map(function(page) {
+                {pages.slice(thumbStart, thumbStop).map(function(page) {
                     return (
                       <PagePreview page={page} workflow={workflow} key={page.capture_num} imageType={this.state.imageType}
                                    selected={_.contains(this.state.selectedPages, page)}
