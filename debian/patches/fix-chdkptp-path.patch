@@ -1,12 +1,13 @@
 Change chdkptp path to /usr/lib/chdkptp
 --- a/spreadsplug/dev/chdkcamera.py
 +++ b/spreadsplug/dev/chdkcamera.py
-@@ -64,7 +64,7 @@
-              'wb_mode': OptionTemplate(value=sorted(WHITEBALANCE_MODES),
-                                        docstring='White balance mode',
-                                        selectable=True, advanced=True),
+@@ -80,7 +80,7 @@ class CHDKCameraDevice(DevicePlugin):
+                  value=sorted(WHITEBALANCE_MODES),
+                  docstring='White balance mode', selectable=True,
+                  advanced=True),
 -             'chdkptp_path': OptionTemplate(u"/usr/local/lib/chdkptp",
 +             'chdkptp_path': OptionTemplate(u"/usr/lib/chdkptp",
                                              "Path to CHDKPTP binary/libraries",
                                              advanced=True),
               })
+
