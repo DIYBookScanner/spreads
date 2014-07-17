@@ -21,6 +21,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from PySide import QtCore, QtGui
 
+import spreads.plugin as plugin
 import spreads.workflow as workflow
 
 import gui_rc
@@ -115,8 +116,16 @@ class IntroPage(QtGui.QWizardPage):
         # Add configuration widgets from plugins
         self.plugin_widgets = {}
 
+        # Filter out subcommand plugins
+        available = [
+            name for name, cls
+            in plugin.get_plugins(*wizard.config['plugins'].get()).items()
+            if not issubclass(cls, plugin.SubcommandHookMixin)
+        ]
+        available.append('device')
+
         for name, tmpl in wizard.config.templates.iteritems():
-            if not tmpl:
+            if not tmpl or name not in available:
                 continue
             page = QtGui.QGroupBox()
             layout = QtGui.QFormLayout()
