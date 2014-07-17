@@ -14,7 +14,7 @@ At its core, it handles the communication with the imaging devices, the
 post-processing of the captured material and its assembly into output formats
 like PDF or ePub. On top of this base layer, we have built a variety of
 interfaces that should fit into most use cases: A full-fledged and
-mobile-friendly web interface that can be servied from even the most
+mobile-friendly web interface that can be served from even the most
 low-powered devices (like a Raspberry Pi), a graphical wizard for classical
 desktop users and a bare-bones command-line interface for purists.
 
@@ -45,34 +45,38 @@ Features
 Interfaces
 ----------
 
-- **Web**
+Web
++++
 
 .. image:: http://i.imgur.com/ujchTcq.png
    :alt: web interface
 
-  The interface with the most features. You have the choice between three
-  modes: *scanner*, *processor* and *full*. The first is ideal for slim
-  scanning workstations that just deal with the capturing of the images and
-  little more. From it, you can transfer your scans either to an USB stick or
-  another instance of spreads running in one of the other two modes (all from
-  your browser!), where they will be post-processed. It is currently the only
-  interface to support cropping during capture and on-the-fly changing of
-  settings during capture.
+The interface with the most features. You have the choice between three
+modes: *scanner*, *processor* and *full*. The first is ideal for slim
+scanning workstations that just deal with the capturing of the images and
+little more. From it, you can transfer your scans either to an USB stick or
+another instance of spreads running in one of the other two modes (all from
+your browser!), where they will be post-processed. It is currently the only
+interface to support cropping during capture and on-the-fly changing of
+settings during capture.
 
-- **GUI**
+GUI
++++
 
 .. image:: http://i.imgur.com/jmijJhY.png
    :alt: graphical interface
 
-  A graphical wizard that guides you through every step, from setting up the
-  devices to postprocessing the images
+A graphical wizard that guides you through every step, from setting up the
+devices to postprocessing the images
 
-- **CLI**
+CLI
++++
+
 .. image:: http://i.imgur.com/wwcaP96.png
    :alt: command-line interface
 
-  A text-only command-line interface that exposes each step as a subcommand.
-  Ideal for controlling a scanner over SSH and for comand-line fetishists.
+A text-only command-line interface that exposes each step as a subcommand.
+Ideal for controlling a scanner over SSH and for comand-line fetishists.
 
 
 Getting Started
