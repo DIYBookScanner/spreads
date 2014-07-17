@@ -108,7 +108,8 @@ Documentation
 
 You can find the detailed manual for users and developers at
 http://spreads.readthedocs.org
-Please not that it is currently woefully incomplete and partially out of date.
+
+Please note that it is currently woefully incomplete and partially out of date.
 If you want to help with it, please get in touch!
 
 Getting Help
