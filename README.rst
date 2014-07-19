@@ -83,7 +83,7 @@ Getting Started
 ---------------
 
 If you are on Debian unstable, Ubuntu 14.04 or Raspbian stable, you can use our
-APT repositories. Just add one of the below lines to your `sources.list`::
+APT repositories. Just add one of the below lines to your ``sources.list``::
 
     # Debian unstable/sid (i386, amd64)
     deb http://spreads.jbaiter.de/debian unstable main
@@ -92,16 +92,16 @@ APT repositories. Just add one of the below lines to your `sources.list`::
     deb http://spreads.jbaiter.de/ubuntu trusty main
 
     # Raspbian stable/wheezy (armhf)
-    deb http://spreads.jbaiter.de/debian unstable main
+    deb http://spreads.jbaiter.de/raspbian wheezy main
 
-Now run `apt-get update` and install one of `spreads`, `spreads-web` or
-`spreads-gui`.
+Now run ``apt-get update`` and install one or more  of ``spreads``,
+``spreads-web`` or ``spreads-gui``.
 
 **Please not that these repositories currently include snapshots from the Git
 repository, so they might not work from time to time**
 
-On other distributions you will have to install it yourself with `pip`, please
-refer to the documentation for details.
+On other distributions you will have to install it yourself with ``pip``,
+please refer to the documentation for details.
 
 Documentation
 -------------

@@ -27,10 +27,6 @@ client-side JavaScript application that can be used from any recent browser
 (Firefox or Chrome recommended). Fore more details, consult the `Web interface
 documentation <web_doc>` and the `REST API documentation <rest_api>`
 
-.. option:: --database <path>
-
-   Location of workflow database, by default `~/.config/spreads/workflows.db`
-
 .. option:: --standalone-device
 
    Enable standalone mode. This option can be used for devices that are
@@ -45,6 +41,21 @@ documentation <web_doc>` and the `REST API documentation <rest_api>`
 .. option:: --project-dir <path>
 
    Location where workflow files are stored. By default this is `~/scans`.
+
+.. option:: --mode [scanner, processor, full (default)]
+
+   Select the mode the web plugin is supposed to run in.
+   scanner: Only offer components neccessary for capture and
+   download/submission to a postprocessing server
+   processor: Start as a postprocessing server that can receive workflows over
+   the network from other 'scanner' instances
+   full: Combines the above two modes, allows for capture and
+   postprocessing/output generation on the same machine
+
+.. option:: --port <port> (default: 5000)
+
+   Select port on which the web plugin is supposed to listen on
+
 
 .. _postproc_plugs:
 
