@@ -59,7 +59,6 @@ SOURCE_PACKAGES = [
     SourceDep("colorama"),
     SourceDep("futures", "concurrent"),
     SourceDep("itsdangerous"),
-    SourceDep("pyusb", "usb"),
     SourceDep("requests"),
     SourceDep("waitress"),
     SourceDep("zipstream"),
@@ -74,7 +73,6 @@ EXTRA_FILES = [
     "pywin32-2.7.6{arch}.exe",
     "scantailor-enhanced-20140214-32bit-install.exe",
     "tesseract-ocr-setup-3.02.02.exe",
-    "chdkptp",
     "pdfbeads.exe",
     "jbig2.exe",
 ]
