@@ -200,6 +200,11 @@ def run_config_windows():
 def run_service_windows():
     os.environ['PATH'] += (";" + os.environ['PROGRAMFILES'])
     config = Configuration()
+    config['core']['loglevel'] = 'debug'
+    if not config['plugins'].get():
+        config['plugins'] = ['autorotate', 'scantailor', 'tesseract',
+                             'pdfbeads', 'web']
+        config.load_defaults(overwrite=False)
     setup_logging(config)
     from spreadsplug.web import run_windows_service
     config['web']['mode'] = 'processor'
