@@ -593,6 +593,7 @@ class Workflow(object):
                 step_progress=(step_progress + internal_progress))
 
         for (idx, plug) in enumerate(plugins):
+            # FIXME: This should really be disconnected once we're done here
             plug.on_progressed.connect(
                 lambda s, **kwargs: update_progress(idx, kwargs['progress']),
                 sender=plug, weak=False)
@@ -694,7 +695,7 @@ class Workflow(object):
             self._threadpool.submit(self.bag.add_payload,
                                     *(unicode(p.raw_image)
                                       for p in captured_pages))
-        self._save_pages()
+        on_modified.send(self, changes={'pages': self.pages})
         on_capture_succeeded.send(self, pages=captured_pages, retake=retake)
 
     def finish_capture(self):
@@ -705,6 +706,9 @@ class Workflow(object):
             for dev in self.devices:
                 futures.append(executor.submit(dev.finish_capture))
         util.check_futures_exceptions(futures)
+        # NOTE: For performance reason, we only save the pages here, since
+        # the ongoing hashing slows things down considerably during capture
+        self._save_pages()
         self._run_hook('finish_capture', self.devices, self.path)
         self._run_hook('stop_trigger_loop')
         self._update_status(step=None, prepared=False)
