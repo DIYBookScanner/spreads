@@ -222,8 +222,7 @@ def run_server(config):
         discovery_listener.start()
 
     try:
-        import waitress
-        waitress.serve(app, port=listening_port)
+        app.run(host='0.0.0.0', port=listening_port, debug=False)
     finally:
         consumer.shutdown()
         ws_server.stop()
@@ -232,7 +231,6 @@ def run_server(config):
 
 
 def run_windows_service(config):
-    import waitress
     import webbrowser
     from winservice import SysTrayIcon
     ws_server = WebSocketServer(port=5001)
@@ -259,8 +257,9 @@ def run_windows_service(config):
         discovery_listener = DiscoveryListener(listening_port)
         discovery_listener.start()
 
-    server_thread = Thread(target=waitress.serve, args=(app,),
-                           kwargs=dict(port=listening_port, threads=16))
+    server_thread = Thread(target=app.run,
+                           kwargs=dict(host='0.0.0.0', port=listening_port,
+                                       debug=False))
     server_thread.daemon = True
     server_thread.start()
 

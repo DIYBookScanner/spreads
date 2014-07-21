@@ -128,7 +128,6 @@ setup(
             "Flask >= 0.10.1",
             "jpegtran-cffi >= 0.4",
             "requests >= 2.2.0",
-            "waitress >= 0.8.8",
             "zipstream >= 1.0.2",
             "tornado >= 3.1",
             "Wand >= 0.3.5",
