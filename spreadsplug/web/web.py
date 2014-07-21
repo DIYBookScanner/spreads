@@ -8,6 +8,8 @@ import logging.handlers
 import os
 import StringIO
 import subprocess
+import sys
+import traceback
 import time
 import zipfile
 from collections import deque
@@ -67,7 +69,20 @@ class ApiException(Exception):
 @app.errorhandler(ApiException)
 def handle_apiexception(error):
     response = jsonify(error.to_dict())
-    response.status_code = error.status_code
+    response.status_code = error.status_code or 500
+    return response
+
+
+@app.errorhandler(Exception)
+def handle_general_exception(error):
+    logger.exception(error)
+    exc_type, exc, trace = sys.exc_info()
+    response = jsonify({
+        'message': error.message,
+        'type': exc_type.__name__ if exc_type is not None else None,
+        'traceback': traceback.format_tb(trace)
+    })
+    response.status_code = 500
     return response
 
 

@@ -41,9 +41,10 @@
     submit: function(callback) {
       console.log("Submitting workflow " + this.id + " for postprocessing");
       jQuery.post('/api/workflow/' + this.id + '/submit')
-        .fail(function() {
+        .fail(function(xhr) {
           console.error("Could not submit workflow " + this.id);
-        }).complete(callback);
+          this.emitError(xhr.responseText);
+        }.bind(this)).complete(callback);
     },
     /**
      * Initiates the transfer to a removable storage device.
@@ -54,9 +55,10 @@
     transfer: function(callback) {
       console.log("Initiating transfer for workflow " + this.id + "");
       jQuery.post('/api/workflow/' + this.id + '/transfer')
-        .fail(function() {
+        .fail(function(xhr) {
           console.error("Could not transfer workflow " + this.id);
-        }).complete(callback);
+          this.emitError(xhr.responseText);
+        }.bind(this)).complete(callback);
     },
     /**
      * Prepares devices for capture.
@@ -69,9 +71,10 @@
         '/api/workflow/' + this.id + '/prepare_capture' + (reset ? '?reset=true' : ''),
         function() {
           console.log("Preparation successful");
-        }.bind(this)).fail(function() {
+        }.bind(this)).fail(function(xhr) {
           console.error("Capture preparation failed");
-        }).complete(callback);
+          this.emitError(xhr.responseText);
+        }.bind(this)).complete(callback);
     },
     /**
      * Triggers a capture.
@@ -94,9 +97,10 @@
             this.trigger('change');
             this.trigger('change:pages', this.get('pages'));
           }
-        }.bind(this)).fail(function() {
+        }.bind(this)).fail(function(xhr) {
           console.error("Capture failed");
-        }).complete(callback);
+          this.emitError(xhr.responseText);
+        }.bind(this)).complete(callback);
     },
     /**
      * Indicate the end of the capture process to the server.
@@ -107,23 +111,26 @@
     finishCapture: function(callback) {
       jQuery.post('/api/workflow/' + this.id + "/finish_capture", function() {
         console.log("Capture successfully finished");
-      }).fail(function() {
+      }).fail(function(xhr) {
         console.error("Capture could not be finished.");
-      }).complete(callback);
+        this.emitError(xhr.responseText);
+      }.bind(this)).complete(callback);
     },
     startPostprocessing: function(callback) {
       jQuery.post('/api/workflow/' + this.id + '/process', function() {
         console.log("Postprocessing started.");
-      }).fail(function() {
+      }).fail(function(xhr) {
         console.log("Failed to start postprocessing.");
-      }).complete(callback);
+        this.emitError(xhr.responseText);
+      }.bind(this)).complete(callback);
     },
     startOutputting: function(callback) {
       jQuery.post('/api/workflow/' + this.id + '/output', function() {
         console.log("Output generation started.");
-      }).fail(function() {
+      }).fail(function(xhr) {
         console.log("Failed to start output generation.");
-      }).complete(callback);
+        this.emitError(xhr.responseText);
+      }.bind(this)).complete(callback);
     },
     addPages: function(pages) {
       var modified = false;
@@ -143,9 +150,10 @@
         type: 'DELETE',
         contentType: 'application/json',
         data: JSON.stringify({pages: pages})
-      }).fail(function() {
+      }).fail(function(xhr) {
+        this.emitError(xhr.responseText);
         console.error("Could not remove pages from workflow.");
-      }).done(function(data) {
+      }.bind(this)).done(function(data) {
         var oldPages = _.clone(this.get('pages')),
             newPages = _.difference(oldPages, data.pages);
         this.set({"pages": newPages});
@@ -157,9 +165,19 @@
           parts.push(encodeURIComponent(p) + "=" + encodeURIComponent(cropParams[p]));
 
       jQuery.post('/api/workflow/' + this.id + '/page/' + pageNum + '/raw/crop?' + parts.join("&"))
-        .fail(function() {
+        .fail(function(xhr) {
           console.error("Could not crop page " + pageNum);
-        });
+          this.emitError(xhr.responseText);
+        }.bind(this));
+    },
+    emitError: function(error) {
+      var obj;
+      try {
+        obj = jQuery.parseJSON(error);
+      } catch (e) {
+        obj = {message: error}
+      }
+      window.router.events.trigger('apierror', obj);
     }
   });
 

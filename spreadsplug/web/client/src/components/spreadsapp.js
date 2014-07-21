@@ -48,7 +48,6 @@
       window.router.events.on('logrecord', function(record) {
         if (_.contains(["WARNING", "ERROR"], record.level)) {
           this.setState({
-            messages: this.state.messages.concat([record]).slice(-3),
             numUnreadErrors: this.state.numUnreadErrors + 1
           });
         }
@@ -56,6 +55,9 @@
       window.router.on('route:displayLog', function() {
         this.setState({messages: [], numUnreadErrors: 0});
       }, this);
+      window.router.events.on('apierror', function(eror) {
+        messages: this.state.messages.concat([error.message]).slice(-3)
+      });
     },
     componentWillUnmount: function() {
       window.router.events.off('logrecord', null, this);
