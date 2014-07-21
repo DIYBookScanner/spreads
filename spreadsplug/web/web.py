@@ -27,8 +27,7 @@ from spreads.workflow import Workflow, ValidationError
 
 from spreadsplug.web import app
 from discovery import discover_servers
-from util import (WorkflowConverter, get_thumbnail, scale_image, convert_image,
-                  crop_image)
+from util import WorkflowConverter, get_thumbnail, scale_image, convert_image
 
 if is_os('windows'):
     from util import find_stick_win as find_stick
@@ -617,7 +616,7 @@ def crop_workflow_image(workflow, seq_num, img_type):
     top = int(request.args.get('top', 0))
     width = int(request.args.get('width', 0)) or None
     height = int(request.args.get('height', 0)) or None
-    crop_image(unicode(page.raw_image), left, top, width, height)
+    workflow.crop_page(page, left, top, width, height, async=True)
     cache_key = "{0}.{1}.{2}".format(workflow.id, 'raw', page.raw_image.name)
     cache.delete(cache_key)
     return 'OK'

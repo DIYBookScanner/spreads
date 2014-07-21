@@ -41,6 +41,11 @@ import spreads.util as util
 from spreads.config import Configuration
 from spreads.metadata import Metadata
 
+try:
+    from jpegtran import JPEGImage
+    HAS_JPEGTRAN = True
+except ImportError:
+    HAS_JPEGTRAN = False
 
 signals = Namespace()
 on_created = signals.signal('workflow:created', doc="""\
@@ -366,6 +371,12 @@ class Workflow(object):
                                        "devices!")
         return self._devices
 
+    @property
+    def _threadpool(self):
+        if self._pool_executor is None:
+            self._pool_executor = ThreadPoolExecutor(max_workers=1)
+        return self._pool_executor
+
     def _fix_page_numbers(self, page_to_remove):
         def get_num_type(num_str):
             if page_to_remove.page_label.isdigit():
@@ -420,6 +431,33 @@ class Workflow(object):
             self.pages.remove(page)
         self._save_pages()
         self.bag.update_payload(fast=True)
+
+    def crop_page(self, page, left, top, width=None, height=None, async=False):
+        def do_crop(fname, left, top, width, height):
+            if HAS_JPEGTRAN:
+                img = JPEGImage(fname)
+            else:
+                img = Image(filename=fname)
+            width = (img.width - left) if width is None else width
+            height = (img.height - top) if height is None else height
+            if width > img.width:
+                width = img.width
+            if height > img.height:
+                width = img.height
+            self._logger.debug("Cropping \"{0}\" to x:{1} y:{2} w:{3} h:{4}"
+                               .format(fname, left, top, width, height))
+            cropped = img.crop(left, top, width=width, height=height)
+            if HAS_JPEGTRAN:
+                cropped.save(fname)
+            else:
+                img.save(filename=fname)
+
+        fname = unicode(page.raw_image)
+        if async:
+            return self._threadpool.submit(do_crop, fname, left, top, width,
+                                           height)
+        else:
+            do_crop(fname, left, top, width, height)
 
     @property
     def out_files(self):
@@ -594,8 +632,6 @@ class Workflow(object):
     def prepare_capture(self):
         self._logger.info("Preparing capture.")
         self._update_status(step='capture')
-        self._pool_executor = ThreadPoolExecutor(
-            max_workers=multiprocessing.cpu_count())
         if any(dev.target_page is None for dev in self.devices):
             raise util.DeviceException(
                 "Target page for at least one of the devicescould not be"
@@ -655,16 +691,14 @@ class Workflow(object):
                 self.pages.append(page)
             self._run_hook('capture', self.devices, self.path)
             # Queue new images for hashing
-            self._pool_executor.submit(
-                self.bag.add_payload,
-                *(unicode(p.raw_image) for p in captured_pages))
+            self._threadpool.submit(self.bag.add_payload,
+                                    *(unicode(p.raw_image)
+                                      for p in captured_pages))
         self._save_pages()
         on_capture_succeeded.send(self, pages=captured_pages, retake=retake)
 
     def finish_capture(self):
-        if self._pool_executor:
-            self._pool_executor.shutdown(wait=True)
-            self._pool_executor = None
+        self._threadpool.shutdown(wait=True)
         with ThreadPoolExecutor(len(self.devices)) as executor:
             futures = []
             self._logger.debug("Sending finish_capture command to devices")
