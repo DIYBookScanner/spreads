@@ -209,7 +209,6 @@
       return {
         /** Display deletion confirmation modal? */
         deleteModal: false,
-        downloadWaiting: false,
         downloadInProgress: false,
         transferWaiting: false,
         transferProgress: 0,
@@ -295,12 +294,8 @@
     },
     handleDownload: function() {
       this.setState({
-        downloadWaiting: true,
         downloadInProgress: true
       });
-      window.router.events.on('download:prepared', function() {
-        this.setState({downloadWaiting: false});
-      }, this);
       window.router.events.on('download:finished', function() {
         this.setState({downloadInProgress: false});
       }, this);
@@ -330,10 +325,6 @@
       return (
         <div className="workflow-item">
           <row>
-            {/* Display waiting for download overlay? */}
-            {this.state.downloadWaiting &&
-              <LoadingOverlay message="Preparing download..."/>
-            }
             {/* Display deletion confirmation modal? */}
             {this.state.deleteModal &&
               <confirmModal
