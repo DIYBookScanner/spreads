@@ -176,11 +176,14 @@ class WebApplication(object):
         if not os.path.exists(project_dir):
             os.mkdir(project_dir)
 
-        app.config['DEBUG'] = self.config['debug'].get()
+        self._debug = self.config['debug'].get(bool)
+        app.config['debug'] = self._debug
         app.config['mode'] = mode
         app.config['base_path'] = project_dir
         app.config['default_config'] = config
         app.config['standalone'] = self.config['standalone_device'].get()
+        if not self._debug:
+            app.error_handler_spec[None][404] = web.page_not_found
 
     def setup_task_queue(self):
         # Initialize huey task queue
@@ -224,14 +227,19 @@ class WebApplication(object):
             signal.connect(get_signal_callback_websockets(signal), weak=False)
 
     def setup_tornado(self):
-        container = WSGIContainer(app)
+        if self._debug:
+            logger.info("Starting server in debugging mode")
+            from werkzeug.debug import DebuggedApplication
+            container = WSGIContainer(DebuggedApplication(app, evalex=True))
+        else:
+            container = WSGIContainer(app)
         self.application = Application([
             (r"/ws", handlers.WebSocketHandler),
             (r"/api/workflow/([0-9a-z-]+)/download/(.*)",
              handlers.DownloadHandler,
              dict(base_path=app.config['base_path'])),
             (r".*", FallbackHandler, dict(fallback=container))
-        ])
+        ], debug=self._debug)
 
     def send_event(self, event):
         data = json.dumps(event, cls=util.CustomJSONEncoder)

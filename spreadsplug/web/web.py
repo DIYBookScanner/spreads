@@ -68,7 +68,6 @@ def handle_apiexception(error):
     return response
 
 
-@app.errorhandler(Exception)
 def handle_general_exception(error):
     logger.exception(error)
     exc_type, exc, trace = sys.exc_info()
@@ -97,7 +96,7 @@ def index():
         cache.set('plugin-templates', templates)
     return render_template(
         "index.html",
-        debug=app.config['DEBUG'],
+        debug=app.config['debug'],
         default_config=default_config,
         plugins=list_plugins(),
         plugin_templates=templates,
@@ -406,7 +405,7 @@ def poll_for_events():
     last_polled = request.cookies.get('last_polled', start_time, float)
     # Only record debug logging events when the app is running in
     # debug mode
-    if app.config['DEBUG']:
+    if app.config['debug']:
         skip = lambda event: (
             event.signal.name == 'logrecord'
             and event.data['record'].levelno == logging.DEBUG)
