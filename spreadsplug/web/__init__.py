@@ -183,7 +183,7 @@ class WebApplication(object):
         app.config['default_config'] = config
         app.config['standalone'] = self.config['standalone_device'].get()
         if not self._debug:
-            app.error_handler_spec[None][404] = web.page_not_found
+            app.error_handler_spec[None][500] = web.handle_general_exception
 
     def setup_task_queue(self):
         # Initialize huey task queue
