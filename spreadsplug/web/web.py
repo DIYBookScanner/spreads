@@ -15,11 +15,10 @@ import zipfile
 from collections import deque
 from isbnlib import is_isbn10, is_isbn13
 
-import blinker
 import pkg_resources
 import requests
 from flask import (abort, json, jsonify, request, send_file, render_template,
-                   url_for, redirect, make_response, Response)
+                   redirect, make_response, Response)
 from werkzeug.contrib.cache import SimpleCache
 
 import spreads.metadata
@@ -37,10 +36,6 @@ else:
     from util import find_stick
 
 logger = logging.getLogger('spreadsplug.web')
-
-signals = blinker.Namespace()
-on_download_prepared = signals.signal('download:prepared')
-on_download_finished = signals.signal('download:finished')
 
 # Event Queue for polling endpoints
 event_queue = deque(maxlen=2048)
@@ -433,37 +428,14 @@ def poll_for_events():
     abort(408)  # Request Timeout
 
 
-@app.route('/api/workflow/<workflow:workflow>/download', methods=['GET'],
-           defaults={'fname': None})
-@app.route('/api/workflow/<workflow:workflow>/download/<fname>',
-           methods=['GET'])
-def download_workflow(workflow, fname):
-    """ Return a ZIP archive of the current workflow.
-
-    Included all files from the workflow folder as well as the workflow
-    configuration as a YAML dump.
+@app.route('/api/workflow/<workflow:workflow>/download', methods=['GET'])
+def download_workflow(workflow):
+    """ Redirect to download endpoint (see __init__.py) with proper filename
+    set.
     """
-    # Set proper file name for zip file
-    if fname is None:
-        return redirect(url_for('download_workflow', workflow=workflow,
-                        fname="{0}.zip".format(workflow.path.stem)))
-
-    zstream = workflow.bag.package_as_zipstream(compression=None)
-    zstream_copy = copy.deepcopy(zstream)
-    zipsize = sum(len(data) for data in zstream_copy)
-    on_download_prepared.send(workflow)
-
-    def zstream_wrapper():
-        """ Wrapper around our zstream so we can emit a signal when all data
-        has been streamed to the client.
-        """
-        for data in zstream:
-            yield data
-        on_download_finished.send()
-
-    response = Response(zstream_wrapper(), mimetype='application/zip')
-    response.headers['Content-length'] = int(zipsize)
-    return response
+    fname = "{0}.zip".format(workflow.path.stem)
+    return redirect('/api/workflow/{0}/download/{1}'.format(
+                    workflow.id, fname))
 
 
 @app.route('/api/workflow/<workflow:workflow>/transfer', methods=['POST'])

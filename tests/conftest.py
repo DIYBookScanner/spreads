@@ -11,7 +11,7 @@ import spreads.workflow as workflow
 
 import spreads.plugin as plugin
 import spreads.util as util
-import spreadsplug.web.web as web
+import spreadsplug.web.handlers as handlers
 from spreads.config import Configuration, OptionTemplate
 
 logging.getLogger().level = logging.DEBUG
@@ -197,6 +197,6 @@ def mock_findinpath():
 def fix_blinker():
     yield
     signals = chain(*(x.signals.values()
-                      for x in (workflow, util.EventHandler, web)))
+                      for x in (workflow, util.EventHandler, handlers)))
     for signal in signals:
         signal._clear_state()

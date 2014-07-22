@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import logging
 import logging.handlers
 import os
@@ -25,9 +26,12 @@ from threading import Thread
 from spreads.vendor.huey import SqliteHuey
 from spreads.vendor.huey.consumer import Consumer
 from flask import Flask
+from tornado.wsgi import WSGIContainer
+from tornado.ioloop import IOLoop
+from tornado.web import FallbackHandler, Application
 
+import spreads.workflow
 import spreads.plugin as plugin
-import spreads.workflow as workflow
 from spreads.util import is_os
 from spreads.config import OptionTemplate
 from spreads.main import add_argument_from_template
@@ -37,10 +41,9 @@ app = Flask('spreadsplug.web', static_url_path='/static',
 task_queue = None
 import web
 import util
+import handlers
 app.json_encoder = util.CustomJSONEncoder
-from websockets import WebSocketServer
 from discovery import DiscoveryListener
-
 
 logger = logging.getLogger('spreadsplug.web')
 
@@ -79,13 +82,13 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
     def add_command_parser(cls, rootparser, config):
         cmdparser = rootparser.add_parser(
             'web', help="Start the web interface")
-        cmdparser.set_defaults(subcommand=run_server)
+        cmdparser.set_defaults(subcommand=cls.run)
 
         if is_os('windows'):
             wincmdparser = rootparser.add_parser(
                 'web-service', help="Start the web interface as a service."
             )
-            wincmdparser.set_defaults(subcommand=run_windows_service)
+            wincmdparser.set_defaults(subcommand=cls.run_windows_service)
 
         for key, option in cls.configuration_template().iteritems():
             try:
@@ -129,148 +132,152 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
                 selectable=False),
         }
 
+    @staticmethod
+    def run(config):
+        app = WebApplication(config)
+        app.run_server()
 
-def setup_app(config):
-    mode = config['web']['mode'].get()
-    logger.debug("Starting scanning station server in \"{0}\" mode"
-                 .format(mode))
-    project_dir = os.path.expanduser(config['web']['project_dir'].get())
-    if not os.path.exists(project_dir):
-        os.mkdir(project_dir)
+    @staticmethod
+    def run_windows_service(config):
+        import webbrowser
+        from winservice import SysTrayIcon
 
-    app.config['DEBUG'] = config['web']['debug'].get()
-    app.config['mode'] = mode
-    app.config['base_path'] = project_dir
-    app.config['default_config'] = config
-    app.config['standalone'] = config['web']['standalone_device'].get()
+        app = WebApplication(config)
+        server_thread = Thread(target=app.run_server)
+        server_thread.start()
 
-    if mode == 'scanner':
-        app.config['postproc_server'] = (
-            config['web']['postprocessing_server'].get())
+        def on_quit(systray):
+            IOLoop.instance().stop()
+            server_thread.join()
 
+        listening_port = config['web']['port'].get(int)
+        open_browser = (
+            lambda x: webbrowser.open_new_tab("http://127.0.0.1:{0}"
+                                              .format(listening_port)))
+        menu_options = (('Open in browser', None, open_browser),)
 
-def setup_task_queue(config):
-    # Initialize huey task queue
-    global task_queue
-    db_location = config.cfg_path.parent / 'queue.db'
-    task_queue = SqliteHuey(location=unicode(db_location))
-
-
-def setup_logging(config):
-    # Add in-memory log handler
-    memoryhandler = logging.handlers.BufferingHandler(1024*10)
-    memoryhandler.setLevel(logging.DEBUG)
-    logger.root.addHandler(memoryhandler)
-
-    logging.getLogger('huey.consumer').setLevel(logging.INFO)
-    logging.getLogger('huey.consumer.ConsumerThread').setLevel(logging.INFO)
-    logging.getLogger('bagit').setLevel(logging.ERROR)
-    logging.getLogger('isbnlib.dev.webservice').setLevel(logging.ERROR)
+        SysTrayIcon(
+            icon=os.path.join(os.path.dirname(sys.argv[0]), 'spreads.ico'),
+            hover_text="Spreads Web Service",
+            menu_options=menu_options,
+            on_quit=on_quit,
+            default_menu_index=1,
+            on_click=open_browser)
 
 
-def setup_signals(ws_server=None):
-    def get_signal_callback_http(signal):
-        def signal_callback(sender, **kwargs):
-            web.event_queue.append(util.Event(signal, sender, kwargs))
-        return signal_callback
+class WebApplication(object):
+    def __init__(self, config):
+        self.global_config = config
+        self.config = config['web']
+        mode = self.config['mode'].get()
+        logger.debug("Starting scanning station server in \"{0}\" mode"
+                     .format(mode))
+        project_dir = os.path.expanduser(self.config['project_dir'].get())
+        if not os.path.exists(project_dir):
+            os.mkdir(project_dir)
 
-    def get_signal_callback_websockets(signal):
-        def signal_callback(sender, **kwargs):
-            ws_server.send_event(util.Event(signal, sender, kwargs))
-        return signal_callback
+        app.config['DEBUG'] = self.config['debug'].get()
+        app.config['mode'] = mode
+        app.config['base_path'] = project_dir
+        app.config['default_config'] = config
+        app.config['standalone'] = self.config['standalone_device'].get()
 
-    # Register event handlers
-    import tasks
-    signals = chain(*(x.signals.values()
-                      for x in (workflow, util.EventHandler, web, tasks)))
+    def setup_task_queue(self):
+        # Initialize huey task queue
+        global task_queue
+        db_location = self.global_config.cfg_path.parent / 'queue.db'
+        task_queue = SqliteHuey(location=unicode(db_location))
+        self.consumer = Consumer(task_queue)
 
-    for signal in signals:
-        signal.connect(get_signal_callback_http(signal), weak=False)
-        if ws_server:
+    def setup_logging(self):
+        # Add in-memory log handler
+        memoryhandler = logging.handlers.BufferingHandler(1024*10)
+        memoryhandler.setLevel(logging.DEBUG)
+        logger.root.addHandler(memoryhandler)
+
+        # Silence some rather annoying loggers
+        logging.getLogger('huey.consumer').setLevel(logging.INFO)
+        logging.getLogger('huey.consumer.ConsumerThread').setLevel(
+            logging.INFO)
+        logging.getLogger('bagit').setLevel(logging.ERROR)
+        logging.getLogger('isbnlib.dev.webservice').setLevel(logging.ERROR)
+
+    def setup_signals(self):
+        def get_signal_callback_http(signal):
+            def signal_callback(sender, **kwargs):
+                web.event_queue.append(util.Event(signal, sender, kwargs))
+            return signal_callback
+
+        def get_signal_callback_websockets(signal):
+            def signal_callback(sender, **kwargs):
+                self.send_event(util.Event(signal, sender, kwargs))
+            return signal_callback
+
+        # Register event handlers
+        import tasks
+        signals_ = chain(*(x.signals.values()
+                           for x in (spreads.workflow, util.EventHandler,
+                                     tasks, handlers)))
+
+        for signal in signals_:
+            signal.connect(get_signal_callback_http(signal), weak=False)
             signal.connect(get_signal_callback_websockets(signal), weak=False)
 
+    def setup_tornado(self):
+        container = WSGIContainer(app)
+        self.application = Application([
+            (r"/ws", handlers.WebSocketHandler),
+            (r"/api/workflow/([0-9a-z-]+)/download/(.*)",
+             handlers.DownloadHandler,
+             dict(base_path=app.config['base_path'])),
+            (r".*", FallbackHandler, dict(fallback=container))
+        ])
 
-def run_server(config):
-    listening_port = config['web']['port'].get(int)
-    ws_server = WebSocketServer(port=listening_port+1)
-    setup_app(config)
-    setup_logging(config)
-    setup_task_queue(config)
-    setup_signals(ws_server)
+    def send_event(self, event):
+        data = json.dumps(event, cls=util.CustomJSONEncoder)
+        for sock in handlers.WebSocketHandler.clients:
+            # NOTE: The lock is neccessary since Tornado is not thread-safe.
+            #       This should be obvious to anyone only vaguely familiar with
+            #       it, but it cost me quite a bit of debugging time to find
+            #       out :-)
+            with handlers.WebSocketHandler.lock:
+                sock.write_message(data)
 
-    consumer = Consumer(task_queue)
+    def run_server(self):
+        self.setup_logging()
+        self.setup_task_queue()
+        self.setup_signals()
+        self.setup_tornado()
 
-    ip_address = get_ip_address()
-    if (app.config['standalone'] and ip_address
-            and config['driver'].get() == 'chdkcamera'):
-        # Display the address of the web interface on the camera displays
+        listening_port = self.config['port'].get(int)
+
+        ip_address = get_ip_address()
+        if (app.config['standalone'] and ip_address
+                and self.global_config['driver'].get() == 'chdkcamera'):
+            # Display the address of the web interface on the camera displays
+            try:
+                for cam in plugin.get_devices(self.global_config):
+                    cam.show_textbox(
+                        "\n    You can now access the web interface at:"
+                        "\n\n\n         http://{0}:{1}"
+                        .format(ip_address, listening_port))
+            except plugin.DeviceException:
+                logger.warn("No devices could be found at startup.")
+
+        # Start task consumer
+        self.consumer.start()
+
+        # Start discovery listener
+        if app.config['mode'] in ('processor', 'full'):
+            discovery_listener = DiscoveryListener(listening_port)
+            discovery_listener.start()
+
+        # Spin up WSGI server
+        self.application.listen(listening_port)
+
         try:
-            for cam in plugin.get_devices(config):
-                cam.show_textbox(
-                    "\n    You can now access the web interface at:"
-                    "\n\n\n         http://{0}:{1}"
-                    .format(ip_address, listening_port))
-        except plugin.DeviceException:
-            logger.warn("No devices could be found at startup.")
-
-    # Start task consumer
-    consumer.start()
-    # Start websocket server
-    ws_server.start()
-    if app.config['mode'] in ('processor', 'full'):
-        discovery_listener = DiscoveryListener(listening_port)
-        discovery_listener.start()
-
-    try:
-        app.run(host='0.0.0.0', port=listening_port, debug=False)
-    finally:
-        consumer.shutdown()
-        ws_server.stop()
-        if app.config['mode'] in ('processor', 'full'):
-            discovery_listener.stop()
-
-
-def run_windows_service(config):
-    import webbrowser
-    from winservice import SysTrayIcon
-    ws_server = WebSocketServer(port=5001)
-    setup_app(config)
-    setup_logging(config)
-    setup_task_queue(config)
-    setup_signals(ws_server)
-
-    consumer = Consumer(task_queue)
-
-    def on_quit(systray):
-        consumer.shutdown()
-        ws_server.stop()
-        if app.config['mode'] in ('processor', 'full'):
-            discovery_listener.stop()
-
-    # Start task consumer
-    consumer.start()
-    # Start websocket server
-    ws_server.start()
-
-    listening_port = config['web']['port'].get(int)
-    if app.config['mode'] in ('processor', 'full'):
-        discovery_listener = DiscoveryListener(listening_port)
-        discovery_listener.start()
-
-    server_thread = Thread(target=app.run,
-                           kwargs=dict(host='0.0.0.0', port=listening_port,
-                                       debug=False))
-    server_thread.daemon = True
-    server_thread.start()
-
-    open_browser = lambda x: webbrowser.open_new_tab("http://127.0.0.1:{0}"
-                                                     .format(listening_port))
-    menu_options = (('Open in browser', None, open_browser),)
-
-    SysTrayIcon(
-        icon=os.path.join(os.path.dirname(sys.argv[0]), 'spreads.ico'),
-        hover_text="Spreads Web Service",
-        menu_options=menu_options,
-        on_quit=on_quit,
-        default_menu_index=1,
-        on_click=open_browser)
+            IOLoop.instance().start()
+        finally:
+            self.consumer.shutdown()
+            if app.config['mode'] in ('processor', 'full'):
+                discovery_listener.stop()

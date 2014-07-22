@@ -2,9 +2,7 @@ import json
 import os
 import random
 import re
-import StringIO
 import time
-import zipfile
 
 import jpegtran
 import mock
@@ -17,7 +15,7 @@ from conftest import TestPluginOutput, TestPluginProcess, TestPluginProcessB
 
 @pytest.yield_fixture
 def app(config, tmpdir):
-    from spreadsplug.web import setup_app, setup_logging, setup_signals, app
+    from spreadsplug.web import WebApplication, app
     from spreadsplug.web.web import event_queue
     config.load_defaults(overwrite=False)
 
@@ -25,11 +23,14 @@ def app(config, tmpdir):
     config['web']['project_dir'] = unicode(tmpdir.join('workflows'))
     config['web']['debug'] = False
     config['web']['standalone_device'] = True
-    setup_app(config)
-    setup_logging(config)
+
+    webapp = WebApplication(config)
+    webapp.setup_logging()
     with mock.patch('spreadsplug.web.task_queue') as mock_tq:
         mock_tq.task.return_value = lambda x: x
-        setup_signals()
+        webapp.setup_signals()
+    webapp.setup_tornado()
+
     app.config['TESTING'] = True
     event_queue.clear()
     yield app
@@ -174,15 +175,6 @@ def test_poll(client):
     data = json.loads(rv.data)
     assert data == [{'name': 'workflow:removed',
                      'data': {'id': 1}}]
-
-
-def test_download_workflow(client):
-    wfid = create_workflow(client, 10)
-    resp = client.get('/api/workflow/{0}/download'.format(wfid),
-                      follow_redirects=True)
-    zfile = zipfile.ZipFile(StringIO.StringIO(resp.data))
-    assert len([x for x in zfile.namelist()
-                if '/data/raw/' in x and x.endswith('jpg')]) == 20
 
 
 def test_transfer_workflow(client, mock_dbus, tmpdir):
