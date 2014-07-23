@@ -1,8 +1,8 @@
 .. image:: https://raw.github.com/jbaiter/spreads/master/doc/_static/logo.png
 
-.. image:: https://secure.travis-ci.org/jbaiter/spreads.png
-   :target: http://travis-ci.org/jbaiter/spreads
-   :alt: Build status
+.. image:: https://travis-ci.org/DIYBookScanner/spreads.svg?branch=master
+    :target: https://travis-ci.org/DIYBookScanner/spreads
+    :alt: Build status
 
 
 *spreads* is a software suite for the digitization of printed material. Its
