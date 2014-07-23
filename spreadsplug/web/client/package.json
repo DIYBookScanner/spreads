@@ -15,7 +15,7 @@
     "url-loader": "~0.5.5",
     "jest-cli": "~0.1.2",
     "react-tools": "~0.11.0",
-    "foundation": "https://github.com/zurb/foundation/archive/v5.3.0.tar.gz"
+    "zurb-foundation": "https://github.com/zurb/foundation/archive/v5.3.0.tar.gz"
   },
   "dependencies": {
     "envify": "~1.2.1",
