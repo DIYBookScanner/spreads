@@ -54,15 +54,13 @@ class Event(object):
     :param sender:      The object that emitted the signal or None
     :param dict data:   Parameters the signal was emitted with
     """
-    __slots__ = ['signal', 'sender', 'data', 'emitted']
+    __slots__ = ['signal', 'sender', 'data', 'id']
 
-    def __init__(self, signal, sender, data, emitted=None):
+    def __init__(self, signal, sender, data, id=None):
         self.signal = signal
         self.sender = sender
         self.data = data
-        if emitted is None:
-            emitted = time.time()
-        self.emitted = emitted
+        self.id = id
 
 
 class CustomJSONEncoder(JSONEncoder):
@@ -113,11 +111,11 @@ class CustomJSONEncoder(JSONEncoder):
         name = event.signal.name
         data = event.data
         if event.signal in workflow_signals.values():
-            if 'id' not in data:
-                data['id'] = event.sender.id
+            if 'senderId' not in data:
+                data['senderId'] = event.sender.id
         elif event.signal is EventHandler.on_log_emit:
             data = data['record']
-        return {'name': name, 'data': data}
+        return {'name': name, 'data': data, 'id': event.id}
 
 
 class WorkflowConverter(BaseConverter):

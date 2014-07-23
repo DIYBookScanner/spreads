@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import itertools
+import json
+import logging
 import os
 import uuid
 from threading import Lock
@@ -23,10 +26,13 @@ import blinker
 from tornado.web import RequestHandler, asynchronous
 from tornado.websocket import WebSocketHandler as TornadoWebSocketHandler
 
+import util
 from spreads.workflow import Workflow
 
 signals = blinker.Namespace()
 on_download_finished = signals.signal('download:finished')
+
+event_buffer = None  # NOTE: Will be set after we defined EventHandler
 
 
 class WebSocketHandler(TornadoWebSocketHandler):
@@ -42,6 +48,64 @@ class WebSocketHandler(TornadoWebSocketHandler):
     def on_close(self):
         if self in self.clients:
             self.clients.remove(self)
+
+
+class EventBuffer(object):
+    def __init__(self):
+        self.waiters = set()
+        self.cache = []
+        self.cache_size = 200
+        self.counter = itertools.count()
+        self.count_lock = Lock()
+
+    def wait_for_events(self, callback, cursor=None):
+        if cursor:
+            cursor = int(cursor)
+            new_count = 0
+            for event in reversed(self.cache):
+                if event.id == cursor:
+                    break
+                new_count += 1
+            if new_count:
+                callback(self.cache[-new_count:])
+                return
+        self.waiters.add(callback)
+
+    def cancel_wait(self, callback):
+        self.waiters.remove(callback)
+
+    def new_events(self, events):
+        for event in events:
+            with self.count_lock:
+                event.id = next(self.counter)
+        for callback in self.waiters:
+            try:
+                callback(events)
+            except:
+                logging.error("Error in waiter callback", exc_info=True)
+        self.waiters = set()
+        self.cache.extend(events)
+        if len(self.cache) > self.cache_size:
+            self.cache = self.cache[-self.cache_size:]
+# Global event buffer (previously defined at the top of the module)
+event_buffer = EventBuffer()
+
+
+class EventLongPollingHandler(RequestHandler):
+    @asynchronous
+    def post(self):
+        cursor = self.get_argument("cursor", None)
+        event_buffer.wait_for_events(self.on_new_events, cursor=cursor)
+
+    def on_new_events(self, events):
+        # Closed client connection
+        if self.request.connection.stream.closed():
+            return
+        self.finish(json.dumps(dict(events=events),
+                               cls=util.CustomJSONEncoder))
+
+    def on_connection_close(self):
+        event_buffer.cancel_wait(self.on_new_events)
 
 
 class DownloadHandler(RequestHandler):

@@ -21,9 +21,50 @@
   var Backbone = require('backbone'),
       _ = require('underscore'),
       jQuery = require('jquery'),
-      websocket, EventDispatcher;
+      websocket;
 
-  EventDispatcher = function() {
+  var LongPollingMixin = {
+    errorSleepTime: 500,
+    cursor: null,
+
+    poll: function() {
+        var args = {};
+        if (this.cursor) args.cursor = this.cursor;
+        jQuery.ajax({url: "/api/poll", type: "POST", dataType: "text",
+                data: jQuery.param(args), success: this.onSuccess.bind(this),
+                error: this.onError.bind(this)});
+    },
+
+    onSuccess: function(response) {
+        try {
+            this.newEvents(eval("(" + response + ")"));
+        } catch (e) {
+            this.onError();
+            return;
+        }
+        this.errorSleepTime = 500;
+        window.setTimeout(this.poll.bind(this), 0);
+    },
+
+    onError: function(response) {
+        this.errorSleepTime *= 2;
+        console.log("Poll error; sleeping for", this.errorSleepTime, "ms");
+        window.setTimeout(this.poll, this.errorSleepTime);
+    },
+
+    newEvents: function(response) {
+        if (!response.events) return;
+        this.cursor = response.cursor;
+        var events = response.events;
+        this.cursor = events[events.length - 1].id;
+        console.log(events.length, "new events, cursor:", this.cursor);
+        for (var i = 0; i < events.length; i++) {
+            this.emitEvent(events[i]);
+        }
+    }
+  }
+
+  var EventDispatcher = function() {
     if (window.MozWebSocket) {
       window.WebSocket = window.MozWebSocket;
     }
@@ -39,7 +80,7 @@
           console.warn("Could not open connection to WebSocket server " +
                         "at " + websocket.url + ", falling back to " +
                         "long polling.");
-          this.longPoll();
+          this.poll();
         }
       }.bind(this);
       websocket.onopen = function() {
@@ -51,34 +92,17 @@
     } else {
       // Use AJAX long-polling as a fallback when WebSockets are not supported
       // by the browser
-      this.longPoll();
+      this.poll();
     }
   };
 
-  _.extend(EventDispatcher.prototype, Backbone.Events, {
+  _.extend(EventDispatcher.prototype, Backbone.Events, LongPollingMixin, {
     emitEvent: function emitEvent(event) {
-      if (event.name !== 'logrecord' && window.config.web.debug) console.log(event.name, event.data);
+      if (event.name !== 'logrecord' && window.config.web.debug) {
+        console.log(event.name, event.data);
+      }
       this.trigger(event.name, event.data);
     },
-    longPoll: function longPoll() {
-      jQuery.ajax({
-        url: "/api/poll",
-        success: function(data){
-          _.each(data, this.emitEvent, this);
-        }.bind(this),
-        dataType: "json",
-        complete: function(xhr, status) {
-          if (_.contains(["timeout", "success"], status)) {
-            // Restart polling
-            this.longPoll();
-          } else {
-            // Back off for 30 seconds before polling again
-            _.delay(this.longPoll.bind(this), 30*1000);
-          }
-        }.bind(this),
-        timeout: 30*1000  // Cancel the request after 30 seconds
-      });
-    }
   });
 
   module.exports = EventDispatcher;

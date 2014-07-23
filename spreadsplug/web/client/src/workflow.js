@@ -204,19 +204,19 @@
         }
       }, this);
       eventDispatcher.on('workflow:capture-triggered', function(data) {
-        var workflow = this.get(data.id);
+        var workflow = this.get(data.senderId);
         if (workflow) {
           workflow.trigger('capture-triggered');
         }
       }, this);
       eventDispatcher.on('workflow:capture-succeeded', function(data) {
-        var workflow = this.get(data.id);
+        var workflow = this.get(data.senderId);
         if (workflow) {
           workflow.trigger('capture-succeeded', data);
         }
       }, this);
       eventDispatcher.on('workflow:modified', function(data) {
-        var workflow = this.get(data.id);
+        var workflow = this.get(data.senderId);
         var changes = data.changes;
         changes.last_modified = new Date().getTime() / 1000;
         if (workflow) {

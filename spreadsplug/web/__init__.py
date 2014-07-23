@@ -208,7 +208,15 @@ class WebApplication(object):
     def setup_signals(self):
         def get_signal_callback_http(signal):
             def signal_callback(sender, **kwargs):
-                web.event_queue.append(util.Event(signal, sender, kwargs))
+                # Skip debugging messages and tornado access logs to reduce
+                # the amount of data sent out and subsequently the latency
+                skip = (signal.name == 'logrecord' and
+                        (kwargs['record'].name == 'tornado.access' or
+                         kwargs['record'].levelname
+                         not in ('CRITICAL', 'ERROR', 'WARNING')))
+                if not skip:
+                    event = util.Event(signal, sender, kwargs)
+                    handlers.event_buffer.new_events([event])
             return signal_callback
 
         def get_signal_callback_websockets(signal):
@@ -238,6 +246,7 @@ class WebApplication(object):
             (r"/api/workflow/([0-9a-z-]+)/download/(.*)",
              handlers.DownloadHandler,
              dict(base_path=app.config['base_path'])),
+            (r"/api/poll", handlers.EventLongPollingHandler),
             (r".*", FallbackHandler, dict(fallback=container))
         ], debug=self._debug)
 

@@ -37,9 +37,6 @@ else:
 
 logger = logging.getLogger('spreadsplug.web')
 
-# Event Queue for polling endpoints
-event_queue = deque(maxlen=2048)
-
 # Simple dictionary-based cache for expensive calculations
 cache = SimpleCache()
 
@@ -367,64 +364,6 @@ def delete_workflow(workflow):
     """ Delete a single workflow from database and disk. """
     Workflow.remove(workflow)
     return jsonify({})
-
-
-@app.route('/api/events', methods=['GET'])
-def get_events():
-    """ Get a list of all events that were emitted on the server.
-
-    :param int count:   Number of events to return, default is all in the queue
-    :param float since: Only return events that were emitted after the
-                        (epoch) timestamp
-    """
-    count = request.args.get('count', None, int)
-    since = request.args.get('since', None, float)
-    events = None
-    if count:
-        events = tuple(itertools.islice(reversed(event_queue), count))[::-1]
-    elif since is not None:
-        events = tuple(event for event in event_queue
-                       if event.emitted > since)
-    else:
-        events = tuple(event_queue)
-    return make_response(
-        json.dumps(events),
-        200, {'Content-Type': 'application/json'})
-
-
-@app.route('/api/poll', methods=['GET'])
-def poll_for_events():
-    """ Wait for events to be emitted on the server.
-
-    If there is a `last_polled` field in the request cookie, it will return
-    all events that were emitted since that timestamp. This ensures that no
-    events will be missed in a long-polling scenario.
-    """
-    events = None
-    start_time = time.time()
-    last_polled = request.cookies.get('last_polled', start_time, float)
-    # Only record debug logging events when the app is running in
-    # debug mode
-    if app.config['debug']:
-        skip = lambda event: (
-            event.signal.name == 'logrecord'
-            and event.data['record'].levelno == logging.DEBUG)
-    else:
-        skip = lambda event: False
-    while time.time() - start_time < 35:
-        # NOTE: We need to iterate over a copy of the event queue, since
-        #       it might change its content while we iterate
-        events = tuple(event for event in copy.copy(event_queue)
-                       if event.emitted > last_polled and not skip(event))
-        if events:
-            resp = make_response(
-                json.dumps(events),
-                200, {'Content-Type': 'application/json'})
-            resp.set_cookie('last_polled', str(events[-1].emitted))
-            return resp
-        else:
-            time.sleep(.1)
-    abort(408)  # Request Timeout
 
 
 @app.route('/api/workflow/<workflow:workflow>/download', methods=['GET'])
