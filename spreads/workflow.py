@@ -64,7 +64,7 @@ Sent by a :class:`Workflow` when it was modified.
 on_removed = signals.signal('workflow:removed', doc="""\
 Sent by the removing code when a workflow was deleted.
 
-:keyword unicode id: the ID of the :class:`Workflow` that was removed
+:keyword unicode senderId: the ID of the :class:`Workflow` that was removed
 """)
 
 on_capture_triggered = signals.signal('workflow:capture-triggered', doc="""\
@@ -271,7 +271,7 @@ class Workflow(object):
                 " (active step: '{0}')".format(workflow.status['step']))
         shutil.rmtree(unicode(workflow.path))
         cls._cache[workflow.path.parent].remove(workflow)
-        on_removed.send(id=workflow.id)
+        on_removed.send(senderId=workflow.id)
 
     def __init__(self, path, config=None, metadata=None):
         self._logger = logging.getLogger('Workflow')

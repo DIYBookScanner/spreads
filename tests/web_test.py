@@ -16,7 +16,6 @@ from conftest import TestPluginOutput, TestPluginProcess, TestPluginProcessB
 @pytest.yield_fixture
 def app(config, tmpdir):
     from spreadsplug.web import WebApplication, app
-    from spreadsplug.web.web import event_queue
     config.load_defaults(overwrite=False)
 
     config['web']['mode'] = 'full'
@@ -32,7 +31,6 @@ def app(config, tmpdir):
     webapp.setup_tornado()
 
     app.config['TESTING'] = True
-    event_queue.clear()
     yield app
 
 
@@ -165,18 +163,6 @@ def test_delete_workflow(client):
     assert len(data) == 0
 
 
-def test_poll(client):
-    pool = ThreadPool(processes=1)
-    asyn_result = pool.apply_async(client.get, ('/api/poll', ))
-    time.sleep(.1)
-    workflow_signals['workflow:removed'].send(None, id=1)
-    rv = asyn_result.get()
-    assert rv.status_code == 200
-    data = json.loads(rv.data)
-    assert data == [{'name': 'workflow:removed',
-                     'data': {'id': 1}}]
-
-
 def test_transfer_workflow(client, mock_dbus, tmpdir):
     wfid = create_workflow(client, 10)
     with mock.patch('spreadsplug.web.task_queue') as mock_tq:
@@ -279,18 +265,6 @@ def test_start_processing(client):
     with mock.patch('spreadsplug.web.task_queue') as mock_tq:
         mock_tq.task.return_value = lambda x: x
         client.post('/api/workflow/{0}/process'.format(wfid))
-    time.sleep(.1)
-    update_events = [e['data']['changes']['status']
-                     for e in json.loads(client.get('/api/events').data)
-                     if (e['name'] == 'workflow:modified'
-                         and 'status' in e['data']['changes'])]
-    assert len(update_events) == 4
-    assert all(e['step'] == 'process' for e in update_events)
-    assert update_events[0]['step_progress'] is None
-    assert update_events[1]['step_progress'] == 0
-    assert update_events[2]['step_progress'] == 0.5
-    assert update_events[3]['step_progress'] == 1.0
-    # TODO: Verify generation was completed (files?)
 
 
 def test_start_outputting(client):
@@ -299,16 +273,6 @@ def test_start_outputting(client):
         mock_tq.task.return_value = lambda x: x
         client.post('/api/workflow/{0}/output'.format(wfid))
     time.sleep(.1)
-    update_events = [e['data']['changes']['status']
-                     for e in json.loads(client.get('/api/events').data)
-                     if (e['name'] == 'workflow:modified'
-                         and 'status' in e['data']['changes'])]
-    assert len(update_events) == 3
-    assert all(e['step'] == 'output' for e in update_events)
-    assert update_events[0]['step_progress'] is None
-    assert update_events[1]['step_progress'] == 0
-    assert update_events[2]['step_progress'] == 1.0
-    # TODO: Verify generation was completed (files?)
 
 
 def test_get_logs(client):
