@@ -242,7 +242,7 @@ class WebApplication(object):
         else:
             container = WSGIContainer(app)
         self.application = Application([
-            #(r"/ws", handlers.WebSocketHandler),
+            (r"/ws", handlers.WebSocketHandler),
             (r"/api/workflow/([0-9a-z-]+)/download/(.*)",
              handlers.DownloadHandler,
              dict(base_path=app.config['base_path'])),
