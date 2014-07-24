@@ -243,8 +243,11 @@ class WebApplication(object):
             container = WSGIContainer(app)
         self.application = Application([
             (r"/ws", handlers.WebSocketHandler),
-            (r"/api/workflow/([0-9a-z-]+)/download/(.*)",
-             handlers.DownloadHandler,
+            (r"/api/workflow/([0-9a-z-]+)/download/(.*)\.zip",
+             handlers.ZipDownloadHandler,
+             dict(base_path=app.config['base_path'])),
+            (r"/api/workflow/([0-9a-z-]+)/download/(.*).\.tar",
+             handlers.TarDownloadHandler,
              dict(base_path=app.config['base_path'])),
             (r"/api/poll", handlers.EventLongPollingHandler),
             (r".*", FallbackHandler, dict(fallback=container))

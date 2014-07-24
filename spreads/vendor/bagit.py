@@ -253,6 +253,10 @@ class Bag(object):
     def package_as_tar(self, tarpath, fetch_mapping={}, compression='gz'):
         BagPackager(self).make_tar(tarpath, compression)
 
+    def package_as_tarstream(self, fobj):
+        BagPackager(self).make_tar(None, fileobj=fobj, compression=None,
+                                   stream=True)
+
     def package_as_zip(self, zippath, fetch_mapping={}, compression='gz'):
         BagPackager(self).make_zip(zippath, compression)
 
@@ -574,14 +578,18 @@ class BagPackager(object):
         self._write_bag_to_zipfile(zstream)
         return zstream
 
-    def make_tar(self, tar_path, compression='gz'):
+    def make_tar(self, tar_path, fileobj=None, compression='gz', stream=False):
         import tarfile
         if compression not in (None, 'gz', 'bz2'):
             raise ValueError("compression must be one of (None, 'gz', 'bz2')!")
         if compression is None:
             compression = ''
         mode = 'w{0}'.format(':' + compression if compression else '')
-        with tarfile.open(tar_path, mode) as tf:
+        if stream and ':' in mode:
+            mode = mode.replace(':', '|')
+        elif stream:
+            mode = mode + "|"
+        with tarfile.open(name=tar_path, mode=mode, fileobj=fileobj) as tf:
             if PY26:
                 tf.add(self._bag.path, os.path.basename(self._bag.path),
                        recursive=True,

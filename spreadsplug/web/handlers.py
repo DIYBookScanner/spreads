@@ -23,6 +23,7 @@ import uuid
 from threading import Lock
 
 import blinker
+from tornado.gen import coroutine
 from tornado.web import RequestHandler, asynchronous
 from tornado.websocket import WebSocketHandler as TornadoWebSocketHandler
 
@@ -108,7 +109,7 @@ class EventLongPollingHandler(RequestHandler):
         event_buffer.cancel_wait(self.on_new_events)
 
 
-class DownloadHandler(RequestHandler):
+class ZipDownloadHandler(RequestHandler):
     def initialize(self, base_path):
         self.base_path = base_path
 
@@ -117,7 +118,7 @@ class DownloadHandler(RequestHandler):
         """ Calculate size of resulting ZIP.
 
         We can only safely pre-calculate this because we use no compression,
-        assume that we neither store empty directories and nor files bigger
+        assume that we neither store empty directories and files bigger
         than 4GiB.
         Many thanks to 'flocki' from StackOverflow, who provided the underlying
         formula: https://stackoverflow.com/a/19380600/487903
@@ -164,3 +165,30 @@ class DownloadHandler(RequestHandler):
         except StopIteration:
             self.finish()
             on_download_finished.send()
+
+
+class HandlerStream(object):
+    """ File-like object that proxies writes to a tornado web handler. """
+    def __init__(self, handler):
+        self.handler = handler
+
+    @coroutine
+    def write(self, data):
+        self.handler.write(data)
+        yield self.handler.flush()
+
+    def close(self):
+        self.handler.finish()
+
+
+class TarDownloadHandler(RequestHandler):
+    def initialize(self, base_path):
+        self.base_path = base_path
+
+    def get(self, workflow_id, filename):
+        uuid.UUID(workflow_id)
+        workflow = Workflow.find_by_id(self.base_path, workflow_id)
+        self.set_status(200)
+        self.set_header('Content-type', 'application/tar')
+        fp = HandlerStream(self)
+        workflow.bag.package_as_tarstream(fp)
