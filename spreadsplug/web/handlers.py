@@ -20,10 +20,11 @@ import json
 import logging
 import os
 import uuid
-from threading import Lock
+import threading
+import time
 
 import blinker
-from tornado.gen import coroutine
+from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, asynchronous
 from tornado.websocket import WebSocketHandler as TornadoWebSocketHandler
 
@@ -40,7 +41,7 @@ class WebSocketHandler(TornadoWebSocketHandler):
     # This is a class attribute valid for all SocketHandler objects, used
     # to store a reference to all open websockets.
     clients = []
-    lock = Lock()
+    lock = threading.Lock()
 
     def open(self):
         if self not in self.clients:
@@ -57,7 +58,7 @@ class EventBuffer(object):
         self.cache = []
         self.cache_size = 200
         self.counter = itertools.count()
-        self.count_lock = Lock()
+        self.count_lock = threading.Lock()
 
     def wait_for_events(self, callback, cursor=None):
         if cursor:
@@ -164,31 +165,74 @@ class ZipDownloadHandler(RequestHandler):
             self.flush(callback=self.send_next_chunk)
         except StopIteration:
             self.finish()
-            on_download_finished.send()
+        on_download_finished.send()
 
 
-class HandlerStream(object):
-    """ File-like object that proxies writes to a tornado web handler. """
+class FileLikeAdapter(object):
     def __init__(self, handler):
-        self.handler = handler
+        self.data = None
+        self.closed = False
 
-    @coroutine
     def write(self, data):
-        self.handler.write(data)
-        yield self.handler.flush()
+        # FIXME: There must be a more elegant way leveraging
+        #        threading.Condition
+        while self.data is not None and not self.closed:
+            time.sleep(10e-6)
+        if self.closed:
+            raise ValueError("I/O operation on closed file")
+        self.data = data
 
     def close(self):
-        self.handler.finish()
+        self.closed = True
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        # FIXME: There must be a more elegant way leveraging
+        #        threading.Condition
+        while self.data is None and not self.closed:
+            time.sleep(10e-6)
+        if self.closed:
+            raise StopIteration()
+        data = self.data
+        self.data = None
+        return data
 
 
 class TarDownloadHandler(RequestHandler):
     def initialize(self, base_path):
         self.base_path = base_path
 
+    def create_tar(self, workflow, cb):
+        workflow.bag.package_as_tarstream(self.fp)
+        IOLoop.instance().add_callback(cb)
+
+    @asynchronous
     def get(self, workflow_id, filename):
         uuid.UUID(workflow_id)
         workflow = Workflow.find_by_id(self.base_path, workflow_id)
         self.set_status(200)
         self.set_header('Content-type', 'application/tar')
-        fp = HandlerStream(self)
-        workflow.bag.package_as_tarstream(fp)
+
+        self.fp = FileLikeAdapter(self)
+        self.thread = threading.Thread(target=self.create_tar,
+                                       args=(workflow, self.done_cb))
+        self.thread.start()
+
+        self.send_next_chunk()
+
+    def on_connection_close(self):
+        self.fp.close()
+
+    def done_cb(self):
+        self.fp.close()
+
+    def send_next_chunk(self):
+        try:
+            chunk = next(self.fp)
+            self.write(chunk)
+            self.flush(callback=self.send_next_chunk)
+        except StopIteration:
+            self.finish()
+            on_download_finished.send()
