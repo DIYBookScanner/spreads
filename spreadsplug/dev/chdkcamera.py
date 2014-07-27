@@ -13,7 +13,7 @@ from spreads.vendor.pathlib import Path
 
 from spreads.config import OptionTemplate
 from spreads.plugin import DevicePlugin, DeviceFeatures
-from spreads.util import DeviceException
+from spreads.util import DeviceException, MissingDependencyException
 
 try:
     from jpegtran import JPEGImage
@@ -108,6 +108,17 @@ class CHDKCameraDevice(DevicePlugin):
             (0x4a9, 0x322b): QualityFix,
             (0x4a9, 0x322c): QualityFix,
         }
+
+        # Check if we can find the chdkptp executable
+        chdkptp_path = Path(config["chdkptp_path"].get(unicode))
+        if not chdkptp_path.exists() or not (chdkptp_path/'chdkptp').exists():
+            raise MissingDependencyException(
+                "Could not find executable `chdkptp`. Please make sure that "
+                "the `chdkptp_path` setting in your `chdkcamera` "
+                "configuration points to " "a directory containing chdkptp "
+                "and its libraries. Current setting is `{0}`"
+                .format(chdkptp_path)
+            )
 
         # only match ptp devices in find_all
         def is_ptp(dev):
