@@ -443,7 +443,7 @@ def get_single_page(workflow, seq_num):
     if not page:
         raise ApiException("Could not find page with sequence number {0}"
                            .format(seq_num), 404)
-    return jsonify(page)
+    return jsonify(dict(page=page))
 
 
 @app.route('/api/workflow/<workflow:workflow>/page')
@@ -528,7 +528,7 @@ def delete_page(workflow, seq_num):
         raise ApiException("Could not find page with sequence number {0}"
                            .format(seq_num), 404)
     workflow.remove_pages(page)
-    return jsonify(page)
+    return jsonify(dict(page=page))
 
 
 @app.route(
