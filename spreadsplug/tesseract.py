@@ -82,7 +82,7 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
         self._perform_ocr(in_paths, out_dir, language)
 
         for fname in chain(out_dir.glob('*.hocr'), out_dir.glob('*.html')):
-            self._fix_hocr(fname)
+            self._perform_replacements(fname)
             out_stem = fname.stem
             for in_path, page in in_paths.iteritems():
                 if in_path.stem == out_stem:
@@ -123,19 +123,43 @@ class TesseractPlugin(HookPlugin, ProcessHookMixin):
         while processes:
             _clean_processes()
 
-    def _fix_hocr(self, fpath):
-        # NOTE: This modifies the hOCR files to make them compatible with
-        #       pdfbeads.
-        #       See the following bugreport for more information:
-        #       http://rubyforge.org/tracker/index.php?func=detail&aid=29737&group_id=9752&atid=37737
-        # FIXME: Somehow this does not work for some files, find out why
+    def _perform_replacements(self, fpath):
+        def get_flags(group):
+            flags = 0
+            if 'flags' not in group:
+                return flags
+            for flag in group['flags']:
+                try:
+                    flags |= RE_FLAGS[flag]
+                except KeyError:
+                    raise ValueError("Unknown flag: '{0}'".format(flag))
+            return flags
+
+        RE_FLAGS = {
+            'debug': re.DEBUG,
+            'ignorecase': re.IGNORECASE,
+            'locale': re.LOCALE,
+            'multiline': re.MULTILINE,
+            'unicode': re.UNICODE,
+        }
         with fpath.open('r') as fp:
-            new_content = re.sub(
+            content = fp.read()
+            # NOTE: This modifies the hOCR files to make them compatible with
+            #       pdfbeads.
+            #       See the following bugreport for more information:
+            #       http://rubyforge.org/tracker/index.php?func=detail&aid=29737&group_id=9752&atid=37737
+            # FIXME: Somehow this does not work for some files, find out why
+            content = re.sub(
                 r'(<span[^>]*>(<strong>)? +(<\/strong>)?<\/span> *)'
                 r'(<span[^>]*>(<strong>)? +(<\/strong>)?<\/span> *)',
-                r'\g<1>', fp.read())
+                r'\g<1>', content)
+            if 'replacements' in self.config.keys():
+                replacements = self.config['replacements'].get()
+                for name, group in replacements.iteritems():
+                    content = re.sub(group['regex'], group['substitution'],
+                                     content, flags=get_flags(group))
         with fpath.open('w') as fp:
-            fp.write(new_content)
+            fp.write(content)
 
     def output(self, pages, target_path, metadata, table_of_contents):
         outfile = target_path/"text.html"
