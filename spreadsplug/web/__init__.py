@@ -204,6 +204,7 @@ class WebApplication(object):
             logging.INFO)
         logging.getLogger('bagit').setLevel(logging.ERROR)
         logging.getLogger('isbnlib.dev.webservice').setLevel(logging.ERROR)
+        logging.getLogger('tornado.access').setLevel(logging.ERROR)
 
     def setup_signals(self):
         def get_signal_callback_http(signal):
