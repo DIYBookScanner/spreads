@@ -56,10 +56,10 @@ def test_perform_ocr(plugin, tmpdir):
         assert tmpdir.join(img.stem + '.html').exists()
 
 
-def test_fix_hocr(plugin, tmpdir):
+def test_perform_replacements(plugin, tmpdir):
     shutil.copyfile('./tests/data/000.hocr', unicode(tmpdir.join('test.html')))
     fpath = Path(unicode(tmpdir.join('test.html')))
-    plugin._fix_hocr(fpath)
+    plugin._perform_replacements(fpath)
     with fpath.open('r') as fp:
         matches = re.findall(
             r'(<span[^>]*>(<strong>)? +(</strong>)?</span> *){2}',
