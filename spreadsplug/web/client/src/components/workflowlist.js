@@ -32,16 +32,24 @@
       confirmModal = foundation.confirmModal,
       ActionBar, WorkflowItem, StepStatus;
 
+  function clientIsMacOS() {
+    return window.navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  }
+
   ActionBar = React.createClass({
     displayName: "ActionBar",
     getInitialState: function() {
       return {
         actionDropdownVisible: false,
+        archiveDropdownVisible: false,
         dropdownWidth: undefined
       };
     },
     toggleActionDropdown: function() {
       this.setState({actionDropdownVisible: !this.state.actionDropdownVisible});
+    },
+    toggleArchiveDropdown: function() {
+      this.setState({archiveDropdownVisible: !this.state.archiveDropdownVisible});
     },
     componentDidUpdate: function() {
       if (this.state.actionDropdownVisible) {
@@ -56,8 +64,8 @@
         <row>
           <div className="small-6 medium-12 columns">
             {this.props.smallDisplay &&
-              <a onClick={this.toggleActionDropdown} className="action-select action-button small dropdown fa fa-list"
-                  title="View actions">Actions</a>
+              <a onClick={this.toggleActionDropdown} className="action-select action-button small dropdown"
+                  title="View actions"><i className="fa fa-list" /> Actions</a>
             }
             {(!this.props.smallDisplay || this.state.actionDropdownVisible) &&
             <ul className={this.props.smallDisplay ? "button-list": "button-group"}>
@@ -76,13 +84,25 @@
                 </a>
               </li>
               <li>
-                <a data-bypass={true}
-                    title="Download workflow as a ZIP archive"
-                    onClick={this.props.handleDownload}
-                    href={'/api/workflow/' + this.props.workflowSlug + '/download'}
-                    className="action-button small">
+                <a className="action-button small dropdown"
+                   title="Download workflow" onClick={this.toggleArchiveDropdown}>
                   <i className="fa fa-download"/>{this.props.smallDisplay && " Download"}
                 </a>
+                {this.state.archiveDropdownVisible &&
+                <ul className="f-dropdown">
+                  <li><a data-bypass={true} onClick={this.props.handleDownload}
+                      href={'/api/workflow/' + this.props.workflowSlug + '/download?fmt=tar'}
+                      title='Download as a tar archive'>.tar</a></li>
+                  <li>
+                    <a style={clientIsMacOS() ? {'color': 'red'} : {}}
+                       data-bypass={true} onClick={this.props.handleDownload}
+                       href={'/api/workflow/' + this.props.workflowSlug + '/download?fmt=zip'}
+                       title={clientIsMacOS() ? 'Download as a ZIP archive' :
+                              'Due to a bug in the OSX Archive tool it is unable to extract archives created from spreads. Please use a third-party software instead.'}>
+                      .zip
+                    </a>
+                  </li>
+                </ul>}
               </li>
               {window.config.web.mode !== 'processor' &&
                 <li>

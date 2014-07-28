@@ -371,7 +371,11 @@ def download_workflow(workflow):
     """ Redirect to download endpoint (see __init__.py) with proper filename
     set.
     """
-    fname = "{0}.zip".format(workflow.path.stem)
+    archive_format = request.args.get('fmt', 'tar')
+    if archive_format not in ('zip', 'tar'):
+        raise ApiException(
+            "Invalid format '{0}', only 'tar' or 'zip' are permitted.", 400)
+    fname = "{0}.{1}".format(workflow.path.stem, archive_format)
     return redirect('/api/workflow/{0}/download/{1}'.format(
                     workflow.id, fname))
 

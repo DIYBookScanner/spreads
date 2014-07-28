@@ -537,6 +537,12 @@ fieldset.config {
   }
 }
 
+.f-dropdown {
+    left: inherit;
+    width: inherit;
+    min-width: 10%;
+}
+
 /* ======= Animations ======== */
 @include keyframes(bounce) {
   0%, 100% {
