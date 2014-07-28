@@ -75,6 +75,7 @@ class Configuration(object):
         self._config.read()
         if 'plugins' not in self._config.keys():
             self['plugins'] = []
+        self.load_templates()
         self.load_defaults(overwrite=False)
 
     # ----------------------------------------- #
@@ -95,25 +96,26 @@ class Configuration(object):
         return self._config.flatten()
     # ----------------------------------------- #
 
-    @property
-    def templates(self):
+    def load_templates(self):
         """ Get all available configuration templates.
 
         :rtype: dict
 
         """
         import spreads.plugin
-        templates = {'core': CORE_OPTIONS}
+        self.templates = {}
+        self.templates['core'] = CORE_OPTIONS
         if 'driver' in self.keys():
             driver_name = self["driver"].get()
-            templates['device'] = (spreads.plugin.get_driver(driver_name)
-                                   .configuration_template())
+            self.templates['device'] = (
+                spreads.plugin.get_driver(driver_name)
+                       .configuration_template())
         plugins = spreads.plugin.get_plugins(*self["plugins"].get())
         for name, plugin in plugins.iteritems():
             tmpl = plugin.configuration_template()
             if tmpl:
-                templates[name] = tmpl
-        return templates
+                self.templates[name] = tmpl
+        return self.templates
 
     @property
     def cfg_path(self):
