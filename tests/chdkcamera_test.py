@@ -10,7 +10,7 @@ import spreadsplug.dev.chdkcamera as chdkcamera
 
 
 @pytest.fixture
-def config():
+def config(tmpdir):
     config = confit.Configuration('test_chdkcamera')
     tmpl = chdkcamera.CHDKCameraDevice.configuration_template()
     for key, option in tmpl.items():
@@ -18,7 +18,11 @@ def config():
             config[key] = option.value[0]
         else:
             config[key] = option.value
-    config['chdkptp_path'] = u'/tmp/chdkptp'
+    chdkptp_path = tmpdir.join('chdkptp')
+    chdkptp_path.mkdir()
+    with chdkptp_path.join('chdkptp').open('w') as fp:
+        fp.write('foo')
+    config['chdkptp_path'] = unicode(chdkptp_path)
     return config
 
 
@@ -225,15 +229,17 @@ def test_capture_error(camera):
 
 
 @mock.patch('spreadsplug.dev.chdkcamera.subprocess')
-def test_run(sp, camera_nomock):
+def test_run(sp, camera_nomock, tmpdir):
     sp.check_output.return_value = (
         "connected: foo bar \n"
         "asdf")
     output = camera_nomock._run('foobar')
     assert output == ["asdf"]
+    chdkptp_path = tmpdir.join('chdkptp')
     sp.check_output.assert_called_with(
-        [u'/tmp/chdkptp/chdkptp', '-c-d=002 -b=001', '-eset cli_verbose=2',
-            '-efoobar'], env={'LUA_PATH': u'/tmp/chdkptp/lua/?.lua'},
+        [unicode(chdkptp_path.join('chdkptp')), '-c-d=002 -b=001',
+         '-eset cli_verbose=2', '-efoobar'],
+        env={'LUA_PATH': unicode(chdkptp_path.join('lua', '?.lua'))},
         stderr=sp.STDOUT, close_fds=True)
 
 
