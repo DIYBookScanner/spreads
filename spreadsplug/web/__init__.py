@@ -209,20 +209,14 @@ class WebApplication(object):
     def setup_signals(self):
         def get_signal_callback_http(signal):
             def signal_callback(sender, **kwargs):
-                # Skip debugging messages and tornado access logs to reduce
-                # the amount of data sent out and subsequently the latency
-                skip = (signal.name == 'logrecord' and
-                        (kwargs['record'].name == 'tornado.access' or
-                         kwargs['record'].levelname
-                         not in ('CRITICAL', 'ERROR', 'WARNING')))
-                if not skip:
-                    event = util.Event(signal, sender, kwargs)
-                    handlers.event_buffer.new_events([event])
+                event = util.Event(signal, sender, kwargs)
+                handlers.event_buffer.new_events([event])
             return signal_callback
 
         def get_signal_callback_websockets(signal):
             def signal_callback(sender, **kwargs):
-                self.send_event(util.Event(signal, sender, kwargs))
+                handlers.WebSocketHandler.send_event(
+                    util.Event(signal, sender, kwargs))
             return signal_callback
 
         # Register event handlers
@@ -253,16 +247,6 @@ class WebApplication(object):
             (r"/api/poll", handlers.EventLongPollingHandler),
             (r".*", FallbackHandler, dict(fallback=container))
         ], debug=self._debug)
-
-    def send_event(self, event):
-        data = json.dumps(event, cls=util.CustomJSONEncoder)
-        for sock in handlers.WebSocketHandler.clients:
-            # NOTE: The lock is neccessary since Tornado is not thread-safe.
-            #       This should be obvious to anyone only vaguely familiar with
-            #       it, but it cost me quite a bit of debugging time to find
-            #       out :-)
-            with handlers.WebSocketHandler.lock:
-                sock.write_message(data)
 
     def run_server(self):
         self.setup_logging()

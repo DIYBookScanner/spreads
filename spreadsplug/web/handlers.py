@@ -53,6 +53,13 @@ class WebSocketHandler(TornadoWebSocketHandler):
         if self in self.clients:
             self.clients.remove(self)
 
+    @staticmethod
+    def send_event(event):
+        data = json.dumps(event, cls=util.CustomJSONEncoder)
+        for client in WebSocketHandler.clients:
+            with WebSocketHandler.lock:
+                client.write_message(data)
+
 
 class EventBuffer(object):
     def __init__(self):
@@ -102,7 +109,6 @@ class EventLongPollingHandler(RequestHandler):
         event_buffer.wait_for_events(self.on_new_events, cursor=cursor)
 
     def on_new_events(self, events):
-        # Closed client connection
         if self.request.connection.stream.closed():
             return
         self.finish(json.dumps(dict(events=events),
