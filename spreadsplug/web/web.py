@@ -65,6 +65,7 @@ def handle_apiexception(error):
     return response
 
 
+@app.errorhandler(Exception)
 def handle_general_exception(error):
     logger.exception(error)
     exc_type, exc, trace = sys.exc_info()
