@@ -20,8 +20,10 @@ import json
 import logging
 import os
 import uuid
+import tarfile
 import threading
 import time
+import Queue
 
 import blinker
 from tornado.ioloop import IOLoop
@@ -168,19 +170,33 @@ class ZipDownloadHandler(RequestHandler):
         on_download_finished.send()
 
 
-class FileLikeAdapter(object):
+class QueueIO(object):
+    """ File-like object that writes to a queue.
+
+    Data can be read from another thread by iterating over the object.
+    Intended to be passed into tarfile.open as to allow streaming tar files
+    over the network without buffering them in RAM or on disk.
+    """
     def __init__(self, handler):
-        self.data = None
+        #That's right, length 1, we want to save memory, after all...
+        self.queue = Queue.Queue(maxsize=1)
         self.closed = False
+        self.last_read = None
+        self.read_time = None
 
     def write(self, data):
-        # FIXME: There must be a more elegant way leveraging
-        #        threading.Condition
-        while self.data is not None and not self.closed:
-            time.sleep(10e-6)
-        if self.closed:
-            raise ValueError("I/O operation on closed file")
-        self.data = data
+        while not self.closed:
+            # To achieve a balance between wasted CPU cycles (checking the
+            # queue) and decreased transfer speed (sleeping for too long),
+            # we wait at most the minimum time (plus a little extra) between
+            # two reads (see also: comment in `next`)
+            try:
+                self.queue.put(data, block=False)
+                return
+            except Queue.Full:
+                if self.read_time is not None:
+                    time.sleep(self.read_time*1.1)
+        raise ValueError("I/O operation on closed file")
 
     def close(self):
         self.closed = True
@@ -189,50 +205,90 @@ class FileLikeAdapter(object):
         return self
 
     def next(self):
-        # FIXME: There must be a more elegant way leveraging
-        #        threading.Condition
-        while self.data is None and not self.closed:
-            time.sleep(10e-6)
-        if self.closed:
-            raise StopIteration()
-        data = self.data
-        self.data = None
-        return data
+        if self.closed and self.queue.empty():
+            raise StopIteration
+        if self.last_read is None:
+            self.last_read = time.time()
+        else:
+            # See if we have gotten any faster since the last read
+            read_time = time.time() - self.last_read
+            if self.read_time is None or self.read_time > read_time:
+                self.read_time = read_time
+            self.last_read += read_time
+        return self.queue.get()
 
 
 class TarDownloadHandler(RequestHandler):
     def initialize(self, base_path):
         self.base_path = base_path
 
-    def create_tar(self, workflow, cb):
-        workflow.bag.package_as_tarstream(self.fp)
-        IOLoop.instance().add_callback(cb)
+    def create_tar(self, workflow, cb, exception_cb):
+        """ Intended to be run in a separate thread, since the call will block
+        until the whole workflow has been written out to the client or
+        the user cancels the transfer.
+        """
+        try:
+            workflow.bag.package_as_tarstream(self.fp)
+            IOLoop.instance().add_callback(cb)
+        except ValueError as e:
+            IOLoop.instance().add_callback(exception_cb, (e,))
+
+    def calculate_tarsize(self, workflow):
+        """ Similar to ZipDownloadHandler.calculate_zipsize, we can safely
+        pre-calculate the size of the resulting tar-file since we don't
+        compress and the resulting file is in the POSIX.1-1988 ustar format.
+        """
+        # top-level directory block
+        size = tarfile.BLOCKSIZE
+        for path in workflow.path.glob('**/*'):
+            # file header
+            size += tarfile.BLOCKSIZE
+            # file size rounded up to next multiple of 512
+            if not path.is_dir():
+                size += ((path.stat().st_size/512)+1)*512
+        # empty end-of-file blocks
+        size += 2*tarfile.BLOCKSIZE
+        # fill up until the size is a multiple of tarfile.RECORDSIZE
+        blocks, remainder = divmod(size, tarfile.RECORDSIZE)
+        if remainder > 0:
+            size += (tarfile.RECORDSIZE - remainder)
+        return size
 
     @asynchronous
     def get(self, workflow_id, filename):
         uuid.UUID(workflow_id)
         workflow = Workflow.find_by_id(self.base_path, workflow_id)
+
         self.set_status(200)
         self.set_header('Content-type', 'application/tar')
+        self.set_header('Content-length', self.calculate_tarsize(workflow))
 
-        self.fp = FileLikeAdapter(self)
-        self.thread = threading.Thread(target=self.create_tar,
-                                       args=(workflow, self.done_cb))
+        self.fp = QueueIO(self)
+        self.thread = threading.Thread(
+            target=self.create_tar,
+            args=(workflow, self.on_done, self.on_exception)
+        )
         self.thread.start()
-
         self.send_next_chunk()
-
-    def on_connection_close(self):
-        self.fp.close()
-
-    def done_cb(self):
-        self.fp.close()
 
     def send_next_chunk(self):
         try:
-            chunk = next(self.fp)
-            self.write(chunk)
+            self.write(next(self.fp))
             self.flush(callback=self.send_next_chunk)
         except StopIteration:
             self.finish()
-            on_download_finished.send()
+
+    def on_done(self):
+        self.fp.close()
+
+    def on_exception(self, exc):
+        skip = (isinstance(exc[0], ValueError)
+                and "closed file" in exc[0].message)
+        if not skip:
+            raise exc
+
+    def on_finish(self):
+        on_download_finished.send()
+
+    def on_connection_close(self):
+        self.fp.close()
