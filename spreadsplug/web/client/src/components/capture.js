@@ -416,7 +416,7 @@
               </ul>
             </column>
           </row>
-          {expectedTotal && <CaptureProgress total={expectedTotal} current={workflow.get('pages').length} />}
+          {expectedTotal > 0 && <CaptureProgress total={expectedTotal} current={workflow.get('pages').length} />}
           <row className="capture-info">
             <column size="6">
               <span className="pagecount">{workflow.get('pages').length} pages</span>
