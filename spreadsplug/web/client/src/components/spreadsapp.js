@@ -43,6 +43,10 @@
   module.exports = React.createClass({
     displayName: "SpreadsApp",
 
+    componentWillMount: function() {
+      this.updateViewComponent(this.props);
+    },
+
     /** Register message change listeners */
     componentDidMount: function() {
       window.router.events.on('logrecord', function(record) {
@@ -63,10 +67,14 @@
       window.router.events.off('logrecord', null, this);
       window.router.off(null, null, this);
     },
+    componentWillReceiveProps: function(nextProps) {
+      this.updateViewComponent(nextProps);
+    },
     getInitialState: function() {
       return {
         messages: [],
-        numUnreadErrors: 0
+        numUnreadErrors: 0,
+        viewComponent: null
       };
     },
     /**
@@ -95,28 +103,32 @@
      * @param {string} viewName - name of current view
      * @return {React.Component} The component to render
      */
-    getViewComponent: function(viewName) {
-      var workflows = this.props.workflows,
-          displayed = this.props.workflowSlug && workflows.where({slug: this.props.workflowSlug})[0];
-      switch (viewName) {
-      case "create":
-        //var newWorkflow = new workflows.model(null, {collection: workflows});
+    updateViewComponent: function(props) {
+      var workflows = props.workflows;
+      var displayed = props.workflowSlug && workflows.where({slug: props.workflowSlug})[0];
+      var viewName = props.view;
+      var viewComponent;
+
+      if (viewName === 'create') {
         var newWorkflow = new workflows.model();
         workflows.add(newWorkflow);
-        return <WorkflowForm workflow={newWorkflow} isNew={true}/>;
-      case "capture":
-        return <CaptureInterface workflow={displayed} />;
-      case "view":
-        return <WorkflowDetails workflow={displayed} />;
-      case "edit":
-        return <WorkflowForm workflow={displayed} isNew={false} />;
-      case "submit":
-        return <SubmissionForm workflow={displayed} />;
-      case "log":
-        return <LogDisplay />;
-      default:
-        return <WorkflowList workflows={workflows}/>;
+        viewComponent = <WorkflowForm workflow={newWorkflow} isNew={true}/>;
+      } else if (viewName === "capture") {
+        viewComponent = <CaptureInterface workflow={displayed} />;
+      } else if (viewName === "view") {
+        viewComponent = <WorkflowDetails workflow={displayed} />;
+      } else if (viewName === "edit") {
+        viewComponent = <WorkflowForm workflow={displayed} isNew={false} />;
+      } else if (viewName === "submit") {
+        viewComponent = <SubmissionForm workflow={displayed} />;
+      } else if (viewName === "log") {
+        viewComponent = <LogDisplay />;
+      } else {
+        viewComponent = <WorkflowList workflows={workflows}/>;
       }
+      this.setState({
+        viewComponent: viewComponent
+      });
     },
     /**
      * Get a callback to close a given message
@@ -133,8 +145,7 @@
       }.bind(this);
     },
     render: function() {
-      var navTitle = this.getNavTitle(this.props.view),
-          viewComponent = this.getViewComponent(this.props.view);
+      var navTitle = this.getNavTitle(this.props.view);
       document.title = navTitle;
       return (
         <div>
@@ -148,7 +159,7 @@
                              closeCallback={this.getCloseMessageCallback(message)}>
                     </fnAlert>);
               }, this)}
-          {viewComponent}
+          {this.state.viewComponent}
         </div>
       );
     }

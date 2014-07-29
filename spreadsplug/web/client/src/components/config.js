@@ -267,7 +267,7 @@
                         active: active
                       });
                   return (
-                    <row>
+                    <row key={section}>
                       <column>
                         <a onClick={function() {
                           this.setState({selectedSection: section});

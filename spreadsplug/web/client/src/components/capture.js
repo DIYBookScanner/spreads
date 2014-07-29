@@ -160,6 +160,9 @@
         // There is already a capture (or preparation) in progress.
         return;
       }
+      if (!this.state.captureStart) {
+        this.setState({captureStart: new Date().getTime()/1000});
+      }
       console.log("Triggering capture");
       this.props.workflow.triggerCapture(false, function() {
         if (this.state.refreshReview) {
@@ -330,7 +333,6 @@
             shot = workflow.get('pages').length - this.state.initialPageCount;
         speed = (3600/elapsed)*shot | 0;
       } else {
-        this.setState({captureStart: new Date().getTime()/1000});
         speed = 0.0;
       }
       if (workflow.get('pages').length) {
