@@ -69,32 +69,40 @@
       return {
         completeEnabled: _.isEmpty(this.props.value),
         autocomplete: [],
+        lastTerm: '',
         call: { latest: 0,
                 term: '' }
       };
     },
-    makeCall: _.throttle(function(term, current) {
+    makeCall: _.debounce(function(term, current) {
       var endpoint = "/api/isbn?q=" + encodeURIComponent(term);
-      jQuery.getJSON(endpoint, function(data) {
-        /* This ensures that we ignore out of order ajax calls and that the
-           last call will win.
-           NOTE: an alternative could have been to use jquery's beforeSend
-           callback to abort the previous call but that would have required an
-           enclosing mutable reference to the previous XHR object. */
-        if (current == this.state.call.latest) {
-          var newPriority = this.state.call.latest - 1;
-          this.setState({
-            autocomplete: data.results,
-            call: { latest: newPriority,
-                    term: ''}
-          });
-        }
-      }.bind(this));
+      jQuery.ajax({
+        url: endpoint,
+        success: function(data) {
+          /* This ensures that we ignore out of order ajax calls and that the
+            last call will win.
+            NOTE: an alternative could have been to use jquery's beforeSend
+            callback to abort the previous call but that would have required an
+            enclosing mutable reference to the previous XHR object. */
+          if (current == this.state.call.latest) {
+            var newPriority = this.state.call.latest - 1;
+            this.setState({
+              autocomplete: data.results,
+              lastTerm: this.state.call.term,
+              call: { latest: newPriority,
+                      term: ''}
+            });
+          }
+        }.bind(this),
+        error: function() {
+          this.setState({completeEnabled: false});
+        }.bind(this)
+      });
     }, 500),
     //set state if user enters at least 3 chars, also reset state if user clears input box.
     handleKeyUp: function (e) {
       var k = e.target.value;
-      if (k.length > 3 ) {
+      if (k.length > 3 && k != this.state.lastTerm) {
         var priority = this.state.call.latest+1;
         this.setState({
           call: { latest: priority,
@@ -264,23 +272,26 @@
       });
     },
     updateFromISBN: function(isbnNo, inputIdx) {
-      jQuery.getJSON("/api/isbn/" + isbnNo, function(data) {
-        var errors = _.clone(this.state.errors),
-            idErrors = errors.identifier || [];
-        delete idErrors[inputIdx];
-        this.setState({errors: errors});
-        this.updateMetadata(data);
-      }.bind(this)).fail(function(xhr) {
-        if (xhr.status == 400) {
+      jQuery.ajax({
+        url: "/api/isbn/" + isbnNo,
+        dataType: 'json',
+        timeout: 3000,
+        success: function(data) {
+          var errors = _.clone(this.state.errors),
+              idErrors = errors.identifier || [];
+          delete idErrors[inputIdx];
+          this.setState({errors: errors});
+          this.updateMetadata(data);
+        }.bind(this),
+        error: function(xhr) {
+          if (xhr.status != 400) return;
           var errors = _.clone(this.state.errors),
               idErrors = errors.identifier || [];
           idErrors[inputIdx] = xhr.responseJSON.errors.isbn;
           errors.identifier = idErrors;
           this.setState({errors: errors});
-        } else if (xhr.status == 400) {
-          return;
-        }
-      }.bind(this));
+        }.bind(this)
+      });
     },
     getInitialState: function() {
       return {
