@@ -275,7 +275,7 @@ class EventHandler(logging.Handler):
 
 
 def get_data_dir(create=False):
-    UNIX_DIR_VAR = 'XDG_DATA_DIRS'
+    UNIX_DIR_VAR = 'XDG_DATA_HOME'
     UNIX_DIR_FALLBACK = '~/.config'
     WINDOWS_DIR_VAR = 'APPDATA'
     WINDOWS_DIR_FALLBACK = '~\\AppData\\Roaming'
