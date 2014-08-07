@@ -289,6 +289,7 @@
         'touch': hasTouch
       });
       return (
+        <div>
         <div className="crop-container">
           <div ref="box"
                className={cropClasses}
@@ -307,26 +308,27 @@
             }, this)}
           </div>
           <img src={this.props.imageSrc} ref="image" onLoad={this.handleLoad} />
-          <form onSubmit={this.handleSubmit}>
-            {this.props.showInputs && this.state.cropParams &&
-              <row>
-                {_.map(["left", "top", "width", "height"], function(param) {
-                  return(
-                    <column size={[6, 3]}>
-                      <label>{util.capitalize(param)}
-                        <input type="number" key={"input-" + param}
-                              name={param} value={this.state.cropParams[param]}
-                              onChange={this.handleInputChange}/>
-                      </label>
-                    </column>
-                  );}, this)}
-              </row>
-            }
-            <button className={"action-button small"}>
-              <i className="fa fa-save" /> Save
-            </button>
-          </form>
-        </div>);
+        </div>
+        <form onSubmit={this.handleSubmit}>
+          {this.props.showInputs && this.state.cropParams &&
+            <row>
+              {_.map(["left", "top", "width", "height"], function(param) {
+                return(
+                  <column size={[6, 3]}>
+                    <label>{util.capitalize(param)}
+                      <input type="number" key={"input-" + param}
+                            name={param} value={this.state.cropParams[param]}
+                            onChange={this.handleInputChange}/>
+                    </label>
+                  </column>
+                );}, this)}
+            </row>
+          }
+          <button className={"action-button small"}>
+            <i className="fa fa-save" /> Save
+          </button>
+        </form>
+      </div>);
     }
   });
 }());

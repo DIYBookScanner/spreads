@@ -105,7 +105,7 @@ $fa-font-path: "../node_modules/font-awesome/fonts";
     opacity: 0.5;
   }
 
-  img {
+  img.odd, img.even {
     @media #{$small-only} and (orientation: portrait) {
       width: 100%
     }
@@ -233,12 +233,6 @@ li.page-preview {
 }
 
 .reveal-modal {
-  &.small {
-    @media #{$medium-up} {
-        width: 50%;
-        margin-left: -25%;
-    }
-  }
 
   &.fixed {
     z-index: 100;
@@ -247,6 +241,18 @@ li.page-preview {
     top: 10%;
     min-height: 0;
     max-height: 100%;
+
+    @media #{$large-up} {
+      width: 50%;
+      margin-left: 25%;
+    }
+  }
+
+  &.small {
+    @media #{$medium-up} {
+        width: 50%;
+        margin-left: 25%;
+    }
   }
 }
 
@@ -335,6 +341,7 @@ li.page-preview {
 
 .crop-container {
   position: relative;
+  display: inline-block;
 
   .cropbox {
     position: absolute;
@@ -476,7 +483,8 @@ li.page-preview {
   }
 
   img {
-    width: 100%;
+    //width: 100%;
+    max-height: 70%;
   }
 }
 

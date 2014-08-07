@@ -102,7 +102,8 @@
       targetPage: React.PropTypes.oneOf(["odd", "even"]),
       imageSrc: React.PropTypes.string,
       cropParams: React.PropTypes.object,
-      onCropParamUpdate: React.PropTypes.func
+      onCropParamUpdate: React.PropTypes.func,
+      showCropPreview: React.PropTypes.bool
     },
 
     getInitialState: function() {
@@ -144,14 +145,16 @@
     },
 
     render: function() {
-      var cropPreviewStyle = this.getCropPreviewStyle();
+      var cropPreviewStyle = this.props.showCropPreview ? this.getCropPreviewStyle() : {};
+      var imageSrc = this.props.imageSrc + "?numtype=capture";
+      var thumbSrc = this.props.imageSrc + "/thumb?numtype=capture"
       return (
         <li>
           {this.state.displayLightbox &&
-            <lightbox onClose={this.toggleLightbox} src={this.props.imageSrc} />}
+            <lightbox onClose={this.toggleLightbox} src={imageSrc} />}
           {this.state.displayCrop &&
             <modal onClose={this.toggleCropDisplay} small={false} fixed={true}>
-              <CropWidget imageSrc={this.props.imageSrc}
+              <CropWidget imageSrc={imageSrc}
                           onSave={this.handleSave}
                           cropParams={this.props.cropParams} showInputs={true} />
             </modal>}
@@ -163,7 +166,7 @@
             <a title="Open full resolution image in lightbox"
                onClick={this.toggleLightbox}>
               <img className={this.props.targetPage}
-                   src={this.props.imageSrc + "/thumb"} ref='previewImage'/>
+                   src={thumbSrc} ref='previewImage'/>
             </a>:
             <img className={"placeholder " + this.props.targetPage}
                  src={placeholderImg}/>}
@@ -532,10 +535,10 @@
 
       if (workflow.get('pages').length) {
         var lastPages = _.sortBy(workflow.get('pages').slice(-2), function(page) {
-          return page.sequence_num;
+          return page.capture_num;
         });
-        evenImage = util.getPageUrl(workflow, lastPages[0], 'raw');
-        oddImage = util.getPageUrl(workflow, lastPages[1], 'raw');
+        evenImage = util.getPageUrl(workflow, lastPages[0].capture_num, 'raw');
+        oddImage = util.getPageUrl(workflow, lastPages[1].capture_num, 'raw');
       }
 
       return (
@@ -548,10 +551,12 @@
                 <ul className={React.addons.classSet(previewClasses)}>
                   <Preview targetPage="odd" imageSrc={evenImage}
                     cropParams={this.state.cropParams['odd']}
-                    onCropParamUpdate={_.partial(this.setCropParams, 'odd')} />
+                    onCropParamUpdate={_.partial(this.setCropParams, 'odd')}
+                    showCropPreview={this.state.captureStart > 0}/>
                   <Preview targetPage="even" imageSrc={evenImage}
                     cropParams={this.state.cropParams['even']}
-                    onCropParamUpdate={_.partial(this.setCropParams, 'even')} />
+                    onCropParamUpdate={_.partial(this.setCropParams, 'even')}
+                    showCropPreview={this.state.captureStart > 0} />
               </ul>
             </column>
           </row>
