@@ -365,9 +365,12 @@ def get_plugins(*names):
             plugins[name] = plugin
             extensions[name] = plugin
         except ImportError as err:
+            message = err.message
+            if message.startswith('No module named'):
+                message = message[16:]
             raise ExtensionException(
                 "Missing Python dependency for extension '{0}': {1}"
-                .format(name, err.message[16:]), name)
+                .format(name, message, name))
         except MissingDependencyException as err:
             raise ExtensionException(
                 "Error while locating external application dependency for "
