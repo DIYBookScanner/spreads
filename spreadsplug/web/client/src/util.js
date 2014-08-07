@@ -53,12 +53,10 @@
     return string.charAt(0).toUpperCase() + string.substring(1).toLowerCase();
   }
 
-  function getPageUrl(workflow, page, type, thumb) {
-    var url = "/api/workflow/" + workflow.id + "/page/" + page.sequence_num;
-    if (page) {
-      if (type !== 'raw') type = 'processed/' + type;
-      url = url + "/" + type;
-    }
+  function getPageUrl(workflow, pageNum, type, thumb) {
+    var url = "/api/workflow/" + workflow.id + "/page/" + pageNum;
+    if (type !== 'raw') type = 'processed/' + type;
+    url = url + "/" + type;
     if (thumb) url = url + "/thumb";
     return url;
   }

@@ -52,7 +52,7 @@
             'selected': this.props.selected
           }),
           page = this.props.page,
-          thumbUrl = util.getPageUrl(this.props.workflow, page, this.props.imageType, true);
+          thumbUrl = util.getPageUrl(this.props.workflow, page.sequence_num, this.props.imageType, true);
       return (
         <li className={liClasses} title="Open full resolution image in lightbox"
             onMouseEnter={this.toggleToolbar} onMouseLeave={this.toggleToolbar}>

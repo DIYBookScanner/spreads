@@ -671,10 +671,6 @@ class Workflow(object):
             if util.get_free_space(self.path) < 50*(1024**2):
                 raise IOError("Insufficient disk space to take a capture.")
 
-            if retake:
-                # Remove last n pages, where n == len(self.devices)
-                self.remove_pages(*self.pages[-num_devices:])
-
             futures = []
             captured_pages = []
             with ThreadPoolExecutor(num_devices
@@ -687,6 +683,10 @@ class Workflow(object):
                                                    page.raw_image))
             util.check_futures_exceptions(futures)
 
+            if retake:
+                # Remove previous n pages, where n == len(self.devices)
+                self.remove_pages(*self.pages[-num_devices*2:-num_devices])
+
             for page in sorted(captured_pages, key=lambda p: p.sequence_num):
                 page.sequence_num = len(self.pages)
                 self.pages.append(page)
@@ -695,6 +695,7 @@ class Workflow(object):
             self._threadpool.submit(self.bag.add_payload,
                                     *(unicode(p.raw_image)
                                       for p in captured_pages))
+
         on_modified.send(self, changes={'pages': self.pages})
         on_capture_succeeded.send(self, pages=captured_pages, retake=retake)
 
