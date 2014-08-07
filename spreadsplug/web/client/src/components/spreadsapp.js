@@ -23,7 +23,7 @@
   var React = require('react/addons'),
       _ = require('underscore'),
       WorkflowForm = require('./workflowform'),
-      CaptureInterface = require('./capture'),
+      CaptureScreen = require('./capture').CaptureScreen,
       WorkflowDetails = require('./workflow'),
       WorkflowList = require('./workflowlist'),
       SubmissionForm = require('./submission'),
@@ -114,7 +114,7 @@
         workflows.add(newWorkflow);
         viewComponent = <WorkflowForm workflow={newWorkflow} isNew={true}/>;
       } else if (viewName === "capture") {
-        viewComponent = <CaptureInterface workflow={displayed} />;
+        viewComponent = <CaptureScreen workflow={displayed} />;
       } else if (viewName === "view") {
         viewComponent = <WorkflowDetails workflow={displayed} />;
       } else if (viewName === "edit") {

@@ -246,10 +246,7 @@ li.page-preview {
     margin-left: 0;
     top: 10%;
     min-height: 0;
-
-    @media #{$medium-up} {
-      left: 25%;
-    }
+    max-height: 100%;
   }
 }
 

@@ -437,12 +437,20 @@ def get_output_file(workflow, fname):
 # =============== #
 #  Page-related  #
 # =============== #
-@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>')
-def get_single_page(workflow, seq_num):
-    page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
+def find_page(workflow, number, numtype='sequence'):
+    if numtype == 'capture':
+        page = get_next(p for p in workflow.pages if p.capture_num == number)
+    else:
+        page = get_next(p for p in workflow.pages if p.sequence_num == number)
     if not page:
-        raise ApiException("Could not find page with sequence number {0}"
-                           .format(seq_num), 404)
+        raise ApiException("Could not find page with {0} number {1}"
+                           .format(numtype, num), 404)
+    return page
+
+
+@app.route('/api/workflow/<workflow:workflow>/page/<int:number>')
+def get_single_page(workflow, number):
+    page = find_page(workflow, number, request.args.get('numtype', None))
     return jsonify(dict(page=page))
 
 
@@ -452,11 +460,11 @@ def get_all_pages(workflow):
                          200, {'Content-Type': 'application/json'})
 
 
-@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>',
+@app.route('/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>',
            defaults={'plugname': None})
-@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>'
+@app.route('/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>'
            '/<plugname>')
-def get_page_image(workflow, seq_num, img_type, plugname):
+def get_page_image(workflow, number, img_type, plugname):
     """ Return image for requested page. """
     if img_type not in ('raw', 'processed'):
         raise ApiException("Image type must be one of 'raw' or 'processed', "
@@ -464,10 +472,7 @@ def get_page_image(workflow, seq_num, img_type, plugname):
     # Scale image if requested
     width = request.args.get('width', None)
     img_format = request.args.get('format', None)
-    page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
-    if not page:
-        raise ApiException("Could not find page with sequence number {0}"
-                           .format(seq_num), 404)
+    page = find_page(workflow, number, request.args.get('numtype', None))
     if img_type == 'raw':
         fpath = page.raw_image
     elif plugname is None:
@@ -484,11 +489,11 @@ def get_page_image(workflow, seq_num, img_type, plugname):
         return send_file(unicode(fpath))
 
 
-@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>/'
+@app.route('/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>/'
            'thumb', defaults={'plugname': None})
-@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>/'
+@app.route('/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>/'
            '<plugname>/thumb', methods=['GET'])
-def get_page_image_thumb(workflow, seq_num, img_type, plugname):
+def get_page_image_thumb(workflow, number, img_type, plugname):
     """ Return thumbnail for page image from requested workflow. """
     if img_type not in ('raw', 'processed'):
         raise ApiException("Image type must be one of 'raw' or 'processed', "
@@ -496,10 +501,7 @@ def get_page_image_thumb(workflow, seq_num, img_type, plugname):
     if img_type == 'processed' and plugname is None:
         raise ApiException("Need to supply additional path parameter for "
                            "plugin to get processed file for.", 400)
-    page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
-    if not page:
-        raise ApiException("Could not find page with sequence number {0}"
-                           .format(seq_num), 404)
+    page = find_page(workflow, number, request.args.get('numtype', None))
     if img_type == 'raw':
         fpath = page.raw_image
     elif plugname is None:
@@ -519,27 +521,21 @@ def get_page_image_thumb(workflow, seq_num, img_type, plugname):
     return Response(thumbnail, mimetype='image/jpeg')
 
 
-@app.route('/api/workflow/<workflow:workflow>/page/<int:seq_num>',
+@app.route('/api/workflow/<workflow:workflow>/page/<int:number>',
            methods=['DELETE'])
-def delete_page(workflow, seq_num):
+def delete_page(workflow, number):
     """ Remove a single page from a workflow. """
-    page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
-    if not page:
-        raise ApiException("Could not find page with sequence number {0}"
-                           .format(seq_num), 404)
+    page = find_page(workflow, number, request.args.get('numtype', None))
     workflow.remove_pages(page)
     return jsonify(dict(page=page))
 
 
 @app.route(
-    '/api/workflow/<workflow:workflow>/page/<int:seq_num>/<img_type>/crop',
+    '/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>/crop',
     methods=['POST'])
-def crop_workflow_image(workflow, seq_num, img_type):
+def crop_workflow_image(workflow, number, img_type):
     # TODO: We have to update the checksum!
-    page = get_next(p for p in workflow.pages if p.sequence_num == seq_num)
-    if not page:
-        raise ApiException("Could not find page with sequence number {0}"
-                           .format(seq_num), 404)
+    page = find_page(workflow, number, request.args.get('numtype', None))
     if img_type != 'raw':
         raise ApiException("Can only crop raw images.", 400)
     left = int(request.args.get('left', 0))
