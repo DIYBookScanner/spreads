@@ -29,15 +29,28 @@
       row = foundation.row,
       column = foundation.column,
       modal = foundation.modal,
-      confirmModal = foundation.confirmModal,
-      ActionBar, WorkflowItem, StepStatus;
+      confirmModal = foundation.confirmModal;
+
 
   function clientIsMacOS() {
     return window.navigator.platform.toUpperCase().indexOf('MAC') >= 0;
   }
 
-  ActionBar = React.createClass({
-    displayName: "ActionBar",
+
+  var ActionBar = React.createClass({
+    propTypes: {
+      smallDisplay: React.PropTypes.bool,
+      workflowSlug: React.PropTypes.string,
+      removalBlocked: React.PropTypes.bool,  // TODO: Move to state?
+      hasPages: React.PropTypes.bool,
+      onRemove: React.PropTypes.func,
+      onDownload: React.PropTypes.func,  // TODO: Move to state?
+      onCapture: React.PropTypes.func,
+      onProcess: React.PropTypes.func,
+      onOutput: React.PropTypes.func,
+      onTransfer: React.PropTypes.func
+    },
+
     getInitialState: function() {
       return {
         actionDropdownVisible: false,
@@ -45,12 +58,15 @@
         dropdownWidth: undefined
       };
     },
+
     toggleActionDropdown: function() {
       this.setState({actionDropdownVisible: !this.state.actionDropdownVisible});
     },
+
     toggleArchiveDropdown: function() {
       this.setState({archiveDropdownVisible: !this.state.archiveDropdownVisible});
     },
+
     componentDidUpdate: function() {
       if (this.state.actionDropdownVisible) {
         var domNode = this.getDOMNode();
@@ -59,6 +75,7 @@
         domNode.getElementsByClassName('button-list')[0].style.width = dropdownWidth + "px";
       }
     },
+
     render: function() {
       return (
         <row>
@@ -77,7 +94,7 @@
                 </a>
               </li>
               <li>
-                <a onClick={this.props.removalBlocked ? null : this.props.handleRemove}
+                <a onClick={this.props.removalBlocked ? null : this.props.onRemove}
                     title="Remove workflow and all associated files"
                     className={"action-button small" + (this.props.removalBlocked ? " disabled" : "")}>
                     <i className="fa fa-trash-o"/>{this.props.smallDisplay && " Remove"}
@@ -90,12 +107,12 @@
                 </a>
                 {this.state.archiveDropdownVisible &&
                 <ul className="f-dropdown">
-                  <li><a data-bypass={true} onClick={this.props.handleDownload}
+                  <li><a data-bypass={true} onClick={this.props.onDownload}
                       href={'/api/workflow/' + this.props.workflowSlug + '/download?fmt=tar'}
                       title='Download as a tar archive'>.tar</a></li>
                   <li>
                     <a style={clientIsMacOS() ? {'color': 'red'} : {}}
-                       data-bypass={true} onClick={this.props.handleDownload}
+                       data-bypass={true} onClick={this.props.onDownload}
                        href={'/api/workflow/' + this.props.workflowSlug + '/download?fmt=zip'}
                        title={clientIsMacOS() ? 'Download as a ZIP archive' :
                               'Due to a bug in the OSX Archive tool it is unable to extract archives created from spreads. Please use a third-party software instead.'}>
@@ -106,7 +123,7 @@
               </li>
               {window.config.web.mode !== 'processor' &&
                 <li>
-                  <a onClick={this.props.handleCapture}
+                  <a onClick={this.props.onCapture}
                       title="Capture images"
                       className="action-button small">
                   <i className="fa fa-camera"/>{this.props.smallDisplay && " Capture"}
@@ -114,7 +131,7 @@
                 </li>}
               {window.config.web.mode !== 'scanner' && this.props.hasPages &&
                 <li>
-                  <a onClick={this.props.handleProcess}
+                  <a onClick={this.props.onProcess}
                      title="Postprocess images"
                      className="action-button small">
                      <i className="fa fa-gears"/>{this.props.smallDisplay && " Start Postprocessing"}
@@ -123,7 +140,7 @@
               }
               {window.config.web.mode !== 'scanner' && this.props.hasPages &&
                 <li>
-                  <a onClick={this.props.handleOutput}
+                  <a onClick={this.props.onOutput}
                      title="Generate output files"
                      className="action-button small">
                      <i className="fa fa-file-pdf-o"/>{this.props.smallDisplay && "Start Output Generation"}
@@ -132,7 +149,7 @@
               }
               {window.config.web.standalone_device &&
                 <li>
-                  <a onClick={this.props.handleTransfer}
+                  <a onClick={this.props.onTransfer}
                       title="Transfer workflow directory to a removable storage device"
                       className="action-button small">
                     <i className="fa fa-hdd-o"/>{this.props.smallDisplay && " Transfer"}
@@ -153,23 +170,29 @@
     }
   })
 
-  StepStatus = React.createClass({
-    displayName: "StepStatus",
+
+  var StepStatus = React.createClass({
+    propTypes: {
+      pages: React.PropTypes.array,
+      status: React.PropTypes.object,
+      outFiles: React.PropTypes.array
+    },
+
     render: function() {
-      var workflow = this.props.workflow,
-          pages = workflow.get('pages'),
-          step = workflow.get('status').step,
-          progress = workflow.get('status').step_progress,
-          captureDone = (pages.length > 0 && step !== 'capture'),
+      var step = this.props.status.step,
+          progress = this.props.step_progress,
+          captureDone = (this.props.pages.length > 0 && step !== 'capture'),
           captureBusy = (step === 'capture'),
-          processDone = (!_.isEmpty(pages) && !_.isEmpty(pages.slice(-1)[0].processed_images) &&
-                         (step !== 'process' || progress == 1)),
+          processDone = (!_.isEmpty(this.props.pages)
+                         && !_.isEmpty(this.props.pages.slice(-1)[0].processed_images)
+                         && (step !== 'process' || progress == 1)),
           processWaiting = (step === 'process' && progress == null),
           processBusy = (step === 'process' && progress !== null && progress < 1),
           outputWaiting = (step === 'output' && progress == null),
-          outputDone = (workflow.get('out_files').length > 0 &&
+          outputDone = (this.props.outFiles.length > 0 &&
                         (step !== 'output' || progress == 1)),
           outputBusy = (step === 'output' && progress !== null && progress < 1);
+
       return (
         <row>
           <column>
@@ -218,13 +241,13 @@
     }
   })
 
+
   /**
    * Display a single workflow with thumbnail, metadata and available actions.
    *
    * @property {Workflow} workflow  - Workflow to set configuration for
    */
-  WorkflowItem = React.createClass({
-    displayName: "WorkflowItem",
+  var WorkflowItem = React.createClass({
     getInitialState: function() {
       return {
         /** Display deletion confirmation modal? */
@@ -236,6 +259,7 @@
         stepProgress: 0
       };
     },
+
     /**
      * Remove associated workflow object from the model collection.
      */
@@ -249,6 +273,7 @@
         this.props.workflow.destroy();
       }
     },
+
     /**
      * Enable deletion confirmation modal
      */
@@ -257,6 +282,7 @@
         deleteModal: true
       });
     },
+
     /**
      * Continue to next step in workflow.
      */
@@ -270,6 +296,7 @@
      * otherwise displays a loading overlay as long as the transfer is not
      * completed.
      */
+
     handleTransfer:  function() {
       this.props.workflow.transfer(function(xhr, status) {
         if (status !== 'success') {
@@ -312,6 +339,7 @@
         }
       }.bind(this));
     },
+
     handleDownload: function() {
       this.setState({
         downloadInProgress: true
@@ -320,12 +348,15 @@
         this.setState({downloadInProgress: false});
       }, this);
     },
+
     handleProcess: function() {
       this.props.workflow.startPostprocessing();
     },
+
     handleOutput: function() {
       this.props.workflow.startOutputting();
     },
+
     render: function() {
       var workflow = this.props.workflow,
           workflowUrl = '/workflow/' + workflow.get('slug'),
@@ -334,12 +365,12 @@
 
       actionBar = (<ActionBar workflowSlug={workflow.get('slug')}
                               hasPages={workflow.get('pages').length > 0}
-                              handleRemove={this.handleRemove}
-                              handleDownload={this.handleDownload}
-                              handleCapture={this.handleCapture}
-                              handleTransfer={this.handleTransfer}
-                              handleProcess={this.handleProcess}
-                              handleOutput={this.handleOutput}
+                              onRemove={this.handleRemove}
+                              onDownload={this.handleDownload}
+                              onCapture={this.handleCapture}
+                              onTransfer={this.handleTransfer}
+                              onProcess={this.handleProcess}
+                              onOutput={this.handleOutput}
                               removalBlocked={removalBlocked}
                               smallDisplay={this.props.smallDisplay}/>);
       return (
@@ -389,7 +420,10 @@
                   <p>{workflow.has('pages') ? workflow.get('pages').length : 0} pages</p>
                 </column>
               </row>
-              {window.config.web.mode !== 'scanner' && <StepStatus workflow={workflow}/>}
+              {window.config.web.mode !== 'scanner' &&
+              <StepStatus pages={workflow.get('pages')}
+                          status={workflow.get('status')}
+                          outFiles={workflow.get('out_files')} />}
               {_.contains(["process", "output"], workflow.get('status').step) &&
               <row>
                 <column>
@@ -407,13 +441,16 @@
     }
   });
 
+
   /**
    * Container component that holds all WorkflowItems
    *
    * @property {Backbone.Collection<Workflow>} workflows
    */
-  module.exports = React.createClass({
-    displayName: "WorkflowList",
+  var WorkflowList = React.createClass({
+    propTypes: {
+      workflows: React.PropTypes.arrayOf(React.PropTypes.object)
+    },
 
     /** Enables two-way databinding with Backbone model */
     mixins: [ModelMixin],
@@ -422,14 +459,17 @@
     getBackboneModels: function() {
       return [this.props.workflows];
     },
+
     getInitialState: function() {
       return { mqSmall: util.isSmall() };
     },
+
     componentWillMount: function() {
       matchMedia(util.mediaQueries.medium).addListener(function(mql){
         this.setState({ mqSmall: !mql.matches});
       }.bind(this));
     },
+
     render: function() {
       var verb;
       if (window.config.web.mode == 'processor') verb = 'uploaded'
@@ -472,8 +512,11 @@
                 </p></column>
               </row>}
           </div>
-        </main>
-      );
+        </main>);
     }
   });
+
+  module.exports = {
+    WorkflowList: WorkflowList
+  };
 }());

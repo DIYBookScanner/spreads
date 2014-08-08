@@ -25,7 +25,7 @@
       WorkflowForm = require('./workflowform'),
       CaptureScreen = require('./capture').CaptureScreen,
       WorkflowDetails = require('./workflow'),
-      WorkflowList = require('./workflowlist'),
+      WorkflowList = require('./workflowlist').WorkflowList,
       SubmissionForm = require('./submission'),
       NavigationBar = require('./navbar'),
       LogDisplay = require('./logdisplay.js'),
