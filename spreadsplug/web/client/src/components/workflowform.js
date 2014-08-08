@@ -24,7 +24,7 @@
       merge = require('react/lib/merge'),
       foundation = require('./foundation.js'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
-      MetadataEditor = require('./metaeditor.js'),
+      MetadataEditor = require('./metaeditor.js').MetaEditor,
       PluginConfiguration = require('./config.js').PluginConfiguration,
       row = foundation.row,
       column = foundation.column,

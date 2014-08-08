@@ -28,7 +28,12 @@
       column = foundation.column,
       fnButton = foundation.button;
 
+
   var AutoComplete = React.createClass({
+    propTypes: {
+      onClick: React.PropTypes.func
+    },
+
     render: function() {
       var data = this.props.data,
           desc = "";
@@ -41,11 +46,16 @@
     }
   });
 
-/**
- * this component is the parent of AutoComplete
- */
 
+  /**
+  * this component is the parent of AutoComplete
+  */
   var AutoCompleteBox = React.createClass({
+    propTypes: {
+      list: React.PropTypes.array,
+      onSelect: React.PropTypes.func
+    },
+
     render: function() {
       var enumerated = _.zip(_.range(this.props.list.length), this.props.list);
       var nodes = _.map(enumerated, function(item){
@@ -63,7 +73,16 @@
     }
   });
 
+
   var AutocompleteField = React.createClass({
+    propTypes: {
+      key: React.PropTypes.string,
+      value: React.PropTypes.string,
+      name: React.PropTypes.string,
+      error: React.PropTypes.string,
+      onChange: React.PropTypes.func,
+    },
+
     //we initilize the component state with an immutable array
     getInitialState: function() {
       return {
@@ -74,6 +93,7 @@
                 term: '' }
       };
     },
+
     makeCall: _.debounce(function(term, current) {
       var endpoint = "/api/isbn?q=" + encodeURIComponent(term);
       jQuery.ajax({
@@ -99,6 +119,7 @@
         }.bind(this)
       });
     }, 500),
+
     //set state if user enters at least 3 chars, also reset state if user clears input box.
     handleKeyUp: function (e) {
       var k = e.target.value;
@@ -119,6 +140,7 @@
       }
       return false;
     },
+
     handleSelect: function(item) {
       this.setState({
         completeEnabled: false,
@@ -132,6 +154,7 @@
       });
       this.props.onChange(item);
     },
+
     render: function() {
       // if the incoming state contains a search term with a real priority then
       // make the async ajax/json calls
@@ -169,7 +192,15 @@
     }
   });
 
+
   var Field = React.createClass({
+    propTypes: {
+      key: React.PropTypes.string,
+      value: React.PropTypes.string,
+      error: React.PropTypes.string,
+      onChange: React.PropTypes.func
+    },
+
     render: function() {
       return (
         <row>
@@ -191,23 +222,34 @@
     }
   });
 
+
   var FieldSet = React.createClass({
+    propTypes: {
+      name: React.PropTypes.string,
+      values: React.PropTypes.array,
+      errors: React.PropTypes.array,
+      onChange: React.PropTypes.func
+    },
+
     onModified: function(idx, value) {
       var values = _.clone(this.props.values);
       values[idx] = value;
       this.props.onChange(values);
     },
+
     onRemoved: function(idx) {
       var values = _.clone(this.props.values);
       values.splice(idx, 1);
       this.props.onChange(values);
     },
+
     onAdded: function() {
       var values = _.clone(this.props.values);
       if (_.isEmpty(values)) values.push("");
       values.push("");
       this.props.onChange(values);
     },
+
     render: function() {
       var values = this.props.values,
           enumeratedValues,
@@ -252,8 +294,13 @@
     }
   });
 
+
   var MetadataEditor = React.createClass({
-    displayName: 'MetadataEditor',
+    propTypes: {
+      metadata: React.PropTypes.object,
+      errors: React.PropTypes.object
+    },
+
     updateMetadata: function(newData) {
       if (_.isUndefined(this.state.metadata.title) && _.has(newData, 'identifier')) {
         var isbnNo = _.find(newData.identifier, function(val) {
@@ -271,6 +318,7 @@
         metadata: merge(this.state.metadata, newData)
       });
     },
+
     updateFromISBN: function(isbnNo, inputIdx) {
       jQuery.ajax({
         url: "/api/isbn/" + isbnNo,
@@ -293,6 +341,7 @@
         }.bind(this)
       });
     },
+
     getInitialState: function() {
       return {
         // NOTE: This is only for initialization purposes
@@ -300,6 +349,7 @@
         errors: this.props.errors || {}
       }
     },
+
     render: function() {
       var errors = merge(this.state.errors, this.props.errors || {});
       return (
@@ -340,5 +390,7 @@
     }
   });
 
-  module.exports = MetadataEditor;
+  module.exports = {
+    MetadataEditor: MetadataEditor
+  };
 }());
