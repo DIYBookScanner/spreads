@@ -22,24 +22,32 @@
   var React = require('react/addons'),
       _ = require('underscore'),
       merge = require('react/lib/merge'),
-      foundation = require('./foundation.js'),
+      F = require('./foundation.js'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
-      capitalize = require('../util.js').capitalize,
-      row = foundation.row,
-      column = foundation.column,
-      fnButton = foundation.button,
-      PluginOption, PluginWidget, PluginConfiguration, PluginSelector;
+      capitalize = require('../util.js').capitalize;
 
 
   /**
    * A single option component for the workflow configuration.
-   *
-   * @property {string} name        - Name of the option
-   * @property {object} option
-   * @property {function} bindFunc  - Function that establishes databinding
-   * @property {string} [error]     - Error message for the option
    */
-  PluginOption = React.createClass({
+  var PluginOption = React.createClass({
+    propTypes: {
+      /** Name of the option */
+      name: React.PropTypes.string.isRequired,
+      /** Current value of the option */
+      value: React.PropTypes.oneOfType([
+        React.PropTypes.string,
+        React.PropTypes.number,
+        React.PropTypes.bool,
+      ]).isRequired,
+      /** Template for the option */
+      option: React.PropTypes.object.isRequired,
+      /** Errors from server-side validation for the option */
+      error: React.PropTypes.object,
+      /** Function to be called when value changes */
+      onChange: React.PropTypes.func.isRequired
+    },
+
     render: function() {
       var name = this.props.name,
           option = this.props.option,
@@ -74,30 +82,41 @@
       }
       var error = this.props.error && (<small className="error">{this.props.error}</small>);
       return (
-        <row>
+        <F.Row>
         {input &&
-          <column>
-            <row>
+          <F.Column>
+            <F.Row>
             {/* Labels are to the left of all inputs, except for checkboxes */}
             {input.props.type === 'checkbox' ?
-              <column size={1}>{input}</column> : <column size={5}>{label}{error}</column>}
+              <F.Column size={1}>{input}</F.Column> : <F.Column size={5}>{label}{error}</F.Column>}
             {input.props.type === 'checkbox' ?
-              <column size={11}>{label}</column> : <column size={7}>{input}{error}</column>}
-            </row>
-          </column>}
-        </row>
+              <F.Column size={11}>{label}</F.Column> : <F.Column size={7}>{input}{error}</F.Column>}
+            </F.Row>
+          </F.Column>}
+        </F.Row>
       );
     }
   });
 
+
   /**
    * Collection of options for a single plugin
-   *
-   * @property {object} template       - Collection of templates for options
-   * @property {string} plugin         - Name of the plugin
-   * @property {function} bindFunc     - Function to call to establish databinding
    */
-  PluginWidget = React.createClass({
+  var PluginWidget = React.createClass({
+    propTypes: {
+      /** Whether to show advanced options */
+      showAdvanced: React.PropTypes.bool,
+      /** Current settings for this plugin */
+      cfgValues: React.PropTypes.object.isRequired,
+      /** Template for the settings */
+      template: React.PropTypes.object.isRequired,
+      /** Errors from server-side validation */
+      errors: React.PropTypes.object,
+      /** Function to be called when value changes */
+      onChange: React.PropTypes.func.isRequired
+    },
+
+    /** Generate change callback for a given key */
     getHandleChange: function(key) {
       return function(e) {
         var cfgValues = _.clone(this.props.cfgValues);
@@ -105,6 +124,7 @@
         this.props.onChange(cfgValues);
       }.bind(this);
     },
+
     render: function() {
       var template = this.props.template,
           cfgValues = this.props.cfgValues;
@@ -124,41 +144,64 @@
     }
   });
 
-  PluginSelector = React.createClass({
+
+  /**
+   * Component for selecting plugin to display settings for
+   */
+  var PluginSelector = React.createClass({
+    propTypes: {
+      /** Type of plugins to select */
+      type: React.PropTypes.string.isRequired,
+      /** List of available plugins of that type */
+      available: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
+      /** List of enabled plugins of that type */
+      enabled: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
+      /** Function to be called when selection changes */
+      onChange: React.PropTypes.func.isRequired
+    },
+
     render: function() {
       return (
-      <row className="plugin-select">
-        <column size={3}><label>Select {this.props.type} plugins</label></column>
-        <column size={9} className="select-pane">
+      <F.Row className="plugin-select">
+        <F.Column size={3}><label>Select {this.props.type} plugins</label></F.Column>
+        <F.Column size={9} className="select-pane">
           {_.map(this.props.available, function(plugin) {
             var key = 'toggle-' + plugin;
             return (
-              <row key={key}>
-                <column>
+              <F.Row key={key}>
+                <F.Column>
                   <input id={key} type="checkbox"
                          checked={_.contains(this.props.enabled, plugin)}
                          onChange={function(e){
                             this.props.onChange(e.target.checked, plugin);
                          }.bind(this)} />
                   <label htmlFor={key}> {plugin} </label>
-                </column>
-              </row>);
+                </F.Column>
+              </F.Row>);
           }.bind(this))}
-        </column>
-      </row>);
+        </F.Column>
+      </F.Row>);
     }
   });
 
+
   /**
    * Container for all plugin configuration widgets.
-   * Offers a dropdown to select a plugin to configure and displays
-   * its configuration widget.
-   *
-   * @property {Workflow} workflow  - Workflow to set configuration for
-   * @property {object} errors      - Validation errors
-   *
+   * Offers a dropdown to select a plugin to configure and displays its
+   * configuration widget.
    */
-  PluginConfiguration = React.createClass({
+  var PluginConfiguration = React.createClass({
+    propTypes: {
+      /** Available plugins by type */
+      availablePlugins: React.PropTypes.object.isRequired,
+      /** Current configuration */
+      config: React.PropTypes.object.isRequired,
+      /** Configuration templates for available plugins */
+      templates: React.PropTypes.object.isRequired,
+      /** Errors from server-side validation */
+      errors: React.PropTypes.object
+    },
+
     getInitialState: function() {
       return {
         /** Currently selected plugin */
@@ -168,14 +211,17 @@
         /** Only for initialization purposes, not intended to be kept in sync
          *  at all times. */
         config: this.props.config || {},
+        /** Whether to display advanced options */
         advancedOpts: false
       };
     },
+
     handleChange: function(section, cfgValues) {
       var config = _.clone(this.state.config);
       config[section] = cfgValues;
       this.setState({config: config});
     },
+
     handlePluginToggle: function(enabled, pluginName) {
       var config = this.state.config;
       if (_.isUndefined(config.plugins)) config.plugins = [];
@@ -187,9 +233,11 @@
       }
       this.setState({config: config});
     },
+
     toggleAdvanced: function(){
       this.setState({ advancedOpts: !this.state.advancedOpts });
     },
+
     getDefaultConfig: function(pluginName) {
       if (!_.has(this.props.templates, pluginName)) return;
       var template = this.props.templates[pluginName],
@@ -200,6 +248,7 @@
       });
       return config;
     },
+
     render: function() {
       var templates = this.props.templates,
           config = this.state.config,
@@ -235,8 +284,8 @@
         selectedSection = configSections[0];
       }
       return (
-        <row>
-          <column size={['12', '10', '8']}>
+        <F.Row>
+          <F.Column size={[12, 10, 8]}>
             <fieldset className="config">
               <legend>Configuration</legend>
               {!_.isEmpty(availablePlugins.postprocessing) &&
@@ -249,17 +298,16 @@
                                 available={availablePlugins.output}
                                 enabled={config.plugins}
                                 onChange={this.handlePluginToggle} />}
-              <row style={{"border-top": "1px solid lightgray",
-                           "padding-top": "1em"}}>
-                <column>
+              <F.Row className="separator">
+                <F.Column>
                   <input id="check-advanced" type="checkbox" value={this.state.advancedOpts}
                           onChange={this.toggleAdvanced} />
                   <label htmlFor="check-advanced">Show advanced options</label>
-                </column>
-              </row>
+                </F.Column>
+              </F.Row>
               {!_.isEmpty(configSections) &&
-              <row className="plugin-config">
-                <column size={3}>
+              <F.Row className="plugin-config">
+                <F.Column size={3}>
                 {_.map(configSections, function(section) {
                   var active = selectedSection === section,
                       classes = React.addons.classSet({
@@ -267,8 +315,8 @@
                         active: active
                       });
                   return (
-                    <row key={section}>
-                      <column>
+                    <F.Row key={section}>
+                      <F.Column>
                         <a onClick={function() {
                           this.setState({selectedSection: section});
                         }.bind(this)}>
@@ -279,11 +327,11 @@
                                           className="fa fa-caret-right right" />}
                           </label>
                         </a>
-                      </column>
-                    </row>);
+                      </F.Column>
+                    </F.Row>);
                 }, this)}
-                </column>
-                <column size={9} className="config-pane">
+                </F.Column>
+                <F.Column size={9} className="config-pane">
                   <PluginWidget template={templates[selectedSection]}
                                 showAdvanced={this.state.advancedOpts}
                                 cfgValues={this.state.config[selectedSection] || this.getDefaultConfig(selectedSection)}
@@ -291,11 +339,11 @@
                                 onChange={function(cfgValues) {
                                   this.handleChange(selectedSection, cfgValues);
                                 }.bind(this)} />
-                </column>
-              </row>}
+                </F.Column>
+              </F.Row>}
             </fieldset>
-          </column>
-        </row>);
+          </F.Column>
+        </F.Row>);
     }
   });
 
@@ -303,6 +351,4 @@
       PluginWidget: PluginWidget,
       PluginConfiguration: PluginConfiguration
   }
-
-
 }());

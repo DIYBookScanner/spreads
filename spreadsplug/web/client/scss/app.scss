@@ -548,6 +548,11 @@ fieldset.config {
     min-width: 10%;
 }
 
+.row.separator {
+  border-top: 1px solid lightgray;
+  padding-top: 1em;
+}
+
 /* ======= Animations ======== */
 @include keyframes(bounce) {
   0%, 100% {

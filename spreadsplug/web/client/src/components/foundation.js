@@ -21,117 +21,206 @@
   'use strict';
   var React = require('react/addons'),
       classSet = React.addons.classSet,
-      _ = require('underscore'),
-      row, column, fnButton, fnAlert, pagination, modal, confirmModal, fnLabel;
+      _ = require('underscore');
 
   /**
    * Row component.
-   *
-   * @property {string} className - Additionall CSS classes for the component
-   * @property {React.Component[]} children - Child components
    */
-  row =  React.createClass({
+  var Row =  React.createClass({
+    propTypes: {
+      /** Useful for pre/postfix labels in forms */
+      collapse: React.PropTypes.bool,
+      /** Additional CSS classes */
+      className: React.PropTypes.string,
+      /** Child component(s) */
+      children: React.PropTypes.oneOfType([
+        React.PropTypes.renderable,
+        React.PropTypes.arrayOf(React.PropTypes.renderable)
+      ]),
+    },
+
+    getDefaultProps: function() {
+      return {
+        collapse: false,
+        className: ""
+      }
+    },
+
     render: function() {
-      var classes = classSet({
-        'row': true,
-        'collapse': this.props.collapse
-      });
-      return this.transferPropsTo(<div className={classes}>{this.props.children}</div>);
+      var classes = [
+        this.props.className,
+        classSet({
+          'row': true,
+          'collapse': this.props.collapse
+        })
+      ].join(" ");
+      return (<div className={classes}>{this.props.children}</div>);
     }
   });
 
+
   /**
    * Column component
-   *
-   * @property {string|string[]} [size='12'] - Size of the column.
-   *    If specified as a string, the size will be valid for
-   *    all sizes. If specified as an array, the values will be for
-   *    [small, medium, [large]] sizes, depending on their position.
-   * @property {string} [offset='0'] - Horizontal offset of the column.
-   * @property {React.Component[]} children - Child components
    */
-  column = React.createClass({
+  var Column = React.createClass({
+    propTypes: {
+      size: React.PropTypes.oneOfType([
+        React.PropTypes.number,
+        React.PropTypes.arrayOf(React.PropTypes.number)
+      ]),
+      offset: React.PropTypes.oneOfType([
+        React.PropTypes.number,
+        React.PropTypes.arrayOf(React.PropTypes.number)
+      ]),
+      className: React.PropTypes.string,
+      children: React.PropTypes.oneOfType([
+        React.PropTypes.renderable,
+        React.PropTypes.arrayOf(React.PropTypes.renderable)
+      ]),
+    },
+
+    getDefaultProps: function() {
+      return {
+        size: 12,
+        offset: 0
+      };
+    },
+
     render: function() {
-      var classes = this.props.className || '';
-      if (typeof this.props.size === 'object') {
-        var sizes = this.props.size;
-        classes += " small-" + sizes[0] +
-                  " medium-" + sizes[1] +
-                  " large-" + (sizes[2] || sizes[1])+
-                  " columns";
+      var classes = {
+        columns: true
+      };
+      if (_.isNumber(this.props.size)) {
+        classes['small-' + this.props.size] = true;
       } else {
-        classes += " small-" + (this.props.size || 12) + " columns";
+        _.each(_.zip(this.props.size, ['small', 'medium', 'large']), function(size) {
+          if (size[0]) classes[size[1] + '-' + size[0]] = true;
+        });
       }
-      if (this.props.offset) {
-        classes += " small-offset-" + this.props.offset;
+      if (_.isNumber(this.props.offset) && this.props.offset > 0) {
+        classes['small-offset-' + this.props.offset] = true;
+      } else {
+        _.each(_.zip(this.props.offset, ['small', 'medium', 'large']), function(offset) {
+          if (offset[0]) classes[offset[1] + '-offset-' + offset[0]] = true;
+        });
       }
-      return (<div className={classes}>{this.props.children}</div>);
+      var className = [React.addons.classSet(classes), this.props.className].join(" ");
+      return (<div className={className}>
+                {this.props.children}
+              </div>);
     }
   });
 
   /**
    * Button component.
-   *
-   * @property {function} callback - Callback for button click
-   * @property {string} [size] - Button size
-   * @property {boolean} [secondary] - Button is secondary
-   * @property {boolean} [expand] - Expand button size
-   * @property {boolean} [disabled] - Disable the button
-   * @property {React.Component[]} children - Child components
    */
-  fnButton = React.createClass({
+  var Button = React.createClass({
+    propTypes: {
+      size: React.PropTypes.oneOf(['tiny', 'small', 'medium', 'large']),
+      secondary: React.PropTypes.bool,
+      expand: React.PropTypes.bool,
+      disabled: React.PropTypes.bool,
+      onClick: React.PropTypes.func,
+      className: React.PropTypes.string,
+      children: React.PropTypes.oneOfType([
+        React.PropTypes.renderable,
+        React.PropTypes.arrayOf(React.PropTypes.renderable)
+      ]),
+    },
+
+    getDefaultProps: function() {
+      return {
+        size: 'medium',
+        secondary: false,
+        expand: false,
+        disabled: false
+      };
+    },
+
     render: function() {
-      var classes = classSet({
-        'action-button': true,
+      var classes = {
+        'action-button': true,  // TODO: Remove
         'secondary': this.props.secondary,
-        'complete': this.props.complete,
         'expand': this.props.expand,
         'disabled': this.props.disabled
-      });
+      };
+      var className = [classSet(classes), this.props.className].join(" ");
       classes += " " + this.props.size;
-      return (this.transferPropsTo(
-          <a onClick={this.props.callback} className={classes}>
-              {this.props.children}
-          </a>));
+      return (<a onClick={this.props.onClick} className={className}>
+                {this.props.children}
+              </a>);
     }
   });
+
 
   /**
    * Display a Foundation "alert" box.
-   *
-   * @property {function} closeCallback - Callback function when alert is closed
-   * @property {string} [level] - Severity level of alert (debug/info/warning/error)
-   * @property {string} message - Message in alert box
-   * @property {React.Component[]} children - Child components
    */
-  fnAlert = React.createClass({
-    handleClose: function() {
-      this.props.closeCallback();
+  var Alert = React.createClass({
+    propTypes: {
+      severity: React.PropTypes.oneOf([
+        'standard', 'success', 'warning', 'info', 'alert', 'secondary'
+      ]),
+      onClick: React.PropTypes.func,
+      onClose: React.PropTypes.func,
+      className: React.PropTypes.string,
+      children: React.PropTypes.oneOfType([
+        React.PropTypes.renderable,
+        React.PropTypes.arrayOf(React.PropTypes.renderable)
+      ])
     },
-    render: function() {
-      var classes = ['alert-box'];
-      if (_.contains(['WARNING', 'ERROR'], this.props.level)) {
-        classes.push('warning');
+
+    getDefaultProps: function() {
+      return {
+        level: 'standard'
       }
-      return (<div data-alert
-                   className={"alert-box " + classes.join(' ')}
-                   onClick={this.handleClose}>
-                {this.props.message}
+    },
+
+    render: function() {
+      var classes = {'alert-box': true};
+      classes[this.props.severity] = true;
+      var className = [classSet(classes), this.props.className].join(" ");
+      return (<div className={className} onClick={this.props.onClick}>
                 {this.props.children}
-                <a className="close">&times;</a>
-              </div>
-              );
+                <a className="close" onClick={this.props.onClose}>&times;</a>
+              </div>);
     }
   });
 
+
+  var PageButton = React.createClass({
+    propTypes: {
+      current: React.PropTypes.bool,
+      num: React.PropTypes.number,
+      onClick: React.PropTypes.func
+    },
+
+    render: function() {
+      return (
+        <li className={this.props.current ? "current": ""}>
+          <a onClick={this.props.onClick}>
+            {this.props.num}
+          </a>
+        </li>
+      );
+    }
+  });
+
+
   /**
    * Pagination component.
-   *
-   * @property {function} onBrowse - Callback for page changes
-   * @property {number} pageCount - Total number of pages
-   * @property {boolean} [centered=false] - Center the pagination
    */
-  pagination = React.createClass({
+  var Pagination = React.createClass({
+    propTypes: {
+      centered: React.PropTypes.bool,
+      pageCount: React.PropTypes.number.isRequired,
+      onBrowse: React.PropTypes.func.isRequired
+    },
+
+    getDefaultProps: function() {
+      return { centered: false };
+    },
+
     /**
      * Switch to previous page
      */
@@ -140,6 +229,7 @@
         this.handleToPage(this.state.currentPage-1);
       }
     },
+
     /**
      * Switch to next page
      */
@@ -148,52 +238,47 @@
         this.handleToPage(this.state.currentPage+1);
       }
     },
+
     /**
      * Change to given page
      *
      * @param {number} idx - Page number to switch to
      */
     handleToPage: function(idx) {
-      this.props.onBrowse(idx);
       this.setState({
         currentPage: idx
       });
+      this.props.onBrowse(idx);
     },
+
     getInitialState: function() {
       return {
         currentPage: 1
       };
     },
-    render: function() {
-      var pageButton = React.createClass({
-        render: function() {
-          return (
-            <li className={this.props.current ? "current": ""}>
-              <a onClick={function() {this.props.onClick(this.props.num);}.bind(this)}>
-                {this.props.num}
-              </a>
-            </li>
-          );
-        }
-      }).bind(this);
-      var lastPage = this.props.pageCount,
-          currentPage = this.state.currentPage,
-          uncenteredPagination;
 
-      uncenteredPagination = (
+    render: function() {
+      var lastPage = this.props.pageCount,
+          currentPage = this.state.currentPage;
+
+      var uncenteredPagination = (
         <ul className="pagination">
           <li className={"arrow" + (currentPage === 1 ? " unavailable" : '')}>
             <a onClick={this.handleBack}>&laquo;</a>
           </li>
-          <pageButton current={currentPage === 1} num={1} onClick={this.handleToPage} />
+          <PageButton current={currentPage === 1} num={1} onClick={_.partial(this.handleToPage, 1)} />
           {(currentPage > 2) && <li className="unavailable"><a>&hellip;</a></li>}
           {lastPage > 2 &&
             _.range(currentPage-1, currentPage+2).map(function(idx) {
               if (idx <= 1 || idx >= lastPage) return;
-              return <pageButton key={"page-"+idx} current={currentPage === idx} num={idx} onClick={this.handleToPage} />;
+              return (
+                <PageButton key={"page-"+idx} current={currentPage === idx}
+                  num={idx} onClick={_.partial(this.handleToPage, idx)} />
+              );
             }.bind(this))}
           {(currentPage < lastPage-1) && <li className="unavailable"><a>&hellip;</a></li>}
-          <pageButton current={currentPage === lastPage} num={lastPage} onClick={this.handleToPage} />
+          <PageButton current={currentPage === lastPage} num={lastPage}
+                      onClick={_.partial(this.handleToPage, lastPage)} />
           <li className={"arrow" + (currentPage === lastPage ? " unavailable" : '')}>
             <a onClick={this.handleForward}>&raquo;</a>
           </li>
@@ -211,18 +296,28 @@
     }
   });
 
+
   /**
    * Modal overlay with close button
-   *
-   * @property {function} onClose - Callback function when close button is pressed
-   * @property {React.Component[]} children - Child components
    */
-  modal = React.createClass({
+  var Modal = React.createClass({
+    propTypes: {
+      fixed: React.PropTypes.bool,
+      small: React.PropTypes.bool,
+      onClose: React.PropTypes.func,
+      children: React.PropTypes.oneOfType([
+        React.PropTypes.renderable,
+        React.PropTypes.arrayOf(React.PropTypes.renderable)
+      ]),
+    },
+
     getDefaultProps: function() {
       return {
-        small: true
+        small: true,
+        fixed: false
       };
     },
+
     render: function() {
       var classes = classSet({
         'reveal-modal': true,
@@ -240,42 +335,52 @@
     }
   });
 
+
   /**
    * Modal overlay with 'OK' and 'Cancel' buttons.
-   *
-   * @property {function} onConfirm - Callback function when confirm button is pressed
-   * @property {function} onCancel - Callback when cancel or close button is pressed
-   * @property {React.Component[]} children - Child components
    */
-  confirmModal = React.createClass({
+  var ConfirmModal = React.createClass({
+    propTypes: {
+      fixed: React.PropTypes.bool,
+      onCancel: React.PropTypes.func,
+      onConfirm: React.PropTypes.func,
+      children: React.PropTypes.oneOfType([
+        React.PropTypes.renderable,
+        React.PropTypes.arrayOf(React.PropTypes.renderable)
+      ])
+    },
+
     render: function() {
       return (
         <modal onClose={this.props.onCancel} fixed={this.props.fixed}>
           {this.props.children}
-          <row>
-            <column size="6">
-              <fnButton callback={this.props.onConfirm} size="small">OK</fnButton>
-            </column>
-            <column size="6">
-              <fnButton callback={this.props.onCancel} size="small">Cancel</fnButton>
-            </column>
-          </row>
+          <Row>
+            <Column size={6}>
+              <Button callback={this.props.onConfirm} size="small">OK</Button>
+            </Column>
+            <Column size={6}>
+              <Button callback={this.props.onCancel} size="small">Cancel</Button>
+            </Column>
+          </Row>
         </modal>
       );
     }
   });
 
-  fnLabel = React.createClass({
-    displayName: 'fnLabel',
+  var Label = React.createClass({
+    propTypes: {
+      round: React.PropTypes.bool,
+      severity: React.PropTypes.oneOf([
+        'standard', 'success', 'warning', 'alert', 'secondary'
+      ]),
+    },
+
     render: function() {
       var classes = {
         'label': true,
         'round': this.props.round,
-        'success': this.props.level === 'success',
-        'alert': this.props.level === 'alert',
-        'secondary': this.props.level === 'secondary',
-        'regular': !this.props.level
       };
+      if (this.props.severity !== 'standard') classes[this.props.severity] = true;
       return (
         <span className={classSet(classes)}>{this.props.children}</span>
       );
@@ -283,13 +388,13 @@
   });
 
   module.exports = {
-    row: row,
-    column: column,
-    button: fnButton,
-    alert: fnAlert,
-    pagination: pagination,
-    modal: modal,
-    confirmModal: confirmModal,
-    label: fnLabel
+    Row: Row,
+    Column: Column,
+    Button: Button,
+    Alert: Alert,
+    Pagination: Pagination,
+    Modal: Modal,
+    ConfirmModal: ConfirmModal,
+    Label: Label
   };
 }());

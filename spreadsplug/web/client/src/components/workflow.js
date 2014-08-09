@@ -24,26 +24,27 @@
       jQuery = require('jquery'),
       _ = require('underscore'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
-      foundation = require('./foundation.js'),
+      F = require('./foundation.js'),
       lightbox = require('./overlays.js').LightBox,
-      util = require('../util.js'),
-      row = foundation.row,
-      column = foundation.column,
-      pagination = foundation.pagination,
-      PagePreview;
+      util = require('../util.js');
 
-  PagePreview = React.createClass({
-    displayName: "PagePreview",
+  var PagePreview = React.createClass({
+    propTypes: {
+      imageType: React.PropTypes.string
+    },
+
     getInitialState: function() {
       // We always display the toolbar when we're on a touch device, since
       // hover events are not available.
       return { displayToolbar: util.isTouchDevice() };
     },
+
     toggleToolbar: function() {
       if (!util.isTouchDevice()) {
         this.setState({displayToolbar: !this.state.displayToolbar});
       }
     },
+
     render: function() {
       var cx = require('react/addons').addons.classSet,
           liClasses = cx({
@@ -52,25 +53,28 @@
             'selected': this.props.selected
           }),
           page = this.props.page,
-          thumbUrl = util.getPageUrl(this.props.workflow, page.sequence_num, this.props.imageType, true);
+          thumbUrl = util.getPageUrl(this.props.workflow,
+                                     page.sequence_num,
+                                     this.props.imageType, true);
       return (
         <li className={liClasses} title="Open full resolution image in lightbox"
             onMouseEnter={this.toggleToolbar} onMouseLeave={this.toggleToolbar}>
-          <row>
-            <column>
+          <F.Row>
+            <F.Column>
               <a onClick={this.props.selectCallback}
-                title={this.props.selected ? "Deselect image" : "Select image"}>
+                 title={this.props.selected ? "Deselect image" : "Select image"}>
                 <img src={thumbUrl} />
               </a>
               {this.state.displayToolbar &&
-              <a onClick={this.props.lightboxCallback}  className="toggle-zoom fa fa-search-plus" />}
-            </column>
-          </row>
-          <row>
-            <column>
+              <a onClick={this.props.lightboxCallback}
+                 className="toggle-zoom fa fa-search-plus" />}
+            </F.Column>
+          </F.Row>
+          <F.Row>
+            <F.Column>
               {page.page_label}
-            </column>
-          </row>
+            </F.Column>
+          </F.Row>
         </li>);
     }
   })
@@ -82,9 +86,7 @@
    *
    * @property {Workflow} workflow - Workflow to display
    */
-  module.exports = React.createClass({
-    displayName: "WorkflowDisplay",
-
+  var WorkflowDisplay = React.createClass({
     /** Enables two-way databinding with Backbone model */
     mixins: [ModelMixin],
 
@@ -115,12 +117,12 @@
      * @param {string} [img] - URL for image to be displayed in lightbox
      */
     toggleLightbox: function(workflow, page) {
-      console.debug(workflow, page);
       var image, next, previous;
       if (page) {
         var allPages = workflow.get('pages'),
             pageIdx = allPages.indexOf(page);
-        image = util.getPageUrl(this.props.workflow, page, this.state.imageType, false);
+        image = util.getPageUrl(this.props.workflow, page.sequence_num,
+                                this.state.imageType, false);
         next = (pageIdx != (allPages.length-1)) && allPages[pageIdx+1];
         previous = (pageIdx != 0) && allPages[pageIdx-1];
       }
@@ -178,7 +180,7 @@
         <main>
           {/* Display image in lightbox overlay? */}
           {this.state.lightboxImage &&
-            <lightbox onClose={function(){this.toggleLightbox();}.bind(this)}
+            <lightbox onClose={_.partial(this.toggleLightbox, null, null)}
                       src={this.state.lightboxImage}
                       handleNext={this.state.lightboxNext && function(e) {
                         e.stopPropagation();
@@ -189,13 +191,13 @@
                         this.toggleLightbox(workflow, this.state.lightboxPrevious);
                       }.bind(this)}/>
           }
-          <row>
-            <column size='12'>
+          <F.Row>
+            <F.Column>
               <h1>{metadata.title}</h1>
-            </column>
-          </row>
-          <row className="metadata-view">
-            <column size='12'>
+            </F.Column>
+          </F.Row>
+          <F.Row className="metadata-view">
+            <F.Column>
               <h2>Metadata</h2>
               {_.map(window.metadataSchema, function(field) {
                 if (!_.has(metadata, field.key)) return;
@@ -212,18 +214,18 @@
                   valueNode = value;
                 }
                 return (
-                  <row key={field.key}>
-                    <column size={2}>{field.description}</column>
-                    <column size={10}>{valueNode}</column>
-                  </row>);
+                  <F.Row key={field.key}>
+                    <F.Column size={2}>{field.description}</F.Column>
+                    <F.Column size={10}>{valueNode}</F.Column>
+                  </F.Row>);
                 })}
-            </column>
-          </row>
+            </F.Column>
+          </F.Row>
 
           {/* Only show image thumbnails when there are images in the workflow */}
           {pages.length > 0 &&
-          <row>
-            <column size='12'>
+          <F.Row>
+            <F.Column>
               <h2>Pages</h2>
               <div className="button-bar">
                 <ul className="button-group">
@@ -242,19 +244,19 @@
                     return (
                       <PagePreview page={page} workflow={workflow} key={page.capture_num} imageType={this.state.imageType}
                                    selected={_.contains(this.state.selectedPages, page)}
-                                   selectCallback={function(){this.togglePageSelect(page)}.bind(this)}
-                                   lightboxCallback={function(){this.toggleLightbox(workflow, page);}.bind(this)} />
+                                   selectCallback={_.partial(this.togglePageSelect, page)}
+                                   lightboxCallback={_.partial(this.toggleLightbox, workflow, page)} />
                     );
                   }.bind(this))}
               </ul>
-              {pageCount > 1 && <pagination centered={true} pageCount={pageCount} onBrowse={this.browse} />}
-            </column>
-          </row>}
+              {pageCount > 1 && <F.Pagination centered={true} pageCount={pageCount} onBrowse={this.browse} />}
+            </F.Column>
+          </F.Row>}
 
           {/* Only show output file list if there are output files in the workflow */}
           {!_.isEmpty(workflow.get('out_files')) &&
-          <row>
-            <column size='12'>
+          <F.Row>
+            <F.Column>
               <h2>Output files</h2>
               <ul ref="outputlist" className="fa-ul">
                 {_.map(workflow.get('out_files'), function(outFile) {
@@ -271,10 +273,12 @@
                     );
                   }, this)}
               </ul>
-            </column>
-          </row>}
+            </F.Column>
+          </F.Row>}
         </main>
       );
     }
   });
+
+  module.exports = WorkflowDisplay;
 }());

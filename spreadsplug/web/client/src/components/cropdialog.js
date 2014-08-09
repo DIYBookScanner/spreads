@@ -23,32 +23,50 @@
   var _ = require('underscore'),
       React = require('react/addons'),
       util = require('../util.js'),
-      foundation = require('./foundation.js'),
-      row = foundation.row,
-      column = foundation.column;
+      F = require('./foundation.js');
 
-  module.exports = React.createClass({
+  var CropWidget = React.createClass({
+    propTypes: {
+      /** Current crop parameters */
+      cropParams: React.PropTypes.object,
+      /** Original, unscaled width of image source */
+      nativeWidth: React.PropTypes.number,
+      /** Original, unscaled height of image source */
+      nativeHeight: React.PropTypes.number,
+      /** Whether to show input boxes with values below image */
+      showInputs: React.PropTypes.bool,
+      /** Source image URL */
+      imageSrc: React.PropTypes.string,
+      /** Function that is called when the user decides to save the crop
+       * selection */
+      onSave: React.PropTypes.func
+    },
+
     getInitialState: function() {
       return {
         initialX: 0,
-        initialY: undefined,
-        dragOrigin: undefined,
+        initialY: 0,
+        dragOrigin: null,
         cropParams: this.props.cropParams,
         imageSize: {}
       };
     },
+
     getDefaultProps: function() {
       return {
         showInputs: false,
         cropParams: {}
       };
     },
+
     componentDidMount: function() {
       window.addEventListener("resize", this.handleResize);
     },
+
     componentWillUnmount: function() {
       window.removeEventListener("resize", this.handleResize);
     },
+
     handleTouchStart: function(e) {
       e.preventDefault();
       var touch = e.targetTouches[0],
@@ -61,6 +79,7 @@
         dragOrigin: dragOrigin
       });
     },
+
     handleMouseDown: function(e) {
       e.preventDefault();
       var dragOrigin = e.target.className.split(' ')[0];
@@ -72,6 +91,7 @@
         dragOrigin: dragOrigin
       });
     },
+
     handleMouseMove: function(e) {
       e.preventDefault();
       var offsetX = e.clientX - this.state.initialX,
@@ -88,6 +108,7 @@
         cropParams: params
       });
     },
+
     handleTouchMove: function(e) {
       e.preventDefault();
       var touch = e.targetTouches[0],
@@ -105,18 +126,21 @@
         cropParams: params
       });
     },
+
     handleMouseUp: function(e) {
       e.preventDefault();
       document.removeEventListener('mousemove', this.handleMouseMove);
       document.removeEventListener('mouseup', this.handleMouseUp);
       this.setState({dragOrigin: undefined});
     },
+
     handleTouchEnd: function(e) {
       e.preventDefault();
       document.removeEventListener('touchmove', this.handleTouchMove);
       document.removeEventListener('touchend', this.handleTouchEnd);
       this.setState({dragOrigin: undefined});
     },
+
     handleBoxResize: function(offsetX, offsetY, origin) {
       var newParams = _.clone(this.state.cropParams),
           imgSize = this.state.imageSize,
@@ -182,6 +206,7 @@
 
       return newParams;
     },
+
     handleLoad: function(e) {
       var newState = {
         imageSize: this.getImageSize()
@@ -196,6 +221,7 @@
       }
       this.setState(newState);
     },
+
     getImageSize: function() {
       var imgNode = this.refs.image.getDOMNode();
       return {
@@ -207,11 +233,13 @@
         nativeHeight: this.props.nativeHeight || imgNode.naturalHeight
       };
     },
+
     handleResize: function() {
       this.setState({
         imageSize: this.getImageSize()
       });
     },
+
     handleInputChange: function(e) {
       var type = e.target.name,
           newValue = e.target.value,
@@ -241,6 +269,7 @@
         cropParams: this.handleBoxResize(offsetX, offsetY, origin)
       });
     },
+
     getStyle: function(cropParams) {
       if (!this.state.imageSize) return { display: "none" };
       var factor = this.state.imageSize.width / this.state.imageSize.nativeWidth;
@@ -251,6 +280,7 @@
         height: Math.ceil(cropParams.height*factor)
       };
     },
+
     shouldComponentUpdate: function(nextProps, nextState) {
       var should = false;
       if ((nextState.imageSize != this.state.imageSize) ||
@@ -268,6 +298,7 @@
       }
       return should;
     },
+
     handleSubmit: function(e) {
       e.preventDefault();
       if (this.props.onSave) {
@@ -277,6 +308,7 @@
         this.props.onSave(params);
       }
     },
+
     render: function() {
       var dragCorners = ["upper-left", "upper-middle", "upper-right", "middle-left",
                         "middle-right", "lower-left", "lower-middle", "lower-right"],
@@ -311,24 +343,26 @@
         </div>
         <form onSubmit={this.handleSubmit}>
           {this.props.showInputs && this.state.cropParams &&
-            <row>
+            <F.Row>
               {_.map(["left", "top", "width", "height"], function(param) {
                 return(
-                  <column size={[6, 3]}>
+                  <F.Column  key={"input-" + param} size={[6, 3]}>
                     <label>{util.capitalize(param)}
-                      <input type="number" key={"input-" + param}
+                      <input type="number"
                             name={param} value={this.state.cropParams[param]}
                             onChange={this.handleInputChange}/>
                     </label>
-                  </column>
+                  </F.Column>
                 );}, this)}
-            </row>
+            </F.Row>
           }
-          <button className={"action-button small"}>
+          <F.Button className={"action-button small"}>
             <i className="fa fa-save" /> Save
-          </button>
+          </F.Button>
         </form>
       </div>);
     }
   });
+
+  module.exports = CropWidget;
 }());

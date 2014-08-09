@@ -22,15 +22,15 @@
   var React = require('react/addons'),
       _ = require('underscore'),
       jQuery = require('jquery'),
-      foundation = require('./foundation.js'),
+      F = require('./foundation.js'),
       ProgressOverlay = require('./overlays.js').Progress,
       PluginWidget = require('./config.js').PluginWidget,
-      PluginConfiguration = require('./config.js').PluginConfiguration,
-      row = foundation.row,
-      column = foundation.column;
+      PluginConfiguration = require('./config.js').PluginConfiguration;
 
-  module.exports = React.createClass({
-    displayName: "SubmissionForm",
+  var SubmissionForm = React.createClass({
+    propTypes: {
+      workflow: React.PropTypes.object.isRequired
+    },
 
     getInitialState: function() {
       return {
@@ -44,6 +44,7 @@
         submissionProgress: 0,
       };
     },
+
     componentDidMount: function() {
       jQuery.getJSON('/api/remote/discover', function(data) {
         if (data.servers.length > 0) {
@@ -54,6 +55,7 @@
         }
       }.bind(this));
     },
+
     loadServerData: function() {
       // Clear errors
       this.setState({errors: {}});
@@ -91,6 +93,7 @@
           console.error("Could not get list of remote plugins");
         }.bind(this));
     },
+
     handleSubmit: function() {
       console.debug(this.state);
       if (!_.isEmpty(this.state.errors) || !this.props.workflow) {
@@ -134,12 +137,14 @@
         window.router.navigate('/', {trigger: true});
       }.bind(this));
     },
+
     handleServerSelect: function(event) {
       this.setState({
         plugins: {},
         selectedServer: event.target.value
       }, this.loadServerData);
     },
+
     render: function() {
       return (
         <section>
@@ -147,14 +152,14 @@
             {this.state.submissionWaiting &&
               <ProgressOverlay progress={this.state.submissionProgress}
                                statusMessage={this.state.submissionCurrentFile || "Preparing submission..."}/>}
-            <row>
-              <column size='12'>
+            <F.Row>
+              <F.Column>
                 <h2>Configure postprocessing</h2>
-              </column>
-            </row>
+              </F.Column>
+            </F.Row>
             {this.state.availableServers.length > 0 &&
-            <row>
-              <column size={[12,9]}>
+            <F.Row>
+              <F.Column size={[12,9]}>
                 <label className={this.state.errors.server ? 'error': ''}>
                   Select postprocessing server
                   <select onChange={this.handleServerSelect}
@@ -164,12 +169,12 @@
                     })}
                   </select>
                 </label>
-              </column>
-            </row>}
-            <row>
-              <column size={12}>
-                <row collapse={true}>
-                  <column size={[10,7]}>
+              </F.Column>
+            </F.Row>}
+            <F.Row>
+              <F.Column>
+                <F.Row collapse={true}>
+                  <F.Column size={[10,7]}>
                     <input type="text" placeholder="Custom server address"
                           className={this.state.errors.server ? 'error': ''}
                           onKeyUp={function(e){
@@ -179,13 +184,13 @@
                           onBlur={this.handleServerSelect} />
                     {this.state.errors.server &&
                     <small className="error">{this.state.errors.server}</small>}
-                  </column>
-                  <column size={[2, 5]}>
+                  </F.Column>
+                  <F.Column size={[2, 5]}>
                     <a className="button postfix" style={{width: '8em'}}><i className="fa fa-refresh"/> Refresh</a>
-                  </column>
-                </row>
-              </column>
-            </row>
+                  </F.Column>
+                </F.Row>
+              </F.Column>
+            </F.Row>
             {this.state.selectedServer && this.props.workflow &&
              !_.isEmpty(this.state.configTemplates) &&
             <div>
@@ -194,16 +199,18 @@
                                    errors={this.state.errors || {}}
                                    templates={this.state.configTemplates}
                                    availablePlugins={this.state.availablePlugins} />
-              <row>
-                <column size={[12,9]}>
+              <F.Row>
+                <F.Column size={[12,9]}>
                   <button className={_.isEmpty(this.state.errors) ? '': 'disabled'}>
                     Submit
                   </button>
-                </column>
-              </row>
+                </F.Column>
+              </F.Row>
             </div>}
           </form>
         </section>);
     }
   });
+
+  module.exports = SubmissionForm;
 }());

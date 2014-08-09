@@ -24,12 +24,8 @@
       ModelMixin = require('../../vendor/backbonemixin.js'),
       LoadingOverlay = require('./overlays.js').Activity,
       ProgressOverlay = require('./overlays.js').Progress,
-      foundation = require('./foundation.js'),
-      util = require('../util.js'),
-      row = foundation.row,
-      column = foundation.column,
-      modal = foundation.modal,
-      confirmModal = foundation.confirmModal;
+      F = require('./foundation.js'),
+      util = require('../util.js');
 
 
   function clientIsMacOS() {
@@ -78,8 +74,8 @@
 
     render: function() {
       return (
-        <row>
-          <div className="small-6 medium-12 columns">
+        <F.Row>
+          <F.Column size={[6, 12]}>
             {this.props.smallDisplay &&
               <a onClick={this.toggleActionDropdown} className="action-select action-button small dropdown"
                   title="View actions"><i className="fa fa-list" /> Actions</a>
@@ -164,8 +160,8 @@
                   </a>
                 </li>}
             </ul>}
-          </div>
-        </row>
+          </F.Column>
+        </F.Row>
       );
     }
   })
@@ -194,8 +190,8 @@
           outputBusy = (step === 'output' && progress !== null && progress < 1);
 
       return (
-        <row>
-          <column>
+        <F.Row>
+          <F.Column>
             <ul className="fa-ul">
               {window.config.web.mode === 'full' &&
                 <li>
@@ -235,8 +231,8 @@
                 </span> Output generated
               </li>
             </ul>
-          </column>
-        </row>
+          </F.Column>
+        </F.Row>
       );
     }
   })
@@ -375,7 +371,7 @@
                               smallDisplay={this.props.smallDisplay}/>);
       return (
         <div className="workflow-item">
-          <row>
+          <F.Row>
             {/* Display deletion confirmation modal? */}
             {this.state.deleteModal &&
               <confirmModal
@@ -398,7 +394,7 @@
                               statusMessage={this.state.transferCurrentFile || "Preparing transfer..."}/>}
             {/* Display preview image (second-to last page) if there are pages
                 in the workflow */}
-            <column size={[6, 4]}>
+            <F.Column size={[6, 4]}>
             {workflow.get('pages').length > 0 ?
               <a href={workflowUrl}>
                 <img width="100%"
@@ -407,34 +403,34 @@
               </a>:
               'no pages'
             }
-            </column>
-            <column size={[6, 8]}>
-              <row>
-                <column>
+            </F.Column>
+            <F.Column size={[6, 8]}>
+              <F.Row>
+                <F.Column>
                   <h3><a title="View details"
                          href={workflowUrl}>{workflow.get('metadata').title}</a></h3>
-                </column>
-              </row>
-              <row>
-                <column>
+                </F.Column>
+              </F.Row>
+              <F.Row>
+                <F.Column>
                   <p>{workflow.has('pages') ? workflow.get('pages').length : 0} pages</p>
-                </column>
-              </row>
+                </F.Column>
+              </F.Row>
               {window.config.web.mode !== 'scanner' &&
               <StepStatus pages={workflow.get('pages')}
                           status={workflow.get('status')}
                           outFiles={workflow.get('out_files')} />}
               {_.contains(["process", "output"], workflow.get('status').step) &&
-              <row>
-                <column>
+              <F.Row>
+                <F.Column>
                   <div className="progress">
                     <span className="meter" style={{width: workflow.get('status').step_progress*100 + '%'}}></span>
                   </div>
-                </column>
-              </row>}
+                </F.Column>
+              </F.Row>}
               {!this.props.smallDisplay && actionBar}
-            </column>
-          </row>
+            </F.Column>
+          </F.Row>
           {this.props.smallDisplay && actionBar}
         </div>
       );
@@ -449,7 +445,7 @@
    */
   var WorkflowList = React.createClass({
     propTypes: {
-      workflows: React.PropTypes.arrayOf(React.PropTypes.object)
+      workflows: React.PropTypes.object
     },
 
     /** Enables two-way databinding with Backbone model */
@@ -476,11 +472,11 @@
       else verb = 'scanned';
       return(
         <main>
-          <row>
-            <column size='18'>
+          <F.Row>
+            <F.Column>
               <h1>Workflows</h1>
-            </column>
-          </row>
+            </F.Column>
+          </F.Row>
           <div>
             {this.props.workflows.length > 0 ?
               this.props.workflows.map(function(workflow) {
@@ -488,29 +484,31 @@
                 return <WorkflowItem key={workflow.id} workflow={workflow}
                                      smallDisplay={this.state.mqSmall}/>;
               }, this):
-              <row>
-                <column><h2>No workflows yet!</h2>
-                <p>
-                  Once you have {verb} a book, you can see it (and all
-                  other books you have {verb} so far) and do the following
-                  things with it:
-                  <ul>
-                    <li>Open its detailed view</li>
-                    <li>Edit its configuration</li>
-                    <li>Delete it</li>
-                    <li>Download it</li>
-                    {window.config.web.mode !== 'processor' &&
-                    <div>
-                      <li>Open its capture view</li>
-                      <li>Transfer it to a removable storage device</li>
-                      <li>Upload it to a remote postprocessing server</li>
-                    </div>}
-                  </ul>
-                </p>
-                <p>
-                  <a className="button" href="/workflow/new">Create a new workflow</a>
-                </p></column>
-              </row>}
+              <F.Row>
+                <F.Column>
+                  <h2>No workflows yet!</h2>
+                  <p>
+                    Once you have {verb} a book, you can see it (and all
+                    other books you have {verb} so far) and do the following
+                    things with it:
+                    <ul>
+                      <li>Open its detailed view</li>
+                      <li>Edit its configuration</li>
+                      <li>Delete it</li>
+                      <li>Download it</li>
+                      {window.config.web.mode !== 'processor' &&
+                      <div>
+                        <li>Open its capture view</li>
+                        <li>Transfer it to a removable storage device</li>
+                        <li>Upload it to a remote postprocessing server</li>
+                      </div>}
+                    </ul>
+                  </p>
+                  <p>
+                    <a className="button" href="/workflow/new">Create a new workflow</a>
+                  </p>
+                </F.Column>
+              </F.Row>}
           </div>
         </main>);
     }

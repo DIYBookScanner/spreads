@@ -29,7 +29,8 @@
       SubmissionForm = require('./submission'),
       NavigationBar = require('./navbar'),
       LogDisplay = require('./logdisplay.js'),
-      fnAlert = require('./foundation').alert;
+      F = require('./foundation');  // Shorthand for Foundation components
+
 
   /**
    * Core application component.
@@ -40,8 +41,12 @@
    * @property {string} [workflowSlug] - Associated workflow slug
    * @property {string} view - Name of view to display
    */
-  module.exports = React.createClass({
-    displayName: "SpreadsApp",
+  var SpreadsApp = React.createClass({
+    propTypes: {
+      workflows: React.PropTypes.object.isRequired,
+      workflowSlug: React.PropTypes.string,
+      view: React.PropTypes.string
+    },
 
     componentWillMount: function() {
       this.updateViewComponent(this.props);
@@ -63,13 +68,16 @@
         messages: this.state.messages.concat([error.message]).slice(-3)
       });
     },
+
     componentWillUnmount: function() {
       window.router.events.off('logrecord', null, this);
       window.router.off(null, null, this);
     },
+
     componentWillReceiveProps: function(nextProps) {
       this.updateViewComponent(nextProps);
     },
+
     getInitialState: function() {
       return {
         messages: [],
@@ -77,6 +85,7 @@
         viewComponent: null
       };
     },
+
     /**
      * Get title for navigation bar.
      *
@@ -97,6 +106,7 @@
         return "spreads";
       }
     },
+
     /**
      * Get view component to render.
      *
@@ -130,6 +140,7 @@
         viewComponent: viewComponent
       });
     },
+
     /**
      * Get a callback to close a given message
      *
@@ -144,24 +155,33 @@
         });
       }.bind(this);
     },
+
     render: function() {
       var navTitle = this.getNavTitle(this.props.view);
+      var msgLevelMapping = {
+        'critical': 'alert',
+        'error': 'alert',
+        'warning': 'warning',
+        'info': 'standard',
+        'debug': 'secondary'
+      };
       document.title = navTitle;
       return (
         <div>
           <NavigationBar title={navTitle} numUnreadErrors={this.state.numUnreadErrors}/>
-          {this.state.messages &&
-              this.state.messages.map(function(message) {
-                return (
-                    <fnAlert level={message.level}
-                             message={message.message}
-                             key={new Date(message.time).getTime()}
-                             closeCallback={this.getCloseMessageCallback(message)}>
-                    </fnAlert>);
-              }, this)}
+          {this.state.messages && this.state.messages.map(function(message) {
+            return (
+                <F.Alert severity={msgLevelMapping[message.level.toLowerCase()]}
+                         key={new Date(message.time).getTime()}
+                         onClick={this.getCloseMessageCallback(message)}>
+                  {message.message}
+                </F.Alert>);
+            })}
           {this.state.viewComponent}
         </div>
       );
     }
   });
+
+  module.exports = SpreadsApp;
 }());

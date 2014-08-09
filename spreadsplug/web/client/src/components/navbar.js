@@ -22,10 +22,7 @@
   var React = require('react/addons'),
       jQuery = require('jquery'),
       modal = require('./foundation.js').modal,
-      fnLabel = require('./foundation.js').label,
-      row = require('./foundation.js').row,
-      column = require('./foundation.js').column,
-      fnButton = require('./foundation.js').button;
+      F = require('./foundation.js');
 
   /**
    * Global navigation bar for the application
@@ -70,20 +67,20 @@
         <div className="contain-to-grid fixed">
           {this.state.shutdownModal &&
             <modal onClose={function(){this.setState({shutdownModal: false});}.bind(this)}>
-              <row><column><h1>Shut down/Reboot</h1></column></row>
-              <row><column><p>Do you really want to shut down the device?</p></column></row>
-              <row><column><p><strong>If you do, please make sure that you turn off your devices before confirming!</strong></p></column></row>
-              <row>
-                <column size="4">
-                  <fnButton callback={this.doShutdown} size="small">Shut Down</fnButton>
-                </column>
-                <column size="4">
-                  <fnButton callback={this.doReboot} size="small">Reboot</fnButton>
-                </column>
-                <column size="4">
-                  <fnButton callback={this.props.onClose} size="small">Cancel</fnButton>
-                </column>
-              </row>
+              <F.Row><F.Column><h1>Shut down/Reboot</h1></F.Column></F.Row>
+              <F.Row><F.Column><p>Do you really want to shut down the device?</p></F.Column></F.Row>
+              <F.Row><F.Column><p><strong>If you do, please make sure that you turn off your devices before confirming!</strong></p></F.Column></F.Row>
+              <F.Row>
+                <F.Column size={4}>
+                  <F.Button onClick={this.doShutdown} size="small">Shut Down</F.Button>
+                </F.Column>
+                <F.Column size={4}>
+                  <F.Button onClick={this.doReboot} size="small">Reboot</F.Button>
+                </F.Column>
+                <F.Column size={4}>
+                  <F.Button onClick={this.props.onClose} size="small">Cancel</F.Button>
+                </F.Column>
+              </F.Row>
             </modal>}
           <nav className="top-bar" data-topbar>
             <ul className="title-area">
@@ -99,7 +96,7 @@
                 <li>
                   <a href="/logging">
                     <i className="fa fa-list"></i> Show log
-                    {this.props.numUnreadErrors > 0 &&<fnLabel level='alert' round={true}> {this.props.numUnreadErrors}</fnLabel>}
+                    {this.props.numUnreadErrors > 0 && <F.Label severity='alert' round={true}> {this.props.numUnreadErrors}</F.Label>}
                   </a>
                 </li>
                 {/* Only show shutdown button if the application is running in standalone mode */}

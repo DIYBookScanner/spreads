@@ -22,21 +22,18 @@
   var React = require('react/addons'),
       _ = require('underscore'),
       merge = require('react/lib/merge'),
-      foundation = require('./foundation.js'),
+      F = require('./foundation.js'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
-      MetadataEditor = require('./metaeditor.js').MetaEditor,
-      PluginConfiguration = require('./config.js').PluginConfiguration,
-      row = foundation.row,
-      column = foundation.column,
-      fnButton = foundation.button;
+      MetadataEditor = require('./metaeditor.js').MetadataEditor,
+      PluginConfiguration = require('./config.js').PluginConfiguration;
 
   /**
    * View component for workflow creation
-   *
-   * @property {Workflow} workflow - Workflow to display
    */
-  module.exports = React.createClass({
-    displayName: "WorkflowForm",
+  var WorkflowForm = React.createClass({
+    propTypes: {
+      workflow: React.PropTypes.object
+    },
 
     /** Enables two-way databinding with Backbone model */
     mixins: [ModelMixin],
@@ -45,6 +42,7 @@
     getBackboneModels: function() {
       return [this.props.workflow];
     },
+
     getInitialState: function() {
       return {
         /** Errors from validation */
@@ -53,6 +51,7 @@
         submitting: false
       };
     },
+
     componentDidMount: function() {
       /* Update `errors` if there were validation errors. */
       this.props.workflow.on('validated:invalid', function(workflow, errors) {
@@ -65,10 +64,12 @@
         }, this);
       }
     },
+
     componentWillUnmount: function() {
       /* Deregister event handlers */
       this.props.workflow.off('all', null, this);
     },
+
     handleSave: function() {
       this.props.workflow.set('metadata', this.refs.metadata.state.metadata);
       this.props.workflow.set('config', this.refs.config.state.config);
@@ -99,34 +100,34 @@
         }
       }.bind(this));
     },
+
     render: function() {
       return (
         <section>
           <form onSubmit={this.handleSave}>
-            <row>
-                <column size='12'>
-                <h2>{this.props.isNew ?
-                        'Create workflow' :
-                        'Edit workflow'}
-                </h2>
-                </column>
-            </row>
+            <F.Row>
+              <F.Column>
+                <h2>{this.props.isNew ? 'Create workflow' : 'Edit workflow'}</h2>
+              </F.Column>
+            </F.Row>
             <MetadataEditor ref="metadata" metadata={this.props.workflow.get('metadata')}
                             errors={this.state.errors.metadata}/>
             <PluginConfiguration ref="config"
                                  config={this.props.workflow.get('config')}
                                  errors={this.state.errors || {}}
                                  templates={window.pluginTemplates}/>
-            <row>
-                <column size='12'>
+            <F.Row>
+                <F.Column>
                   <button className={"action-button small" + (this.state.submitting ? 'disabled' : '')}>
                     <i className="fa fa-check"/> Submit
                   </button>
-                </column>
-            </row>
+                </F.Column>
+            </F.Row>
           </form>
         </section>
       );
     }
   });
+
+  module.exports = WorkflowForm;
 }());

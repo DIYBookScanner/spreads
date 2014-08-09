@@ -23,13 +23,7 @@
   var React = require('react/addons'),
       jQuery = require('jquery'),
       _ = require('underscore'),
-      foundation = require('./foundation'),
-      column = foundation.column,
-      row = foundation.row,
-      pagination = foundation.pagination,
-      fnButton = foundation.button,
-      modal = foundation.modal,
-      LogRecord, BugModal;
+      F = require('./foundation');
 
   /**
    * Helper function to compare the verbosity of two log levels.
@@ -52,11 +46,13 @@
    * Component that displays a detailed traceback and offers the option
    * to query GitHub for similar issues and to submit a new issue with
    * the traceback and Exception name as the title.
-   *
-   * @property {string} traceback - The traceback for the exception
-   * @property {function} onClose - Callback function when modal is closed
    */
-  BugModal = React.createClass({
+  var BugModal = React.createClass({
+    propTypes: {
+      traceback: React.PropTypes.string.isRequired,
+      onClose: React.PropTypes.func.isRequired
+    },
+
     render: function() {
       var exception,
           bugreportTemplate;
@@ -65,55 +61,58 @@
       bugreportTemplate = "```\n" + this.props.traceback + "\n```";
       return (
         <modal onClose={this.props.onClose}>
-          <row>
-            <column>
+          <F.Row>
+            <F.Column>
               <h3>This should not have happened.</h3>
-            </column>
-          </row>
-          <row>
-            <column>
+            </F.Column>
+          </F.Row>
+          <F.Row>
+            <F.Column>
               <pre className="traceback">
                 {this.props.traceback}
               </pre>
-            </column>
-          </row>
-          <row>
-            <column size="6">
+            </F.Column>
+          </F.Row>
+          <F.Row>
+            <F.Column size={6}>
               <a className="action-button"
                  data-bypass={true}
                  href={"https://github.com/DIYBookScanner/spreads/search?q=" +
                        exception + "&type=Issues"}
                   target="_blank"><i className="fa fa-search"/> Search for open issues</a>
-            </column>
-            <column size="6">
+            </F.Column>
+            <F.Column size={6}>
               <a className="action-button"
                  data-bypass={true}
                   href={"https://github.com/DIYBookScanner/spreads/issues/new" +
                         "?title=" + encodeURIComponent(exception) +
                         "&body=" + encodeURIComponent(bugreportTemplate) }
                   target="_blank"><i className="fa fa-github"/> Open new issue</a>
-            </column>
-          </row>
-          <row>
-            <column size="6" offset="6">
+            </F.Column>
+          </F.Row>
+          <F.Row>
+            <F.Column size={6} offset={6}>
               <a data-bypass={true} href="http://github.com/join" target="_blank">Don't have an account?</a>
-            </column>
-          </row>
+            </F.Column>
+          </F.Row>
         </modal>
       );
     }
   });
 
+
   /**
    * Display a log entry in a table row
-   *
-   * @property {string} level - Loglevel of entry
-   * @property {string} origin - Origin logger
-   * @property {string} message - Logging message
-   * @property {Date} time - Time of entry
-   * @property {string} [traceback] - Traceback of exception
    */
-  LogRecord = React.createClass({
+  var LogRecord = React.createClass({
+    propTypes: {
+      traceback: React.PropTypes.string,
+      level: React.PropTypes.string,
+      origin: React.PropTypes.string.isRequired,
+      message: React.PropTypes.string.isRequired,
+      time: React.PropTypes.instanceOf(Date).isRequired
+    },
+
     getInitialState: function() {
       return {
         /** Display traceback modal overlay for this entry? */
@@ -146,12 +145,11 @@
     }
   });
 
+
   /**
    * Display log entries in a table
    */
-  module.exports = React.createClass({
-    displayname: "LogDisplay",
-
+  var LogDisplay = React.createClass({
     /**
      * Load log mesages from server
      */
@@ -227,44 +225,44 @@
     render: function() {
       return (
         <main>
-          <row>
-            <column size='18'>
+          <F.Row>
+            <F.Column>
               <h1>Application Log</h1>
-            </column>
-          </row>
-          <row>
-            <column size="2">
+            </F.Column>
+          </F.Row>
+          <F.Row>
+            <F.Column size={2}>
               <label htmlFor="loglevel" className="right inline">
                 Loglevel
               </label>
-            </column>
-            <column size="2">
+            </F.Column>
+            <F.Column size={2}>
               <select id="loglevel" defaultValue="info" onChange={this.handleSetLevel}>
                 <option value="error">Error</option>
                 <option value="warning">Warning</option>
                 <option value="info">Info</option>
                 <option value="debug">Debug</option>
               </select>
-            </column>
-            <column size="2">
+            </F.Column>
+            <F.Column size={2}>
               <label htmlFor="msgCount" className="right inline">
                 Number of records
               </label>
-            </column>
-            <column size="2">
+            </F.Column>
+            <F.Column size={2}>
               <select id="msgCount" defaultValue="25" onChange={this.handleSetCount}>
                 <option value="10">10</option>
                 <option value="25">25</option>
                 <option value="50">50</option>
                 <option value="100">100</option>
               </select>
-            </column>
-            <column size="2">
+            </F.Column>
+            <F.Column size={2}>
               <a className="action-button tiny fi-download" data-bypass={true} href={"/log?level=debug&count=100"} download="spreadslog.json"> Download log</a>
-            </column>
-          </row>
-          <row>
-            <column>
+            </F.Column>
+          </F.Row>
+          <F.Row>
+            <F.Column>
               <table className="logtable">
                 <thead>
                   <tr>
@@ -282,14 +280,16 @@
                 </tbody>
               </table>
               {(this.state.totalMessages > this.state.msgCount) &&
-                <pagination centered={true}
-                            pageCount={Math.ceil(this.state.totalMessages/this.state.msgCount)}
-                            onBrowse={this.handleChangePage} />
+                <F.Pagination centered={true}
+                              pageCount={Math.ceil(this.state.totalMessages/this.state.msgCount)}
+                              onBrowse={this.handleChangePage} />
               }
-            </column>
-          </row>
+            </F.Column>
+          </F.Row>
         </main>
       );
     }
   });
+
+  module.exports = LogDisplay;
 }());

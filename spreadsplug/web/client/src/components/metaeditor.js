@@ -23,10 +23,7 @@
       merge = require('react/lib/merge'),
       _ = require('underscore'),
       jQuery = require('jquery'),
-      foundation = require('./foundation.js'),
-      row = foundation.row,
-      column = foundation.column,
-      fnButton = foundation.button;
+      F = require('./foundation.js');
 
 
   var AutoComplete = React.createClass({
@@ -83,10 +80,9 @@
       onChange: React.PropTypes.func,
     },
 
-    //we initilize the component state with an immutable array
     getInitialState: function() {
       return {
-        completeEnabled: _.isEmpty(this.props.value),
+        completeEnabled: true,
         autocomplete: [],
         lastTerm: '',
         call: { latest: 0,
@@ -163,13 +159,13 @@
       }
       return (
         <div>
-          <row>
-            <column size={2}>
+          <F.Row>
+            <F.Column size={2}>
               <label htmlFor={this.props.key + "-input"} className="right inline">
                 {this.props.name}
               </label>
-            </column>
-            <column size={10}>
+            </F.Column>
+            <F.Column size={10}>
               <input type="text" placeholder="Enter a search-term to get a list of suggestions"
                      value={this.props.value} ref="input"
                      id={this.props.key + "-input"}
@@ -180,13 +176,13 @@
               {this.props.error &&
                 <small className="error">{this.props.error}</small>
               }
-            </column>
-          </row>
-          <row>
-            <column size={10} offset={2}>
+            </F.Column>
+          </F.Row>
+          <F.Row>
+            <F.Column size={10} offset={2}>
               <AutoCompleteBox list={this.state.autocomplete} onSelect={this.handleSelect} />
-            </column>
-          </row>
+            </F.Column>
+          </F.Row>
         </div>
       );
     }
@@ -203,21 +199,21 @@
 
     render: function() {
       return (
-        <row>
-          <column size={2}>
+        <F.Row>
+          <F.Column size={2}>
             <label htmlFor={this.props.key + "-input"} className="right inline">
               {this.props.name}
             </label>
-          </column>
-          <column size={10}>
+          </F.Column>
+          <F.Column size={10}>
             <input type="text" ref="input" value={this.props.value}
                    id={this.props.key + "-input"}
                    onChange={function(e){this.props.onChange(e.target.value)}.bind(this)}/>
             {this.props.error &&
               <small className="error">{this.props.error}</small>
             }
-          </column>
-        </row>
+          </F.Column>
+        </F.Row>
       );
     }
   });
@@ -257,13 +253,13 @@
       if (_.isEmpty(values)) values = [""];
       enumeratedValues = _.zip(_.range(values.length), values);
       return (
-        <row className="metadata-fieldset">
-          <column size={2}><label>{this.props.name}</label></column>
-          <column size={10}>
+        <F.Row className="metadata-fieldset">
+          <F.Column size={2}><label>{this.props.name}</label></F.Column>
+          <F.Column size={10}>
           {_.map(enumeratedValues, function(value) {
             return (
-            <row key={value[0]} collapse={true}>
-              <column size={10}>
+            <F.Row key={value[0]} collapse={true}>
+              <F.Column size={10}>
                 <input ref={'field-' + value[0]} type="text" value={value[1]}
                       onChange={function(e) {
                                   this.onModified(value[0], e.target.value)
@@ -271,26 +267,26 @@
                 {!_.isUndefined(this.props.errors[value[0]]) &&
                   <small className="error">{this.props.errors[value[0]]}</small>
                 }
-              </column>
+              </F.Column>
               {canBeRemoved &&
-                <column size={1}>
+                <F.Column size={1}>
                   <span className="postfix"
                         onClick={function(){
                           this.onRemoved(value[0])
                         }.bind(this)}>
                     <i className="fa fa-times" />
                   </span>
-                </column>}
-              <column size={canBeRemoved ? 1 : 2}>
+                </F.Column>}
+              <F.Column size={canBeRemoved ? 1 : 2}>
                 {value[0] === values.length-1 &&
                  <span className="postfix" onClick={this.onAdded}>
                    <i className="fa fa-plus" />
                  </span>}
-              </column>
-            </row>);
+              </F.Column>
+            </F.Row>);
           }, this)}
-          </column>
-        </row>);
+          </F.Column>
+        </F.Row>);
     }
   });
 
@@ -353,8 +349,8 @@
     render: function() {
       var errors = merge(this.state.errors, this.props.errors || {});
       return (
-        <row>
-          <column size={['12', '10', '8']}>
+        <F.Row>
+          <F.Column size={[12, 10, 8]}>
             <fieldset className="metadata">
               <legend>Metadata</legend>
               {_.map(window.metadataSchema, function(field) {
@@ -384,8 +380,8 @@
                 }
               }, this)}
             </fieldset>
-          </column>
-        </row>
+          </F.Column>
+        </F.Row>
       );
     }
   });

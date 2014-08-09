@@ -23,21 +23,15 @@
   var React = require('react/addons'),
       _ = require('underscore'),
       Mousetrap = require('mousetrap'),
-      foundation = require('./foundation.js'),
+      F = require('./foundation.js'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
       LoadingOverlay = require('./overlays.js').Activity,
       lightbox = require('./overlays.js').LightBox,
       PluginWidget = require('./config.js').PluginWidget,
       CropWidget = require('./cropdialog.js'),
-      util = require('../util.js'),
-      row = foundation.row,
-      column = foundation.column,
-      fnButton = foundation.button,
-      confirmModal = foundation.confirmModal,
-      modal = foundation.modal,
-      placeholderImg;
+      util = require('../util.js');
 
-      placeholderImg = "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4AQMAAABPbGssAAAAA1BMVEWZmZl86KQWAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gQIFjciiRhnwgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAZSURBVEjH7cEBDQAAAMKg909tDwcUAAAPBgnYAAHW6F1SAAAAAElFTkSuQmCC";
+  var placeholderImg = "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4AQMAAABPbGssAAAAA1BMVEWZmZl86KQWAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gQIFjciiRhnwgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAZSURBVEjH7cEBDQAAAMKg909tDwcUAAAPBgnYAAHW6F1SAAAAAElFTkSuQmCC";
 
 
   function returnToWorkflowList() {
@@ -47,7 +41,7 @@
 
   var StatusDisplay = React.createClass({
     propTypes: {
-      numPages: React.PropTypes.number,
+      numPages: React.PropTypes.number.isRequired,
       numExpected: React.PropTypes.number,
       captureStart: React.PropTypes.number
     },
@@ -75,22 +69,22 @@
       return (
         <div>
           {this.props.numExpected > 0 &&
-          <row>
-            <column>
+          <F.Row>
+            <F.Column>
               <div className="nice secondary progress">
                 <span className="meter" style={{width: progress*100+'%'}} />
               </div>
-            </column>
-          </row>}
-          <row className="capture-info">
-            <column size="6">
+            </F.Column>
+          </F.Row>}
+          <F.Row className="capture-info">
+            <F.Column size="6">
               <span className="pagecount">{this.props.numPages} pages</span>
-            </column>
+            </F.Column>
             {speed > 0 &&
-            <column size="6">
+            <F.Column size="6">
               <span className="capturespeed">{speed} pages/hour</span>
-            </column>}
-          </row>
+            </F.Column>}
+          </F.Row>
         </div>
       );
     }
@@ -99,7 +93,7 @@
 
   var Preview = React.createClass({
     propTypes: {
-      targetPage: React.PropTypes.oneOf(["odd", "even"]),
+      targetPage: React.PropTypes.oneOf(["odd", "even"]).isRequired,
       imageSrc: React.PropTypes.string,
       cropParams: React.PropTypes.object,
       onCropParamUpdate: React.PropTypes.func,
@@ -180,8 +174,8 @@
 
   var ConfigModal = React.createClass({
     propTypes: {
-      workflow: React.PropTypes.object,
-      onClose: React.PropTypes.func
+      workflow: React.PropTypes.object.isRequired,
+      onClose: React.PropTypes.func.isRequired
     },
 
     getInitialState: function() {
@@ -239,7 +233,7 @@
 
   var Control = React.createClass({
     propTypes: {
-      workflow: React.PropTypes.object
+      workflow: React.PropTypes.object.isRequired
     },
 
     getInitialState: function() {
@@ -292,39 +286,38 @@
 
     render: function() {
       return (
-        <row>
+        <F.Row>
           {this.state.displayConfig &&
           <ConfigModal workflow={this.props.workflow}
                        onClose={this.toggleConfigModal} />}
-          <div className="small-12 capture-controls columns">
+          <F.Column className="capture-controls">
             <ul>
               <li id="retake-capture">
-                <fnButton title="Discard last capture and take a new one"
-                  callback={this.handleRetake} secondary='true'>
+                <F.Button title="Discard last capture and take a new one"
+                          onClick={this.handleRetake} secondary={true}>
                   <i className="fa fa-refresh"></i>
-                </fnButton>
+                </F.Button>
               </li>
               <li id="trigger-capture">
-                <fnButton title="Trigger capture"
-                  callback={this.handleCapture}>
+                <F.Button title="Trigger capture" onClick={this.handleCapture}>
                   <i className="fa fa-camera"></i>
-                </fnButton>
+                </F.Button>
               </li>
               <li>
-                <fnButton title="Configure devices"
-                  callback={this.toggleConfigModal} secondary='true'>
+                <F.Button title="Configure devices" onClick={this.toggleConfigModal}
+                          secondary={true}>
                   <i className="fa fa-gear"></i>
-                </fnButton>
+                </F.Button>
               </li>
               <li>
-                <fnButton title="Finish capture and return to workflow list"
-                  callback={returnToWorkflowList} complete={true}>
+                <F.Button title="Finish capture and return to workflow list"
+                          onClick={returnToWorkflowList} className="complete">
                   <i className="fa fa-check"></i>
-                </fnButton>
+                </F.Button>
               </li>
             </ul>
-          </div>
-        </row>
+          </F.Column>
+        </F.Row>
       );
     }
   });
@@ -338,8 +331,8 @@
     render: function() {
       if (!util.isTouchDevice()) return null;
       return (
-        <row className="hide-for-touch">
-          <column size="4" offset="4" className="shortcuts">
+        <F.Row className="hide-for-touch">
+          <F.Column size={4} offset={4} className="shortcuts">
             <strong>Keyboard shortcuts:</strong>
             <ul>
               <li>Capture:
@@ -349,8 +342,8 @@
               <li>Retake: <kbd>R</kbd></li>
               <li>Finish: <kbd>F</kbd></li>
             </ul>
-          </column>
-        </row>
+          </F.Column>
+        </F.Row>
       );
     }
   });
@@ -358,12 +351,10 @@
 
   /**
    * Screen component to control the capture process.
-   *
-   * @property {Workflow} workflow - Workflow to control capture on
    */
   var CaptureScreen = React.createClass({
     propTypes: {
-      workflow: React.PropTypes.object
+      workflow: React.PropTypes.object.isRequired
     },
 
     /** Enables two-way databinding with Backbone model */
@@ -546,8 +537,8 @@
           {/* Display loading overlay? */}
           {this.state.waiting && <LoadingOverlay message={this.state.waitMessage} />}
           {/* Display lightbox overlay? */}
-          <row>
-            <column>
+          <F.Row>
+            <F.Column>
                 <ul className={React.addons.classSet(previewClasses)}>
                   <Preview targetPage="odd" imageSrc={evenImage}
                     cropParams={this.state.cropParams['odd']}
@@ -558,8 +549,8 @@
                     onCropParamUpdate={_.partial(this.setCropParams, 'even')}
                     showCropPreview={this.state.captureStart > 0} />
               </ul>
-            </column>
-          </row>
+            </F.Column>
+          </F.Row>
           <StatusDisplay numPages={this.props.workflow.get('pages').length}
                          numExpected={this.props.workflow.get('metadata').extent | 0}
                          captureStart={this.state.captureStart} />
