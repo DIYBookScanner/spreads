@@ -70,7 +70,7 @@
     }
     if (window.WebSocket) {
       var hostName = window.location.hostname,
-          port = parseInt(window.location.port);
+          port = parseInt(window.location.port) || 80;
       websocket = new WebSocket("ws://" + hostName + ":" + port + "/ws");
       websocket.onclose = function() {
         if (!websocket.onmessage) {
