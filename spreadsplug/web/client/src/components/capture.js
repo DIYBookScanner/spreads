@@ -77,11 +77,11 @@
             </F.Column>
           </F.Row>}
           <F.Row className="capture-info">
-            <F.Column size="6">
+            <F.Column size={6}>
               <span className="pagecount">{this.props.numPages} pages</span>
             </F.Column>
             {speed > 0 &&
-            <F.Column size="6">
+            <F.Column size={6}>
               <span className="capturespeed">{speed} pages/hour</span>
             </F.Column>}
           </F.Row>

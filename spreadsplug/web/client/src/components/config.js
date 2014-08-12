@@ -193,9 +193,9 @@
   var PluginConfiguration = React.createClass({
     propTypes: {
       /** Available plugins by type */
-      availablePlugins: React.PropTypes.object.isRequired,
+      availablePlugins: React.PropTypes.object,
       /** Current configuration */
-      config: React.PropTypes.object.isRequired,
+      config: React.PropTypes.object,
       /** Configuration templates for available plugins */
       templates: React.PropTypes.object.isRequired,
       /** Errors from server-side validation */
