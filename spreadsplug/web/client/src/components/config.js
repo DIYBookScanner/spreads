@@ -317,9 +317,7 @@
                   return (
                     <F.Row key={section}>
                       <F.Column>
-                        <a onClick={function() {
-                          this.setState({selectedSection: section});
-                        }.bind(this)}>
+                        <a onClick={_.partial(this.setState, {selectedSection: section})}>
                           <label className={classes}>
                             {capitalize(section)}
                             {active && <i style={{"margin-right": "1rem",
@@ -336,9 +334,7 @@
                                 showAdvanced={this.state.advancedOpts}
                                 cfgValues={this.state.config[selectedSection] || this.getDefaultConfig(selectedSection)}
                                 errors={errors[selectedSection] || {}}
-                                onChange={function(cfgValues) {
-                                  this.handleChange(selectedSection, cfgValues);
-                                }.bind(this)} />
+                                onChange={_.partial(this.handleChange, selectedSection)} />
                 </F.Column>
               </F.Row>}
             </fieldset>

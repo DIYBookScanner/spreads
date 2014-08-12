@@ -58,9 +58,8 @@
       var nodes = _.map(enumerated, function(item){
         var key = item[0];
         var data = item[1];
-        return <AutoComplete key={key} data={data} onClick={function(){
-          this.props.onSelect(data);
-        }.bind(this)} />;
+        return <AutoComplete key={key} data={data}
+                             onClick={_.partial(this.props.onSelect, data)} />
       }, this);
       return (
         <ul className="autocomplete-suggestions">
@@ -270,10 +269,7 @@
               </F.Column>
               {canBeRemoved &&
                 <F.Column size={1}>
-                  <span className="postfix"
-                        onClick={function(){
-                          this.onRemoved(value[0])
-                        }.bind(this)}>
+                  <span className="postfix" onClick={_.partial(this.onRemoved, value[0])}>
                     <i className="fa fa-times" />
                   </span>
                 </F.Column>}
