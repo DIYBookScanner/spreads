@@ -356,10 +356,10 @@
           {this.props.children}
           <Row>
             <Column size={6}>
-              <Button callback={this.props.onConfirm} size="small">OK</Button>
+              <Button onClick={this.props.onConfirm} size="small">OK</Button>
             </Column>
             <Column size={6}>
-              <Button callback={this.props.onCancel} size="small">Cancel</Button>
+              <Button onClick={this.props.onCancel} size="small">Cancel</Button>
             </Column>
           </Row>
         </Modal>

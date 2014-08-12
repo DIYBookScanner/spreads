@@ -65,7 +65,9 @@
         this.setState({messages: [], numUnreadErrors: 0});
       }, this);
       window.router.events.on('apierror', function(eror) {
-        messages: this.state.messages.concat([error.message]).slice(-3)
+        this.setState({
+          messages: this.state.messages.concat([error.message]).slice(-3)
+        });
       });
     },
 
