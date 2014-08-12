@@ -352,7 +352,7 @@
 
     render: function() {
       return (
-        <modal onClose={this.props.onCancel} fixed={this.props.fixed}>
+        <Modal onClose={this.props.onCancel} fixed={this.props.fixed}>
           {this.props.children}
           <Row>
             <Column size={6}>
@@ -362,7 +362,7 @@
               <Button callback={this.props.onCancel} size="small">Cancel</Button>
             </Column>
           </Row>
-        </modal>
+        </Modal>
       );
     }
   });
