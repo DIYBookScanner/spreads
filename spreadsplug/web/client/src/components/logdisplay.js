@@ -60,7 +60,7 @@
       exception = this.props.traceback.split("\n").slice(-2);
       bugreportTemplate = "```\n" + this.props.traceback + "\n```";
       return (
-        <modal onClose={this.props.onClose}>
+        <F.Modal onClose={this.props.onClose}>
           <F.Row>
             <F.Column>
               <h3>This should not have happened.</h3>
@@ -95,7 +95,7 @@
               <a data-bypass={true} href="http://github.com/join" target="_blank">Don't have an account?</a>
             </F.Column>
           </F.Row>
-        </modal>
+        </F.Modal>
       );
     }
   });

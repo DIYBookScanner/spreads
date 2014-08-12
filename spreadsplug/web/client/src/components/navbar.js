@@ -21,7 +21,6 @@
   'use strict';
   var React = require('react/addons'),
       jQuery = require('jquery'),
-      modal = require('./foundation.js').modal,
       F = require('./foundation.js');
 
   /**
@@ -66,7 +65,7 @@
       return (
         <div className="contain-to-grid fixed">
           {this.state.shutdownModal &&
-            <modal onClose={function(){this.setState({shutdownModal: false});}.bind(this)}>
+          <F.Modal onClose={_.partial(this.setState, {shutdownModal: false})}>
               <F.Row><F.Column><h1>Shut down/Reboot</h1></F.Column></F.Row>
               <F.Row><F.Column><p>Do you really want to shut down the device?</p></F.Column></F.Row>
               <F.Row><F.Column><p><strong>If you do, please make sure that you turn off your devices before confirming!</strong></p></F.Column></F.Row>
@@ -81,7 +80,7 @@
                   <F.Button onClick={this.props.onClose} size="small">Cancel</F.Button>
                 </F.Column>
               </F.Row>
-            </modal>}
+            </F.Modal>}
           <nav className="top-bar" data-topbar>
             <ul className="title-area">
               <li className="name"> <h1><a href="/" title="Return to workflow list"><i className="fa fa-home" /> {this.props.title}</a></h1> </li>

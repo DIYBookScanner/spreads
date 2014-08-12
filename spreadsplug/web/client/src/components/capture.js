@@ -147,11 +147,11 @@
           {this.state.displayLightbox &&
             <lightbox onClose={this.toggleLightbox} src={imageSrc} />}
           {this.state.displayCrop &&
-            <modal onClose={this.toggleCropDisplay} small={false} fixed={true}>
+            <F.Modal onClose={this.toggleCropDisplay} small={false} fixed={true}>
               <CropWidget imageSrc={imageSrc}
                           onSave={this.handleSave}
                           cropParams={this.props.cropParams} showInputs={true} />
-            </modal>}
+            </F.Modal>}
           {this.props.imageSrc &&
           <a className="toggle-crop" title="Crop image" onClick={this.toggleCropDisplay}>
             <i className="fa fa-crop" /> Crop
@@ -208,8 +208,8 @@
     render: function() {
       return (
         <form onSubmit={this.handleSubmit}>
-          <confirmModal onCancel={this.props.onClose}
-                        onConfirm={this.handleSubmit}>
+          <F.ConfirmModal onCancel={this.props.onClose}
+                          onConfirm={this.handleSubmit}>
             <h2>Configure Devices</h2>
             <input id="check-advanced" type="checkbox"
                    value={this.state.advancedOpts}
@@ -224,7 +224,7 @@
                             config.device = vals;
                             this.props.workflow.set('config', config);
                           }.bind(this)} />
-          </confirmModal>
+          </F.ConfirmModal>
         </form>
       );
     }

@@ -374,20 +374,20 @@
           <F.Row>
             {/* Display deletion confirmation modal? */}
             {this.state.deleteModal &&
-              <confirmModal
-                onCancel={function(){this.setState({deleteModal: false});}.bind(this)}
+              <F.ConfirmModal
+                onCancel={_.partial(this.setState, {deleteModal: false})}
                 onConfirm={this.doRemove} fixed={true}>
                 <h1>Remove?</h1>
                 <p>Do you really want to permanently remove this workflow and all
                   of its related files?</p>
-              </confirmModal>}
+              </F.ConfirmModal>}
             {/* Display error modal? */}
             {this.state.errorModal &&
-              <modal onClose={function(){this.setState({errorModal: false});}.bind(this)}
+              <F.Modal onClose={_.partial(this.setState, {errorModal: false})}
                     fixed={true}>
                 <h1>{this.state.errorModalHeading}</h1>
                 <p>{this.state.errorModalText}</p>
-              </modal>}
+              </F.Modal>}
             {/* Display loading overlay */}
             {this.state.transferWaiting &&
               <ProgressOverlay progress={this.state.transferProgress}
