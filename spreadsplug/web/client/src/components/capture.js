@@ -329,14 +329,14 @@
     },
 
     render: function() {
-      if (!util.isTouchDevice()) return null;
+      if (util.isTouchDevice()) return null;
       return (
         <F.Row className="hide-for-touch">
           <F.Column size={4} offset={4} className="shortcuts">
             <strong>Keyboard shortcuts:</strong>
             <ul>
               <li>Capture:
-                {_.map(thops.props.captureKeys, function(key) {
+                {_.map(this.props.captureKeys, function(key) {
                   return (<span key={key}>{' '}<kbd>{key.toUpperCase()}</kbd></span>);
                 })}</li>
               <li>Retake: <kbd>R</kbd></li>
