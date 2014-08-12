@@ -356,7 +356,8 @@
                 );}, this)}
             </F.Row>
           }
-          <F.Button className={"action-button small"}>
+          <F.Button className={"action-button small"}
+                    onClick={this.handleSubmit}>
             <i className="fa fa-save" /> Save
           </F.Button>
         </form>
