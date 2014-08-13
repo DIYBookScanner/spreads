@@ -138,8 +138,12 @@
      * @param {number} pageIdx - Page number to chagne to
      */
     browse: function(pageIdx) {
+      var thumbStart = (pageIdx-1)*this.state.thumbCount;
+      if (thumbStart%this.state.thumbCount == 0) {
+        thumbStart = (pageIdx-2)*this.state.thumbCount;
+      }
       this.setState({
-        thumbStart: (pageIdx-1)*this.state.thumbCount
+        thumbStart: thumbStart
       });
     },
     togglePageSelect: function(page) {
