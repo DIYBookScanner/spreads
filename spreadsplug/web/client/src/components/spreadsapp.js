@@ -64,11 +64,11 @@
       window.router.on('route:displayLog', function() {
         this.setState({messages: [], numUnreadErrors: 0});
       }, this);
-      window.router.events.on('apierror', function(eror) {
+      window.router.events.on('apierror', function(error) {
         this.setState({
-          messages: this.state.messages.concat([error.message]).slice(-3)
+          messages: this.state.messages.concat([error]).slice(-3)
         });
-      });
+      }, this);
     },
 
     componentWillUnmount: function() {
@@ -173,12 +173,11 @@
           <NavigationBar title={navTitle} numUnreadErrors={this.state.numUnreadErrors}/>
           {this.state.messages && this.state.messages.map(function(message) {
             return (
-                <F.Alert severity={msgLevelMapping[message.level.toLowerCase()]}
-                         key={new Date(message.time).getTime()}
+                <F.Alert severity='alert'
                          onClick={this.getCloseMessageCallback(message)}>
                   {message.message}
                 </F.Alert>);
-            })}
+            }, this)}
           {this.state.viewComponent}
         </div>
       );

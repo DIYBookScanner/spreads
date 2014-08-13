@@ -395,6 +395,11 @@
         });
       }), this);
 
+      // Disable waiting screen if there was an error
+      window.router.events.on('apierror', function() {
+        if (this.state.waiting) this.setState({waiting: false});
+      }, this);
+
       // Leave capture screen when the workflow step is changed from elsewhere
       this.props.workflow.on('status-updated', function(status) {
         if (status.step !== 'capture') this.handleFinish();
