@@ -147,7 +147,7 @@
           {this.state.displayLightbox &&
             <lightbox onClose={this.toggleLightbox} src={imageSrc} />}
           {this.state.displayCrop &&
-            <F.Modal onClose={this.toggleCropDisplay} small={false} fixed={true}>
+            <F.Modal onClose={this.toggleCropDisplay} small={false}>
               <CropWidget imageSrc={imageSrc}
                           onSave={this.handleSave}
                           cropParams={this.props.cropParams} showInputs={true} />
@@ -449,6 +449,7 @@
       }
 
       // Signal to devices to wrap up capture
+      // TODO: Display waiting overlay until this is finished?
       this.props.workflow.finishCapture();
     },
 

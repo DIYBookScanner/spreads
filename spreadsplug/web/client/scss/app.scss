@@ -241,6 +241,7 @@ li.page-preview {
     top: 10%;
     min-height: 0;
     max-height: 100%;
+    overflow-y: auto;
 
     @media #{$large-up} {
       width: 50%;

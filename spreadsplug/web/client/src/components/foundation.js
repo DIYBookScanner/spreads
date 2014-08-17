@@ -314,7 +314,7 @@
     getDefaultProps: function() {
       return {
         small: true,
-        fixed: false
+        fixed: true
       };
     },
 
@@ -348,6 +348,10 @@
         React.PropTypes.renderable,
         React.PropTypes.arrayOf(React.PropTypes.renderable)
       ])
+    },
+
+    getDefaultProps: function() {
+      return { fixed: true };
     },
 
     render: function() {
