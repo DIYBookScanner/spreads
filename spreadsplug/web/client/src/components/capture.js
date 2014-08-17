@@ -438,10 +438,11 @@
       this.props.workflow.off(null, null, this);
 
       // Crop last two shot images
-      if (!_.isEmpty(this.state.cropParams)) {
+      if (this.state.cropOnSuccess && !_.isEmpty(this.state.cropParams)) {
         _.each(this.props.workflow.get('pages').slice(-2), function(page) {
             var targetPage = page.sequence_num%2 > 0 ? 'odd': 'even';
-            this.props.workflow.cropPage(page.sequence_num, this.state.cropParams[targetPage]);
+            this.props.workflow.cropPage(page.sequence_num,
+                                         this.state.cropParams[targetPage]);
         }, this);
       }
 
