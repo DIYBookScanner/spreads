@@ -729,7 +729,9 @@ class Workflow(object):
         on_capture_succeeded.send(self, pages=captured_pages, retake=retake)
 
     def finish_capture(self):
-        self._threadpool.shutdown(wait=True)
+        # Waits for last capture to finish
+        with self._capture_lock:
+            self._threadpool.shutdown(wait=True)
         with ThreadPoolExecutor(len(self.devices)) as executor:
             futures = []
             self._logger.debug("Sending finish_capture command to devices")
