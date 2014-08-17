@@ -23,6 +23,7 @@ class DiscoveryListener(threading.Thread):
     def run(self):
         logger.info("Starting discovery listener")
         with closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(SERVER_ADDRESS)
             # Tell the operating system to add the socket to the multicast
             # group on all interfaces.
