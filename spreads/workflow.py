@@ -28,11 +28,11 @@ import threading
 import uuid
 from datetime import datetime
 
+import concurrent.futures as concfut
 import spreads.vendor.bagit as bagit
 import spreads.vendor.confit as confit
 import json
 from blinker import Namespace
-from concurrent.futures import ThreadPoolExecutor
 from spreads.vendor.pathlib import Path
 
 import spreads.plugin as plugin
@@ -336,7 +336,8 @@ class Workflow(object):
         self._capture_lock = threading.RLock()
         self._devices = None
         self._pluginmanager = None
-        self._pool_executor = None
+        self._threadpool = concfut.ThreadPoolExecutor(max_workers=1)
+        self._pending_tasks = []
 
         # Filter out subcommand plugins, since these are not workflow-specific
         plugin_classes = [
@@ -397,12 +398,6 @@ class Workflow(object):
             raise util.DeviceException("Could not find any compatible "
                                        "devices!")
         return self._devices
-
-    @property
-    def _threadpool(self):
-        if self._pool_executor is None:
-            self._pool_executor = ThreadPoolExecutor(max_workers=1)
-        return self._pool_executor
 
     def _fix_page_numbers(self, page_to_remove):
         def get_num_type(num_str):
@@ -481,8 +476,10 @@ class Workflow(object):
 
         fname = unicode(page.raw_image)
         if async:
-            return self._threadpool.submit(do_crop, fname, left, top, width,
-                                           height)
+            future = self._threadpool.submit(do_crop, fname, left, top, width,
+                                             height)
+            self._pending_tasks.append(future)
+            return future
         else:
             do_crop(fname, left, top, width, height)
 
@@ -665,7 +662,7 @@ class Workflow(object):
                 "Target page for at least one of the devicescould not be"
                 "determined, please run 'spread configure' to configure your"
                 "your devices.")
-        with ThreadPoolExecutor(len(self.devices)) as executor:
+        with concfut.ThreadPoolExecutor(len(self.devices)) as executor:
             futures = []
             self._logger.debug("Preparing capture in devices")
             for dev in self.devices:
@@ -701,8 +698,8 @@ class Workflow(object):
 
             futures = []
             captured_pages = []
-            with ThreadPoolExecutor(num_devices
-                                    if parallel_capture else 1) as executor:
+            with concfut.ThreadPoolExecutor(
+                    num_devices if parallel_capture else 1) as executor:
                 self._logger.debug("Sending capture command to devices")
                 for dev in self.devices:
                     page = self._get_next_capture_page(dev.target_page)
@@ -720,9 +717,10 @@ class Workflow(object):
                 self.pages.append(page)
             self._run_hook('capture', self.devices, self.path)
             # Queue new images for hashing
-            self._threadpool.submit(self.bag.add_payload,
-                                    *(unicode(p.raw_image)
-                                      for p in captured_pages))
+            future = self._threadpool.submit(self.bag.add_payload,
+                                             *(unicode(p.raw_image)
+                                               for p in captured_pages))
+            self._pending_tasks.append(future)
 
         on_modified.send(self, changes={'pages': self.pages})
         on_capture_succeeded.send(self, pages=captured_pages, retake=retake)
@@ -730,8 +728,8 @@ class Workflow(object):
     def finish_capture(self):
         # Waits for last capture to finish
         with self._capture_lock:
-            self._threadpool.shutdown(wait=True)
-        with ThreadPoolExecutor(len(self.devices)) as executor:
+            concfut.wait(self._pending_tasks)
+        with concfut.ThreadPoolExecutor(len(self.devices)) as executor:
             futures = []
             self._logger.debug("Sending finish_capture command to devices")
             for dev in self.devices:
