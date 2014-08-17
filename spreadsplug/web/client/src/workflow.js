@@ -74,7 +74,7 @@
         }.bind(this)).fail(function(xhr) {
           console.error("Capture preparation failed");
           this.emitError(xhr.responseText);
-        }.bind(this)).complete(callback);
+        }.bind(this)).done(callback);
     },
     /**
      * Triggers a capture.
