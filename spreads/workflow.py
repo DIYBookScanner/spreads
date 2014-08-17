@@ -688,7 +688,6 @@ class Workflow(object):
             raise util.SpreadsException("Capture was not prepared before.")
         with self._capture_lock:
             self._logger.info("Triggering capture.")
-            raise Exception("roflcopter")
             on_capture_triggered.send(self)
             parallel_capture = (
                 'parallel_capture' in self.config['device'].keys()
