@@ -110,8 +110,8 @@
                     <a style={clientIsMacOS() ? {'color': 'red'} : {}}
                        data-bypass={true} onClick={this.props.onDownload}
                        href={'/api/workflow/' + this.props.workflowSlug + '/download?fmt=zip'}
-                       title={clientIsMacOS() ? 'Download as a ZIP archive' :
-                              'Due to a bug in the OSX Archive tool it is unable to extract archives created from spreads. Please use a third-party software instead.'}>
+                       title={clientIsMacOS() ? 'Due to a bug in the OSX Archive tool it is unable to extract archives created from spreads. Please use a third-party software instead.' :
+                              'Download as a ZIP archive' }>
                       .zip
                     </a>
                   </li>
