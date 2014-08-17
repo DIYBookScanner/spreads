@@ -175,7 +175,8 @@
   var ConfigModal = React.createClass({
     propTypes: {
       workflow: React.PropTypes.object.isRequired,
-      onClose: React.PropTypes.func.isRequired
+      onClose: React.PropTypes.func.isRequired,
+      onConfirm: React.PropTypes.func.isRequired
     },
 
     getInitialState: function() {
@@ -198,9 +199,8 @@
       var xhr = this.props.workflow.save();
       if (xhr) {
         xhr.done(function() {
-          this.props.onClose()
-          this.props.workflow.prepareCapture(null, true);
           this.props.workflow.off('validated:invalid', null, this);
+          this.props.onConfirm();
         }.bind(this))
       };
     },
@@ -233,7 +233,8 @@
 
   var Control = React.createClass({
     propTypes: {
-      workflow: React.PropTypes.object.isRequired
+      workflow: React.PropTypes.object.isRequired,
+      onConfigUpdate: React.PropTypes.func.isRequired
     },
 
     getInitialState: function() {
@@ -275,6 +276,11 @@
       this.props.workflow.triggerCapture(false);
     },
 
+    handleConfigUpdate: function() {
+      this.toggleConfigModal();
+      this.props.onConfigUpdate();
+    },
+
     /**
      * Trigger a retake (= delete last <num_devices> captures and take new
      * ones, display activity overlay until it is finished.
@@ -289,7 +295,8 @@
         <F.Row>
           {this.state.displayConfig &&
           <ConfigModal workflow={this.props.workflow}
-                       onClose={this.toggleConfigModal} />}
+                       onClose={this.toggleConfigModal}
+                       onConfirm={this.handleConfigUpdate} />}
           <F.Column className="capture-controls">
             <ul>
               <li id="retake-capture">
@@ -516,6 +523,11 @@
       });
     },
 
+    handleConfigUpdate: function() {
+        this.toggleWaiting("Please wait until the devices are reconfigured.");
+        this.props.workflow.prepareCapture(this.toggleWaiting, true);
+    },
+
     render: function() {
       var workflow = this.props.workflow || {},
           oddImage, evenImage, captureKeys, previewClasses;
@@ -563,7 +575,7 @@
           <StatusDisplay numPages={this.props.workflow.get('pages').length}
                          numExpected={this.props.workflow.get('metadata').extent | 0}
                          captureStart={this.state.captureStart} />
-          <Control workflow={this.props.workflow} />
+          <Control workflow={this.props.workflow} onConfigUpdate={this.handleConfigUpdate} />
           <ShortcutHelp captureKeys={captureKeys} />
         </div>
       );
