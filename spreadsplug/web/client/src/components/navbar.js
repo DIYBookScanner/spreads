@@ -65,7 +65,7 @@
       return (
         <div className="contain-to-grid fixed">
           {this.state.shutdownModal &&
-          <F.Modal onClose={_.partial(this.setState, {shutdownModal: false})}>
+          <F.Modal onClose={_.partial(this.setState.bind(this), {shutdownModal: false}, null)}>
               <F.Row><F.Column><h1>Shut down/Reboot</h1></F.Column></F.Row>
               <F.Row><F.Column><p>Do you really want to shut down the device?</p></F.Column></F.Row>
               <F.Row><F.Column><p><strong>If you do, please make sure that you turn off your devices before confirming!</strong></p></F.Column></F.Row>

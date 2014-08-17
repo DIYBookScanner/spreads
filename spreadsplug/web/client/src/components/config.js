@@ -317,7 +317,7 @@
                   return (
                     <F.Row key={section}>
                       <F.Column>
-                        <a onClick={_.partial(this.setState, {selectedSection: section})}>
+                        <a onClick={_.partial(this.setState.bind(this), {selectedSection: section}, null)}>
                           <label className={classes}>
                             {capitalize(section)}
                             {active && <i style={{"margin-right": "1rem",

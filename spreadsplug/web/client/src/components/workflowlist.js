@@ -375,7 +375,7 @@
             {/* Display deletion confirmation modal? */}
             {this.state.deleteModal &&
               <F.ConfirmModal
-                onCancel={_.partial(this.setState, {deleteModal: false})}
+                onCancel={_.partial(this.setState.bind(this), {deleteModal: false}, null)}
                 onConfirm={this.doRemove}>
                 <h1>Remove?</h1>
                 <p>Do you really want to permanently remove this workflow and all
@@ -383,7 +383,7 @@
               </F.ConfirmModal>}
             {/* Display error modal? */}
             {this.state.errorModal &&
-              <F.Modal onClose={_.partial(this.setState, {errorModal: false})}>
+              <F.Modal onClose={_.partial(this.setState.bind(this), {errorModal: false}, null)}>
                 <h1>{this.state.errorModalHeading}</h1>
                 <p>{this.state.errorModalText}</p>
               </F.Modal>}
