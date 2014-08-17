@@ -23,7 +23,6 @@ from __future__ import division, unicode_literals
 
 import copy
 import logging
-import multiprocessing
 import shutil
 import threading
 import uuid
@@ -46,6 +45,7 @@ try:
     HAS_JPEGTRAN = True
 except ImportError:
     HAS_JPEGTRAN = False
+    from PIL import Image
 
 signals = Namespace()
 on_created = signals.signal('workflow:created', doc="""\
