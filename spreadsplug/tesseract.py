@@ -43,7 +43,10 @@ try:
                                            stdout=subprocess.PIPE)
                        .communicate()[0]
                        .split("\n")[1:-1])
-except subprocess.CalledProcessError:
+    # There should be at least a single language
+    if not AVAILABLE_LANGS:
+        raise ValueError()
+except (subprocess.CalledProcessError, ValueError):
     AVAILABLE_LANGS = [x.stem for x in
                        Path('/usr/share/tesseract-ocr/tessdata')
                        .glob('*.traineddata')]
