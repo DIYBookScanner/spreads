@@ -100,11 +100,11 @@
      */
     getNavTitle: function(viewName) {
       var mappings = {
-        create:       "spreads: new workflow",
+        create:       "spreads: create",
         capture:      "spreads: capture",
-        view:         "spreads: workflow details",
-        edit:         "spreads: edit workflow",
-        root:         "spreads: workflow list"
+        view:         "spreads: details",
+        edit:         "spreads: edit",
+        root:         "spreads: list"
       };
       if (mappings[viewName] !== undefined) {
         return mappings[viewName];
