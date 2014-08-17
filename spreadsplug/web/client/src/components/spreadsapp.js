@@ -55,8 +55,12 @@
     /** Register message change listeners */
     componentDidMount: function() {
       window.router.events.on('logrecord', function(record) {
-        if (_.contains(["WARNING", "ERROR"], record.level)) {
+        if (_.contains(["WARNING", "ERROR"], record.level && record.origin !== 'tornado.access')) {
+          var error = {
+            message: "There was an unexpected backend error: " + record.message
+          };
           this.setState({
+            messages: this.state.messages.concat([error]).slice(-3),
             numUnreadErrors: this.state.numUnreadErrors + 1
           });
         }
