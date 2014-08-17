@@ -1,14 +1,16 @@
 .. toctree::
    :maxdepth: 2
 
-   about
-   configuration
+   start
+   setup-spreadpi
+   setup-other
    web
-   cli
    gui
+   cli
+   faq
    drivers
    plugins
-   faq
-   extending
+   contributing
+   developers
    api
    changelog
