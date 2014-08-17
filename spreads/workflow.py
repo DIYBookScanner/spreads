@@ -81,6 +81,33 @@ Sent by a :class:`Workflow` after a capture was successfully executed.
 :keyword bool retake          whether the shot was a retake
 """)
 
+on_capture_failed = signals.signal('workflow:capture-failed', doc="""\
+Sent by a :class:`Workflow` after a capture failed.
+
+:argument :class:`Workflow`:    the Workflow the capture failed for
+:keyword unicode message:       A message that explains the cause of the
+                                failure
+""")
+
+
+def signal_on_error(signal):
+    """ Decorator for emitting a signal when a function throws an exception.
+
+    :param signal:      The signal to emit when an exception is thrown
+                        Should take the exception as its sole argument
+    :type signal:       blinker.Signal
+    """
+    def wrap(func):
+        def wrapped_func(*args, **kwargs):
+            try:
+                func(*args, **kwargs)
+            except Exception as e:
+                signal.send(args[0],  # self
+                            message=e.message)
+                raise
+        return wrapped_func
+    return wrap
+
 
 class ValidationError(Exception):
     def __init__(self, **kwargs):
@@ -655,11 +682,13 @@ class Workflow(object):
         self._run_hook('start_trigger_loop', self.capture)
         self._update_status(prepared=True)
 
+    @signal_on_error(on_capture_failed)
     def capture(self, retake=False):
         if not self.status['prepared']:
             raise util.SpreadsException("Capture was not prepared before.")
         with self._capture_lock:
             self._logger.info("Triggering capture.")
+            raise Exception("roflcopter")
             on_capture_triggered.send(self)
             parallel_capture = (
                 'parallel_capture' in self.config['device'].keys()
