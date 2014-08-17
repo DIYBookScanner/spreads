@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-import copy
 import itertools
 import logging
 import logging.handlers
@@ -10,9 +9,7 @@ import StringIO
 import subprocess
 import sys
 import traceback
-import time
 import zipfile
-from collections import deque
 from isbnlib import is_isbn10, is_isbn13
 
 import pkg_resources
@@ -444,7 +441,7 @@ def find_page(workflow, number, numtype='sequence'):
         page = get_next(p for p in workflow.pages if p.sequence_num == number)
     if not page:
         raise ApiException("Could not find page with {0} number {1}"
-                           .format(numtype, num), 404)
+                           .format(numtype, number), 404)
     return page
 
 
@@ -598,7 +595,6 @@ def trigger_capture(workflow):
                            " mode.", 503)
     status = workflow.status
     if status['step'] != 'capture' or not status['prepared']:
-        # TODO: Abort with error, since capture has to be prepared first
         workflow.prepare_capture()
     try:
         workflow.capture(retake=('retake' in request.args))
