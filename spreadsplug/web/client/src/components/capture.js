@@ -548,14 +548,14 @@
           <F.Row>
             <F.Column>
                 <ul className={React.addons.classSet(previewClasses)}>
-                  <Preview targetPage="odd" imageSrc={oddImage}
-                    cropParams={this.state.cropParams['odd']}
-                    onCropParamUpdate={_.partial(this.setCropParams, 'odd')}
-                    showCropPreview={this.state.captureStart > 0}/>
                   <Preview targetPage="even" imageSrc={evenImage}
                     cropParams={this.state.cropParams['even']}
                     onCropParamUpdate={_.partial(this.setCropParams, 'even')}
                     showCropPreview={this.state.captureStart > 0} />
+                  <Preview targetPage="odd" imageSrc={oddImage}
+                    cropParams={this.state.cropParams['odd']}
+                    onCropParamUpdate={_.partial(this.setCropParams, 'odd')}
+                    showCropPreview={this.state.captureStart > 0}/>
               </ul>
             </F.Column>
           </F.Row>
