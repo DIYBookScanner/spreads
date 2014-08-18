@@ -2,7 +2,6 @@ import argparse
 import logging
 import logging.handlers
 import os
-import pkg_resources
 import sys
 import traceback
 
@@ -52,11 +51,19 @@ def add_argument_from_template(extname, key, template, parser, current_val):
 def setup_parser(config):
     plugins = plugin.get_plugins(*config["plugins"].get())
     rootparser = argparse.ArgumentParser(
-        description="Scanning Tool for  DIY Book Scanner")
+        description="Scanning Tool for  DIY Book Scanner",
+        formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    app_version = pkg_resources.require('spreads')[0].version
-    rootparser.add_argument('-V', '--version', action='version',
-                            version='spreads {0}'.format(app_version))
+    rootparser.add_argument(
+        '-V', '--version', action='version',
+        version=(
+            "spreads {0}\n\n"
+            "Licensed under the terms of the GNU Affero General Public "
+            "License 3.0.\n"
+            "(C) 2013-2014 Johannes Baiter <johannes.baiter@gmail.com>\n"
+            "For a complete list of contributors see:\n"
+            "https://github.com/DIYBookScanner/spreads/graphs/contributors\n\n"
+            .format(util.get_version())))
 
     for key, option in config.templates['core'].iteritems():
         try:

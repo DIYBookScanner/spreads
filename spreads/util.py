@@ -25,6 +25,7 @@ import glob
 import json
 import logging
 import os
+import pkg_resources
 import platform
 import re
 import subprocess
@@ -47,6 +48,10 @@ class DeviceException(SpreadsException):
 
 class MissingDependencyException(SpreadsException):
     pass
+
+
+def get_version():
+    return pkg_resources.require('spreads')[0].version
 
 
 def find_in_path(name):
