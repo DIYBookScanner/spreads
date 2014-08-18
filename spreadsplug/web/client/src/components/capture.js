@@ -250,7 +250,7 @@
         Mousetrap.bind(key, this.handleCapture);
       }, this);
       Mousetrap.bind('r', this.handleRetake);
-      Mousetrap.bind('f', this.handleFinish);
+      Mousetrap.bind('f', returnToWorkflowList);
     },
 
     componentWillUnmount: function() {
@@ -411,7 +411,7 @@
 
       // Leave capture screen when the workflow step is changed from elsewhere
       this.props.workflow.on('status-updated', function(status) {
-        if (status.step !== 'capture') this.handleFinish();
+        if (status.step !== 'capture') returnToWorkflowList();
       }, this);
     },
 
