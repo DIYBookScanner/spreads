@@ -79,8 +79,8 @@
               <F.Column>
                 <p>Version {window.spreadsVersion}</p>
                 <p>Licensed under the terms of the <a data-bypass={true} href="https://github.com/DIYBookScanner/spreads/blob/master/LICENSE.txt">GNU Affero General Public License 3.0</a>.</p>
-                <p>&copy; 2013-2014 Johannes Baiter <a href="mailto:johannes.baiter@gmail.com">&lt;johannes.baiter@gmail.com&gt;</a></p>
-                <p>For a full list of contributors, please consult <a href="https://github.com/DIYBookScanner/spreads/graphs/contributors">GitHub</a></p>
+                <p>&copy; 2013-2014 Johannes Baiter <a data-bypass={true} href="mailto:johannes.baiter@gmail.com">&lt;johannes.baiter@gmail.com&gt;</a></p>
+                <p>For a full list of contributors, please consult <a data-bypass={true} href="https://github.com/DIYBookScanner/spreads/graphs/contributors">GitHub</a></p>
               </F.Column>
             </F.Row>
           </F.Modal>}
