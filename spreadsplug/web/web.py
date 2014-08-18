@@ -20,7 +20,7 @@ from werkzeug.contrib.cache import SimpleCache
 
 import spreads.metadata
 import spreads.plugin as plugin
-from spreads.util import get_next, is_os
+from spreads.util import get_next, is_os, get_version
 from spreads.workflow import Workflow, ValidationError
 
 from spreadsplug.web import app
@@ -91,6 +91,7 @@ def index():
         cache.set('plugin-templates', templates)
     return render_template(
         "index.html",
+        version=get_version(),
         debug=app.config['debug'],
         default_config=default_config,
         plugins=list_plugins(),

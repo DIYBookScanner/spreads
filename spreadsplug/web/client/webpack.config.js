@@ -14,10 +14,7 @@ module.exports = {
       {test: /\.js$/, loader: 'jsx-loader?harmony'},
       {test: /\.css$/, loader: 'style!css'},
       {test: /\.scss$/, loader: "style!css!sass"},
-      {test: /\.ttf$/, loader: "file-loader"},
-      {test: /\.svg$/, loader: "file-loader"},
-      {test: /\.eot$/, loader: "file-loader"},
-      {test: /\.woff$/, loader: "file-loader"}
+      {test: /\.(ttf|svg|eot|woff|png|jpg)$/, loader: "file-loader"}
     ]
   },
   plugins: [

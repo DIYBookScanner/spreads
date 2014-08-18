@@ -20,6 +20,7 @@
 (function() {
   'use strict';
   var React = require('react/addons'),
+      _ = require('underscore'),
       jQuery = require('jquery'),
       F = require('./foundation.js');
 
@@ -34,7 +35,8 @@
     getInitialState: function() {
       return {
         /** Display shutdown modal? */
-        shutdownModal: false
+        shutdownModal: false,
+        aboutModal: false
       };
     },
     /** Initiate shutdown of the hosting machine */
@@ -62,8 +64,26 @@
       });
     },
     render: function() {
+      var logoUrl = require('../../../../../doc/_static/logo.png');
+
       return (
         <div className="contain-to-grid fixed">
+          {this.state.aboutModal &&
+          <F.Modal small={false} onClose={_.partial(this.setState.bind(this), {aboutModal: false}, null)}>
+            <F.Row>
+              <F.Column>
+                <img src={logoUrl} className="about-logo" />
+              </F.Column>
+            </F.Row>
+            <F.Row>
+              <F.Column>
+                <p>Version {window.spreadsVersion}</p>
+                <p>Licensed under the terms of the <a data-bypass={true} href="https://github.com/DIYBookScanner/spreads/blob/master/LICENSE.txt">GNU Affero General Public License 3.0</a>.</p>
+                <p>&copy; 2013-2014 Johannes Baiter <a href="mailto:johannes.baiter@gmail.com">&lt;johannes.baiter@gmail.com&gt;</a></p>
+                <p>For a full list of contributors, please consult <a href="https://github.com/DIYBookScanner/spreads/graphs/contributors">GitHub</a></p>
+              </F.Column>
+            </F.Row>
+          </F.Modal>}
           {this.state.shutdownModal &&
           <F.Modal onClose={_.partial(this.setState.bind(this), {shutdownModal: false}, null)}>
               <F.Row><F.Column><h1>Shut down/Reboot</h1></F.Column></F.Row>
@@ -100,7 +120,9 @@
                 </li>
                 {/* Only show shutdown button if the application is running in standalone mode */}
                 {window.config.web.standalone_device &&
-                  (<li><a onClick={this.handleShutdown}><i className="fa fa-power-off"></i> Shut down</a></li>)}
+                (<li><a onClick={this.handleShutdown}><i className="fa fa-power-off"></i> Shut down</a></li>)}
+                <li><a onClick={_.partial(this.setState.bind(this), {aboutModal: true}, null)}
+                       alt="About Spreads"><i className="fa fa-info-circle" /></a></li>
               </ul>
             </section>
           </nav>
