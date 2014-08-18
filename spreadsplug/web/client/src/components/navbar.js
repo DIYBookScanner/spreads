@@ -22,7 +22,8 @@
   var React = require('react/addons'),
       _ = require('underscore'),
       jQuery = require('jquery'),
-      F = require('./foundation.js');
+      F = require('./foundation.js'),
+      _ = require('underscore');
 
   /**
    * Global navigation bar for the application
