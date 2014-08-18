@@ -2,6 +2,7 @@ import argparse
 import logging
 import logging.handlers
 import os
+import pkg_resources
 import sys
 import traceback
 
@@ -52,13 +53,19 @@ def setup_parser(config):
     plugins = plugin.get_plugins(*config["plugins"].get())
     rootparser = argparse.ArgumentParser(
         description="Scanning Tool for  DIY Book Scanner")
-    subparsers = rootparser.add_subparsers()
+
+    app_version = pkg_resources.require('spreads')[0].version
+    rootparser.add_argument('-V', '--version', action='version',
+                            version='spreads {0}'.format(app_version))
+
     for key, option in config.templates['core'].iteritems():
         try:
             add_argument_from_template('core', key, option, rootparser,
                                        config['core'][key].get())
         except TypeError:
             continue
+
+    subparsers = rootparser.add_subparsers()
 
     wizard_parser = subparsers.add_parser(
         'wizard', help="Interactive mode")

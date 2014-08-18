@@ -1,7 +1,8 @@
 #!/usr/bin/env python2.7
 import os
 import shutil
-from subprocess import check_call
+from datetime import datetime
+from subprocess import check_call, check_output
 from setuptools import setup
 from setuptools.command.sdist import sdist as SdistCommand
 from setuptools.command.bdist_wininst import bdist_wininst as WininstCommand
@@ -27,16 +28,26 @@ commands by implementing one of the available plugin hooks or even implement
 your own custom sub-commands.
 """
 
+VERSION = '0.5git{0}.{1}'.format(
+    datetime.today().strftime('%Y%m%d'),
+    check_output('git rev-parse HEAD'.split())[:4])
+
+
+def build_frontend_bundles():
+    check_call(['make', '-C', 'spreadsplug/web/client', 'production',
+                'development'])
+
 
 class CustomSdistCommand(SdistCommand):
     def run(self):
-        check_call(['make', '-C', 'spreadsplug/web/client', 'production', 'development'])
+        build_frontend_bundles()
         SdistCommand.run(self)
 
 
 class CustomWininstCommand(WininstCommand):
     def run(self):
         from buildmsi import build_msi
+        build_frontend_bundles()
         build_msi(bitness=32)
         if not os.path.exists('./dist'):
             os.mkdir('./dist')
@@ -46,7 +57,7 @@ class CustomWininstCommand(WininstCommand):
 
 setup(
     name="spreads",
-    version=spreads.__version__,
+    version=VERSION,
     author="Johannes Baiter",
     author_email="johannes.baiter@gmail.com",
     url="http://spreads.readthedocs.org",
@@ -61,7 +72,8 @@ setup(
         "Intended Audience :: Education",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: GNU Affero General Public License v3",
-        "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+        ("License :: OSI Approved :: GNU Affero General Public License v3 or "
+         "later (AGPLv3+)"),
         "Operating System :: POSIX",
         "Programming Language :: Python :: 2.7",
         "Topic :: Multimedia :: Graphics :: Capture",
