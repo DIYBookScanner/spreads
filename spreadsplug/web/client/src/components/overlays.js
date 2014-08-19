@@ -75,7 +75,7 @@
       return (
         <div title="Close lightbox" onClick={this.props.onClose} className="overlay lightbox">
           <a data-bypass={true} title="Open full resolution image in new tab" className="open-image" href={this.props.src} target='_blank'>
-            <img ref="image" className={this.props.targetPage || ''} src={this.props.src + '?format=browser'} onLoad={this.handleResize}/>
+            <img ref="image" className={this.props.targetPage || ''} src={this.props.src} onLoad={this.handleResize}/>
           </a>
           {(this.state.previousX !== undefined) && this.props.handlePrevious &&
             <a title="View previous page" className="control"
