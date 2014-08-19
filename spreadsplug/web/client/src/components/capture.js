@@ -450,7 +450,7 @@
       if (this.state.cropOnSuccess && !_.isEmpty(this.state.cropParams)) {
         _.each(this.props.workflow.get('pages').slice(-2), function(page) {
             var targetPage = page.sequence_num%2 > 0 ? 'odd': 'even';
-            this.props.workflow.cropPage(page.sequence_num,
+            this.props.workflow.cropPage(page.capture_num,
                                          this.state.cropParams[targetPage]);
         }, this);
       }
@@ -473,9 +473,10 @@
       }
       console.log("Cropping last capture");
       _.each(shotPages, function(page) {
-        var pageNum = page.sequence_num,
+        var pageNum = page.capture_num,
+            // This is safe, since we don't crop on retakes
             toCrop = pageNum-2,
-            targetPage = pageNum%2 > 0 ? 'odd': 'even';
+            targetPage = page.sequence_num%2 > 0 ? 'odd': 'even';
         this.props.workflow.cropPage(toCrop, this.state.cropParams[targetPage]);
       }, this);
     },

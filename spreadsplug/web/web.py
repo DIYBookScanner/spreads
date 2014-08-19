@@ -435,20 +435,17 @@ def get_output_file(workflow, fname):
 # =============== #
 #  Page-related  #
 # =============== #
-def find_page(workflow, number, numtype='sequence'):
-    if numtype == 'capture':
-        page = get_next(p for p in workflow.pages if p.capture_num == number)
-    else:
-        page = get_next(p for p in workflow.pages if p.sequence_num == number)
+def find_page(workflow, number):
+    page = get_next(p for p in workflow.pages if p.capture_num == number)
     if not page:
-        raise ApiException("Could not find page with {0} number {1}"
-                           .format(numtype, number), 404)
+        raise ApiException("Could not find page with capture number {1}"
+                           .format(number), 404)
     return page
 
 
 @app.route('/api/workflow/<workflow:workflow>/page/<int:number>')
 def get_single_page(workflow, number):
-    page = find_page(workflow, number, request.args.get('numtype', None))
+    page = find_page(workflow, number)
     return jsonify(dict(page=page))
 
 
@@ -470,7 +467,7 @@ def get_page_image(workflow, number, img_type, plugname):
     # Scale image if requested
     width = request.args.get('width', None)
     img_format = request.args.get('format', None)
-    page = find_page(workflow, number, request.args.get('numtype', None))
+    page = find_page(workflow, number)
     if img_type == 'raw':
         fpath = page.raw_image
     elif plugname is None:
@@ -499,7 +496,7 @@ def get_page_image_thumb(workflow, number, img_type, plugname):
     if img_type == 'processed' and plugname is None:
         raise ApiException("Need to supply additional path parameter for "
                            "plugin to get processed file for.", 400)
-    page = find_page(workflow, number, request.args.get('numtype', None))
+    page = find_page(workflow, number)
     if img_type == 'raw':
         fpath = page.raw_image
     elif plugname is None:
@@ -523,7 +520,7 @@ def get_page_image_thumb(workflow, number, img_type, plugname):
            methods=['DELETE'])
 def delete_page(workflow, number):
     """ Remove a single page from a workflow. """
-    page = find_page(workflow, number, request.args.get('numtype', None))
+    page = find_page(workflow, number)
     workflow.remove_pages(page)
     return jsonify(dict(page=page))
 
@@ -533,7 +530,7 @@ def delete_page(workflow, number):
     methods=['POST'])
 def crop_workflow_image(workflow, number, img_type):
     # TODO: We have to update the checksum!
-    page = find_page(workflow, number, request.args.get('numtype', None))
+    page = find_page(workflow, number)
     if img_type != 'raw':
         raise ApiException("Can only crop raw images.", 400)
     left = int(request.args.get('left', 0))
@@ -548,8 +545,8 @@ def crop_workflow_image(workflow, number, img_type):
 
 @app.route('/api/workflow/<workflow:workflow>/page', methods=['DELETE'])
 def bulk_delete_pages(workflow):
-    seq_nums = [p['sequence_num'] for p in json.loads(request.data)['pages']]
-    to_delete = [p for p in workflow.pages if p.sequence_num in seq_nums]
+    cap_nums = [p['capture_num'] for p in json.loads(request.data)['pages']]
+    to_delete = [p for p in workflow.pages if p.capture_num in cap_nums]
     logger.debug("Bulk removing from workflow {0}: {1}".format(
         workflow.id, to_delete))
     workflow.remove_pages(*to_delete)

@@ -54,7 +54,7 @@
           }),
           page = this.props.page,
           thumbUrl = util.getPageUrl(this.props.workflow,
-                                     page.sequence_num,
+                                     page.capture_num,
                                      this.props.imageType, true);
       return (
         <li className={liClasses} title="Open full resolution image in lightbox"
@@ -121,7 +121,7 @@
       if (page) {
         var allPages = workflow.get('pages'),
             pageIdx = allPages.indexOf(page);
-        image = util.getPageUrl(this.props.workflow, page.sequence_num,
+        image = util.getPageUrl(this.props.workflow, page.capture_num,
                                 this.state.imageType, false);
         next = (pageIdx != (allPages.length-1)) && allPages[pageIdx+1];
         previous = (pageIdx != 0) && allPages[pageIdx-1];

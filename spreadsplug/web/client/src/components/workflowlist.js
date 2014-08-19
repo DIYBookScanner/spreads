@@ -397,7 +397,7 @@
             {workflow.get('pages').length > 0 ?
               <a href={workflowUrl}>
                 <img width="100%"
-                     src={util.getPageUrl(workflow, workflow.get('pages').slice(-2)[0].sequence_num,
+                     src={util.getPageUrl(workflow, workflow.get('pages').slice(-2)[0].capture_num,
                                           'raw', true)} />
               </a>:
               'no pages'

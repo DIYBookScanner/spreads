@@ -712,7 +712,7 @@ class Workflow(object):
                 # Remove previous n pages, where n == len(self.devices)
                 self.remove_pages(*self.pages[-num_devices:])
 
-            for page in sorted(captured_pages, key=lambda p: p.sequence_num):
+            for page in sorted(captured_pages, key=lambda p: p.capture_num):
                 page.sequence_num = len(self.pages)
                 self.pages.append(page)
             self._run_hook('capture', self.devices, self.path)
