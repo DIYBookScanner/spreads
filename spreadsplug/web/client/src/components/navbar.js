@@ -73,6 +73,17 @@
         shutdownModal: false
       });
     },
+    checkOnline: _.throttle(function() {
+      jQuery.ajax({
+        type: "HEAD",
+        url: "/",
+        success: function() {
+          this.setState({isOffline: false});
+          window.router.events.connect();
+        }.bind(this),
+        error: this.checkOnline
+      });
+    }, 5000),
     closeShutdownModal: function () {
       this.setState({
         shutdownModal: false
@@ -89,6 +100,17 @@
 
       return (
         <div className="contain-to-grid fixed">
+          {this.state.isOffline &&
+          <div className="overlay activity">
+            <div className="animation">
+              <div className="bounce"></div>
+              <div className="bounce"></div>
+            </div>
+            <p className="text">
+              <strong>The server seems to be offline</strong><br/>
+              Trying to reconnect...
+            </p>
+          </div>}
           {this.state.aboutModal &&
           <F.Modal small={false} onClose={_.partial(this.setState.bind(this), {aboutModal: false}, null)}>
             <F.Row>
