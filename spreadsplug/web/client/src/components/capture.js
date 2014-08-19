@@ -593,7 +593,7 @@
                          captureStart={this.state.captureStart} />
           <Control workflow={this.props.workflow}
                    onConfigUpdate={this.handleConfigUpdate}
-                   onFinish={!this.state.waiting && this.handleFinish} />
+                   onFinish={this.state.waiting ? function(){} : this.handleFinish} />
           <ShortcutHelp captureKeys={captureKeys} />
         </div>
       );
