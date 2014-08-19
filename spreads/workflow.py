@@ -710,7 +710,7 @@ class Workflow(object):
 
             if retake:
                 # Remove previous n pages, where n == len(self.devices)
-                self.remove_pages(*self.pages[-num_devices*2:-num_devices])
+                self.remove_pages(*self.pages[-num_devices:])
 
             for page in sorted(captured_pages, key=lambda p: p.sequence_num):
                 page.sequence_num = len(self.pages)
