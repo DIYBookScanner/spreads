@@ -34,11 +34,6 @@
   var placeholderImg = "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4AQMAAABPbGssAAAAA1BMVEWZmZl86KQWAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gQIFjciiRhnwgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAZSURBVEjH7cEBDQAAAMKg909tDwcUAAAPBgnYAAHW6F1SAAAAAElFTkSuQmCC";
 
 
-  function returnToWorkflowList() {
-    window.router.navigate('/', {trigger: true});
-  }
-
-
   var StatusDisplay = React.createClass({
     propTypes: {
       numPages: React.PropTypes.number.isRequired,
@@ -234,7 +229,8 @@
   var Control = React.createClass({
     propTypes: {
       workflow: React.PropTypes.object.isRequired,
-      onConfigUpdate: React.PropTypes.func.isRequired
+      onConfigUpdate: React.PropTypes.func.isRequired,
+      onFinish: React.PropTypes.func.isRequired
     },
 
     getInitialState: function() {
@@ -250,7 +246,7 @@
         Mousetrap.bind(key, this.handleCapture);
       }, this);
       Mousetrap.bind('r', this.handleRetake);
-      Mousetrap.bind('f', returnToWorkflowList);
+      Mousetrap.bind('f', this.props.onFinish);
     },
 
     componentWillUnmount: function() {
@@ -318,7 +314,7 @@
               </li>
               <li>
                 <F.Button title="Finish capture and return to workflow list"
-                          onClick={returnToWorkflowList} className="complete">
+                          onClick={this.props.onFinish} className="complete">
                   <i className="fa fa-check"></i>
                 </F.Button>
               </li>
@@ -402,6 +398,15 @@
         });
       }), this);
 
+      window.router.before = function(route, name) {
+        delete window.router.before;
+        this.setState({
+          returnRoute: route
+        });
+        this.handleFinish();
+        return false;
+      }.bind(this)
+
       // Disable waiting screen if there was an error
       function disableWaiting() {
         if (this.state.waiting) this.setState({waiting: false})
@@ -411,7 +416,9 @@
 
       // Leave capture screen when the workflow step is changed from elsewhere
       this.props.workflow.on('status-updated', function(status) {
-        if (status.step !== 'capture') returnToWorkflowList();
+        if (status.step !== 'capture') {
+          window.router.navigate('/', {trigger: true});
+        }
       }, this);
     },
 
@@ -454,10 +461,15 @@
                                          this.state.cropParams[targetPage]);
         }, this);
       }
+    },
 
-      // Signal to devices to wrap up capture
-      // TODO: Display waiting overlay until this is finished?
-      this.props.workflow.finishCapture();
+    handleFinish: function() {
+      function leaveScreen() {
+        window.router.navigate(this.state.returnRoute || '/',
+                               {trigger: true});
+      }
+      this.toggleWaiting("Please wait for the capture process to finish...");
+      this.props.workflow.finishCapture(leaveScreen.bind(this));
     },
 
     /**
@@ -574,7 +586,9 @@
           <StatusDisplay numPages={this.props.workflow.get('pages').length}
                          numExpected={this.props.workflow.get('metadata').extent | 0}
                          captureStart={this.state.captureStart} />
-          <Control workflow={this.props.workflow} onConfigUpdate={this.handleConfigUpdate} />
+          <Control workflow={this.props.workflow}
+                   onConfigUpdate={this.handleConfigUpdate}
+                   onFinish={this.handleFinish} />
           <ShortcutHelp captureKeys={captureKeys} />
         </div>
       );

@@ -55,6 +55,24 @@
       "workflow/:slug/submit":    "submitWorkflow",
       "logging":                  "displayLog"
     },
+
+
+    /** We override the 'route' method so we can intercept routing events by
+     *  setting the 'before' method on the router. If it returns false, we
+     *  silently undo the previous navigation event.
+     */
+    route: function(route, name, callback) {
+      var router = this;
+      if (!callback) callback = this[name];
+
+      var f = function() {
+        var rv = (router.before || Function.prototype)(route, name);
+        if (rv !== false) callback.apply(router, arguments);
+        else window.history.go(-1);
+      };
+      return Backbone.Router.prototype.route.call(this, route, name, f);
+    },
+
     /**
      * Renders `SpreadsApp` component into `content` container and assigns
      * the passed `view` name and `workflow` id as well as our model
@@ -69,24 +87,31 @@
                                         workflowSlug={workflowSlug} />,
                             document.body);
     },
+
     root: function() {
       this._renderView("root");
     },
+
     createWorkflow: function() {
       this._renderView("create");
     },
+
     viewWorkflow: function(workflowSlug) {
       this._renderView("view", workflowSlug);
     },
+
     editWorkflow: function(workflowSlug) {
       this._renderView("edit", workflowSlug);
     },
+
     startCapture: function(workflowSlug) {
       this._renderView("capture", workflowSlug);
     },
+
     submitWorkflow: function(workflowSlug) {
       this._renderView("submit", workflowSlug);
     },
+
     displayLog: function() {
       this._renderView("log");
     }
