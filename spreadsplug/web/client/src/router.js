@@ -37,7 +37,8 @@
      * Sets up the application.
      */
     initialize: function() {
-      this.events = new EventDispatcher();
+      this.events = EventDispatcher;
+      this.events.connect();
 
       // Set up model collections
       this._workflows = new Workflows();
