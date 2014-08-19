@@ -73,10 +73,12 @@ class DummyDevice(DevicePlugin):
                 draw(img)
                 img.save(filename=unicode(path))
         img = JPEGImage(fname=unicode(path))
-        img.exif_thumbnail = img.downscale(320, int(320/1.33))
+        aspect = float(img.width)/img.height
+        img.exif_thumbnail = img.downscale(320, int(320/aspect))
         img.save(unicode(path))
 
     def finish_capture(self):
+        time.sleep(5)
         self.logger.info("Finishing capture")
 
     def update_configuration(self, updated):
