@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
-import shutil
 import time
 import urllib2
+
+from jpegtran import JPEGImage
+from wand.drawing import Drawing
+from wand.image import Image
 
 from spreads.config import OptionTemplate
 from spreads.plugin import DevicePlugin, DeviceFeatures
@@ -61,9 +64,17 @@ class DummyDevice(DevicePlugin):
 
     def capture(self, path):
         self.logger.info("Capturing image into '{0}'".format(path))
-        time.sleep(1)
         self.logger.debug(self.config['test'].get())
-        shutil.copy(unicode(self._test_imgs[self.target_page]), unicode(path))
+        with Drawing() as draw:
+            fpath = unicode(self._test_imgs[self.target_page])
+            with Image(filename=fpath) as img:
+                draw.font_size = 240
+                draw.text(img.width/2, img.height/2, path.name)
+                draw(img)
+                img.save(filename=unicode(path))
+        img = JPEGImage(fname=unicode(path))
+        img.exif_thumbnail = img.downscale(320, int(320/1.33))
+        img.save(unicode(path))
 
     def finish_capture(self):
         self.logger.info("Finishing capture")
