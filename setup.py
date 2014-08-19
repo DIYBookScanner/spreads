@@ -1,6 +1,8 @@
 #!/usr/bin/env python2.7
 import os
+import re
 import shutil
+from contextlib import contextmanager
 from datetime import datetime
 from subprocess import check_call, check_output
 from setuptools import setup
@@ -39,9 +41,26 @@ def build_frontend_bundles():
 
 
 class CustomSdistCommand(SdistCommand):
+    @contextmanager
+    def override_setup_version(self):
+        # Hardcode version in distribution's setup.py
+        with open('setup.py', 'r') as fp:
+            old_setup = fp.read()
+        new_setup = re.sub(r'VERSION = (.*?)\n\n',
+                           "VERSION = '{0}'\n\n".format(VERSION),
+                           old_setup, count=1, flags=re.DOTALL)
+        with open('setup.py', 'w') as fp:
+            fp.write(new_setup)
+        yield
+        with open('setup.py', 'w') as fp:
+            fp.write(old_setup)
+
     def run(self):
         build_frontend_bundles()
-        SdistCommand.run(self)
+        if not 'git' in VERSION:
+            return SdistCommand.run(self)
+        with self.override_setup_version():
+            return SdistCommand.run(self)
 
 
 class CustomWininstCommand(WininstCommand):
