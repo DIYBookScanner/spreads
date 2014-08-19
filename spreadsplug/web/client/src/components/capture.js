@@ -407,6 +407,10 @@
         return false;
       }.bind(this)
 
+      window.addEventListener("beforeunload", function(event) {
+        this.props.workflow.finishCapture();
+      }.bind(this));
+
       // Disable waiting screen if there was an error
       function disableWaiting() {
         if (this.state.waiting) this.setState({waiting: false})
