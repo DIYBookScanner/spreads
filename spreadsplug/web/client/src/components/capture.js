@@ -547,10 +547,10 @@
 
       if (workflow.get('pages').length) {
         var lastPages = _.sortBy(workflow.get('pages').slice(-2), function(page) {
-          return page.capture_num;
+          return page.sequence_num;
         });
-        evenImage = util.getPageUrl(workflow, lastPages[0].capture_num, 'raw');
-        oddImage = util.getPageUrl(workflow, lastPages[1].capture_num, 'raw');
+        evenImage = util.getPageUrl(workflow, lastPages[0].sequence_num, 'raw');
+        oddImage = util.getPageUrl(workflow, lastPages[1].sequence_num, 'raw');
       }
 
       return (
