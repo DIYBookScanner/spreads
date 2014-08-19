@@ -104,7 +104,7 @@
     render: function() {
       return (
         <section>
-          <form onSubmit={this.handleSave}>
+          <form>
             <F.Row>
               <F.Column>
                 <h2>{this.props.isNew ? 'Create workflow' : 'Edit workflow'}</h2>
@@ -117,10 +117,11 @@
                                  errors={this.state.errors || {}}
                                  templates={window.pluginTemplates}/>
             <F.Row>
-                <F.Column>
-                  <button className={"action-button small" + (this.state.submitting ? 'disabled' : '')}>
+              <F.Column>
+                <F.Button size='small' disabled={this.state.submitting}
+                          onClick={this.handleSave}>
                     <i className="fa fa-check"/> Submit
-                  </button>
+                </F.Button>
                 </F.Column>
             </F.Row>
           </form>
