@@ -75,7 +75,7 @@
     render: function() {
       return (
         <F.Row>
-          <F.Column size={[6, 12]}>
+          <F.Column>
             {this.props.smallDisplay &&
               <a onClick={this.toggleActionDropdown} className="action-select action-button small dropdown"
                   title="View actions"><i className="fa fa-list" /> Actions</a>
@@ -402,6 +402,7 @@
               </a>:
               'no pages'
             }
+            {this.props.smallDisplay && actionBar}
             </F.Column>
             <F.Column size={[6, 8]}>
               <F.Row>
@@ -430,7 +431,6 @@
               {!this.props.smallDisplay && actionBar}
             </F.Column>
           </F.Row>
-          {this.props.smallDisplay && actionBar}
         </div>
       );
     }
