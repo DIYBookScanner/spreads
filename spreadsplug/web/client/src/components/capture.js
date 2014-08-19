@@ -273,6 +273,7 @@
     },
 
     handleConfigUpdate: function() {
+      if (this.state.waiting) return;
       this.toggleConfigModal();
       this.props.onConfigUpdate();
     },
@@ -592,7 +593,7 @@
                          captureStart={this.state.captureStart} />
           <Control workflow={this.props.workflow}
                    onConfigUpdate={this.handleConfigUpdate}
-                   onFinish={this.handleFinish} />
+                   onFinish={!this.state.waiting && this.handleFinish} />
           <ShortcutHelp captureKeys={captureKeys} />
         </div>
       );
