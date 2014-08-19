@@ -145,7 +145,7 @@
         'disabled': this.props.disabled
       };
       var className = [classSet(classes), this.props.className].join(" ");
-      classes += " " + this.props.size;
+      className += " " + this.props.size;
       return (<a onClick={this.props.onClick} className={className}>
                 {this.props.children}
               </a>);
