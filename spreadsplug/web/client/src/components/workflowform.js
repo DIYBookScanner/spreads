@@ -57,12 +57,6 @@
       this.props.workflow.on('validated:invalid', function(workflow, errors) {
         this.setState({errors: errors});
       }, this);
-      /* When workflow is saved, add it to the `workflows` collection. */
-      if (this.props.isNew) {
-        this.props.workflow.on('sync', function() {
-            this.props.workflow.collection.add(this.props.workflow);
-        }, this);
-      }
     },
 
     componentWillUnmount: function() {
