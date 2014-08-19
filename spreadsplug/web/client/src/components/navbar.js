@@ -40,6 +40,18 @@
         aboutModal: false
       };
     },
+
+    componentWillMount: function() {
+      window.router.events.websocket.onclose = function() {
+        this.setState({isOffline: true});
+        this.checkOnline();
+      }.bind(this);
+    },
+
+    componentWillUnmount: function() {
+      delete window.router.events.websocket.onclose;
+    },
+
     /** Initiate shutdown of the hosting machine */
     doShutdown: function() {
       // TODO: Show activity indicator until connection has died
@@ -61,9 +73,9 @@
         shutdownModal: false
       });
     },
-    doClose: function () {
+    closeShutdownModal: function () {
       this.setState({
-	shutdownModal: false
+        shutdownModal: false
       });
     },
     /** Display shutdown modal to ask user to confirm shutdown */
@@ -94,19 +106,16 @@
             </F.Row>
           </F.Modal>}
           {this.state.shutdownModal &&
-          <F.Modal onClose={this.doClose}>
-              <F.Row><F.Column><h1>Shut down/Reboot</h1></F.Column></F.Row>
+          <F.Modal onClose={this.closeShutdownModal}>
+              <F.Row><F.Column><h1>Shutdown/Reboot</h1></F.Column></F.Row>
               <F.Row><F.Column><p>Do you really want to shut down the device?</p></F.Column></F.Row>
               <F.Row><F.Column><p><strong>If you do, please make sure that you turn off your devices before confirming!</strong></p></F.Column></F.Row>
               <F.Row>
-                <F.Column size={4}>
-                  <F.Button onClick={this.doShutdown} size="small">Shut Down</F.Button>
+                <F.Column size={6}>
+                  <F.Button onClick={this.doShutdown} size="small"><i className="fa fa-power-off" /> Shutdown</F.Button>
                 </F.Column>
-                <F.Column size={4}>
-                  <F.Button onClick={this.doReboot} size="small">Reboot</F.Button>
-                </F.Column>
-                <F.Column size={4}>
-                  <F.Button onClick={this.doClose} size="small">Cancel</F.Button>
+                <F.Column size={6}>
+                  <F.Button onClick={this.doReboot} size="small"><i className="fa fa-refresh" /> Reboot</F.Button>
                 </F.Column>
               </F.Row>
             </F.Modal>}
