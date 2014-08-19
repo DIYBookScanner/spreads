@@ -154,10 +154,10 @@
       type: React.PropTypes.string.isRequired,
       /** List of available plugins of that type */
       available: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
-      /** List of enabled plugins of that type */
-      enabled: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
       /** Function to be called when selection changes */
-      onChange: React.PropTypes.func.isRequired
+      onChange: React.PropTypes.func.isRequired,
+      /** List of enabled plugins of that type */
+      enabled: React.PropTypes.arrayOf(React.PropTypes.string)
     },
 
     render: function() {
