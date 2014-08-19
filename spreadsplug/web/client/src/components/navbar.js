@@ -55,7 +55,15 @@
     doReboot: function() {
       jQuery.ajax({
         type: "POST",
-        url: "/api/system/rebot"
+        url: "/api/system/reboot"
+      });
+      this.setState({
+        shutdownModal: false
+      });
+    },
+    doClose: function () {
+      this.setState({
+	shutdownModal: false
       });
     },
     /** Display shutdown modal to ask user to confirm shutdown */
@@ -86,7 +94,7 @@
             </F.Row>
           </F.Modal>}
           {this.state.shutdownModal &&
-          <F.Modal onClose={_.partial(this.setState.bind(this), {shutdownModal: false}, null)}>
+          <F.Modal onClose={this.doClose}>
               <F.Row><F.Column><h1>Shut down/Reboot</h1></F.Column></F.Row>
               <F.Row><F.Column><p>Do you really want to shut down the device?</p></F.Column></F.Row>
               <F.Row><F.Column><p><strong>If you do, please make sure that you turn off your devices before confirming!</strong></p></F.Column></F.Row>
@@ -98,7 +106,7 @@
                   <F.Button onClick={this.doReboot} size="small">Reboot</F.Button>
                 </F.Column>
                 <F.Column size={4}>
-                  <F.Button onClick={this.props.onClose} size="small">Cancel</F.Button>
+                  <F.Button onClick={this.doClose} size="small">Cancel</F.Button>
                 </F.Column>
               </F.Row>
             </F.Modal>}
