@@ -554,6 +554,12 @@ fieldset.config {
   padding-top: 1em;
 }
 
+.workflow-item:not(:last-child) {
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+  border-bottom: 1px solid black;
+}
+
 /* ======= Animations ======== */
 @include keyframes(bounce) {
   0%, 100% {

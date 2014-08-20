@@ -74,8 +74,7 @@
 
     render: function() {
       return (
-        <F.Row>
-          <F.Column>
+          <div>
             {this.props.smallDisplay &&
               <a onClick={this.toggleActionDropdown} className="action-select action-button small dropdown"
                   title="View actions"><i className="fa fa-list" /> Actions</a>
@@ -160,8 +159,7 @@
                   </a>
                 </li>}
             </ul>}
-          </F.Column>
-        </F.Row>
+        </div>
       );
     }
   })
@@ -369,8 +367,22 @@
                               onOutput={this.handleOutput}
                               removalBlocked={removalBlocked}
                               smallDisplay={this.props.smallDisplay}/>);
+      var previewImage;
+      if (this.props.workflow.get('pages').length > 0) {
+        previewImage = (
+          <a href={workflowUrl}>
+            <img width="100%"
+                  src={util.getPageUrl(workflow, workflow.get('pages').slice(-2)[0].capture_num,
+                                      'raw', true)} />
+          </a>);
+      }
       return (
         <div className="workflow-item">
+          {this.props.smallDisplay &&
+          <F.Row>
+            {previewImage}
+            {actionBar}
+          </F.Row>}
           <F.Row>
             {/* Display deletion confirmation modal? */}
             {this.state.deleteModal &&
@@ -392,19 +404,12 @@
               <ProgressOverlay progress={this.state.transferProgress}
                               statusMessage={this.state.transferCurrentFile || "Preparing transfer..."}/>}
             {/* Display preview image (second-to last page) if there are pages
-                in the workflow */}
-            <F.Column size={[6, 4]}>
-            {workflow.get('pages').length > 0 ?
-              <a href={workflowUrl}>
-                <img width="100%"
-                     src={util.getPageUrl(workflow, workflow.get('pages').slice(-2)[0].capture_num,
-                                          'raw', true)} />
-              </a>:
-              'no pages'
-            }
-            {this.props.smallDisplay && actionBar}
-            </F.Column>
-            <F.Column size={[6, 8]}>
+            in the workflow */}
+            {!this.props.smallDisplay &&
+              <F.Column size={[4]}>
+                {previewImage}
+              </F.Column>}
+            <F.Column size={[12, 8]}>
               <F.Row>
                 <F.Column>
                   <h3><a title="View details"
@@ -428,7 +433,8 @@
                   </div>
                 </F.Column>
               </F.Row>}
-              {!this.props.smallDisplay && actionBar}
+              {!this.props.smallDisplay &&
+              <F.Row><F.Column>{actionBar}</F.Column></F.Row>}
             </F.Column>
           </F.Row>
         </div>
