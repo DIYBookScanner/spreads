@@ -21,13 +21,14 @@ import logging
 import os
 import uuid
 import tarfile
+import tempfile
 import threading
 import time
 import Queue
 
 import blinker
 from tornado.ioloop import IOLoop
-from tornado.web import RequestHandler, asynchronous
+from tornado.web import RequestHandler, asynchronous, stream_request_body
 from tornado.websocket import WebSocketHandler as TornadoWebSocketHandler
 
 import util
@@ -37,6 +38,32 @@ signals = blinker.Namespace()
 on_download_finished = signals.signal('download:finished')
 
 event_buffer = None  # NOTE: Will be set after we defined EventHandler
+
+
+class BoundaryStripper(object):
+    def __init__(self):
+        self.initialized = False
+
+    def process(self, data):
+        trimmed = data.splitlines()
+        tmp = data.splitlines(True)
+        if not self.initialized:
+            self.boundary = trimmed[0].strip()
+            tmp = tmp[1:]
+            trimmed = trimmed[1:]
+            self.initialized = True
+            try:
+                firstelem = trimmed[:5].index("")
+                tmp = tmp[firstelem + 1:]
+                trimmed = trimmed[firstelem + 1:]
+            except ValueError:
+                pass
+        try:
+            lastelem = trimmed.index(self.boundary + "--")
+            self.initialized = False
+            return "".join(tmp[:lastelem - 1])
+        except ValueError:
+            return "".join(tmp)
 
 
 class WebSocketHandler(TornadoWebSocketHandler):
@@ -116,6 +143,36 @@ class EventLongPollingHandler(RequestHandler):
 
     def on_connection_close(self):
         event_buffer.cancel_wait(self.on_new_events)
+
+
+@stream_request_body
+class StreamingUploadHandler(RequestHandler):
+    def initialize(self, base_path):
+        self.base_path = base_path
+
+    def prepare(self):
+        self.stripper = BoundaryStripper()
+        self.request.connection.set_max_body_size(2*1024**3)
+        fdesc, self.fname = tempfile.mkstemp()
+        self.fp = os.fdopen(fdesc, 'wb')
+
+    def data_received(self, chunk):
+        self.fp.write(self.stripper.process(chunk))
+        self.fp.flush()
+
+    def post(self):
+        self.fp.close()
+        with tarfile.open(self.fname) as tf:
+            wfname = tf.getnames()[0]
+            tf.extractall(path=self.base_path)
+        os.unlink(self.fname)
+
+        workflow = Workflow(path=os.path.join(self.base_path, wfname))
+        from spreads.workflow import on_created
+        on_created.send(workflow, workflow=workflow)
+
+        self.set_header('Content-Type', 'application/json')
+        self.write(json.dumps(workflow, cls=util.CustomJSONEncoder))
 
 
 class ZipDownloadHandler(RequestHandler):

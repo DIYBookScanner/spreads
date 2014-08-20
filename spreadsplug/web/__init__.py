@@ -245,6 +245,9 @@ class WebApplication(object):
             (r"/api/workflow/([0-9a-z-]+)/download/(.*).\.tar",
              handlers.TarDownloadHandler,
              dict(base_path=app.config['base_path'])),
+            (r"/api/workflow/upload",
+             handlers.StreamingUploadHandler,
+             dict(base_path=app.config['base_path'])),
             (r"/api/poll", handlers.EventLongPollingHandler),
             (r".*", FallbackHandler, dict(fallback=container))
         ], debug=self._debug)

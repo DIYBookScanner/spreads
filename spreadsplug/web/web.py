@@ -288,31 +288,23 @@ def create_workflow():
 
     Returns the newly created workflow as a JSON object.
     """
-    if request.content_type == 'application/zip':
-        zfile = zipfile.ZipFile(StringIO.StringIO(request.data))
-        zfile.extractall(path=app.config['base_path'])
-        wfname = os.path.dirname(zfile.filelist[0].filename)
-        workflow = Workflow(path=os.path.join(app.config['base_path'], wfname))
-        from spreads.workflow import on_created
-        on_created.send(workflow, workflow=workflow)
+    data = json.loads(request.data)
+
+    if data.get('config'):
+        config = app.config['default_config'].with_overlay(
+            data.get('config'))
     else:
-        data = json.loads(request.data)
+        config = app.config['default_config']
 
-        if data.get('config'):
-            config = app.config['default_config'].with_overlay(
-                data.get('config'))
-        else:
-            config = app.config['default_config']
+    metadata = data.get('metadata', {})
 
-        metadata = data.get('metadata', {})
-
-        try:
-            workflow = Workflow.create(location=app.config['base_path'],
-                                       config=config,
-                                       metadata=metadata)
-        except ValidationError as e:
-            return make_response(json.dumps(dict(errors=e.errors)), 400,
-                                 {'Content-Type': 'application/json'})
+    try:
+        workflow = Workflow.create(location=app.config['base_path'],
+                                    config=config,
+                                    metadata=metadata)
+    except ValidationError as e:
+        return make_response(json.dumps(dict(errors=e.errors)), 400,
+                                {'Content-Type': 'application/json'})
     return make_response(json.dumps(workflow),
                          200, {'Content-Type': 'application/json'})
 
@@ -409,9 +401,9 @@ def submit_workflow(workflow):
         raise ApiException("Missing 'server' field in JSON data", 400)
     user_config = data.get('config', {})
     from tasks import upload_workflow
-    # TODO: Pass config to this function
     upload_workflow(workflow.id, app.config['base_path'],
-                    'http://{0}/api/workflow'.format(server), user_config,
+                    'http://{0}/api/workflow/upload'.format(server),
+                    user_config,
                     start_process=data.get('start_process', False),
                     start_output=data.get('start_output', False))
     return 'OK'
