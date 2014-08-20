@@ -23,6 +23,7 @@
       _ = require('underscore'),
       jQuery = require('jquery'),
       F = require('./foundation.js'),
+      util = require('../util.js'),
       ProgressOverlay = require('./overlays.js').Progress,
       PluginWidget = require('./config.js').PluginWidget,
       PluginConfiguration = require('./config.js').PluginConfiguration;
@@ -172,9 +173,9 @@
               </F.Column>
             </F.Row>}
             <F.Row>
-              <F.Column>
+              <F.Column size={[12, 9]}>
                 <F.Row collapse={true}>
-                  <F.Column size={[10,7]}>
+                  <F.Column size={[9,10]}>
                     <input type="text" placeholder="Custom server address"
                           className={this.state.errors.server ? 'error': ''}
                           onKeyUp={function(e){
@@ -185,8 +186,8 @@
                     {this.state.errors.server &&
                     <small className="error">{this.state.errors.server}</small>}
                   </F.Column>
-                  <F.Column size={[2, 5]}>
-                    <a className="button postfix" style={{width: '8em'}}><i className="fa fa-refresh"/> Refresh</a>
+                  <F.Column size={[3, 2]}>
+                    <a className="button postfix"><i className="fa fa-refresh"/> {!util.isSmall() && 'Refresh'}</a>
                   </F.Column>
                 </F.Row>
               </F.Column>
