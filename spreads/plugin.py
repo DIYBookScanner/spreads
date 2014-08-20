@@ -125,7 +125,10 @@ class DevicePlugin(SpreadsPlugin):  # pragma: no cover
                 "flip_target_pages": OptionTemplate(
                     value=False,
                     docstring="Temporarily switch target pages (useful for "
-                              "e.g. East-Asian books)")
+                              "e.g. East-Asian books)"),
+                "upside_down": OptionTemplate(
+                    value=False,
+                    docstring="Cameras are mounted upside-down."),
             }
 
     @abstractclassmethod
