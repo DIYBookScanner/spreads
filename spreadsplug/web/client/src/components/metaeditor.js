@@ -23,7 +23,8 @@
       merge = require('react/lib/merge'),
       _ = require('underscore'),
       jQuery = require('jquery'),
-      F = require('./foundation.js');
+      F = require('./foundation.js'),
+      util = require('../util.js');
 
 
   var AutoComplete = React.createClass({
@@ -151,6 +152,11 @@
     },
 
     render: function() {
+      var isSmall = util.isSmall();
+      var outerContainer = isSmall ? React.DOM.div : F.Row;
+      var labelContainer = isSmall ? F.Row : React.DOM.div;
+      var labelClasses = isSmall ? "" : "right inline";
+      var formContainer = labelContainer;
       // if the incoming state contains a search term with a real priority then
       // make the async ajax/json calls
       if (this.state.call.latest > 0 && this.state.call.term != '' && this.state.completeEnabled) {
@@ -158,27 +164,31 @@
       }
       return (
         <div>
+          <outerContainer>
+            <labelContainer>
+              <F.Column size={[12, 2]}>
+                <label htmlFor={this.props.key + "-input"} className={labelClasses}>
+                  {this.props.name}
+                </label>
+              </F.Column>
+            </labelContainer>
+            <formContainer>
+              <F.Column size={[12, 10]}>
+                <input type="text" placeholder="Enter a search-term to get a list of suggestions"
+                      value={this.props.value} ref="input"
+                      id={this.props.key + "-input"}
+                      onChange={function(e){
+                        this.props.onChange({'title': e.target.value});
+                      }.bind(this)}
+                      onKeyUp={this.handleKeyUp}/>
+                {this.props.error &&
+                  <small className="error">{this.props.error}</small>
+                }
+              </F.Column>
+            </formContainer>
+          </outerContainer>
           <F.Row>
-            <F.Column size={2}>
-              <label htmlFor={this.props.key + "-input"} className="right inline">
-                {this.props.name}
-              </label>
-            </F.Column>
-            <F.Column size={10}>
-              <input type="text" placeholder="Enter a search-term to get a list of suggestions"
-                     value={this.props.value} ref="input"
-                     id={this.props.key + "-input"}
-                     onChange={function(e){
-                       this.props.onChange({'title': e.target.value});
-                     }.bind(this)}
-                     onKeyUp={this.handleKeyUp}/>
-              {this.props.error &&
-                <small className="error">{this.props.error}</small>
-              }
-            </F.Column>
-          </F.Row>
-          <F.Row>
-            <F.Column size={10} offset={2}>
+            <F.Column size={[12, 10]} offset={[0, 2]}>
               <AutoCompleteBox list={this.state.autocomplete} onSelect={this.handleSelect} />
             </F.Column>
           </F.Row>
@@ -197,22 +207,31 @@
     },
 
     render: function() {
+      var isSmall = util.isSmall();
+      var outerContainer = isSmall ? React.DOM.div : F.Row;
+      var labelContainer = isSmall ? F.Row : React.DOM.div;
+      var labelClasses = isSmall ? "" : "right inline";
+      var formContainer = labelContainer;
       return (
-        <F.Row>
-          <F.Column size={2}>
-            <label htmlFor={this.props.key + "-input"} className="right inline">
-              {this.props.name}
-            </label>
-          </F.Column>
-          <F.Column size={10}>
-            <input type="text" ref="input" value={this.props.value}
-                   id={this.props.key + "-input"}
-                   onChange={function(e){this.props.onChange(e.target.value)}.bind(this)}/>
-            {this.props.error &&
-              <small className="error">{this.props.error}</small>
-            }
-          </F.Column>
-        </F.Row>
+        <outerContainer>
+          <labelContainer>
+            <F.Column size={[12, 2]}>
+              <label htmlFor={this.props.key + "-input"} className={labelClasses}>
+                {this.props.name}
+              </label>
+            </F.Column>
+          </labelContainer>
+          <formContainer>
+            <F.Column size={[12, 10]}>
+              <input type="text" ref="input" value={this.props.value}
+                    id={this.props.key + "-input"}
+                    onChange={function(e){this.props.onChange(e.target.value)}.bind(this)}/>
+              {this.props.error &&
+                <small className="error">{this.props.error}</small>
+              }
+            </F.Column>
+          </formContainer>
+        </outerContainer>
       );
     }
   });
@@ -247,18 +266,26 @@
 
     render: function() {
       var values = this.props.values,
-          enumeratedValues,
-          canBeRemoved = !(_.isEmpty(values) || (values.length == 1 && _.isEmpty(values[0])));
+          canBeRemoved = !(_.isEmpty(values) || (values.length == 1 && _.isEmpty(values[0]))),
+          isSmall = util.isSmall(),
+          enumeratedValues;
       if (_.isEmpty(values)) values = [""];
       enumeratedValues = _.zip(_.range(values.length), values);
+      var outerContainer = isSmall ? React.DOM.div : F.Row;
+      var labelContainer = isSmall ? F.Row : React.DOM.div;
+      var formContainer = isSmall ? React.DOM.div : F.Column;
+      var postfixSize = isSmall ? 2 : 1;
       return (
-        <F.Row className="metadata-fieldset">
-          <F.Column size={2}><label>{this.props.name}</label></F.Column>
-          <F.Column size={10}>
+        <outerContainer className="metadata-fieldset">
+          {/* Put label in separate row on small devices */}
+          <labelContainer>
+            <F.Column size={[12, 2]}><label>{this.props.name}</label></F.Column>
+          </labelContainer>
+          <formContainer size={10}>
           {_.map(enumeratedValues, function(value) {
             return (
             <F.Row key={value[0]} collapse={true}>
-              <F.Column size={10}>
+              <F.Column size={12-(2*postfixSize)}>
                 <input ref={'field-' + value[0]} type="text" value={value[1]}
                       onChange={function(e) {
                                   this.onModified(value[0], e.target.value)
@@ -268,12 +295,12 @@
                 }
               </F.Column>
               {canBeRemoved &&
-                <F.Column size={1}>
+                <F.Column size={postfixSize}>
                   <span className="postfix" onClick={_.partial(this.onRemoved, value[0])}>
                     <i className="fa fa-times" />
                   </span>
                 </F.Column>}
-              <F.Column size={canBeRemoved ? 1 : 2}>
+              <F.Column size={canBeRemoved ? postfixSize : postfixSize*2}>
                 {value[0] === values.length-1 &&
                  <span className="postfix" onClick={this.onAdded}>
                    <i className="fa fa-plus" />
@@ -281,8 +308,8 @@
               </F.Column>
             </F.Row>);
           }, this)}
-          </F.Column>
-        </F.Row>);
+          </formContainer>
+        </outerContainer>);
     }
   });
 

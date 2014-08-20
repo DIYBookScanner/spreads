@@ -520,9 +520,12 @@ li.page-preview {
     margin-top: -1rem;
   }
   label {
-    text-align: right;
+    @media #{$medium-up} {
+      text-align: right;
+    }
   }
 }
+
 .metadata-view {
   .row {
     margin-top: 0.5rem;
