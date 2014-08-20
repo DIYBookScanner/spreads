@@ -162,7 +162,7 @@
                 {window.config.web.standalone_device &&
                 (<li><a onClick={this.handleShutdown}><i className="fa fa-power-off"></i> Shut down</a></li>)}
                 <li><a onClick={_.partial(this.setState.bind(this), {aboutModal: true}, null)}
-                       alt="About Spreads"><i className="fa fa-info-circle" /></a></li>
+                       alt="About Spreads"><i className="fa fa-info-circle" /> About</a></li>
               </ul>
             </section>
           </nav>
