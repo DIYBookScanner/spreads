@@ -181,8 +181,8 @@ def discover_postprocessors():
         raise ApiException("Discovery only possible when running in 'scanner'"
                            " mode.", 503)
     servers = discover_servers()
-    if app.config['postproc_server']:
-        servers.append(app.config['postproc_server'].split(':'))
+    if app.config['postprocessing_server']:
+        servers.append(app.config['postprocessing_server'].split(':'))
     return jsonify(servers=["{0}:{1}".format(*addr) for addr in servers])
 
 
@@ -399,10 +399,6 @@ def transfer_workflow(workflow):
 @app.route('/api/workflow/<workflow:workflow>/submit', methods=['POST'])
 def submit_workflow(workflow):
     """ Submit the requested workflow to the postprocessing server.
-
-    Only available in 'scanner' mode. Requires that the 'postproc_server'
-    option is set to the address of a server with the server in 'processor'
-    or 'full' mode running.
     """
     if app.config['mode'] != 'scanner':
         raise ApiException("Submission only possible when running in 'scanner'"

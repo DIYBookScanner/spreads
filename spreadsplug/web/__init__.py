@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import json
 import logging
 import logging.handlers
 import os
@@ -182,6 +181,8 @@ class WebApplication(object):
         app.config['base_path'] = project_dir
         app.config['default_config'] = config
         app.config['standalone'] = self.config['standalone_device'].get()
+        app.config['postprocessing_server'] = (
+            self.config['postprocessing_server'].get() or None)
         if not self._debug:
             app.error_handler_spec[None][500] = web.handle_general_exception
 
