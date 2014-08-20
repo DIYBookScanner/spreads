@@ -219,8 +219,8 @@
                 }
                 return (
                   <F.Row key={field.key}>
-                    <F.Column size={2}>{field.description}</F.Column>
-                    <F.Column size={10}>{valueNode}</F.Column>
+                    <F.Column size={[4, 2]}>{field.description}</F.Column>
+                    <F.Column size={[8, 10]}>{valueNode}</F.Column>
                   </F.Row>);
                 })}
             </F.Column>
