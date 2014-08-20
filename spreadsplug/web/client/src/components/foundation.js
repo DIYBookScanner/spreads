@@ -117,6 +117,7 @@
       expand: React.PropTypes.bool,
       disabled: React.PropTypes.bool,
       onClick: React.PropTypes.func,
+      title: React.PropTypes.string,
       className: React.PropTypes.string,
       children: React.PropTypes.oneOfType([
         React.PropTypes.renderable,
@@ -142,7 +143,8 @@
       };
       var className = [classSet(classes), this.props.className].join(" ");
       className += " " + this.props.size;
-      return (<a onClick={this.props.onClick} className={className}>
+      return (<a onClick={!this.props.disabled && this.props.onClick}
+                 className={className} title={this.props.title}>
                 {this.props.children}
               </a>);
     }
