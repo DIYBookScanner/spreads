@@ -376,13 +376,23 @@
                                       'raw', true)} />
           </a>);
       }
+      var titleRow = (
+        <F.Row>
+          <F.Column>
+            <h3><a title="View details"
+                  href={workflowUrl}>{workflow.get('metadata').title}</a></h3>
+          </F.Column>
+        </F.Row>);
       return (
         <div className="workflow-item">
           {this.props.smallDisplay &&
-          <F.Row>
-            {previewImage}
-            {actionBar}
-          </F.Row>}
+          <div>
+            {titleRow}
+            <F.Row>
+              {previewImage}
+              {actionBar}
+            </F.Row>
+          </div>}
           <F.Row>
             {/* Display deletion confirmation modal? */}
             {this.state.deleteModal &&
@@ -410,12 +420,7 @@
                 {previewImage}
               </F.Column>}
             <F.Column size={[12, 8]}>
-              <F.Row>
-                <F.Column>
-                  <h3><a title="View details"
-                         href={workflowUrl}>{workflow.get('metadata').title}</a></h3>
-                </F.Column>
-              </F.Row>
+              {!this.props.smallDisplay && titleRow}
               <F.Row>
                 <F.Column>
                   <p>{workflow.has('pages') ? workflow.get('pages').length : 0} pages</p>
