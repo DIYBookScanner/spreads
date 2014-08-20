@@ -103,7 +103,7 @@ def setup_parser(config):
             name for name, cls in plugins.iteritems()
             if any(issubclass(cls, mixin) for mixin in
                    (plugin.CaptureHooksMixin, plugin.TriggerHooksMixin))]
-        ext_names.append('driver')
+        ext_names.append('device')
         for ext in ext_names:
             for key, tmpl in config.templates.get(ext, {}).iteritems():
                 try:
