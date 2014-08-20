@@ -400,7 +400,6 @@
       }), this);
 
       window.router.before = function(route, name) {
-        delete window.router.before;
         this.setState({
           returnRoute: route
         });
@@ -469,6 +468,7 @@
     },
 
     handleFinish: function() {
+      delete window.router.before;
       function leaveScreen() {
         window.router.navigate(this.state.returnRoute || '/',
                                {trigger: true});
