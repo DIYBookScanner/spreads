@@ -72,11 +72,7 @@
         React.PropTypes.number,
         React.PropTypes.arrayOf(React.PropTypes.number)
       ]),
-      className: React.PropTypes.string,
-      children: React.PropTypes.oneOfType([
-        React.PropTypes.renderable,
-        React.PropTypes.arrayOf(React.PropTypes.renderable)
-      ]),
+      className: React.PropTypes.string
     },
 
     getDefaultProps: function() {
