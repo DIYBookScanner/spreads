@@ -540,7 +540,6 @@ li.page-preview {
 
 fieldset.config {
   .plugin-config {
-    border-top: 1px solid lightgray;
     padding-top: 1em;
 
     .plugin-label {
@@ -550,9 +549,42 @@ fieldset.config {
     }
   }
 
+  .plugin-select-label {
+    margin-bottom: 0.5em;
+  }
+
+  .plugin-select:not(:first-of-type), .toggle-advanced {
+    padding-top: 0.5em;
+  }
+
+  .toggle-advanced input[type="checkbox"] {
+    margin-bottom: 0;
+  }
+
+  .plugin-select, .toggle-advanced {
+    padding-bottom: 0.5em;
+    border-bottom: 1px solid lightgray;
+  }
+
+  .section-picker {
+    @media #{$small-only} {
+      margin-bottom: 2em;
+    }
+
+    select {
+      margin-bottom: 0;
+    }
+
+    div {
+      text-align: center;
+    }
+  }
+
   .config-pane, .select-pane {
-    border-left: 1px solid lightgray;
-    padding-left: 1.5em;
+    @media #{$medium-up} {
+      border-left: 1px solid lightgray;
+      padding-left: 1.5em;
+    }
 
     label {
       max-width: 80%;
