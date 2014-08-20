@@ -160,6 +160,11 @@ li.page-preview {
   padding: 0;
   line-height: 1.5;
 
+  .columns {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   &.selected {
     background-color: green;
 
@@ -183,6 +188,15 @@ li.page-preview {
     background-color: rgba(255, 255, 255, 0.75);
   }
 
+}
+
+.format-select {
+  padding: 0.8rem;
+  height: auto;
+}
+
+.pagegrid {
+  margin: 0;
 }
 
 .select-image {

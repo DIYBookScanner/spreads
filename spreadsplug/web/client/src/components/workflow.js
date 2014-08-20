@@ -228,34 +228,40 @@
 
           {/* Only show image thumbnails when there are images in the workflow */}
           {pages.length > 0 &&
-          <F.Row>
-            <F.Column>
-              <h2>Pages</h2>
-              <div className="button-bar">
-                <ul className="button-group">
-                  <li><a onClick={this.bulkDelete} className={deleteClasses}><i className="fa fa-trash-o" /> Delete</a></li>
-                  <li>
-                    <select onChange={this.handleImageTypeSelect}>
-                    {imageTypes.map(function(name) {
-                      return <option key={name} value={name}>{name}</option>;
-                    })}
-                    </select>
-                  </li>
+          <section>
+            <F.Row>
+              <F.Column>
+                <h2>Pages</h2>
+              </F.Column>
+            </F.Row>
+            <F.Row>
+              <F.Column size={[6, 8]}>
+                <F.Button onClick={this.bulkDelete} size="small"
+                          className={deleteClasses} title="Delete">
+                  <i className="fa fa-trash-o" />
+                </F.Button>
+              </F.Column>
+              <F.Column size={[4, 2]} offset={2}>
+                <select className="format-select"
+                        onChange={this.handleImageTypeSelect}>
+                  {imageTypes.map(function(name) {
+                    return <option key={name} value={name}>{name}</option>;
+                  })}
+                </select>
+              </F.Column>
+            </F.Row>
+                <ul ref="pagegrid" className="pagegrid small-block-grid-2 medium-block-grid-4 large-block-grid-6">
+                  {pages.slice(thumbStart, thumbStop).map(function(page) {
+                      return (
+                        <PagePreview page={page} workflow={workflow} key={page.capture_num} imageType={this.state.imageType}
+                                    selected={_.contains(this.state.selectedPages, page)}
+                                    selectCallback={_.partial(this.togglePageSelect, page)}
+                                    lightboxCallback={_.partial(this.toggleLightbox, workflow, page)} />
+                      );
+                    }.bind(this))}
                 </ul>
-              </div>
-              <ul ref="pagegrid" className="small-block-grid-2 medium-block-grid-4 large-block-grid-6">
-                {pages.slice(thumbStart, thumbStop).map(function(page) {
-                    return (
-                      <PagePreview page={page} workflow={workflow} key={page.capture_num} imageType={this.state.imageType}
-                                   selected={_.contains(this.state.selectedPages, page)}
-                                   selectCallback={_.partial(this.togglePageSelect, page)}
-                                   lightboxCallback={_.partial(this.toggleLightbox, workflow, page)} />
-                    );
-                  }.bind(this))}
-              </ul>
-              {pageCount > 1 && <F.Pagination centered={true} pageCount={pageCount} onBrowse={this.browse} />}
-            </F.Column>
-          </F.Row>}
+                {pageCount > 1 && <F.Pagination centered={true} pageCount={pageCount} onBrowse={this.browse} />}
+          </section>}
 
           {/* Only show output file list if there are output files in the workflow */}
           {!_.isEmpty(workflow.get('out_files')) &&
