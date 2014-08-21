@@ -23,6 +23,7 @@
   var React = require('react/addons'),
       jQuery = require('jquery'),
       _ = require('underscore'),
+      util = require('../util.js'),
       F = require('./foundation');
 
   /**
@@ -126,19 +127,20 @@
       this.setState({displayBugModal: !this.state.displayBugModal});
     },
     render: function() {
+      var isSmall = util.isSmall();
       return (
         <tr className={"logentry " + (this.props.traceback ? "exception" : this.props.level)}
             onClick={this.props.traceback ? this.toggleBugModal : function(){}}>
-          <td className="origin">{this.props.origin}</td>
+          {!isSmall && <td className="origin">{this.props.origin}</td>}
           <td className="message">
             {this.props.traceback && <i className="fi-skull"/>}
             {" "}{this.props.message}
           </td>
-          <td className="time right">{this.props.time.toLocaleTimeString()}</td>
+          {!isSmall && <td className="time right">{this.props.time.toLocaleTimeString()}</td>}
           {this.state.displayBugModal &&
             <BugModal traceback={this.props.traceback}
                       message={this.props.message}
-                      onClose={this.toggleBugModal}/>
+                      onClose={this.toggleBugModal} />
           }
         </tr>
       );
@@ -223,6 +225,15 @@
       }, this.loadMessages);
     },
     render: function() {
+      var isSmall = util.isSmall();
+      var levelLabel = (
+        <label htmlFor="loglevel" className={isSmall ? "": "right inline"}>
+          Loglevel
+        </label>);
+      var numLabel = (
+        <label htmlFor="msgCount" className={isSmall ? "": "right inline"}>
+          # per page
+        </label>);
       return (
         <main>
           <F.Row>
@@ -231,12 +242,9 @@
             </F.Column>
           </F.Row>
           <F.Row>
-            <F.Column size={2}>
-              <label htmlFor="loglevel" className="right inline">
-                Loglevel
-              </label>
-            </F.Column>
-            <F.Column size={2}>
+            {!isSmall && <F.Column size={2}>{levelLabel}</F.Column>}
+            <F.Column size={[4, 2]}>
+              {isSmall && levelLabel}
               <select id="loglevel" defaultValue="info" onChange={this.handleSetLevel}>
                 <option value="error">Error</option>
                 <option value="warning">Warning</option>
@@ -244,12 +252,9 @@
                 <option value="debug">Debug</option>
               </select>
             </F.Column>
-            <F.Column size={2}>
-              <label htmlFor="msgCount" className="right inline">
-                Number of records
-              </label>
-            </F.Column>
-            <F.Column size={2}>
+            {!isSmall && <F.Column size={2}>{numLabel}</F.Column>}
+            <F.Column size={[4, 2]}>
+              {isSmall && numLabel}
               <select id="msgCount" defaultValue="25" onChange={this.handleSetCount}>
                 <option value="10">10</option>
                 <option value="25">25</option>
@@ -257,8 +262,10 @@
                 <option value="100">100</option>
               </select>
             </F.Column>
-            <F.Column size={2}>
-              <a className="action-button tiny fi-download" data-bypass={true} href={"/log?level=debug&count=100"} download="spreadslog.json"> Download log</a>
+            <F.Column size={[4, 2]}>
+              <a className="action-button small download-btn" title="Download log"
+                 data-bypass={true} href={"/log?level=debug&count=100"}
+                 download="spreadslog.json"><i className="fa fa-download" /></a>
             </F.Column>
           </F.Row>
           <F.Row>
@@ -266,9 +273,9 @@
               <table className="logtable">
                 <thead>
                   <tr>
-                    <th className="logger-col">Logger</th>
+                    {!isSmall && <th className="logger-col">Logger</th>}
                     <th className="msg-col">Message</th>
-                    <th className="time-col">Time</th>
+                    {!isSmall && <th className="time-col">Time</th>}
                   </tr>
                 </thead>
                 <tbody>

@@ -74,6 +74,12 @@ $fa-font-path: "../node_modules/font-awesome/fonts";
     @include dropdown-button();
     margin-bottom: 0;
   }
+
+  &.download-btn {
+    @media #{$small-only} {
+      margin-top: 1rem;
+    }
+  }
 }
 
 .capture-preview {
