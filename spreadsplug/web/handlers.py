@@ -24,6 +24,7 @@ import tarfile
 import tempfile
 import threading
 import time
+import zipfile
 import Queue
 
 import blinker
@@ -61,7 +62,7 @@ class BoundaryStripper(object):
         try:
             lastelem = trimmed.index(self.boundary + "--")
             self.initialized = False
-            return "".join(tmp[:lastelem - 1])
+            return "".join(tmp[:lastelem])
         except ValueError:
             return "".join(tmp)
 
@@ -162,9 +163,9 @@ class StreamingUploadHandler(RequestHandler):
 
     def post(self):
         self.fp.close()
-        with tarfile.open(self.fname) as tf:
-            wfname = tf.getnames()[0]
-            tf.extractall(path=self.base_path)
+        with zipfile.ZipFile(self.fname) as zf:
+            wfname = os.path.dirname(zf.namelist()[0])
+            zf.extractall(path=self.base_path)
         os.unlink(self.fname)
 
         workflow = Workflow(path=os.path.join(self.base_path, wfname))
