@@ -22,6 +22,7 @@ def app(config, tmpdir):
     config['web']['project_dir'] = unicode(tmpdir.join('workflows'))
     config['web']['debug'] = False
     config['web']['standalone_device'] = True
+    config['web']['postprocessing_server'] = ''
 
     webapp = WebApplication(config)
     webapp.setup_logging()
