@@ -160,7 +160,7 @@ setup(
             "jpegtran-cffi >= 0.4",
             "requests >= 2.2.0",
             "zipstream >= 1.0.2",
-            "tornado >= 3.1",
+            "tornado >= 4.0",
             "Wand >= 0.3.5",
         ]
     },
