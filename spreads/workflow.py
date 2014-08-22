@@ -150,9 +150,10 @@ class Page(object):
                             (page_label.isdigit() or
                              util.RomanNumeral.is_roman(page_label.upper())))
             if not isinstance(page_label, int) and not valid_string:
-                raise ValueError(
-                    "page_label must be an integer, a string of digits, a "
-                    "roman numeral string or a RomanNumeral type")
+                raise ValidationError(
+                    page_label=("Must be an integer, a string of digits, a "
+                                "roman numeral string or a RomanNumeral "
+                                "type"))
             self.page_label = str(page_label)
         else:
             self.page_label = unicode(self.sequence_num)
@@ -550,14 +551,16 @@ class Workflow(object):
 
     def load_toc(self, data=None):
         def from_dict(dikt):
+            start_page, end_page = None, None
             try:
                 start_page = next(p for p in self.pages
                                   if p.sequence_num == dikt['start_page'])
                 end_page = next(p for p in self.pages
                                 if p.sequence_num == dikt['end_page'])
             except StopIteration:
-                raise ValueError('Invalid toc entry, one of the pages is not '
-                                 'existing: {0}'.format(dikt))
+                missing = 'end_page' if start_page else 'start_page'
+                raise ValidationError(
+                    *{missing: "No page with that sequence number."})
             children = [from_dict(x) for x in dikt['children']]
             return TocEntry(dikt['title'], start_page, end_page, children)
 
@@ -766,6 +769,7 @@ class Workflow(object):
         self._logger.info("Done generating output files!")
 
     def update_configuration(self, values):
+        # TODO: Validate values against schema in template
         old_cfg = self.config.flatten()
         self.config.set(values)
         diff = util.diff_dicts(old_cfg, self.config.flatten())

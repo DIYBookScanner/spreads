@@ -4,12 +4,9 @@ from __future__ import division
 import itertools
 import logging
 import logging.handlers
-import os
-import StringIO
 import subprocess
 import sys
 import traceback
-import zipfile
 from isbnlib import is_isbn10, is_isbn13
 
 import pkg_resources
@@ -42,17 +39,27 @@ app.url_map.converters['workflow'] = WorkflowConverter
 
 
 class ApiException(Exception):
-    def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message
+    def __init__(self, message, status_code=500, payload=None,
+                 error_type='general'):
+        super(ApiException, self).__init__(message)
         if status_code is not None:
             self.status_code = status_code
         self.payload = payload
+        self.error_type = error_type
 
     def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['message'] = self.message
-        return rv
+        return {
+            'type': self.error_type,
+            'payload': self.payload,
+            'message': self.message
+        }
+
+
+@app.errorhandler(ValidationError)
+def handle_validationerror(error):
+    raise ApiException(
+        "There was an issue with at least some of the supplied values.",
+        400, error.errors, 'validation')
 
 
 @app.errorhandler(ApiException)
@@ -175,60 +182,46 @@ def template_endpoint():
     return jsonify(get_plugin_templates())
 
 
+def check_submit_allowed():
+    if app.config['mode'] != 'scanner':
+        raise ApiException("Action only possible when running in 'scanner'"
+                           " mode.", 503)
+
+
 @app.route('/api/remote/discover')
 def discover_postprocessors():
-    if app.config['mode'] != 'scanner':
-        raise ApiException("Discovery only possible when running in 'scanner'"
-                           " mode.", 503)
+    check_submit_allowed()
     servers = discover_servers()
     if app.config['postprocessing_server']:
         servers.append(app.config['postprocessing_server'].split(':'))
     return jsonify(servers=["{0}:{1}".format(*addr) for addr in servers])
 
 
+def get_from_remote_server(server, endpoint):
+    try:
+        resp = requests.get('http://' + server + endpoint)
+    except requests.ConnectionError:
+        raise ValidationError(
+            server="Could not reach server at supplied address.")
+    return resp.content, resp.status_code
+
+
 @app.route('/api/remote/plugins')
 def get_remote_plugins():
     # TODO: Shouldn't this the done via a CORS request on the client-side?
-    if app.config['mode'] != 'scanner':
-        raise ApiException("Submission only possible when running in 'scanner'"
-                           " mode.", 503)
-    server = request.args.get("server")
-    if not server:
-        raise ApiException("Missing 'server' parameter", 400)
-    logger.debug("Trying to get list of plugins from {0}".format(server))
-    try:
-        resp = requests.get('http://{0}/api/plugins'.format(server))
-    except requests.ConnectionError:
-        resp = False
-    if not resp:
-        errors = {'server': 'Could not reach server at supplied address.'}
-        return make_response(json.dumps(dict(errors=errors)), 400,
-                             {'Content-Type': 'application/json'})
-    else:
-        return make_response(resp.content, resp.status_code,
-                             {'Content-Type': 'application/json'})
+    check_submit_allowed()
+    data, status = get_from_remote_server(request.args.get("server"),
+                                          '/api/plugins')
+    return make_response(data, status, {'Content-Type': 'application/json'})
 
 
 @app.route('/api/remote/plugins/templates')
 def get_remote_templates():
     # TODO: Shouldn't this the done via a CORS request on the client-side?
-    if app.config['mode'] != 'scanner':
-        raise ApiException("Submission only possible when running in 'scanner'"
-                           " mode.", 503)
-    server = request.args.get("server")
-    if not server:
-        raise ApiException("Missing 'server' parameter", 400)
-    try:
-        resp = requests.get('http://{0}/api/plugins/templates'.format(server))
-    except requests.ConnectionError:
-        resp = False
-    if not resp:
-        errors = {'server': 'Could not reach server at supplied address.'}
-        return make_response(json.dumps(dict(errors=errors)), 400,
-                             {'Content-Type': 'application/json'})
-    else:
-        return make_response(resp.content, resp.status_code,
-                             {'Content-Type': 'application/json'})
+    check_submit_allowed()
+    data, status = get_from_remote_server(request.args.get("server"),
+                                          '/api/plugins/templates')
+    return make_response(data, status, {'Content-Type': 'application/json'})
 
 
 @app.route('/api/log')
@@ -256,9 +249,8 @@ def query_isbn():
     query = request.args.get('q')
     if query:
         return jsonify(results=spreads.metadata.get_isbn_suggestions(query))
-    return make_response(
-        json.dumps(dict(errors={'q': 'Missing parameter'})), 400,
-        {'Content-Type': 'application/json'})
+    else:
+        raise ValidationError(q='Missing parameter')
 
 
 @app.route('/api/isbn/<isbn>')
@@ -267,16 +259,12 @@ def get_isbn_info(isbn):
         isbn = isbn[5:]
     is_isbn = is_isbn10(isbn) or is_isbn13(isbn)
     if not is_isbn:
-        errors = {'isbn': 'Not a valid ISBN.'}
-        return make_response(json.dumps(dict(errors=errors)), 400,
-                             {'Content-Type': 'application/json'})
+        raise ValidationError(isbn='Not a valid ISBN.')
     match = spreads.metadata.get_isbn_metadata(isbn)
-    if match is None:
-        return make_response(
-            json.dumps({'errors': {'isbn': 'Could not find match for ISBN.'}}),
-            404, {'Content-Type': 'application/json'})
-    else:
+    if match:
         return jsonify(match)
+    else:
+        raise ValidationError(isbn='Could not find match for ISBN.')
 
 
 # ================== #
@@ -298,13 +286,9 @@ def create_workflow():
 
     metadata = data.get('metadata', {})
 
-    try:
-        workflow = Workflow.create(location=app.config['base_path'],
-                                    config=config,
-                                    metadata=metadata)
-    except ValidationError as e:
-        return make_response(json.dumps(dict(errors=e.errors)), 400,
-                                {'Content-Type': 'application/json'})
+    workflow = Workflow.create(location=app.config['base_path'],
+                               config=config,
+                               metadata=metadata)
     return make_response(json.dumps(workflow),
                          200, {'Content-Type': 'application/json'})
 
@@ -364,8 +348,7 @@ def download_workflow(workflow):
     """
     archive_format = request.args.get('fmt', 'tar')
     if archive_format not in ('zip', 'tar'):
-        raise ApiException(
-            "Invalid format '{0}', only 'tar' or 'zip' are permitted.", 400)
+        raise ValidationError(fmt='Must be zip or tar.')
     fname = "{0}.{1}".format(workflow.path.stem, archive_format)
     return redirect('/api/workflow/{0}/download/{1}'.format(
                     workflow.id, fname))
@@ -379,10 +362,14 @@ def transfer_workflow(workflow):
     try:
         stick = find_stick()
     except ImportError:
-        return jsonify({"error": "Missing package 'python-dbus', "
-                                 "please install."})
+        raise ApiException(
+            "The transfer feature requires that the `python-dbus` module is "
+            "installed on the system.")
     if stick is None:
-        return jsonify({"error": "Could not find removable device"}), 503
+        raise ApiException(
+            "Could not find a removable devices to transfer to."
+            "If you have connected one, make sure that it is formatted with "
+            "the FAT32 file system", 503)
     from tasks import transfer_to_stick
     transfer_to_stick(workflow.id, app.config['base_path'])
     return 'OK'
@@ -392,13 +379,11 @@ def transfer_workflow(workflow):
 def submit_workflow(workflow):
     """ Submit the requested workflow to the postprocessing server.
     """
-    if app.config['mode'] != 'scanner':
-        raise ApiException("Submission only possible when running in 'scanner'"
-                           " mode.", 503)
+    check_submit_allowed()
     data = json.loads(request.data)
     server = data.get('server')
     if not server:
-        raise ApiException("Missing 'server' field in JSON data", 400)
+        raise ValidationError(server="required")
     user_config = data.get('config', {})
     from tasks import upload_workflow
     upload_workflow(workflow.id, app.config['base_path'],
@@ -443,19 +428,27 @@ def get_all_pages(workflow):
                          200, {'Content-Type': 'application/json'})
 
 
+def check_page_params(page, img_type, plugname):
+    if img_type not in ('raw', 'processed'):
+        raise ValidationError(
+            route=("Image type must be one of 'raw' or 'processed' (was {0})"
+                   .format(img_type)))
+    if plugname is not None and plugname not in page.processed_images:
+        raise ApiException("No processed file present for plugin '{0}'"
+                           .format(plugname))
+
+
 @app.route('/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>',
            defaults={'plugname': None})
 @app.route('/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>'
            '/<plugname>')
 def get_page_image(workflow, number, img_type, plugname):
     """ Return image for requested page. """
-    if img_type not in ('raw', 'processed'):
-        raise ApiException("Image type must be one of 'raw' or 'processed', "
-                           "not '{0}'".format(img_type), 400)
     # Scale image if requested
     width = request.args.get('width', None)
     img_format = request.args.get('format', None)
     page = find_page(workflow, number)
+    check_page_params(page, img_type, plugname)
     if img_type == 'raw':
         fpath = page.raw_image
     elif plugname is None:
@@ -478,13 +471,8 @@ def get_page_image(workflow, number, img_type, plugname):
            '<plugname>/thumb', methods=['GET'])
 def get_page_image_thumb(workflow, number, img_type, plugname):
     """ Return thumbnail for page image from requested workflow. """
-    if img_type not in ('raw', 'processed'):
-        raise ApiException("Image type must be one of 'raw' or 'processed', "
-                           "not '{0}'".format(img_type), 400)
-    if img_type == 'processed' and plugname is None:
-        raise ApiException("Need to supply additional path parameter for "
-                           "plugin to get processed file for.", 400)
     page = find_page(workflow, number)
+    check_page_params(page, img_type, plugname)
     if img_type == 'raw':
         fpath = page.raw_image
     elif plugname is None:
@@ -493,7 +481,7 @@ def get_page_image_thumb(workflow, number, img_type, plugname):
         fpath = page.processed_images[plugname]
     if fpath.suffix.lower() not in ('.jpg', '.jpeg', '.tif', '.tiff', '.png'):
         raise ApiException("Can not serve thumbnails for files with type {0}"
-                           .format(fpath.suffix), 400)
+                           .format(fpath.suffix), 500)
     cache_key = "{0}.{1}.{2}".format(workflow.id, img_type, fpath.name)
     thumbnail = None
     if not request.args:
