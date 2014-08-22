@@ -109,8 +109,11 @@ def signal_on_error(signal):
     return wrap
 
 
-class ValidationError(Exception):
-    def __init__(self, **kwargs):
+class ValidationError(ValueError):
+    def __init__(self, message=None, **kwargs):
+        if message is None:
+            message = "Invalid values for {0}".format(kwargs.keys())
+        super(ValueError, self).__init__(message)
         self.errors = kwargs
 
 
