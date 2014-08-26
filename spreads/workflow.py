@@ -399,8 +399,10 @@ class Workflow(object):
                 "action.")
             self._devices = None
         if not self._devices:
-            raise util.DeviceException("Could not find any compatible "
-                                       "devices!")
+            raise util.DeviceException(
+                "Could not find any compatible devices!\n"
+                "Make sure your devices are turned on and properly connected "
+                "to the machine.")
         return self._devices
 
     def _fix_page_numbers(self, page_to_remove):
@@ -665,9 +667,9 @@ class Workflow(object):
         self._update_status(step='capture')
         if any(dev.target_page is None for dev in self.devices):
             raise util.DeviceException(
-                "Target page for at least one of the devicescould not be"
+                "Target page for at least one of the devices could not be"
                 "determined, please run 'spread configure' to configure your"
-                "your devices.")
+                "devices.")
         with concfut.ThreadPoolExecutor(len(self.devices)) as executor:
             futures = []
             self._logger.debug("Preparing capture in devices")

@@ -11,13 +11,13 @@ from isbnlib import is_isbn10, is_isbn13
 
 import pkg_resources
 import requests
-from flask import (abort, json, jsonify, request, send_file, render_template,
+from flask import (json, jsonify, request, send_file, render_template,
                    redirect, make_response, Response)
 from werkzeug.contrib.cache import SimpleCache
 
 import spreads.metadata
 import spreads.plugin as plugin
-from spreads.util import get_next, is_os, get_version
+from spreads.util import get_next, is_os, get_version, DeviceException
 from spreads.workflow import Workflow, ValidationError
 
 from spreadsplug.web import app
@@ -364,12 +364,12 @@ def transfer_workflow(workflow):
     except ImportError:
         raise ApiException(
             "The transfer feature requires that the `python-dbus` module is "
-            "installed on the system.")
+            "installed on the system.", error_type='transfer')
     if stick is None:
         raise ApiException(
             "Could not find a removable devices to transfer to."
             "If you have connected one, make sure that it is formatted with "
-            "the FAT32 file system", 503)
+            "the FAT32 file system", 503, error_type='transfer')
     from tasks import transfer_to_stick
     transfer_to_stick(workflow.id, app.config['base_path'])
     return 'OK'
@@ -533,16 +533,19 @@ def bulk_delete_pages(workflow):
 # ================= #
 #  Capture-related  #
 # ================= #
+def check_capture_allowed():
+    if app.config['mode'] not in ('scanner', 'full'):
+        raise ApiException("Only possible when running in 'scanner' or 'full'"
+                           " mode.", 503)
+
+
 @app.route('/api/workflow/<workflow:workflow>/prepare_capture',
            methods=['POST'])
 def prepare_capture(workflow):
     """ Prepare capture for the requested workflow.
 
     """
-    if app.config['mode'] not in ('scanner', 'full'):
-        raise ApiException("Only possible when running in 'scanner' or 'full'"
-                           " mode.", 503)
-
+    check_capture_allowed()
     # Check if any other workflow is active and finish, if neccessary
     logger.debug("Finishing previous workflows")
     wfitems = Workflow.find_all(app.config['base_path'], key='id').iteritems()
@@ -551,7 +554,12 @@ def prepare_capture(workflow):
             if wf is workflow and not request.args.get('reset'):
                 return 'OK'
             wf.finish_capture()
-    workflow.prepare_capture()
+    try:
+        workflow.prepare_capture()
+    except DeviceException as e:
+        logger.error(e)
+        raise ApiException("Could not prepare capture: {0}".format(e.message),
+                           500, error_type='device')
     return 'OK'
 
 
@@ -564,9 +572,7 @@ def trigger_capture(workflow):
     Returns the number of pages shot and a list of the pages captured by
     this call in JSON notation.
     """
-    if app.config['mode'] not in ('scanner', 'full'):
-        raise ApiException("Only possible when running in 'scanner' or 'full'"
-                           " mode.", 503)
+    check_capture_allowed()
     status = workflow.status
     if status['step'] != 'capture' or not status['prepared']:
         workflow.prepare_capture()
@@ -574,7 +580,12 @@ def trigger_capture(workflow):
         workflow.capture(retake=('retake' in request.args))
     except IOError as e:
         logger.error(e)
-        raise ApiException("Error during capture: {0}".format(e.message), 500)
+        raise ApiException("Could not capture images: {0}"
+                           .format(e.message), 500)
+    except DeviceException as e:
+        logger.error(e)
+        raise ApiException("Could not capture image: {0}"
+                           .format(e.message), 500, error_type='device')
     return jsonify({
         'pages_shot': len(workflow.pages),
         'pages': workflow.pages[-2:]
@@ -585,18 +596,20 @@ def trigger_capture(workflow):
            methods=['POST'])
 def finish_capture(workflow):
     """ Wrap up capture process on the requested workflow. """
-    if app.config['mode'] not in ('scanner', 'full'):
-        raise ApiException("Only possible when running in 'scanner' or 'full'"
-                           " mode.", 503)
+    check_capture_allowed()
     workflow.finish_capture()
     return 'OK'
 
 
-@app.route('/api/workflow/<workflow:workflow>/process', methods=['POST'])
-def start_processing(workflow):
+def check_processing_allowed():
     if app.config['mode'] not in ('processor', 'full'):
         raise ApiException("Only possible when running in 'processor' or"
                            " 'full' mode.", 503)
+
+
+@app.route('/api/workflow/<workflow:workflow>/process', methods=['POST'])
+def start_processing(workflow):
+    check_processing_allowed()
     workflow._update_status(step='process', step_progress=None)
     from tasks import process_workflow
     process_workflow(workflow.id, app.config['base_path'])
@@ -605,9 +618,7 @@ def start_processing(workflow):
 
 @app.route('/api/workflow/<workflow:workflow>/output', methods=['POST'])
 def start_output_generation(workflow):
-    if app.config['mode'] not in ('processor', 'full'):
-        raise ApiException("Only possible when running in 'processor' or"
-                           " 'full' mode.", 503)
+    check_processing_allowed()
     workflow._update_status(step='output', step_progress=None)
     from tasks import output_workflow
     output_workflow(workflow.id, app.config['base_path'])
@@ -617,24 +628,32 @@ def start_output_generation(workflow):
 # ================== #
 #   System-related   #
 # ================== #
+def check_for_standalone_mode():
+    if not app.config['standalone']:
+        raise ApiException("Only available when server is run in standalone "
+                           "mode", 503)
+
+
 @app.route('/api/system/shutdown', methods=['POST'])
 def shutdown():
-    if not app.config['standalone']:
-        abort(503)
-    # NOTE: This requires that the user running spreads can execute
-    #       /sbin/shutdown via sudo.
+    check_for_standalone_mode()
     logger.info("Shutting device down")
-    subprocess.call("/usr/bin/sudo /sbin/shutdown -h now".split())
+    try:
+        subprocess.call("/usr/bin/sudo -n /sbin/shutdown -h now".split())
+    except (subprocess.CalledProcessError, OSError):
+        raise ApiException("The user running the server process needs to have "
+                           "permission to run /sbin/shutdown via sudo.", 500)
     return ''
 
 
 @app.route('/api/system/reboot', methods=['POST'])
 def reboot():
-    if not app.config['standalone']:
-        abort(503)
-    # NOTE: This requires that the user running spreads can execute
-    #       /sbin/shutdown via sudo.
-    subprocess.call("/usr/bin/sudo /sbin/shutdown -r now".split())
+    check_for_standalone_mode()
+    try:
+        subprocess.call("/usr/bin/sudo -n /sbin/shutdown -r now".split())
+    except (subprocess.CalledProcessError, OSError):
+        raise ApiException("The user running the server process needs to have "
+                           "permission to run /sbin/shutdown via sudo.", 500)
     return ''
 
 
