@@ -47,7 +47,7 @@
           },
           contentType: "application/json; charset=utf-8"})
         .fail(function(xhr) {
-          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+          if (options.onError) options.onError(xhr.responseJSON);
         })
         .done(options.onSuccess || util.noop);
     },
@@ -59,7 +59,7 @@
       var options = options || {};
       jQuery.post('/api/workflow/' + this.id + '/transfer')
         .fail(function(xhr) {
-          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+          if (options.onError) options.onError(xhr.responseJSON);
         })
         .done(options.onSuccess || util.noop);
     },
@@ -71,7 +71,7 @@
       var options = options || {};
       jQuery.post('/api/workflow/' + this.id + '/prepare_capture' + (options.reset ? '?reset=true' : ''))
         .fail(function(xhr) {
-          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+          if (options.onError) options.onError(xhr.responseJSON);
         })
         .done(options.onSuccess || util.noop);
     },
@@ -83,7 +83,7 @@
       var options = options || {};
       jQuery.post('/api/workflow/' + this.id + "/capture" + (options.retake ? '?retake=true' : ''))
         .fail(function(xhr) {
-          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+          if (options.onError) options.onError(xhr.responseJSON);
         })
         .done(function(data) {
           // Since no 'real' update of the pages takes place during a
@@ -105,7 +105,7 @@
       var options = options || {};
       jQuery.post('/api/workflow/' + this.id + "/finish_capture")
         .fail(function(xhr) {
-          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+          if (options.onError) options.onError(xhr.responseJSON);
         })
         .done(options.onSuccess || util.noop);
     },
@@ -114,7 +114,7 @@
       var options = options || {};
       jQuery.post('/api/workflow/' + this.id + '/process')
         .fail(function(xhr) {
-          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+          if (options.onError) options.onError(xhr.responseJSON);
         })
         .done(options.onSuccess || util.noop);
     },
@@ -123,7 +123,7 @@
       var options = options || {};
       jQuery.post('/api/workflow/' + this.id + '/output')
         .fail(function(xhr) {
-          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+          if (options.onError) options.onError(xhr.responseJSON);
         })
         .done(options.onSuccess || util.noop);
     },
@@ -137,7 +137,7 @@
           data: JSON.stringify({pages: options.pages})
         })
         .fail(function(xhr) {
-          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+          if (options.onError) options.onError(xhr.responseJSON);
         })
         .done(function(data) {
           var oldPages = _.clone(this.get('pages')),
@@ -155,7 +155,7 @@
 
       jQuery.post('/api/workflow/' + this.id + '/page/' + options.pageNum + '/raw/crop?' + parts.join("&"))
         .fail(function(xhr) {
-          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+          if (options.onError) options.onError(xhr.responseJSON);
         })
         .done(options.onSuccess || util.noop);
     },
