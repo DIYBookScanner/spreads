@@ -34,61 +34,58 @@
     /**
      * Initiates the submission of the workflow to a remote postprocessing
      * server for postprocessing and output generation.
-     *
-     * @param {requestCallback} callback Callback to execute after API request
-     *                                   is completed.
      */
-    submit: function(callback) {
-      console.log("Submitting workflow " + this.id + " for postprocessing");
-      jQuery.post('/api/workflow/' + this.id + '/submit')
+    submit: function(options) {
+      var options = options || {};
+      jQuery.ajax('/api/workflow/' + this.id + '/submit', {
+          type: 'POST',
+          data: {
+            config: options.config,
+            start_process: options.startProcess,
+            start_output: options.startOutput,
+            server: options.server
+          },
+          contentType: "application/json; charset=utf-8"})
         .fail(function(xhr) {
-          console.error("Could not submit workflow " + this.id);
-          this.emitError(xhr.responseText);
-        }.bind(this)).complete(callback);
+          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+        })
+        .done(options.onSuccess || util.noop);
     },
+
     /**
      * Initiates the transfer to a removable storage device.
-     *
-     * @param {requestCallback} callback Callback to execute after API request is
-     *                                   completed.
      */
-    transfer: function(callback) {
-      console.log("Initiating transfer for workflow " + this.id + "");
+    transfer: function(options) {
+      var options = options || {};
       jQuery.post('/api/workflow/' + this.id + '/transfer')
         .fail(function(xhr) {
-          console.error("Could not transfer workflow " + this.id);
-          this.emitError(xhr.responseText);
-        }.bind(this)).complete(callback);
+          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+        })
+        .done(options.onSuccess || util.noop);
     },
+
     /**
      * Prepares devices for capture.
-     *
-     * @param {requestCallback} callback Callback to execute after API request is
-     *                                   completed.
      */
-    prepareCapture: function(callback, reset) {
-      jQuery.post(
-        '/api/workflow/' + this.id + '/prepare_capture' + (reset ? '?reset=true' : ''),
-        function() {
-          console.log("Preparation successful");
-        }.bind(this)).fail(function(xhr) {
-          console.error("Capture preparation failed");
-          this.emitError(xhr.responseText);
-        }.bind(this)).done(callback);
+    prepareCapture: function(options) {
+      var options = options || {};
+      jQuery.post('/api/workflow/' + this.id + '/prepare_capture' + (options.reset ? '?reset=true' : ''))
+        .fail(function(xhr) {
+          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+        })
+        .done(options.onSuccess || util.noop);
     },
+
     /**
      * Triggers a capture.
-     *
-     * @param {boolean} retake Discard the previous shot and retake it
-     * @param {requestCallback} callback Callback to execute after API request is
-     *                                   completed.
      */
-    triggerCapture: function(retake, callback) {
-      jQuery.post(
-        '/api/workflow/' + this.id + "/capture" + (retake ? '?retake=true' : ''),
-        function(data) {
-          console.log("Capture succeeded");
-          //this.addPages(data.pages);
+    triggerCapture: function(options) {
+      var options = options || {};
+      jQuery.post('/api/workflow/' + this.id + "/capture" + (options.retake ? '?retake=true' : ''))
+        .fail(function(xhr) {
+          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+        })
+        .done(function(data) {
           // Since no 'real' update of the pages takes place during a
           // retake, but we would like to update the dependant views anyway
           // to get the latest versions of the pages, we force a 'change'
@@ -97,88 +94,71 @@
             this.trigger('change');
             this.trigger('change:pages', this.get('pages'));
           }
-        }.bind(this)).fail(function(xhr) {
-          console.error("Capture failed");
-          this.emitError(xhr.responseText);
-        }.bind(this)).complete(callback);
-    },
-    /**
-     * Indicate the end of the capture process to the server.
-     *
-     * @param {requestCallback} callback Callback to execute after API request is
-     *                                   completed.
-     */
-    finishCapture: function(callback) {
-      jQuery.post('/api/workflow/' + this.id + "/finish_capture", function() {
-        console.log("Capture successfully finished");
-      }).fail(function(xhr) {
-        console.error("Capture could not be finished.");
-        this.emitError(xhr.responseText);
-      }.bind(this)).complete(callback);
-    },
-    startPostprocessing: function(callback) {
-      jQuery.post('/api/workflow/' + this.id + '/process', function() {
-        console.log("Postprocessing started.");
-      }).fail(function(xhr) {
-        console.log("Failed to start postprocessing.");
-        this.emitError(xhr.responseText);
-      }.bind(this)).complete(callback);
-    },
-    startOutputting: function(callback) {
-      jQuery.post('/api/workflow/' + this.id + '/output', function() {
-        console.log("Output generation started.");
-      }).fail(function(xhr) {
-        console.log("Failed to start output generation.");
-        this.emitError(xhr.responseText);
-      }.bind(this)).complete(callback);
-    },
-    addPages: function(pages) {
-      var modified = false;
-      _.each(pages, function(page) {
-        if (!_.contains(this.get('pages'), page)) {
-          this.get('pages').push(page);
-          modified = true;
-        }
-      }, this);
-      if (modified) {
-        this.trigger('change');
-        this.trigger('change:pages', this.get('pages'));
-      }
-    },
-    deletePages: function(pages, callback) {
-      jQuery.ajax('/api/workflow/' + this.id + '/page', {
-        type: 'DELETE',
-        contentType: 'application/json',
-        data: JSON.stringify({pages: pages})
-      }).fail(function(xhr) {
-        this.emitError(xhr.responseText);
-        console.error("Could not remove pages from workflow.");
-      }.bind(this)).done(function(data) {
-        var oldPages = _.clone(this.get('pages')),
-            newPages = _.difference(oldPages, data.pages);
-        this.set({"pages": newPages});
-      }.bind(this));
-    },
-    cropPage: function(pageNum, cropParams, callback) {
-      var parts = [];
-      for (var p in cropParams)
-          parts.push(encodeURIComponent(p) + "=" + encodeURIComponent(cropParams[p]));
-
-      jQuery.post('/api/workflow/' + this.id + '/page/' + pageNum + '/raw/crop?' + parts.join("&"))
-        .fail(function(xhr) {
-          console.error("Could not crop page " + pageNum);
-          this.emitError(xhr.responseText);
+          if (options.onSuccess) options.onSuccess(data);
         }.bind(this));
     },
-    emitError: function(error) {
-      var obj;
-      try {
-        obj = jQuery.parseJSON(error);
-      } catch (e) {
-        obj = {message: error}
-      }
-      window.router.events.trigger('apierror', obj);
-    }
+
+    /**
+     * Indicate the end of the capture process to the server.
+     */
+    finishCapture: function(options) {
+      var options = options || {};
+      jQuery.post('/api/workflow/' + this.id + "/finish_capture")
+        .fail(function(xhr) {
+          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+        })
+        .done(options.onSuccess || util.noop);
+    },
+
+    startPostprocessing: function(options) {
+      var options = options || {};
+      jQuery.post('/api/workflow/' + this.id + '/process')
+        .fail(function(xhr) {
+          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+        })
+        .done(options.onSuccess || util.noop);
+    },
+
+    startOutputting: function(options) {
+      var options = options || {};
+      jQuery.post('/api/workflow/' + this.id + '/output')
+        .fail(function(xhr) {
+          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+        })
+        .done(options.onSuccess || util.noop);
+    },
+
+    deletePages: function(options) {
+      var options = options || {};
+      if (_.isEmpty(options.pages)) return;
+      jQuery.ajax('/api/workflow/' + this.id + '/page', {
+          type: 'DELETE',
+          contentType: 'application/json',
+          data: JSON.stringify({pages: options.pages})
+        })
+        .fail(function(xhr) {
+          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+        })
+        .done(function(data) {
+          var oldPages = _.clone(this.get('pages')),
+              newPages = _.difference(oldPages, data.pages);
+          this.set({"pages": newPages});
+          if (options.onSuccess) options.onSuccess(data);
+        }.bind(this));
+    },
+
+    cropPage: function(options) {
+      var options = options || {};
+      var parts = [];
+      for (var p in options.cropParams)
+          parts.push(encodeURIComponent(p) + "=" + encodeURIComponent(options.cropParams[p]));
+
+      jQuery.post('/api/workflow/' + this.id + '/page/' + options.pageNum + '/raw/crop?' + parts.join("&"))
+        .fail(function(xhr) {
+          if (options.onError) options.onError(JSON.parse(xhr.responseText));
+        })
+        .done(options.onSuccess || util.noop);
+    },
   });
 
   module.exports = Backbone.Collection.extend({

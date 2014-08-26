@@ -68,11 +68,6 @@
       window.router.on('route:displayLog', function() {
         this.setState({messages: [], numUnreadErrors: 0});
       }, this);
-      window.router.events.on('apierror', function(error) {
-        this.setState({
-          messages: this.state.messages.concat([error]).slice(-3)
-        });
-      }, this);
     },
 
     componentWillUnmount: function() {

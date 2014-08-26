@@ -260,9 +260,9 @@
     doRemove: function() {
       // Finish capture if still in progress
       if (this.props.workflow.get('status').step === 'capture') {
-        this.props.workflow.finishCapture(function() {
-          this.doRemove();
-        }.bind(this));
+        this.props.workflow.finishCapture({
+          onSuccess: function() { this.doRemove() }.bind(this)
+        });
       } else {
         this.props.workflow.destroy();
       }
@@ -284,54 +284,52 @@
       window.router.navigate('/workflow/' + this.props.workflow.get('slug') + '/capture',
                              {trigger: true});
     },
+
     /**
      * Tries to initiate transfer of associated workflow to an external
      * storage device. Displays an error modal if something goes wrong,
      * otherwise displays a loading overlay as long as the transfer is not
      * completed.
      */
-
     handleTransfer:  function() {
-      this.props.workflow.transfer(function(xhr, status) {
-        if (status !== 'success') {
-          var data = xhr.responseJSON,
-              errorText;
-          if (data && data.error) {
-            errorText = data.error;
-          } else {
-            errorText = "Check the server logs for details";
-          }
-          // Display error modal
-          this.setState({
-            errorModal: true,
-            errorModalHeading: "Transfer failed",
-            errorModalText: errorText
-          });
-        } else {
-          // Enable loading overlay
-          this.setState({
-            transferWaiting: true,
-            transferProgress: 0,
-            transferCurrentFile: undefined
-          });
-          // Bind progress events
-          window.router.events.on('transfer:progressed', function(data) {
-            if (this.isMounted()) {
-              this.setState({
-                transferProgress: data.progress*100 | 0,
-                transferCurrentFile: data.status
-              });
-            }
-          }.bind(this));
-          // Register callback for when the transfer is completed
-          window.router.events.on('transfer:completed', function() {
-            // Disable loading overlay
+      function onSuccess(data) {
+        // Enable loading overlay
+        this.setState({
+          transferWaiting: true,
+          transferProgress: 0,
+          transferCurrentFile: undefined
+        });
+        // Bind progress events
+        window.router.events.on('transfer:progressed', function(data) {
+          if (this.isMounted()) {
             this.setState({
-              transferWaiting: false
+              transferProgress: data.progress*100 | 0,
+              transferCurrentFile: data.status
             });
-          }.bind(this));
-        }
-      }.bind(this));
+          }
+        }.bind(this));
+        // Register callback for when the transfer is completed
+        window.router.events.on('transfer:completed', function() {
+          // Disable loading overlay
+          this.setState({
+            transferWaiting: false
+          });
+        }.bind(this));
+      }
+
+      function onError(data) {
+        // Display error modal
+        this.setState({
+          errorModal: true,
+          errorModalHeading: "Transfer failed",
+          errorModalText: data.message
+        });
+      }
+
+      this.props.workflow.transfer({
+        onError: onError.bind(this),
+        onSuccess: onSuccess.bind(this)
+      });
     },
 
     handleDownload: function() {

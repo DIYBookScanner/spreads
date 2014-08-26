@@ -61,6 +61,8 @@
     return url;
   }
 
+  function noop() {}
+
   module.exports = {
     isTouchDevice: isTouchDevice,
     isSmall: isSmall,
@@ -69,6 +71,7 @@
     capitalize: capitalize,
     // For modernizr compatibility
     touch: isTouchDevice(),
-    getPageUrl: getPageUrl
+    getPageUrl: getPageUrl,
+    noop: noop
   }
 }());

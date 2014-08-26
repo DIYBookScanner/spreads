@@ -156,7 +156,7 @@
       }
     },
     bulkDelete: function() {
-      this.props.workflow.deletePages(this.state.selectedPages);
+      this.props.workflow.deletePages({pages: this.state.selectedPages});
     },
     handleImageTypeSelect: function(event) {
       this.setState({

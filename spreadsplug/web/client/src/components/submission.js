@@ -95,32 +95,7 @@
         }.bind(this));
     },
 
-    handleSubmit: function() {
-      console.debug(this.state);
-      if (!_.isEmpty(this.state.errors) || !this.props.workflow) {
-        return;
-      }
-      var start_process,
-          start_output,
-          config = this.refs.configuration.state.config,
-          selected_plugins = config.plugins;
-      start_process = _.some(selected_plugins, function(plugName) {
-        return _.contains(this.state.availablePlugins.postprocessing, plugName);
-      }, this);
-      start_output = _.some(selected_plugins, function(plugName) {
-        return _.contains(this.state.availablePlugins.output, plugName);
-      }, this);
-      jQuery.ajax('/api/workflow/' + this.props.workflow.id + '/submit', {
-        type: 'POST',
-        data: JSON.stringify(
-          { config: config,
-            start_process: start_process,
-            start_output: start_output,
-            server: this.state.selectedServer }),
-        contentType: "application/json; charset=utf-8",
-      }).fail(function(xhr) {
-        this.setState({ submissionWaiting: false });
-      }.bind(this));
+    handleSubmitSuccess: function() {
       this.setState({
         submissionWaiting: true,
         submissionProgress: 0,
@@ -137,6 +112,33 @@
       window.router.events.on('submit:completed', function() {
         window.router.navigate('/', {trigger: true});
       }.bind(this));
+    },
+
+    handleSubmit: function() {
+      console.debug(this.state);
+      if (!_.isEmpty(this.state.errors) || !this.props.workflow) {
+        return;
+      }
+      var startProcess,
+          startOutput,
+          config = this.refs.configuration.state.config,
+          selected_plugins = config.plugins;
+      startProcess = _.some(selected_plugins, function(plugName) {
+        return _.contains(this.state.availablePlugins.postprocessing, plugName);
+      }, this);
+      startOutput = _.some(selected_plugins, function(plugName) {
+        return _.contains(this.state.availablePlugins.output, plugName);
+      }, this);
+      this.props.workflow.submit({
+        config: config,
+        startProcess: startProcess,
+        startOutput: startOutput,
+        server: this.state.selectedServer,
+        onSuccess: this.handleSubmitSuccess.bind(this),
+        onError: function() {
+          this.setState({ submissionWaiting: false });
+        }.bind(this)
+      });
     },
 
     handleServerSelect: function(event) {

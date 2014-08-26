@@ -269,7 +269,7 @@
      */
     handleCapture: function() {
       if (this.state.waiting) return;
-      this.props.workflow.triggerCapture(false);
+      this.props.workflow.triggerCapture();
     },
 
     handleConfigUpdate: function() {
@@ -284,7 +284,7 @@
      */
     handleRetake: function() {
       if (this.state.waiting)  return;
-      this.props.workflow.triggerCapture(true);
+      this.props.workflow.triggerCapture({retake: true});
     },
 
     render: function() {
@@ -430,7 +430,7 @@
       // Prepare devices
       this.toggleWaiting("Please wait while the devices  are being prepared " +
                           "for capture");
-      this.props.workflow.prepareCapture(this.toggleWaiting);
+      this.props.workflow.prepareCapture({onSuccess: this.toggleWaiting});
 
       var storageKey = 'crop-params.' + this.props.workflow.id,
           cropParamJson = localStorage.getItem(storageKey),
@@ -461,8 +461,10 @@
       if (this.state.cropOnSuccess && !_.isEmpty(this.state.cropParams)) {
         _.each(this.props.workflow.get('pages').slice(-2), function(page) {
             var targetPage = page.sequence_num%2 > 0 ? 'odd': 'even';
-            this.props.workflow.cropPage(page.capture_num,
-                                         this.state.cropParams[targetPage]);
+            this.props.workflow.cropPage({
+              pageNum: page.capture_num,
+              cropParams: this.state.cropParams[targetPage]
+            });
         }, this);
       }
     },
@@ -474,7 +476,7 @@
                                {trigger: true});
       }
       this.toggleWaiting("Please wait for the capture process to finish...");
-      this.props.workflow.finishCapture(leaveScreen.bind(this));
+      this.props.workflow.finishCapture({onSuccess: leaveScreen.bind(this)});
     },
 
     /**
@@ -494,7 +496,10 @@
             // This is safe, since we don't crop on retakes
             toCrop = pageNum-2,
             targetPage = page.sequence_num%2 > 0 ? 'odd': 'even';
-        this.props.workflow.cropPage(toCrop, this.state.cropParams[targetPage]);
+        this.props.workflow.cropPage({
+          pageNum: toCrop,
+          cropParams: this.state.cropParams[targetPage]
+        });
       }, this);
     },
 
@@ -543,7 +548,8 @@
 
     handleConfigUpdate: function() {
         this.toggleWaiting("Please wait until the devices are reconfigured.");
-        this.props.workflow.prepareCapture(this.toggleWaiting, true);
+        this.props.workflow.prepareCapture({onSuccess: this.toggleWaiting,
+                                            reset: true});
     },
 
     render: function() {
