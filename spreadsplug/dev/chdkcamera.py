@@ -235,16 +235,22 @@ class CHDKCameraDevice(DevicePlugin):
                           .format(self.MAX_RESOLUTION))
 
     def _set_monochrome(self):
-        if not self.config['monochrome'].get(bool):
-            return
-        rv = self._execute_lua(
-            "capmode = require(\"capmode\")\n"
-            "return capmode.set(\"SCN_MONOCHROME\")",
-            get_result=True
-        )
-        if not rv:
-            self.logger.warn("Monochrome mode not supported on this "
-                             "device, will be disabled.")
+        if self.config['monochrome'].get(bool):
+            rv = self._execute_lua(
+                "capmode = require(\"capmode\")\n"
+                "return capmode.set(\"SCN_MONOCHROME\")",
+                get_result=True
+            )
+            if not rv:
+                self.logger.warn("Monochrome mode not supported on this "
+                                 "device, will be disabled.")
+                self.config['monochrome'] = False
+        else:
+            rv = self._execute_lua(
+                "capmode = require(\"capmode\")\n"
+                "return capmode.set(\"P\")",
+                get_result=True
+            )
 
     def finish_capture(self):
         # NOTE: We should retract the lenses to protect them from dust by
@@ -310,6 +316,8 @@ class CHDKCameraDevice(DevicePlugin):
             self._set_focus()
         if 'whitebalance' in updated:
             self._set_whitebalance()
+        if 'monochrome' in updated:
+            self._set_monochrome()
 
     def show_textbox(self, message):
         self._execute_lua("enter_alt()")
