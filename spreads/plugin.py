@@ -94,12 +94,15 @@ class SpreadsPlugin(object):  # pragma: no cover
 
 class DeviceFeatures(object):  # pragma: no cover
     #: Device can grab a preview picture
-    PREVIEW = 1
+    PREVIEW = 'PREVIEW'
 
     #: Device class allows the operation of two devices simultaneously
     #: (mainly to be used by cameras, where each device is responsible for
     #: capturing a single page.
-    IS_CAMERA = 2
+    IS_CAMERA = 'IS_CAMERA'
+
+    #: Device can display arbitrary messages on its screen
+    CAN_DISPLAY_TEXT = 'CAN_DISPLAY_TEXT'
 
 
 class DevicePlugin(SpreadsPlugin):  # pragma: no cover

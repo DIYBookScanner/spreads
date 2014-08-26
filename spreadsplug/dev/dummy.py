@@ -19,7 +19,8 @@ class DummyDevice(DevicePlugin):
     """
     __name__ = 'dummy'
 
-    features = (DeviceFeatures.PREVIEW, DeviceFeatures.IS_CAMERA)
+    features = (DeviceFeatures.PREVIEW, DeviceFeatures.IS_CAMERA,
+                DeviceFeatures.CAN_DISPLAY_TEXT)
 
     @classmethod
     def configuration_template(cls):
@@ -83,3 +84,6 @@ class DummyDevice(DevicePlugin):
 
     def update_configuration(self, updated):
         pass
+
+    def show_textbox(self, msg):
+        print "DISPLAY ON {0} device:\n{1}".format(self.target_page, msg)

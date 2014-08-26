@@ -51,7 +51,8 @@ class CHDKCameraDevice(DevicePlugin):
     """ Plugin for digital cameras running the CHDK firmware.
 
     """
-    features = (DeviceFeatures.PREVIEW, DeviceFeatures.IS_CAMERA)
+    features = (DeviceFeatures.PREVIEW, DeviceFeatures.IS_CAMERA,
+                DeviceFeatures.CAN_DISPLAY_TEXT)
 
     target_page = None
     _cli_flags = None
