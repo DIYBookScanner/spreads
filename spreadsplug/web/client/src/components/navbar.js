@@ -42,10 +42,7 @@
     },
 
     componentWillMount: function() {
-      window.router.events.websocket.onclose = function() {
-        this.setState({isOffline: true});
-        this.checkOnline();
-      }.bind(this);
+      this.bindOnDisconnect();
     },
 
     componentWillUnmount: function() {
@@ -64,6 +61,12 @@
         shutdownModal: false
       });
     },
+    bindOnDisconnect: function() {
+      window.router.events.websocket.onclose = function() {
+        this.setState({isOffline: true});
+        this.checkOnline();
+      }.bind(this);
+    },
     doReboot: function() {
       jQuery.ajax({
         type: "POST",
@@ -80,6 +83,7 @@
         success: function() {
           this.setState({isOffline: false});
           window.router.events.connect();
+          this.bindOnDisconnect();
         }.bind(this),
         error: this.checkOnline
       });
