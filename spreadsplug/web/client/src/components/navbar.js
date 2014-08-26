@@ -51,12 +51,18 @@
 
     /** Initiate shutdown of the hosting machine */
     doShutdown: function() {
-      // TODO: Show activity indicator until connection has died
-      // TODO: Make UI inactive until polling is successful again
       jQuery.ajax({
-        type: "POST",
-        url: "/api/system/shutdown"
-      });
+          type: "POST",
+          url: "/api/system/shutdown"
+      }).fail(function(xhr, textStatus) {
+        if (textStatus === 'timout') return;
+        var errorModal = (
+          <F.Modal onClose={function(){this.setState({errorModal: null})}.bind(this)}>
+            <h2>Could not shut down</h2>
+            <p>{xhr.responseJSON.message.replace(/\n/g, "<br/>")}</p>
+          </F.Modal>);
+        this.setState({errorModal: errorModal});
+      }.bind(this));
       this.setState({
         shutdownModal: false
       });
@@ -71,7 +77,15 @@
       jQuery.ajax({
         type: "POST",
         url: "/api/system/reboot"
-      });
+      }).fail(function(xhr, textStatus) {
+        if (textStatus === 'timout') return;
+        var errorModal = (
+          <F.Modal onClose={function(){this.setState({errorModal: null})}.bind(this)}>
+            <h2>Could not reboot</h2>
+            <p>{xhr.responseJSON.data.message.replace(/\n/g, "<br/>")}</p>
+          </F.Modal>);
+        this.setState({errorModal: errorModal});
+      }.bind(this));
       this.setState({
         shutdownModal: false
       });
@@ -115,6 +129,7 @@
               Trying to reconnect...
             </p>
           </div>}
+          {this.state.errorModal}
           {this.state.aboutModal &&
           <F.Modal small={false} onClose={_.partial(this.setState.bind(this), {aboutModal: false}, null)}>
             <F.Row>
