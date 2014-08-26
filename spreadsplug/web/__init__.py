@@ -26,7 +26,7 @@ from spreads.vendor.huey import SqliteHuey
 from spreads.vendor.huey.consumer import Consumer
 from flask import Flask
 from tornado.wsgi import WSGIContainer
-from tornado.ioloop import IOLoop
+from tornado.ioloop import IOLoop, PeriodicCallback
 from tornado.web import FallbackHandler, Application
 
 import spreads.workflow
@@ -252,37 +252,50 @@ class WebApplication(object):
             (r".*", FallbackHandler, dict(fallback=container))
         ], debug=self._debug)
 
+    def display_ip(self):
+        # Display the address of the web interface on the camera displays
+        try:
+            for cam in plugin.get_devices(self.global_config):
+                cam.show_textbox(
+                    "\n    You can now access the web interface at:"
+                    "\n\n\n         http://{0}:{1}"
+                    .format(self._ip_address, self._listening_port))
+            self._display_callback.stop()
+        except plugin.DeviceException:
+            # Try again next time...
+            return
+
     def run_server(self):
         self.setup_logging()
         self.setup_task_queue()
         self.setup_signals()
         self.setup_tornado()
 
-        listening_port = self.config['port'].get(int)
+        self._listening_port = self.config['port'].get(int)
 
-        ip_address = get_ip_address()
-        if (app.config['standalone'] and ip_address
-                and self.global_config['driver'].get() == 'chdkcamera'):
-            # Display the address of the web interface on the camera displays
-            try:
-                for cam in plugin.get_devices(self.global_config):
-                    cam.show_textbox(
-                        "\n    You can now access the web interface at:"
-                        "\n\n\n         http://{0}:{1}"
-                        .format(ip_address, listening_port))
-            except plugin.DeviceException:
-                logger.warn("No devices could be found at startup.")
+        self._ip_address = get_ip_address()
+        device_driver = plugin.get_driver(self.global_config['driver'].get())
+        should_display_ip = (app.config['standalone'] and self._ip_address
+                             and plugin.DeviceFeatures.CAN_DISPLAY_TEXT in
+                             device_driver.features)
+        if should_display_ip:
+            # Every 30 seconds, see if there are devices attached and display
+            # IP address and port on them, then disable the callback
+            self._display_callback = PeriodicCallback(
+                self.display_ip, 30*10**3)
+            # Run once immediately
+            self.display_ip()
 
         # Start task consumer
         self.consumer.start()
 
         # Start discovery listener
         if app.config['mode'] in ('processor', 'full'):
-            discovery_listener = DiscoveryListener(listening_port)
+            discovery_listener = DiscoveryListener(self._listening_port)
             discovery_listener.start()
 
         # Spin up WSGI server
-        self.application.listen(listening_port)
+        self.application.listen(self._listening_port)
 
         try:
             IOLoop.instance().start()
