@@ -468,10 +468,13 @@ class Workflow(object):
                 img = Image(filename=fname)
             width = (img.width - left) if width is None else width
             height = (img.height - top) if height is None else height
-            if width > img.width:
-                width = img.width
-            if height > img.height:
-                width = img.height
+            if width > (img.width - left):
+                width = img.width - left
+            if height > (img.height - top):
+                width = img.height - top
+            if (left, top, width, height) == (0, 0, img.width, img.height):
+                self._logger.warn("No-op crop parameters, skipping!")
+                return
             self._logger.debug("Cropping \"{0}\" to x:{1} y:{2} w:{3} h:{4}"
                                .format(fname, left, top, width, height))
             cropped = img.crop(left, top, width=width, height=height)
