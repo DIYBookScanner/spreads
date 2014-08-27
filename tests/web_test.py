@@ -255,9 +255,9 @@ def test_finish_capture(client):
 
 
 def test_shutdown(client):
-    with mock.patch('spreadsplug.web.web.subprocess.call') as sp:
+    with mock.patch('spreadsplug.web.web.subprocess.check_call') as sp:
         client.post('/api/system/shutdown')
-    sp.assert_called_once_with(['/usr/bin/sudo',
+    sp.assert_called_once_with(['/usr/bin/sudo', '-n',
                                 '/sbin/shutdown', '-h', 'now'])
 
 
