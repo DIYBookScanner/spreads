@@ -418,5 +418,8 @@ def get_devices(config, force_reload=False):
                      .format(driver.__name__))
         devices = list(driver.yield_devices(config['device']))
         if not devices:
-            raise DeviceException("Could not find any compatible devices!")
+            raise DeviceException(
+                "Could not find any compatible devices!\n"
+                "Make sure your devices are turned on and properly connected "
+                "to the machine.")
     return devices

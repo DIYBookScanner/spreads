@@ -399,7 +399,9 @@
         /** Whether we registered a function to crop on successful captures */
         cropOnSuccess: false,
         /** Time of first capture */
-        captureStart: undefined
+        captureStart: undefined,
+        /** Last error */
+        lastError: undefined
       };
     },
 
@@ -416,18 +418,6 @@
           captureStart: new Date().getTime()/1000
         });
       }), this);
-
-      window.router.before = function(route, name) {
-        this.setState({
-          returnRoute: route
-        });
-        this.handleFinish();
-        return false;
-      }.bind(this)
-
-      window.addEventListener("beforeunload", function(event) {
-        this.props.workflow.finishCapture();
-      }.bind(this));
 
       // Disable waiting screen if there was an error
       function disableWaiting() {
@@ -448,7 +438,8 @@
       // Prepare devices
       this.toggleWaiting("Please wait while the devices  are being prepared " +
                           "for capture");
-      this.props.workflow.prepareCapture({onSuccess: this.toggleWaiting});
+      this.props.workflow.prepareCapture({onSuccess: this.handlePrepareFinish,
+                                          onError: this.displayErrorModal});
 
       var storageKey = 'crop-params.' + this.props.workflow.id,
           cropParamJson = localStorage.getItem(storageKey),
@@ -485,6 +476,29 @@
             });
         }, this);
       }
+    },
+
+    handlePrepareFinish: function() {
+      window.addEventListener("beforeunload", function(event) {
+        this.props.workflow.finishCapture();
+      }.bind(this));
+
+      window.router.before = function(route, name) {
+        this.setState({
+          returnRoute: route
+        });
+        this.handleFinish();
+        return false;
+      }.bind(this)
+
+      this.toggleWaiting();
+    },
+
+    displayErrorModal: function(error) {
+      this.setState({
+        waiting: false,
+        lastError: error
+      });
     },
 
     handleFinish: function() {
@@ -621,8 +635,23 @@
     },
 
     renderLayer: function() {
-      if (this.state.waiting) return <LoadingOverlay message={this.state.waitMessage} />;
-      else return null;
+      if (this.state.lastError) {
+        var leave = _.partial(window.router.navigate, "/", {trigger: true});
+        return (
+          <F.Modal onClose={leave}>
+            <h2>Error</h2>
+            <p>
+              {_.flatten(_.map(this.state.lastError.message.split('\n'), function(part) {
+                return [part, <br/>];
+                }))}
+            </p>
+            <F.Button onClick={leave}>OK</F.Button>
+          </F.Modal>);
+      } else if (this.state.waiting) {
+        return <LoadingOverlay message={this.state.waitMessage} />;
+      } else {
+        return null;
+      }
     }
   });
 

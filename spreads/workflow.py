@@ -398,11 +398,6 @@ class Workflow(object):
                 "Please make sure it has been re-enabled before taking another"
                 "action.")
             self._devices = None
-        if not self._devices:
-            raise util.DeviceException(
-                "Could not find any compatible devices!\n"
-                "Make sure your devices are turned on and properly connected "
-                "to the machine.")
         return self._devices
 
     def _fix_page_numbers(self, page_to_remove):
