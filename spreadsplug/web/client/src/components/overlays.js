@@ -74,6 +74,7 @@
       }
       React.unmountComponentAtNode(this._layer);
       document.body.removeChild(this._layer);
+      this._layer = null;
     }
   };
 
