@@ -22,6 +22,7 @@ import sys
 from itertools import chain
 from threading import Thread
 
+from spreads.vendor.confit import ConfigError
 from spreads.vendor.huey import SqliteHuey
 from spreads.vendor.huey.consumer import Consumer
 from flask import Flask
@@ -274,7 +275,14 @@ class WebApplication(object):
         self._listening_port = self.config['port'].get(int)
 
         self._ip_address = get_ip_address()
-        device_driver = plugin.get_driver(self.global_config['driver'].get())
+        try:
+            device_driver = plugin.get_driver(self.global_config['driver']
+                                              .get())
+        except ConfigError:
+            raise ConfigError(
+                "You need to specify a value for `driver`.\n"
+                "Either run `spread [gui]configure` or edit the configuration "
+                "file.")
         should_display_ip = (app.config['standalone'] and self._ip_address
                              and plugin.DeviceFeatures.CAN_DISPLAY_TEXT in
                              device_driver.features)
