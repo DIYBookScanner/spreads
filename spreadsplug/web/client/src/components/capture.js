@@ -161,6 +161,7 @@
     },
 
     renderLayer: function() {
+      var imageSrc = this.props.imageSrc + "?numtype=capture";
       return (
         <div>
           {this.state.displayLightbox &&

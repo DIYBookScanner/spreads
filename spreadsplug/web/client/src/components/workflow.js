@@ -282,11 +282,11 @@
                           src={this.state.lightboxImage}
                           handleNext={this.state.lightboxNext && function(e) {
                             e.stopPropagation();
-                            this.toggleLightbox(workflow, this.state.lightboxNext);
+                            this.toggleLightbox(this.props.workflow, this.state.lightboxNext);
                           }.bind(this)}
                           handlePrevious={this.state.lightboxPrevious && function(e) {
                             e.stopPropagation();
-                            this.toggleLightbox(workflow, this.state.lightboxPrevious);
+                            this.toggleLightbox(this.props.workflow, this.state.lightboxPrevious);
                           }.bind(this)}/>);
       }
     }

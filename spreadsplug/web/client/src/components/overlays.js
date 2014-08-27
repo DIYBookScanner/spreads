@@ -52,6 +52,10 @@
         return;
       }
 
+      if (!component) {
+        return;
+      }
+
       if (!this._layer) {
         this._layer = document.createElement('div');
         document.body.appendChild(this._layer);

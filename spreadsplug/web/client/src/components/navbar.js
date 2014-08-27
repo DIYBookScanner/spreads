@@ -204,7 +204,7 @@
     renderLayer: function() {
       return (
         <div>
-          {this.state.ShutdownModal && <ShutdownModal onClose={this.closeShutdownModal} />}
+          {this.state.shutdownModal && <ShutdownModal onClose={this.closeShutdownModal} />}
           {this.state.aboutModal &&
             <AboutModal onClose={function(){this.setState({aboutModal: false})}.bind(this)} />}
           {this.state.isOffline &&

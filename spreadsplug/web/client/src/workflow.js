@@ -22,6 +22,7 @@
   var Backbone = require('backbone'),
       _ = require('underscore'),
       jQuery = require('jquery'),
+      util = require('./util.js'),
       Workflow;
       _.mixin(require('underscore.deep'));
 
@@ -90,7 +91,7 @@
           // retake, but we would like to update the dependant views anyway
           // to get the latest versions of the pages, we force a 'change'
           // event.
-          if (retake) {
+          if (options.retake) {
             this.trigger('change');
             this.trigger('change:pages', this.get('pages'));
           }
