@@ -23,7 +23,8 @@
       _ = require('underscore'),
       jQuery = require('jquery'),
       F = require('./foundation.js'),
-      LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin;
+      LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
+      Overlay = require('./overlays.js').Overlay;
 
   var ShutdownModal = React.createClass({
     mixins: [LayeredComponentMixin],
@@ -78,10 +79,12 @@
     renderLayer: function() {
       if (_.isEmpty(this.state.errorParams)) return;
       return (
-        <F.Modal onClose={function(){this.setState({errorParams: {}})}.bind(this)}>
-          <h2>{this.state.errorParams.title}</h2>
-          <p>{this.state.errorParams.text}</p>
-        </F.Modal>);
+        <Overlay>
+          <F.Modal onClose={function(){this.setState({errorParams: {}})}.bind(this)}>
+            <h2>{this.state.errorParams.title}</h2>
+            <p>{this.state.errorParams.text}</p>
+          </F.Modal>
+        </Overlay>);
     }
   });
 
@@ -202,13 +205,14 @@
     },
 
     renderLayer: function() {
+      if (!this.state.shutdownModal && !this.state.aboutModal && !this.state.isOffline) return null;
       return (
-        <div>
+        <Overlay>
           {this.state.shutdownModal && <ShutdownModal onClose={this.closeShutdownModal} />}
           {this.state.aboutModal &&
             <AboutModal onClose={function(){this.setState({aboutModal: false})}.bind(this)} />}
           {this.state.isOffline &&
-            <div className="overlay activity">
+            <div className="activity">
               <div className="animation">
                 <div className="bounce"></div>
                 <div className="bounce"></div>
@@ -218,7 +222,7 @@
                 Trying to reconnect...
               </p>
             </div>}
-        </div>);
+        </Overlay>);
     }
   });
 }());

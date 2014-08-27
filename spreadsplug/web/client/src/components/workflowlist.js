@@ -23,6 +23,7 @@
       _ = require('underscore'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
       ProgressOverlay = require('./overlays.js').Progress,
+      Overlay = require('./overlays.js').Overlay,
       LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
       F = require('./foundation.js'),
       util = require('../util.js');
@@ -428,8 +429,9 @@
     },
 
     renderLayer: function() {
+      if (!this.state.deleteModal && !this.state.errorModal && !this.state.transferWaiting) return null;
       return (
-        <div>
+        <Overlay>
           {this.state.deleteModal &&
             <F.ConfirmModal
               onCancel={_.partial(this.setState.bind(this), {deleteModal: false}, null)}
@@ -446,7 +448,7 @@
           {this.state.transferWaiting &&
             <ProgressOverlay progress={this.state.transferProgress}
                             statusMessage={this.state.transferCurrentFile || "Preparing transfer..."}/>}
-        </div>
+        </Overlay>
       )
     }
   });

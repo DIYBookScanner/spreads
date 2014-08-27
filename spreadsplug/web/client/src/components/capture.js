@@ -25,7 +25,8 @@
       Mousetrap = require('mousetrap'),
       F = require('./foundation.js'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
-      LoadingOverlay = require('./overlays.js').Activity,
+      Overlay = require('./overlays.js').Overlay,
+      LoadingAnimation = require('./overlays.js').Activity,
       lightbox = require('./overlays.js').LightBox,
       LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
       PluginWidget = require('./config.js').PluginWidget,
@@ -162,17 +163,18 @@
 
     renderLayer: function() {
       var imageSrc = this.props.imageSrc + "?numtype=capture";
+      if (!this.state.displayLightbox && !this.state.displayCrop) return null;
       return (
-        <div>
+        <Overlay>
           {this.state.displayLightbox &&
             <lightbox onClose={this.toggleLightbox} src={imageSrc} />}
           {this.state.displayCrop &&
-            <F.Modal onClose={this.toggleCropDisplay} small={false}>
+            <F.Modal onClose={this.toggleCropDisplay}>
               <CropWidget imageSrc={imageSrc}
                           onSave={this.handleSave}
                           cropParams={this.props.cropParams} showInputs={true} />
             </F.Modal>}
-        </div>);
+        </Overlay>);
     }
   });
 
@@ -335,9 +337,12 @@
 
     renderLayer: function() {
       if (this.state.displayConfig) {
-        return (<ConfigModal workflow={this.props.workflow}
-                             onClose={this.toggleConfigModal}
-                             onConfirm={this.handleConfigUpdate} />);
+        return (
+          <Overlay>
+            <ConfigModal workflow={this.props.workflow}
+                              onClose={this.toggleConfigModal}
+                              onConfirm={this.handleConfigUpdate} />
+          </Overlay>);
       } else {
         return null;
       }
@@ -419,12 +424,7 @@
         });
       }), this);
 
-      // Disable waiting screen if there was an error
-      function disableWaiting() {
-        if (this.state.waiting) this.setState({waiting: false})
-      };
-      window.router.events.on('apierror', disableWaiting, this);
-      this.props.workflow.on('capture-failed', disableWaiting, this);
+      this.props.workflow.on('capture-failed', _.partial(this.handleError, false), this);
 
       // Leave capture screen when the workflow step is changed from elsewhere
       this.props.workflow.on('status-updated', function(status) {
@@ -439,7 +439,7 @@
       this.toggleWaiting("Please wait while the devices  are being prepared " +
                           "for capture");
       this.props.workflow.prepareCapture({onSuccess: this.handlePrepareFinish,
-                                          onError: this.displayErrorModal});
+                                          onError: _.partial(this.handleError, true)});
 
       var storageKey = 'crop-params.' + this.props.workflow.id,
           cropParamJson = localStorage.getItem(storageKey),
@@ -489,15 +489,16 @@
         });
         this.handleFinish();
         return false;
-      }.bind(this)
+      }.bind(this);
 
       this.toggleWaiting();
     },
 
-    displayErrorModal: function(error) {
+    handleError: function(critical, error) {
       this.setState({
         waiting: false,
-        lastError: error
+        lastError: error,
+        errorIsCritical: critical
       });
     },
 
@@ -581,6 +582,7 @@
     handleConfigUpdate: function() {
         this.toggleWaiting("Please wait until the devices are reconfigured.");
         this.props.workflow.prepareCapture({onSuccess: this.toggleWaiting,
+                                            onError: _.partial(this.handleError, true),
                                             reset: true});
     },
 
@@ -637,18 +639,29 @@
     renderLayer: function() {
       if (this.state.lastError) {
         var leave = _.partial(window.router.navigate, "/", {trigger: true});
+        var closeModal = function() {
+          this.setState({
+            lastError: undefined,
+            errorIsCritical: undefined
+          });
+        }.bind(this);
         return (
-          <F.Modal onClose={leave}>
-            <h2>Error</h2>
-            <p>
-              {_.flatten(_.map(this.state.lastError.message.split('\n'), function(part) {
-                return [part, <br/>];
-                }))}
-            </p>
-            <F.Button onClick={leave}>OK</F.Button>
-          </F.Modal>);
+          <Overlay>
+            <F.Modal onClose={this.state.errorIsCritical ? leave : closeModal}>
+              <h2>Error</h2>
+              <p>
+                {_.flatten(_.map(this.state.lastError.message.split('\n'), function(part) {
+                  return [part, <br/>];
+                  }))}
+              </p>
+              <F.Button onClick={this.state.errorIsCritical ? leave : closeModal}>OK</F.Button>
+            </F.Modal>
+          </Overlay>);
       } else if (this.state.waiting) {
-        return <LoadingOverlay message={this.state.waitMessage} />;
+        return (
+          <Overlay>
+            <LoadingAnimation message={this.state.waitMessage} />
+          </Overlay>);
       } else {
         return null;
       }

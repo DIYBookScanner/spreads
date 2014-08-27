@@ -196,6 +196,12 @@
           workflow.trigger('capture-succeeded', data);
         }
       }, this);
+      eventDispatcher.on('workflow:capture-failed', function(data) {
+        var workflow = this.get(data.senderId);
+        if (workflow) {
+          workflow.trigger('capture-failed', data);
+        }
+      }, this);
       eventDispatcher.on('workflow:modified', function(data) {
         var workflow = this.get(data.senderId);
         var changes = data.changes;

@@ -82,6 +82,30 @@
     }
   };
 
+  var Overlay = React.createClass({
+    propTypes: {
+      color: React.PropTypes.string
+    },
+    getDefaultProps: function() {
+      return {
+        color: 'rgba(0, 0, 0, 0.8)'
+      }
+    },
+    render: function() {
+      var classes = "overlay";
+      var styles = {
+        background: this.props.color
+      }
+      if (this.props.className) {
+        classes = [classes, this.props.className].join(" ");
+      }
+      return (
+        <div className={classes} style={styles}>
+          {this.props.children}
+        </div>);
+    }
+  });
+
   /**
    * Display an overlay with a CSS3 animation indicating ongoing activty.
    *
@@ -92,7 +116,7 @@
     displayName: "ActivityOverlay",
     render: function() {
       return (
-        <div className="overlay activity">
+        <div className="activity">
           <div className="animation">
             <div className="bounce"></div>
             <div className="bounce"></div>
@@ -173,20 +197,19 @@
       if (this.props.progress > 1) widthPercent = this.props.progress | 0;
       else widthPercent = (this.props.progress*100) | 0;
       return (
-        <div className="overlay spreads-progress">
-          <div className="progress">
-            <span className="meter" style={{width: widthPercent+"%"}}></span>
-            <span className="status">{this.props.statusMessage}</span>
-          </div>
+        <div className="progress">
+          <span className="meter" style={{width: widthPercent+"%"}}></span>
+          <span className="status">{this.props.statusMessage}</span>
         </div>
       );
     }
   });
 
   module.exports = {
-      Activity: Activity,
-      LightBox: LightBox,
-      Progress: Progress,
-      LayeredComponentMixin: LayeredComponentMixin
+    Overlay: Overlay,
+    Activity: Activity,
+    LightBox: LightBox,
+    Progress: Progress,
+    LayeredComponentMixin: LayeredComponentMixin
   }
 }());

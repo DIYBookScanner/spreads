@@ -25,6 +25,7 @@
       _ = require('underscore'),
       util = require('../util.js'),
       LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
+      Overlay = require('./overlays.js').Overlay,
       F = require('./foundation');
 
   /**
@@ -146,9 +147,12 @@
 
     renderLayer: function() {
       if (this.state.displayBugModal) {
-        return (<BugModal traceback={this.props.traceback}
-                          message={this.props.message}
-                          onClose={this.toggleBugModal} />);
+        return (
+          <Overlay>
+            <BugModal traceback={this.props.traceback}
+                      message={this.props.message}
+                      onClose={this.toggleBugModal} />
+          </Overlay>);
       }
     }
   });

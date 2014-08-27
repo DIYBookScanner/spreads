@@ -25,7 +25,8 @@
       _ = require('underscore'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
       F = require('./foundation.js'),
-      lightbox = require('./overlays.js').LightBox,
+      Lightbox = require('./overlays.js').LightBox,
+      Overlay = require('./overlays.js').Overlay,
       LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
       util = require('../util.js');
 
@@ -278,16 +279,28 @@
     },
     renderLayer: function() {
       if (this.state.lightboxImage) {
-        return (<lightbox onClose={_.partial(this.toggleLightbox, null, null)}
-                          src={this.state.lightboxImage}
-                          handleNext={this.state.lightboxNext && function(e) {
-                            e.stopPropagation();
-                            this.toggleLightbox(this.props.workflow, this.state.lightboxNext);
-                          }.bind(this)}
-                          handlePrevious={this.state.lightboxPrevious && function(e) {
-                            e.stopPropagation();
-                            this.toggleLightbox(this.props.workflow, this.state.lightboxPrevious);
-                          }.bind(this)}/>);
+        var handleNext;
+        if (this.state.lightboxNext) {
+          handleNext = function(e) {
+            e.stopPropagation();
+              this.toggleLightbox(this.props.workflow, this.state.lightboxNext);
+          }.bind(this);
+        }
+        var handlePrevious;
+        if (this.state.lightboxPrevious) {
+          handlePrevious = function(e) {
+            e.stopPropagation();
+            this.toggleLightbox(this.props.workflow, this.state.lightboxPrevious);
+          }.bind(this);
+        }
+
+        return (
+          <Overlay>
+            <Lightbox
+              onClose={_.partial(this.toggleLightbox, null, null)}
+              src={this.state.lightboxImage}
+              handleNext={handleNext} handlePrevious={handlePrevious}/>
+          </Overlay>);
       }
     }
   });

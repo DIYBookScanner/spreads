@@ -25,6 +25,7 @@
       F = require('./foundation.js'),
       util = require('../util.js'),
       ProgressOverlay = require('./overlays.js').Progress,
+      Overlay = require('./overlays.js').Overlay,
       LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
       PluginWidget = require('./config.js').PluginWidget,
       PluginConfiguration = require('./config.js').PluginConfiguration;
@@ -217,8 +218,10 @@
     renderLayer: function() {
       if (this.state.submissionWaiting) {
         return (
-          <ProgressOverlay progress={this.state.submissionProgress}
-                           statusMessage={this.state.submissionCurrentFile || "Preparing submission..."}/>);
+          <Overlay>
+            <ProgressOverlay progress={this.state.submissionProgress}
+              statusMessage={this.state.submissionCurrentFile || "Preparing submission..."}/>
+          </Overlay>);
       }
     }
   });

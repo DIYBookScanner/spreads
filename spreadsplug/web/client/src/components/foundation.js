@@ -300,8 +300,6 @@
    */
   var Modal = React.createClass({
     propTypes: {
-      fixed: React.PropTypes.bool,
-      small: React.PropTypes.bool,
       onClose: React.PropTypes.func,
       children: React.PropTypes.oneOfType([
         React.PropTypes.renderable,
@@ -309,19 +307,10 @@
       ]),
     },
 
-    getDefaultProps: function() {
-      return {
-        small: true,
-        fixed: true
-      };
-    },
-
     render: function() {
       var classes = classSet({
         'reveal-modal': true,
-        'open': true,
-        'fixed': this.props.fixed,
-        'small': this.props.small
+        'open': true
       });
       return (
         <div className={classes}
@@ -339,7 +328,6 @@
    */
   var ConfirmModal = React.createClass({
     propTypes: {
-      fixed: React.PropTypes.bool,
       onCancel: React.PropTypes.func,
       onConfirm: React.PropTypes.func,
       children: React.PropTypes.oneOfType([
@@ -348,13 +336,9 @@
       ])
     },
 
-    getDefaultProps: function() {
-      return { fixed: true };
-    },
-
     render: function() {
       return (
-        <Modal onClose={this.props.onCancel} fixed={this.props.fixed}>
+        <Modal onClose={this.props.onCancel}>
           {this.props.children}
           <Row>
             <Column size={6}>
