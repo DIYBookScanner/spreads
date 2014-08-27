@@ -270,7 +270,7 @@
             </F.Column>
             <F.Column size={[4, 2]}>
               <a className="action-button small download-btn" title="Download log"
-                 data-bypass={true} href={"/log?level=debug&count=100"}
+                 data-bypass={true} href={"/api/log?level=debug&count=100"}
                  download="spreadslog.json"><i className="fa fa-download" /></a>
             </F.Column>
           </F.Row>
