@@ -57,9 +57,9 @@ class ApiException(Exception):
 
 @app.errorhandler(ValidationError)
 def handle_validationerror(error):
-    raise ApiException(
+    return handle_apiexception(ApiException(
         "There was an issue with at least some of the supplied values.",
-        400, error.errors, 'validation')
+        400, error.errors, 'validation'))
 
 
 @app.errorhandler(ApiException)
