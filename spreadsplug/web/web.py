@@ -639,7 +639,7 @@ def shutdown():
     check_for_standalone_mode()
     logger.info("Shutting device down")
     try:
-        subprocess.call("/usr/bin/sudo -n /sbin/shutdown -h now".split())
+        subprocess.check_call("/usr/bin/sudo -n /sbin/shutdown -h now".split())
     except (subprocess.CalledProcessError, OSError):
         raise ApiException("The user running the server process needs to have "
                            "permission to run /sbin/shutdown via sudo.", 500)
@@ -650,7 +650,7 @@ def shutdown():
 def reboot():
     check_for_standalone_mode()
     try:
-        subprocess.call("/usr/bin/sudo -n /sbin/shutdown -r now".split())
+        subprocess.check_call("/usr/bin/sudo -n /sbin/shutdown -r now".split())
     except (subprocess.CalledProcessError, OSError):
         raise ApiException("The user running the server process needs to have "
                            "permission to run /sbin/shutdown via sudo.", 500)
