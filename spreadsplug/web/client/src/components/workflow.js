@@ -26,6 +26,7 @@
       ModelMixin = require('../../vendor/backbonemixin.js'),
       F = require('./foundation.js'),
       lightbox = require('./overlays.js').LightBox,
+      LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
       util = require('../util.js');
 
   var PagePreview = React.createClass({
@@ -88,7 +89,7 @@
    */
   var WorkflowDisplay = React.createClass({
     /** Enables two-way databinding with Backbone model */
-    mixins: [ModelMixin],
+    mixins: [ModelMixin, LayeredComponentMixin],
 
     /** Activates databinding for `workflow` model property. */
     getBackboneModels: function() {
@@ -182,19 +183,6 @@
           }
       return (
         <main>
-          {/* Display image in lightbox overlay? */}
-          {this.state.lightboxImage &&
-            <lightbox onClose={_.partial(this.toggleLightbox, null, null)}
-                      src={this.state.lightboxImage}
-                      handleNext={this.state.lightboxNext && function(e) {
-                        e.stopPropagation();
-                        this.toggleLightbox(workflow, this.state.lightboxNext);
-                      }.bind(this)}
-                      handlePrevious={this.state.lightboxPrevious && function(e) {
-                        e.stopPropagation();
-                        this.toggleLightbox(workflow, this.state.lightboxPrevious);
-                      }.bind(this)}/>
-          }
           <F.Row>
             <F.Column>
               <h1>{metadata.title}</h1>
@@ -287,6 +275,20 @@
           </F.Row>}
         </main>
       );
+    },
+    renderLayer: function() {
+      if (this.state.lightboxImage) {
+        return (<lightbox onClose={_.partial(this.toggleLightbox, null, null)}
+                          src={this.state.lightboxImage}
+                          handleNext={this.state.lightboxNext && function(e) {
+                            e.stopPropagation();
+                            this.toggleLightbox(workflow, this.state.lightboxNext);
+                          }.bind(this)}
+                          handlePrevious={this.state.lightboxPrevious && function(e) {
+                            e.stopPropagation();
+                            this.toggleLightbox(workflow, this.state.lightboxPrevious);
+                          }.bind(this)}/>);
+      }
     }
   });
 

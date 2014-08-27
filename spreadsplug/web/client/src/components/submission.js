@@ -25,10 +25,13 @@
       F = require('./foundation.js'),
       util = require('../util.js'),
       ProgressOverlay = require('./overlays.js').Progress,
+      LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
       PluginWidget = require('./config.js').PluginWidget,
       PluginConfiguration = require('./config.js').PluginConfiguration;
 
   var SubmissionForm = React.createClass({
+    mixins: [LayeredComponentMixin],
+
     propTypes: {
       workflow: React.PropTypes.object.isRequired
     },
@@ -152,9 +155,6 @@
       return (
         <section>
           <form onSubmit={this.handleSubmit}>
-            {this.state.submissionWaiting &&
-              <ProgressOverlay progress={this.state.submissionProgress}
-                               statusMessage={this.state.submissionCurrentFile || "Preparing submission..."}/>}
             <F.Row>
               <F.Column>
                 <h2>Configure postprocessing</h2>
@@ -212,6 +212,14 @@
             </div>}
           </form>
         </section>);
+    },
+
+    renderLayer: function() {
+      if (this.state.submissionWaiting) {
+        return (
+          <ProgressOverlay progress={this.state.submissionProgress}
+                           statusMessage={this.state.submissionCurrentFile || "Preparing submission..."}/>);
+      }
     }
   });
 

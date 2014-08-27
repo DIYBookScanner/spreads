@@ -22,8 +22,8 @@
   var React = require('react/addons'),
       _ = require('underscore'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
-      LoadingOverlay = require('./overlays.js').Activity,
       ProgressOverlay = require('./overlays.js').Progress,
+      LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
       F = require('./foundation.js'),
       util = require('../util.js');
 
@@ -242,6 +242,8 @@
    * @property {Workflow} workflow  - Workflow to set configuration for
    */
   var WorkflowItem = React.createClass({
+    mixins: [LayeredComponentMixin],
+
     getInitialState: function() {
       return {
         /** Display deletion confirmation modal? */
@@ -392,25 +394,6 @@
             </F.Row>
           </div>}
           <F.Row>
-            {/* Display deletion confirmation modal? */}
-            {this.state.deleteModal &&
-              <F.ConfirmModal
-                onCancel={_.partial(this.setState.bind(this), {deleteModal: false}, null)}
-                onConfirm={this.doRemove}>
-                <h1>Remove?</h1>
-                <p>Do you really want to permanently remove this workflow and all
-                  of its related files?</p>
-              </F.ConfirmModal>}
-            {/* Display error modal? */}
-            {this.state.errorModal &&
-              <F.Modal onClose={_.partial(this.setState.bind(this), {errorModal: false}, null)}>
-                <h1>{this.state.errorModalHeading}</h1>
-                <p>{this.state.errorModalText}</p>
-              </F.Modal>}
-            {/* Display loading overlay */}
-            {this.state.transferWaiting &&
-              <ProgressOverlay progress={this.state.transferProgress}
-                              statusMessage={this.state.transferCurrentFile || "Preparing transfer..."}/>}
             {/* Display preview image (second-to last page) if there are pages
             in the workflow */}
             {!this.props.smallDisplay &&
@@ -442,6 +425,29 @@
           </F.Row>
         </div>
       );
+    },
+
+    renderLayer: function() {
+      return (
+        <div>
+          {this.state.deleteModal &&
+            <F.ConfirmModal
+              onCancel={_.partial(this.setState.bind(this), {deleteModal: false}, null)}
+              onConfirm={this.doRemove}>
+              <h1>Remove?</h1>
+              <p>Do you really want to permanently remove this workflow and all
+                of its related files?</p>
+            </F.ConfirmModal>}
+          {this.state.errorModal &&
+            <F.Modal onClose={_.partial(this.setState.bind(this), {errorModal: false}, null)}>
+              <h1>{this.state.errorModalHeading}</h1>
+              <p>{this.state.errorModalText}</p>
+            </F.Modal>}
+          {this.state.transferWaiting &&
+            <ProgressOverlay progress={this.state.transferProgress}
+                            statusMessage={this.state.transferCurrentFile || "Preparing transfer..."}/>}
+        </div>
+      )
     }
   });
 

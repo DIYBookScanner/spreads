@@ -20,7 +20,62 @@
 (function() {
   'use strict';
   var React = require('react/addons'),
-      Activity, LightBox, Progress;
+      _ = require('underscore');
+
+  /** Create a new "layer" on the page like a modal or overlay
+   *
+   * MIT License, (c) 2014 Khan Academy
+   * https://github.com/Khan/react-components
+   */
+  var LayeredComponentMixin = {
+    componentDidMount: function() {
+      // Appending to the body is easier than managing the z-index of
+      // everything on the page. It's also better for accessibility and
+      // makes stacking a snap (since components will stack in mount order).
+      this._renderLayer();
+    },
+
+    componentDidUpdate: function() {
+      this._renderLayer();
+    },
+
+    componentWillUnmount: function() {
+      if (!this._layer) return;
+      this._unrenderLayer();
+    },
+
+    _renderLayer: function() {
+      var component = this.renderLayer();
+
+      if (!component && this._layer) {
+        this._unrenderLayer()
+        return;
+      }
+
+      if (!this._layer) {
+        this._layer = document.createElement('div');
+        document.body.appendChild(this._layer);
+      }
+
+      // By calling this method in componentDidMount() and
+      // componentDidUpdate(), you're effectively creating a "wormhole" that
+      // funnels React's hierarchical updates through to a DOM node on an
+      // entirely different part of the page.
+      React.renderComponent(component, this._layer);
+
+      if (this.layerDidMount) {
+        this.layerDidMount(this._layer);
+      }
+    },
+
+    _unrenderLayer: function() {
+      if (this.layerWillUnmount) {
+        this.layerWillUnmount(this._layer);
+      }
+      React.unmountComponentAtNode(this._layer);
+      document.body.removeChild(this._layer);
+    }
+  };
 
   /**
    * Display an overlay with a CSS3 animation indicating ongoing activty.
@@ -28,7 +83,7 @@
    * @property {string} message - Message to display below the activity
    *    animation
    */
-  Activity = React.createClass({
+  var Activity = React.createClass({
     displayName: "ActivityOverlay",
     render: function() {
       return (
@@ -49,7 +104,7 @@
    * @property {function} onClose - Callback function for when the lightbox is closed.
    * @property {url} src - Source URL for the image to be displayed
    */
-  LightBox = React.createClass({
+  var LightBox = React.createClass({
     displayName: "LightBox",
     getInitialState: function() {
       return {};
@@ -106,7 +161,7 @@
     }
   });
 
-  Progress = React.createClass({
+  var Progress = React.createClass({
     displayName: "ProgressOverlay",
     render: function() {
       var widthPercent;
@@ -126,6 +181,7 @@
   module.exports = {
       Activity: Activity,
       LightBox: LightBox,
-      Progress: Progress
+      Progress: Progress,
+      LayeredComponentMixin: LayeredComponentMixin
   }
 }());

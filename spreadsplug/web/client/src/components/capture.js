@@ -27,6 +27,7 @@
       ModelMixin = require('../../vendor/backbonemixin.js'),
       LoadingOverlay = require('./overlays.js').Activity,
       lightbox = require('./overlays.js').LightBox,
+      LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
       PluginWidget = require('./config.js').PluginWidget,
       CropWidget = require('./cropdialog.js'),
       util = require('../util.js');
@@ -87,6 +88,8 @@
 
 
   var Preview = React.createClass({
+    mixins: [LayeredComponentMixin],
+
     propTypes: {
       targetPage: React.PropTypes.oneOf(["odd", "even"]).isRequired,
       imageSrc: React.PropTypes.string,
@@ -139,14 +142,6 @@
       var thumbSrc = this.props.imageSrc + "/thumb?numtype=capture"
       return (
         <li>
-          {this.state.displayLightbox &&
-            <lightbox onClose={this.toggleLightbox} src={imageSrc} />}
-          {this.state.displayCrop &&
-            <F.Modal onClose={this.toggleCropDisplay} small={false}>
-              <CropWidget imageSrc={imageSrc}
-                          onSave={this.handleSave}
-                          cropParams={this.props.cropParams} showInputs={true} />
-            </F.Modal>}
           {this.props.imageSrc &&
           <a className="toggle-crop" title="Crop image" onClick={this.toggleCropDisplay}>
             <i className="fa fa-crop" /> Crop
@@ -163,6 +158,20 @@
            <div className="crop-preview" style={cropPreviewStyle}/>}
         </li>
       );
+    },
+
+    renderLayer: function() {
+      return (
+        <div>
+          {this.state.displayLightbox &&
+            <lightbox onClose={this.toggleLightbox} src={imageSrc} />}
+          {this.state.displayCrop &&
+            <F.Modal onClose={this.toggleCropDisplay} small={false}>
+              <CropWidget imageSrc={imageSrc}
+                          onSave={this.handleSave}
+                          cropParams={this.props.cropParams} showInputs={true} />
+            </F.Modal>}
+        </div>);
     }
   });
 
@@ -227,6 +236,8 @@
 
 
   var Control = React.createClass({
+    mixins: [LayeredComponentMixin],
+
     propTypes: {
       workflow: React.PropTypes.object.isRequired,
       onConfigUpdate: React.PropTypes.func.isRequired,
@@ -290,10 +301,6 @@
     render: function() {
       return (
         <F.Row>
-          {this.state.displayConfig &&
-          <ConfigModal workflow={this.props.workflow}
-                       onClose={this.toggleConfigModal}
-                       onConfirm={this.handleConfigUpdate} />}
           <F.Column className="capture-controls">
             <ul>
               <li id="retake-capture">
@@ -323,6 +330,16 @@
           </F.Column>
         </F.Row>
       );
+    },
+
+    renderLayer: function() {
+      if (this.state.displayConfig) {
+        return (<ConfigModal workflow={this.props.workflow}
+                             onClose={this.toggleConfigModal}
+                             onConfirm={this.handleConfigUpdate} />);
+      } else {
+        return null;
+      }
     }
   });
 
@@ -362,7 +379,7 @@
     },
 
     /** Enables two-way databinding with Backbone model */
-    mixins: [ModelMixin],
+    mixins: [ModelMixin, LayeredComponentMixin],
 
     /** Activates databinding for `workflow` model property. */
     getBackboneModels: function() {
@@ -577,9 +594,6 @@
 
       return (
         <div>
-          {/* Display loading overlay? */}
-          {this.state.waiting && <LoadingOverlay message={this.state.waitMessage} />}
-          {/* Display lightbox overlay? */}
           <F.Row>
             <F.Column>
                 <ul className={React.addons.classSet(previewClasses)}>
@@ -603,6 +617,11 @@
           <ShortcutHelp captureKeys={captureKeys} />
         </div>
       );
+    },
+
+    renderLayer: function() {
+      if (this.state.waiting) return <LoadingOverlay message={this.state.waitMessage} />;
+      else return null;
     }
   });
 

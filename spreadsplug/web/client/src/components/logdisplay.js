@@ -24,6 +24,7 @@
       jQuery = require('jquery'),
       _ = require('underscore'),
       util = require('../util.js'),
+      LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
       F = require('./foundation');
 
   /**
@@ -106,6 +107,8 @@
    * Display a log entry in a table row
    */
   var LogRecord = React.createClass({
+    mixins: [LayeredComponentMixin],
+
     propTypes: {
       traceback: React.PropTypes.string,
       level: React.PropTypes.string,
@@ -137,13 +140,16 @@
             {" "}{this.props.message}
           </td>
           {!isSmall && <td className="time right">{this.props.time.toLocaleTimeString()}</td>}
-          {this.state.displayBugModal &&
-            <BugModal traceback={this.props.traceback}
-                      message={this.props.message}
-                      onClose={this.toggleBugModal} />
-          }
         </tr>
       );
+    },
+
+    renderLayer: function() {
+      if (this.state.displayBugModal) {
+        return (<BugModal traceback={this.props.traceback}
+                          message={this.props.message}
+                          onClose={this.toggleBugModal} />);
+      }
     }
   });
 

@@ -23,7 +23,92 @@
       _ = require('underscore'),
       jQuery = require('jquery'),
       F = require('./foundation.js'),
-      _ = require('underscore');
+      LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin;
+
+  var ShutdownModal = React.createClass({
+    mixins: [LayeredComponentMixin],
+
+    getInitialState: function() {
+      return {
+        errorParams: {}
+      }
+    },
+
+    /** Initiate shutdown of the hosting machine */
+    doShutdown: function() {
+      jQuery.ajax({
+          type: "POST",
+          url: "/api/system/shutdown"
+      }).fail(function(xhr, textStatus) {
+        if (textStatus === 'timeout') return;
+        this.setState({errorParams: {title: "Could not shut down",
+                                     text: xhr.responseJSON.data.message}});
+      }.bind(this));
+    },
+
+    doReboot: function() {
+      jQuery.ajax({
+        type: "POST",
+        url: "/api/system/reboot"
+      }).fail(function(xhr, textStatus) {
+        if (textStatus === 'timeout') return;
+        this.setState({errorParams: {title: "Could not reboot",
+                                     text: xhr.responseJSON.data.message}});
+      }.bind(this));
+    },
+
+    render: function() {
+      return (
+        <F.Modal onClose={this.props.onClose}>
+          <F.Row><F.Column><h1>Shutdown/Reboot</h1></F.Column></F.Row>
+          <F.Row><F.Column><p>Do you really want to shut down the device?</p></F.Column></F.Row>
+          <F.Row><F.Column><p><strong>If you do, please make sure that you turn off your devices before confirming!</strong></p></F.Column></F.Row>
+          <F.Row>
+            <F.Column size={6}>
+              <F.Button onClick={this.doShutdown} size="small"><i className="fa fa-power-off" /> Shutdown</F.Button>
+            </F.Column>
+            <F.Column size={6}>
+              <F.Button onClick={this.doReboot} size="small"><i className="fa fa-refresh" /> Reboot</F.Button>
+            </F.Column>
+          </F.Row>
+        </F.Modal>
+      );
+    },
+
+    renderLayer: function() {
+      if (_.isEmpty(this.state.errorParams)) return;
+      return (
+        <F.Modal onClose={function(){this.setState({errorParams: {}})}.bind(this)}>
+          <h2>{this.state.errorParams.title}</h2>
+          <p>{this.state.errorParams.text}</p>
+        </F.Modal>);
+    }
+  });
+
+
+  var AboutModal = React.createClass({
+    render: function() {
+      var logoUrl = require('../../../../../doc/_static/logo.png');
+
+      return (
+        <F.Modal small={false} onClose={this.props.onClose}>
+          <F.Row>
+            <F.Column>
+              <img src={logoUrl} className="about-logo" />
+            </F.Column>
+          </F.Row>
+          <F.Row>
+            <F.Column>
+              <p>Version {window.spreadsVersion}</p>
+              <p>Licensed under the terms of the <a data-bypass={true} href="https://github.com/DIYBookScanner/spreads/blob/master/LICENSE.txt">GNU Affero General Public License 3.0</a>.</p>
+              <p>&copy; 2013-2014 Johannes Baiter <a data-bypass={true} href="mailto:johannes.baiter@gmail.com">&lt;johannes.baiter@gmail.com&gt;</a></p>
+              <p>For a full list of contributors, please consult <a data-bypass={true} href="https://github.com/DIYBookScanner/spreads/graphs/contributors">GitHub</a></p>
+            </F.Column>
+          </F.Row>
+        </F.Modal>);
+    }
+  });
+
 
   /**
    * Global navigation bar for the application
@@ -32,6 +117,8 @@
    */
   module.exports = React.createClass({
     displayName: "NavigationBar",
+
+    mixins: [LayeredComponentMixin],
 
     getInitialState: function() {
       return {
@@ -49,47 +136,13 @@
       delete window.router.events.websocket.onclose;
     },
 
-    /** Initiate shutdown of the hosting machine */
-    doShutdown: function() {
-      jQuery.ajax({
-          type: "POST",
-          url: "/api/system/shutdown"
-      }).fail(function(xhr, textStatus) {
-        if (textStatus === 'timout') return;
-        var errorModal = (
-          <F.Modal onClose={function(){this.setState({errorModal: null})}.bind(this)}>
-            <h2>Could not shut down</h2>
-            <p>{xhr.responseJSON.message.replace(/\n/g, "<br/>")}</p>
-          </F.Modal>);
-        this.setState({errorModal: errorModal});
-      }.bind(this));
-      this.setState({
-        shutdownModal: false
-      });
-    },
     bindOnDisconnect: function() {
       window.router.events.websocket.onclose = function() {
         this.setState({isOffline: true});
         this.checkOnline();
       }.bind(this);
     },
-    doReboot: function() {
-      jQuery.ajax({
-        type: "POST",
-        url: "/api/system/reboot"
-      }).fail(function(xhr, textStatus) {
-        if (textStatus === 'timout') return;
-        var errorModal = (
-          <F.Modal onClose={function(){this.setState({errorModal: null})}.bind(this)}>
-            <h2>Could not reboot</h2>
-            <p>{xhr.responseJSON.data.message.replace(/\n/g, "<br/>")}</p>
-          </F.Modal>);
-        this.setState({errorModal: errorModal});
-      }.bind(this));
-      this.setState({
-        shutdownModal: false
-      });
-    },
+
     checkOnline: _.throttle(function() {
       jQuery.ajax({
         type: "HEAD",
@@ -102,64 +155,23 @@
         error: this.checkOnline
       });
     }, 5000),
+
     closeShutdownModal: function () {
       this.setState({
         shutdownModal: false
       });
     },
+
     /** Display shutdown modal to ask user to confirm shutdown */
     handleShutdown: function() {
       this.setState({
         shutdownModal: true
       });
     },
-    render: function() {
-      var logoUrl = require('../../../../../doc/_static/logo.png');
 
+    render: function() {
       return (
         <div className="contain-to-grid fixed">
-          {this.state.isOffline &&
-          <div className="overlay activity">
-            <div className="animation">
-              <div className="bounce"></div>
-              <div className="bounce"></div>
-            </div>
-            <p className="text">
-              <strong>The server seems to be offline</strong><br/>
-              Trying to reconnect...
-            </p>
-          </div>}
-          {this.state.errorModal}
-          {this.state.aboutModal &&
-          <F.Modal small={false} onClose={_.partial(this.setState.bind(this), {aboutModal: false}, null)}>
-            <F.Row>
-              <F.Column>
-                <img src={logoUrl} className="about-logo" />
-              </F.Column>
-            </F.Row>
-            <F.Row>
-              <F.Column>
-                <p>Version {window.spreadsVersion}</p>
-                <p>Licensed under the terms of the <a data-bypass={true} href="https://github.com/DIYBookScanner/spreads/blob/master/LICENSE.txt">GNU Affero General Public License 3.0</a>.</p>
-                <p>&copy; 2013-2014 Johannes Baiter <a data-bypass={true} href="mailto:johannes.baiter@gmail.com">&lt;johannes.baiter@gmail.com&gt;</a></p>
-                <p>For a full list of contributors, please consult <a data-bypass={true} href="https://github.com/DIYBookScanner/spreads/graphs/contributors">GitHub</a></p>
-              </F.Column>
-            </F.Row>
-          </F.Modal>}
-          {this.state.shutdownModal &&
-          <F.Modal onClose={this.closeShutdownModal}>
-              <F.Row><F.Column><h1>Shutdown/Reboot</h1></F.Column></F.Row>
-              <F.Row><F.Column><p>Do you really want to shut down the device?</p></F.Column></F.Row>
-              <F.Row><F.Column><p><strong>If you do, please make sure that you turn off your devices before confirming!</strong></p></F.Column></F.Row>
-              <F.Row>
-                <F.Column size={6}>
-                  <F.Button onClick={this.doShutdown} size="small"><i className="fa fa-power-off" /> Shutdown</F.Button>
-                </F.Column>
-                <F.Column size={6}>
-                  <F.Button onClick={this.doReboot} size="small"><i className="fa fa-refresh" /> Reboot</F.Button>
-                </F.Column>
-              </F.Row>
-            </F.Modal>}
           <nav className="top-bar" data-topbar>
             <ul className="title-area">
               <li className="name"> <h1><a href="/" title="Return to workflow list"><i className="fa fa-home" /> {this.props.title}</a></h1> </li>
@@ -187,6 +199,26 @@
           </nav>
         </div>
       );
+    },
+
+    renderLayer: function() {
+      return (
+        <div>
+          {this.state.ShutdownModal && <ShutdownModal onClose={this.closeShutdownModal} />}
+          {this.state.aboutModal &&
+            <AboutModal onClose={function(){this.setState({aboutModal: false})}.bind(this)} />}
+          {this.state.isOffline &&
+            <div className="overlay activity">
+              <div className="animation">
+                <div className="bounce"></div>
+                <div className="bounce"></div>
+              </div>
+              <p className="text">
+                <strong>The server seems to be offline</strong><br/>
+                Trying to reconnect...
+              </p>
+            </div>}
+        </div>);
     }
   });
 }());
