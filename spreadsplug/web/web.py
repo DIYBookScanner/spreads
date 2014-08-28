@@ -12,7 +12,7 @@ from isbnlib import is_isbn10, is_isbn13
 import pkg_resources
 import requests
 from flask import (json, jsonify, request, send_file, render_template,
-                   redirect, make_response, Response)
+                   redirect, make_response, Response, after_this_request)
 from werkzeug.contrib.cache import SimpleCache
 
 import spreads.metadata
@@ -655,6 +655,15 @@ def reboot():
         raise ApiException("The user running the server process needs to have "
                            "permission to run /sbin/shutdown via sudo.", 500)
     return ''
+
+
+@app.route('/api/reset', methods=['POST'])
+def reset():
+    """ Restart the application. """
+    # NOTE: This endpoint will never send a response, clients should take this
+    #       into account and set a low timeout value.
+    import tornado.autoreload as autoreload
+    autoreload._reload()
 
 
 @app.route('/<path:path>')
