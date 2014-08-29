@@ -164,9 +164,9 @@ class GPhoto2CameraDevice(DevicePlugin):
         img = JPEGImage(local_path)
         upside_down = self.config["upside_down"].get(bool)
         if self.target_page == 'odd':
-            img.exif_orientation = 5 if upside_down else 6  # -90°
+            img.exif_orientation = 8 if upside_down else 6  # -90°
         else:
-            img.exif_orientation = 7 if upside_down else 8  # 90°
+            img.exif_orientation = 6 if upside_down else 8  # 90°
         img.save(local_path)
 
     def _acquire_focus(self):
