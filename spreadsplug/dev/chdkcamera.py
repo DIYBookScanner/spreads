@@ -462,15 +462,29 @@ class A2200(CHDKCameraDevice):
             self.logger = logging.getLogger('A2200Device')
 
     def _set_focus(self):
-        self.logger.info("Running A2200 focus")
         focus_distance = int(self.config['focus_distance'].get())
+        if focus_distance == 0:
+            return
+        
+        self.logger.info("Running A2200 manual focus")
         self._execute_lua("set_aflock(1)")
         time.sleep(0.5)
         self._execute_lua("set_prop(require('propcase').AF_LOCK, 1)")
-        if focus_distance == 0:
-            return
+        self._execute_lua("press(\"shoot_half\")")
+        time.sleep(0.5)
+        self._execute_lua("release(\"shoot_half\")")
+        time.sleep(0.5)
+        self._execute_lua("set_mf(1)")
+        if self._can_remote:
+            cmd = ("remoteshoot \"/tmp/focus\"")
+        else:
+            cmd = ("shoot -rm -dl \"/tmp/focus\"")
+        try:
+            self._run(cmd)
+        except CHDKPTPException as e:
+            pass
+        time.sleep(0.5)
         self._execute_lua("set_focus({0:.0f})".format(focus_distance))
-
 
 class QualityFix(CHDKCameraDevice):
     """ Fixes a bug that prevents remote capture with the highest resolution
