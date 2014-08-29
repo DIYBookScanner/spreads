@@ -69,6 +69,7 @@
       } else if (_.isArray(option.value)) {
         /* TODO: Currently we cannot deal with multi-valued options,
          *       change this! */
+        return null;
       } else if (typeof option.value === "boolean") {
         /* Use a checkbox to represent boolean cfgValues */
         input = <input id={name} type={"checkbox"} checked={this.props.value}
@@ -268,6 +269,24 @@
       errors: React.PropTypes.object
     },
 
+    getDefaultProps: function() {
+      var availablePlugins;
+      if (!_.isUndefined(window.plugins)) {
+        if (window.config.mode == 'scanner') {
+          availablePlugins = _.omit(window.plugins, "postprocessing", "output");
+        } else {
+          availablePlugins = window.plugins;
+        }
+      } else if (_.isUndefined(availablePlugins)) {
+        availablePlugins = {};
+      }
+
+      return {
+        availablePlugins: availablePlugins,
+        config: {plugins: _.flatten(availablePlugins)}
+      };
+    },
+
     getInitialState: function() {
       return {
         /** Currently selected plugin */
@@ -276,7 +295,7 @@
         internalErrors: {},
         /** Only for initialization purposes, not intended to be kept in sync
          *  at all times. */
-        config: this.props.config || {},
+        config: this.props.config || {plugins: _.flatten(this.props.availablePlugins)},
         /** Whether to display advanced options */
         advancedOpts: false
       };
@@ -323,21 +342,9 @@
           availablePlugins = this.props.availablePlugins,
           selectedSection;
 
-      if (_.isUndefined(availablePlugins) && !_.isUndefined(window.plugins)) {
-        if (window.config.mode == 'scanner') {
-          availablePlugins = _.omit(window.plugins, "postprocessing", "output");
-        } else {
-          availablePlugins = window.plugins;
-        }
-      } else if (_.isUndefined(availablePlugins)) {
-        availablePlugins = {};
-      }
-
-      if (_.has(config, 'plugins')) {
-        configSections = _.filter(config.plugins, function(plugin) {
-            return !_.isEmpty(templates[plugin]);
-        });
-      }
+      configSections = _.filter(config.plugins, function(plugin) {
+          return !_.isEmpty(templates[plugin]);
+      });
 
       if (window.config.web.mode !== 'processor' &&
           !_.isEmpty(templates['device'])) {
