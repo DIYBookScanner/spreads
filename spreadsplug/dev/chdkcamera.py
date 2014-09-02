@@ -428,7 +428,7 @@ class CHDKCameraDevice(DevicePlugin):
         self.logger.info("Running default focus")
         focus_distance = int(self.config['focus_distance'].get())
         self._execute_lua("set_aflock(0)")
-        if int(focus_distance) == 0:
+        if focus_distance == 0:
             return
         self._execute_lua("set_focus({0:.0f})".format(focus_distance))
         time.sleep(0.5)
@@ -463,7 +463,7 @@ class A2200(CHDKCameraDevice):
 
     def _set_focus(self):
         focus_distance = int(self.config['focus_distance'].get())
-        if int(focus_distance) == 0:
+        if focus_distance == 0:
             return
 
         self.logger.info("Running A2200 manual focus")
