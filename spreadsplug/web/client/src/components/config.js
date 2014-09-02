@@ -142,7 +142,11 @@
     getHandleChange: function(key) {
       return function(e) {
         var cfgValues = _.clone(this.props.cfgValues);
-        cfgValues[key] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        var newVal;
+        if (e.target.type === 'checkbox') newVal = e.target.checked;
+        else if (e.target.type === 'number') newVal = e.target.value | 0;
+        else newVal = e.target.value;
+        cfgValues[key] = newVal;
         this.props.onChange(cfgValues);
       }.bind(this);
     },
