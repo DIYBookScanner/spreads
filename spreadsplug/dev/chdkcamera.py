@@ -427,14 +427,14 @@ class CHDKCameraDevice(DevicePlugin):
     def _get_focus(self):
         result = int(self.config['focus_distance'].get())
         focus_odd = int(self.config['focus_odd'].get())
-        if self.target_page == "odd" and focus_odd != 0:
+        if self.target_page == "odd" and int(focus_odd) != 0:
             result = focus_odd
         return result
 
     def _set_focus(self):
         self.logger.info("Running default focus")
         focus_distance = self._get_focus()
-        if focus_distance == 0:
+        if int(focus_distance) == 0:
             self._execute_lua("set_aflock(0)")
         else:
             self._execute_lua("press('shoot_half')")
