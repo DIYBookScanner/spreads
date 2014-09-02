@@ -424,19 +424,26 @@ class CHDKCameraDevice(DevicePlugin):
         time.sleep(0.5)
         return self._execute_lua("get_focus()", get_result=True)
 
+    def _get_focus(self):
+        result = int(self.config['focus_distance'].get())
+        focus_odd = int(self.config['focus_odd'].get())
+        if self.target_page == "odd" and focus_odd != 0:
+            result = focus_odd
+        return result
+
     def _set_focus(self):
         self.logger.info("Running default focus")
-        focus_distance = int(self.config['focus_distance'].get())
-        self._execute_lua("set_aflock(0)")
+        focus_distance = self._get_focus()
         if focus_distance == 0:
-            return
-        self._execute_lua("set_focus({0:.0f})".format(focus_distance))
-        time.sleep(0.5)
-        self._execute_lua("press('shoot_half')")
-        time.sleep(0.25)
-        self._execute_lua("release('shoot_half')")
-        time.sleep(0.25)
-        self._execute_lua("set_aflock(1)")
+            self._execute_lua("set_aflock(0)")
+        else:
+            self._execute_lua("press('shoot_half')")
+            time.sleep(1.0)
+            self._execute_lua("click('left')")
+            time.sleep(0.25)
+            self._execute_lua("release('shoot_half')")
+            time.sleep(0.25)
+            self._execute_lua("set_focus({0:.0f})".format(focus_distance))
 
     def _set_whitebalance(self):
         value = WHITEBALANCE_MODES.get(self.config['whitebalance'].get())
@@ -460,31 +467,6 @@ class A2200(CHDKCameraDevice):
                 'A2200Device[{0}]'.format(self.target_page))
         else:
             self.logger = logging.getLogger('A2200Device')
-
-    def _set_focus(self):
-        focus_distance = int(self.config['focus_distance'].get())
-        if focus_distance == 0:
-            return
-        
-        self.logger.info("Running A2200 manual focus")
-        self._execute_lua("set_aflock(1)")
-        time.sleep(0.5)
-        self._execute_lua("set_prop(require('propcase').AF_LOCK, 1)")
-        self._execute_lua("press(\"shoot_half\")")
-        time.sleep(0.5)
-        self._execute_lua("release(\"shoot_half\")")
-        time.sleep(0.5)
-        self._execute_lua("set_mf(1)")
-        if self._can_remote:
-            cmd = ("remoteshoot \"/tmp/focus\"")
-        else:
-            cmd = ("shoot -rm -dl \"/tmp/focus\"")
-        try:
-            self._run(cmd)
-        except CHDKPTPException as e:
-            pass
-        time.sleep(0.5)
-        self._execute_lua("set_focus({0:.0f})".format(focus_distance))
 
 class QualityFix(CHDKCameraDevice):
     """ Fixes a bug that prevents remote capture with the highest resolution
