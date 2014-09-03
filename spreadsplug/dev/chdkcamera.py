@@ -221,7 +221,7 @@ class CHDKCameraDevice(DevicePlugin):
         self._set_zoom()
         # Disable ND filter
         self._execute_lua("set_nd_filter(2)")
-        self._set_focus()
+
         self._set_monochrome()
         # Set White Balance mode
         self._set_whitebalance()
@@ -234,6 +234,7 @@ class CHDKCameraDevice(DevicePlugin):
                           .format(self.MAX_QUALITY))
         self._execute_lua("set_prop(require('propcase').RESOLUTION, {0})"
                           .format(self.MAX_RESOLUTION))
+        self._set_focus()
 
     def _set_monochrome(self):
         if self.config['monochrome'].get(bool):
@@ -437,11 +438,7 @@ class CHDKCameraDevice(DevicePlugin):
         if int(focus_distance) == 0:
             self._execute_lua("set_aflock(0)")
         else:
-            self._execute_lua("press('shoot_half')")
-            time.sleep(1.0)
-            self._execute_lua("click('left')")
-            time.sleep(0.25)
-            self._execute_lua("release('shoot_half')")
+            self._execute_lua("press('shoot_half'); sleep(1000); click('left'); release('shoot_half');", wait=True)
             time.sleep(0.25)
             self._execute_lua("set_focus({0:.0f})".format(focus_distance))
 
