@@ -75,6 +75,9 @@ class CHDKCameraDevice(DevicePlugin):
              'shoot_raw': OptionTemplate(False, "Shoot in RAW format (DNG)",
                                          advanced=True),
              'focus_distance': OptionTemplate(0, "Set focus distance"),
+             'focus_odd': OptionTemplate(
+                 0, "Different focus for other device, (0 = use same)",
+                 advanced=True),
              'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
              'whitebalance': OptionTemplate(
