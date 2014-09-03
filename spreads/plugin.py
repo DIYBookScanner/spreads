@@ -132,6 +132,9 @@ class DevicePlugin(SpreadsPlugin):  # pragma: no cover
                 "upside_down": OptionTemplate(
                     value=False,
                     docstring="Cameras are mounted upside-down."),
+                "focus_odd": OptionTemplate(
+                    value=0,
+                    docstring="Manual focus for the odd-page camera (0 to use main focus value)"),
             }
 
     @abstractclassmethod
