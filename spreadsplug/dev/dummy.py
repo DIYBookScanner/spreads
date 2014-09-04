@@ -28,6 +28,8 @@ class DummyDevice(DevicePlugin):
         tmpl['test'] = OptionTemplate(1337, "A test value")
         tmpl['super'] = OptionTemplate(['foo', 'bar'], "An advanced option",
                                        True, True)
+        tmpl['depends'] = OptionTemplate(0, "A dependant option",
+                                         depends={'device': {'super': 'bar'}})
         return tmpl
 
     @classmethod

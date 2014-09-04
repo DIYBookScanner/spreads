@@ -48,6 +48,17 @@ def add_argument_from_template(extname, key, template, parser, current_val):
     parser.add_argument(flag, **kwargs)
 
 
+def should_show_argument(template, active_plugins):
+    """ Checks for an OptionTemplate's `depends` attribute for dependencies
+        on other plugins and validates them against the list of activated
+        plugins.
+    """
+    if template.depends is None or type(template.depends) == dict:
+        return True
+    else:
+        return template.depends in active_plugins
+
+
 def setup_parser(config):
     plugins = plugin.get_plugins(*config["plugins"].get())
     rootparser = argparse.ArgumentParser(
@@ -66,6 +77,8 @@ def setup_parser(config):
             .format(util.get_version())))
 
     for key, option in config.templates['core'].iteritems():
+        if not should_show_argument(option, config['plugins'].get()):
+            continue
         try:
             add_argument_from_template('core', key, option, rootparser,
                                        config['core'][key].get())
@@ -106,6 +119,8 @@ def setup_parser(config):
         ext_names.append('device')
         for ext in ext_names:
             for key, tmpl in config.templates.get(ext, {}).iteritems():
+                if not should_show_argument(option, config['plugins'].get()):
+                    continue
                 try:
                     add_argument_from_template(ext, key, tmpl, parser,
                                                config[ext][key].get())
@@ -127,6 +142,8 @@ def setup_parser(config):
                      if issubclass(cls, plugin.ProcessHookMixin)]
         for ext in ext_names:
             for key, tmpl in config.templates.get(ext, {}).iteritems():
+                if not should_show_argument(option, config['plugins'].get()):
+                    continue
                 try:
                     add_argument_from_template(ext, key, tmpl, parser,
                                                config[ext][key].get())
@@ -145,6 +162,8 @@ def setup_parser(config):
                      if issubclass(cls, plugin.OutputHookMixin)]
         for ext in ext_names:
             for key, tmpl in config.templates.get(ext, {}).iteritems():
+                if not should_show_argument(option, config['plugins'].get()):
+                    continue
                 try:
                     add_argument_from_template(ext, key, tmpl, parser,
                                                config[ext][key].get())

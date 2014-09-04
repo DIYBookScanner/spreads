@@ -38,20 +38,25 @@ class OptionTemplate(object):
     :type selectable: bool
     :attr advanced:   Whether the option is an advanced option
     :type advanced:   bool
+    :attr depends:    Make option dependant of some other setting (if passed a
+                      dict) or another plugin (if passed a string)
+    :type depends:    dict/str
     """
 
     def __init__(self, value, docstring=None, selectable=False,
-                 advanced=False):
+                 advanced=False, depends=None):
         self.value = value
         self.docstring = docstring
         self.selectable = selectable
         self.advanced = advanced
+        self.depends = depends
 
     def __repr__(self):
         return ("OptionTemplate(value={0}, docstring={1}, selectable={2}"
-                " advanced={3})"
+                " advanced={3}, depends={4})"
                 .format(repr(self.value), repr(self.docstring),
-                        repr(self.selectable), repr(self.advanced)))
+                        repr(self.selectable), repr(self.advanced),
+                        repr(self.depends)))
 
 CORE_OPTIONS = {
     'verbose': OptionTemplate(value=False,

@@ -34,7 +34,7 @@ import spreads.workflow
 import spreads.plugin as plugin
 from spreads.util import is_os
 from spreads.config import OptionTemplate
-from spreads.main import add_argument_from_template
+from spreads.main import add_argument_from_template, should_show_argument
 
 app = Flask('spreadsplug.web', static_url_path='/static',
             static_folder='./client/build', template_folder='./client')
@@ -91,6 +91,8 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
             wincmdparser.set_defaults(subcommand=cls.run_windows_service)
 
         for key, option in cls.configuration_template().iteritems():
+            if not should_show_argument(option, config['plugins'].get()):
+                continue
             try:
                 add_argument_from_template('web', key, option, cmdparser,
                                            config['web'][key].get())

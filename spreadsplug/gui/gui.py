@@ -162,6 +162,8 @@ class IntroPage(QtGui.QWizardPage):
         self.adjustSize()
 
     def _get_plugin_config_widgets(self, plugin_tmpl, plugname):
+        # TODO: Find solution for the `depends` option, i.e. making the display
+        # of a widget dependent on the value of some other setting
         widgets, config = {}, self.wizard().config
         for key, option in plugin_tmpl.items():
             label = (option.docstring
@@ -238,7 +240,8 @@ class IntroPage(QtGui.QWizardPage):
     def saveSettings(self):
         self._update_config_from_plugin_widgets()
         config = self.wizard().config
-        logger.debug("Writing configuration file to '{0}'".format(config.cfg_path))
+        logger.debug("Writing configuration file to '{0}'"
+                     .format(config.cfg_path))
         config.dump(filename=config.cfg_path)
 
     def _update_config_from_plugin_widgets(self):

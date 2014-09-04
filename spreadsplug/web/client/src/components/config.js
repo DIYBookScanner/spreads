@@ -157,9 +157,6 @@
       return (
         <div>
         {_.map(template, function(option, key) {
-          if (!this.props.showAdvanced && option.advanced) {
-              return;
-          }
           return (<PluginOption name={key} option={option} key={key}
                                 value={this.props.cfgValues[key]}
                                 error={this.props.errors[key]}
@@ -338,6 +335,22 @@
       return config;
     },
 
+    shouldDisplayOption: function(option) {
+      if (!this.state.advancedOpts && option.advanced) {
+          return false;
+      } else if (typeof(option.depends) === 'string') {
+          return _.contains(this.props.config.plugins, option.depends);
+      } else if (typeof(option.depends) === 'object') {
+        return _.every(option.depends, function(section, sectionName) {
+          return _.every(option.depends[sectionName], function(value, key) {
+            return this.state.config[sectionName][key] == value;
+          }, this);
+        }, this);
+      } else {
+        return true;
+      }
+    },
+
     render: function() {
       var templates = this.props.templates,
           config = this.state.config,
@@ -419,8 +432,7 @@
                 {sectionPicker}
                 <paneContainer>
                   <F.Column size={[12, 9]} className="config-pane">
-                    <PluginWidget template={templates[selectedSection]}
-                                  showAdvanced={this.state.advancedOpts}
+                    <PluginWidget template={_.pick(templates[selectedSection], this.shouldDisplayOption)}
                                   cfgValues={this.state.config[selectedSection] || this.getDefaultConfig(selectedSection)}
                                   errors={errors[selectedSection] || {}}
                                   onChange={_.partial(this.handleChange, selectedSection)} />
