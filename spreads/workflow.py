@@ -265,7 +265,7 @@ class Workflow(object):
                             or (candidate/'raw').exists))
             if not is_workflow:
                 continue
-            if not util.get_next(wf for wf in found if wf.path == candidate):
+            if not next((wf for wf in found if wf.path == candidate), None):
                 logging.debug(
                     "Cache missed, instantiating workflow from {0}."
                     .format(candidate))

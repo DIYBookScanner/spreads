@@ -17,7 +17,7 @@ from werkzeug.contrib.cache import SimpleCache
 
 import spreads.metadata
 import spreads.plugin as plugin
-from spreads.util import get_next, is_os, get_version, DeviceException
+from spreads.util import is_os, get_version, DeviceException
 from spreads.workflow import Workflow, ValidationError
 
 from spreadsplug.web import app
@@ -410,7 +410,7 @@ def get_output_file(workflow, fname):
 #  Page-related  #
 # =============== #
 def find_page(workflow, number):
-    page = get_next(p for p in workflow.pages if p.capture_num == number)
+    page = next((p for p in workflow.pages if p.capture_num == number), None)
     if not page:
         raise ApiException("Could not find page with capture number {1}"
                            .format(number), 404)

@@ -169,13 +169,6 @@ def slugify(text, delimiter=u'-'):
     return unicode(delimiter.join(result))
 
 
-def get_next(generator, default=None):
-    try:
-        return next(generator)
-    except StopIteration:
-        return default
-
-
 class _instancemethodwrapper(object):
     def __init__(self, callable):
         self.callable = callable
@@ -370,8 +363,8 @@ class CustomJSONEncoder(json.JSONEncoder):
         if isinstance(obj, Path):
             # Serialize paths that belong to a workflow as paths relative to
             # its base directory
-            base = get_next(p for p in obj.parents
-                            if (p/'bagit.txt').exists())
+            base = next((p for p in obj.parents if (p/'bagit.txt').exists()),
+                        None)
             if base:
                 return unicode(obj.relative_to(base))
             else:
