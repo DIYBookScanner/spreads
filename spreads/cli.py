@@ -21,19 +21,14 @@ spreads CLI code.
 
 from __future__ import division, unicode_literals, print_function
 
-import argparse
-import logging
-import logging.handlers
 import sys
 import time
 
 import colorama
-from spreads.vendor.pathlib import Path
 
 import spreads.workflow
 import spreads.plugin as plugin
-from spreads.config import Configuration
-from spreads.util import DeviceException, ColourStreamHandler, EventHandler
+from spreads.util import DeviceException
 
 if sys.platform == 'win32':
     import msvcrt
@@ -159,8 +154,8 @@ def _set_device_target_page(config, target_page):
 
 def configure(config):
     old_plugins = config["plugins"].get()
-    driver_name = _select_driver(config["driver"].get()
-                                        if 'driver' in config.keys() else None)
+    driver_name = _select_driver(
+        config["driver"].get() if 'driver' in config.keys() else None)
     if driver_name:
         config["driver"] = driver_name
         driver = plugin.get_driver(config["driver"].get())
@@ -291,6 +286,7 @@ def _update_callback(wf, changes):
     if 'status' in changes and 'step_progress' in changes['status']:
         draw_progress(changes['status']['step_progress'])
 
+
 def postprocess(config):
     path = config['path'].get()
     workflow = spreads.workflow.Workflow(config=config, path=path)
@@ -309,7 +305,6 @@ def output(config):
     draw_progress(0)
     spreads.workflow.on_modified.connect(_update_callback, sender=workflow,
                                          weak=False)
-    workflow.process()
     workflow.output()
 
 
