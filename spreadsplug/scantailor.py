@@ -17,6 +17,7 @@
 
 from __future__ import division, unicode_literals
 
+import copy
 import logging
 import math
 import multiprocessing
@@ -148,12 +149,13 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
 
     def _split_configuration(self, projectfile, temp_dir):
         num_pieces = multiprocessing.cpu_count()
-        tree = ET.parse(unicode(projectfile))
-        root = tree.getroot()
-        num_files = len(tree.findall('./files/file'))
+        whole_tree = ET.parse(unicode(projectfile))
+        num_files = len(whole_tree.findall('./files/file'))
         splitfiles = []
         files_per_job = int(math.ceil(float(num_files)/num_pieces))
         for idx in xrange(num_pieces):
+            subtree = copy.deepcopy(whole_tree)
+            root = subtree.getroot()
             start = idx*files_per_job
             end = start + files_per_job
             if end > num_files:
@@ -168,8 +170,10 @@ class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
                     elem_root.remove(node)
             out_file = temp_dir / "{0}-{1}.ScanTailor".format(projectfile.stem,
                                                               idx)
-            tree.write(unicode(out_file))
+            subtree.write(unicode(out_file))
             splitfiles.append(out_file)
+            # Restore tree to original state
+            #tree = ET.parse(unicode(projectfile))
         return splitfiles
 
     def _generate_output(self, projectfile, out_dir, num_pages):
