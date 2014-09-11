@@ -117,4 +117,4 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
         logger.debug("pdfbeads stdout:\n{0}".format(output))
         logger.debug("pdfbeads stderr:\n{0}".format(errors))
         os.chdir(old_path)
-        #shutil.rmtree(unicode(tmpdir))
+        shutil.rmtree(unicode(tmpdir))
