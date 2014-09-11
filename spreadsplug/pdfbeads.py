@@ -49,10 +49,6 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
         logger.info("Assembling PDF.")
 
         tmpdir = Path(tempfile.mkdtemp())
-        # NOTE: pdfbeads only finds *html files for the text layer in the
-        #       working directory, so we have to chdir() into it
-        old_path = os.path.abspath(os.path.curdir)
-        os.chdir(unicode(tmpdir))
 
         meta_file = tmpdir/'metadata.txt'
         with codecs.open(unicode(meta_file), "w", "utf-8") as fp:
@@ -72,26 +68,35 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
             if IS_WIN:
                 shutil.copy(unicode(fpath), unicode(link_path))
             else:
-                link_path.symlink_to(fpath)
+                link_path.symlink_to(fpath.absolute())
             if 'tesseract' in page.processed_images:
                 ocr_path = page.processed_images['tesseract']
                 if IS_WIN:
                     shutil.copy(unicode(ocr_path),
                                 unicode(tmpdir/ocr_path.name))
                 else:
-                    (tmpdir/ocr_path.name).symlink_to(ocr_path)
-            images.append(link_path)
+                    (tmpdir/ocr_path.name).symlink_to(ocr_path.absolute())
+            images.append(link_path.absolute())
+
+        pdf_file = target_path.absolute()/"book.pdf"
 
         # TODO: Use table_of_contents to create a TOCFILE for pdfbeads
         # TODO: Use page.page_label to create a LSPEC for pdfbeads
 
-        pdf_file = target_path/"book.pdf"
+        # NOTE: pdfbeads only finds *html files for the text layer in the
+        #       working directory, so we have to chdir() into it
+        old_path = os.path.abspath(os.path.curdir)
+        os.chdir(unicode(tmpdir))
+
         cmd = [BIN, "-d", "-M", unicode(meta_file)]
-        cmd.extend(util.wildcardify(tuple(f.name for f in images)))
+        if IS_WIN:
+            cmd.append(util.wildcardify(tuple(f.name for f in images)))
+        else:
+            cmd.extend([unicode(f) for f in images])
         cmd.extend(["-o", unicode(pdf_file)])
         logger.debug("Running " + " ".join(cmd))
         proc = util.get_subprocess(cmd, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
+                                   stderr=subprocess.PIPE, shell=IS_WIN)
         if IS_WIN:
             # NOTE: Due to a bug in the jbig2enc version for Windows, the error
             #       output gets huge, creating a deadlock. Hence, we go the
@@ -102,7 +107,6 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
             last_count = 0
             while proc.poll() is None:
                 current_count = sum(1 for x in tmpdir.glob('*.jbig2'))
-                print current_count
                 if current_count > last_count:
                     last_count = current_count
                     self.on_progressed.send(
@@ -113,4 +117,4 @@ class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
         logger.debug("pdfbeads stdout:\n{0}".format(output))
         logger.debug("pdfbeads stderr:\n{0}".format(errors))
         os.chdir(old_path)
-        shutil.rmtree(unicode(tmpdir))
+        #shutil.rmtree(unicode(tmpdir))
