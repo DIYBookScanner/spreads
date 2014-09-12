@@ -614,6 +614,10 @@ fieldset.config {
       padding-left: 1.5em;
     }
 
+    .row:not(:first-of-type) {
+      margin-top: 1em;
+    }
+
     label {
       max-width: 80%;
     }

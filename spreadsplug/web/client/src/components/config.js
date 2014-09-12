@@ -86,37 +86,22 @@
       var isSmall = util.isSmall();
       var isCheckbox = input.props.type === 'checkbox';
 
-      if (isSmall) {
-        return (
+      return (
+        <F.Row>
+        {input && input.props.type === 'checkbox' &&
           <div>
-            <F.Row>
-              {isCheckbox &&
-                <F.Column size={1}>
-                  {input}
-                </F.Column>}
-              <F.Column size={isCheckbox ? 11 : 12}>
-                {label}
-              </F.Column>
-            </F.Row>
-            {!isCheckbox &&
-            <F.Row><F.Column>{input}{error}</F.Column></F.Row>}
-          </div>);
-      } else {
-        return (
-          <F.Row>
-          {input &&
-            <F.Column>
-              <F.Row>
-              {/* Labels are to the left of all inputs, except for checkboxes */}
-              {input.props.type === 'checkbox' ?
-                <F.Column size={1}>{input}</F.Column> : <F.Column size={5}>{label}{error}</F.Column>}
-              {input.props.type === 'checkbox' ?
-                <F.Column size={11}>{label}</F.Column> : <F.Column size={7}>{input}{error}</F.Column>}
-              </F.Row>
-            </F.Column>}
-          </F.Row>
-        );
-      }
+            <F.Column size={1}>{input}</F.Column>
+            <F.Column size={11}>{label}</F.Column>
+          </div>}
+        {input && input.props.type !== 'checkbox' &&
+          <F.Column>
+            <label htmlFor={name}>
+              {option.docstring || capitalize(name)}
+              {input}{error}
+            </label>
+          </F.Column>}
+        </F.Row>
+      );
     }
   });
 
