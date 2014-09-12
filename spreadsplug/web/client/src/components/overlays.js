@@ -135,11 +135,23 @@
    */
   var LightBox = React.createClass({
     displayName: "LightBox",
+    propTypes: {
+      imageUrl: React.PropTypes.string.isRequired,
+      sequenceNumber: React.PropTypes.number,
+      sequenceLength: React.PropTypes.number,
+      onBrowse: React.PropTypes.func,
+      onClose: React.PropTypes.func
+    },
+    getDefaultProps: function() {
+      return {
+        sequenceNumber: 0,
+        sequenceLength: Infinity
+      }
+    },
     getInitialState: function() {
       return {};
     },
     handleResize: function(e) {
-      console.debug(e);
       // TODO: Shouldn't this be possible just with CSS?
       var imgNode = this.refs.image.getDOMNode();
       this.setState({
@@ -156,12 +168,16 @@
       window.removeEventListener("resize", this.handleResize);
     },
     render: function() {
+      var hasPrevious = this.props.sequenceNumber > 0;
+      var hasNext = this.props.sequenceNumber < this.props.sequenceLength-1;
       return (
         <div title="Close lightbox" onClick={this.props.onClose} className="overlay lightbox">
-          <a data-bypass={true} title="Open full resolution image in new tab" className="open-image" href={this.props.src} target='_blank'>
-            <img ref="image" className={this.props.targetPage || ''} src={this.props.src} onLoad={this.handleResize}/>
+          <a data-bypass={true} title="Open full resolution image in new tab"
+             className="open-image" href={this.props.imageUrl} target='_blank'>
+            <img ref="image" className={this.props.sequenceNumber % 2 ? 'odd' : 'even'}
+                 src={this.props.imageUrl} onLoad={this.handleResize}/>
           </a>
-          {(this.state.previousX !== undefined) && this.props.handlePrevious &&
+          {(this.state.previousX !== undefined) && this.props.onBrowse && hasPrevious &&
             <a title="View previous page" className="control"
                 style={{position: 'fixed',
                         left: this.state.previousX,
@@ -169,7 +185,7 @@
                         height: this.state.controlHeight,
                         'line-height': this.state.controlHeight,
                         top: this.state.controlY}}
-                onClick={this.props.handlePrevious}>
+                        onClick={_.partial(this.props.onBrowse, this.props.sequenceNumber-1)} >
               <i className="fa fa-caret-left fa-5x" />
             </a>
           }
@@ -181,7 +197,7 @@
                         height: this.state.controlHeight,
                         'line-height': this.state.controlHeight,
                         top: this.state.controlY}}
-                onClick={this.props.handleNext}>
+                        onClick={_.partial(this.props.onBrowse, this.props.sequenceNumber+1)} >
               <i className="fa fa-caret-right fa-5x" />
             </a>
           }

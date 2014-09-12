@@ -103,9 +103,7 @@
         /** Number of thumbnails to display */
         thumbCount: 24,
         /** Image to display in a lightobx overlay */
-        lightboxImage: undefined,
-        lightboxNext: undefined,
-        lightboxPrevious: undefined,
+        lightboxSeqNum: undefined,
         imageType: 'raw',
         selectedPages: []
       };
@@ -113,25 +111,15 @@
     /**
      * Toggle display of image lightbox.
      *
-     * If no `img` parameter is passed, the lightbox will be disabled,
-     * otherwise it will be enabled with the `img` as its content.
+     * If no `sequenceNum` parameter is passed, the lightbox will be disabled,
+     * otherwise it will be enabled with the image of the currently active
+     * imageType as its content.
      *
-     * @param {string} [img] - URL for image to be displayed in lightbox
+     * @param {string} [sequenceNum] - Sequence number of the page to be displayed
      */
-    toggleLightbox: function(workflow, page) {
-      var image, next, previous;
-      if (page) {
-        var allPages = workflow.get('pages'),
-            pageIdx = allPages.indexOf(page);
-        image = util.getPageUrl(this.props.workflow, page.capture_num,
-                                this.state.imageType, false);
-        next = (pageIdx != (allPages.length-1)) && allPages[pageIdx+1];
-        previous = (pageIdx != 0) && allPages[pageIdx-1];
-      }
+    toggleLightbox: function(sequenceNum) {
       this.setState({
-        lightboxImage: image,
-        lightboxNext: next,
-        lightboxPrevious: previous
+        lightboxSeqNum: sequenceNum
       });
     },
     /**
@@ -245,7 +233,7 @@
                         <PagePreview page={page} workflow={workflow} key={page.capture_num} imageType={this.state.imageType}
                                     selected={_.contains(this.state.selectedPages, page)}
                                     selectCallback={_.partial(this.togglePageSelect, page)}
-                                    lightboxCallback={_.partial(this.toggleLightbox, workflow, page)} />
+                                    lightboxCallback={_.partial(this.setLightbox, page.sequence_num)} />
                       );
                     }.bind(this))}
                 </ul>
@@ -278,30 +266,19 @@
       );
     },
     renderLayer: function() {
-      if (this.state.lightboxImage) {
-        var handleNext;
-        if (this.state.lightboxNext) {
-          handleNext = function(e) {
-            e.stopPropagation();
-              this.toggleLightbox(this.props.workflow, this.state.lightboxNext);
-          }.bind(this);
-        }
-        var handlePrevious;
-        if (this.state.lightboxPrevious) {
-          handlePrevious = function(e) {
-            e.stopPropagation();
-            this.toggleLightbox(this.props.workflow, this.state.lightboxPrevious);
-          }.bind(this);
-        }
-
-        return (
-          <Overlay>
-            <Lightbox
-              onClose={_.partial(this.toggleLightbox, null, null)}
-              src={this.state.lightboxImage}
-              handleNext={handleNext} handlePrevious={handlePrevious}/>
-          </Overlay>);
-      }
+      if (!_.isNumber(this.state.lightboxSeqNum)) return null;
+      var page = _.findWhere(this.props.workflow.get('pages'),
+                             {sequence_num: this.state.lightboxSeqNum})
+      var imageUrl = util.getPageUrl(this.props.workflow, page.capture_num,
+                                     this.state.imageType, false);
+      return (
+        <Overlay>
+          <Lightbox
+            imageUrl={imageUrl} sequenceNumber={this.state.lightboxSeqNum}
+            sequenceLength={this.props.workflow.get('pages').length}
+            onBrowse={this.setLightbox}
+            onClose={_.partial(this.setLightbox, null)} />
+        </Overlay>);
     }
   });
 
