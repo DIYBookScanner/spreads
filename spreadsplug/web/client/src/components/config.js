@@ -342,9 +342,13 @@
           return _.contains(this.props.config.plugins, option.depends);
       } else if (typeof(option.depends) === 'object') {
         return _.every(option.depends, function(section, sectionName) {
-          return _.every(option.depends[sectionName], function(value, key) {
-            return this.state.config[sectionName][key] == value;
-          }, this);
+          if (!_.has(this.state.config, sectionName)) {
+            return false;
+          } else {
+            return _.every(option.depends[sectionName], function(value, key) {
+              return this.state.config[sectionName][key] == value;
+            }, this);
+          }
         }, this);
       } else {
         return true;
