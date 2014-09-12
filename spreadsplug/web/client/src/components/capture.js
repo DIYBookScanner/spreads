@@ -167,7 +167,7 @@
       return (
         <Overlay>
           {this.state.displayLightbox &&
-            <lightbox onClose={this.toggleLightbox} src={imageSrc} />}
+            <lightbox onClose={this.toggleLightbox} imageUrl={imageSrc} />}
           {this.state.displayCrop &&
             <F.Modal onClose={this.toggleCropDisplay}>
               <CropWidget imageSrc={imageSrc}
