@@ -109,7 +109,7 @@
       };
     },
     /**
-     * Toggle display of image lightbox.
+     * Set page to be displayed in lightbox.
      *
      * If no `sequenceNum` parameter is passed, the lightbox will be disabled,
      * otherwise it will be enabled with the image of the currently active
@@ -117,7 +117,7 @@
      *
      * @param {string} [sequenceNum] - Sequence number of the page to be displayed
      */
-    toggleLightbox: function(sequenceNum) {
+    setLightbox: function(sequenceNum) {
       this.setState({
         lightboxSeqNum: sequenceNum
       });

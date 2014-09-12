@@ -161,6 +161,14 @@
           nextX: imgNode.offsetLeft + imgNode.offsetWidth
       });
     },
+    handleNext: function(e) {
+      e.stopPropagation();
+      this.props.onBrowse(this.props.sequenceNumber + 1);
+    },
+    handlePrevious: function(e) {
+      e.stopPropagation();
+      this.props.onBrowse(this.props.sequenceNumber - 1);
+    },
     componentDidMount: function() {
       window.addEventListener("resize", this.handleResize);
     },
@@ -185,11 +193,11 @@
                         height: this.state.controlHeight,
                         'line-height': this.state.controlHeight,
                         top: this.state.controlY}}
-                        onClick={_.partial(this.props.onBrowse, this.props.sequenceNumber-1)} >
+                        onClick={this.handlePrevious} >
               <i className="fa fa-caret-left fa-5x" />
             </a>
           }
-          {(this.state.nextX !== undefined) && this.props.handleNext &&
+          {(this.state.nextX !== undefined) && this.props.onBrowse && hasNext &&
             <a title="View next page" className="control"
                 style={{position: 'fixed',
                         left: this.state.nextX,
@@ -197,7 +205,7 @@
                         height: this.state.controlHeight,
                         'line-height': this.state.controlHeight,
                         top: this.state.controlY}}
-                        onClick={_.partial(this.props.onBrowse, this.props.sequenceNumber+1)} >
+                        onClick={this.handleNext} >
               <i className="fa fa-caret-right fa-5x" />
             </a>
           }
