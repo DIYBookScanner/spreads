@@ -183,6 +183,27 @@ def template_endpoint():
     return jsonify(get_plugin_templates())
 
 
+@app.route("/api/config", methods=['GET'])
+def get_default_config():
+    default_config = cache.get('default-config')
+    if default_config is None:
+        default_config = app.config['default_config'].flatten()
+        cache.set('default-config', default_config)
+    return jsonify(default_config)
+
+
+@app.route("/api/config", methods=['PUT'])
+def update_default_config():
+    current = app.config['default_config']
+    new_values = json.loads(request.data)
+    current._config.set(new_values)
+    current.dump(current.cfg_path)
+    if "core" in new_values or "web" in new_values:
+        import tornado.autoreload as autoreload
+        autoreload._reload()
+    return ""
+
+
 def check_submit_allowed():
     if app.config['mode'] != 'scanner':
         raise ApiException("Action only possible when running in 'scanner'"
