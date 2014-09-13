@@ -17,3 +17,7 @@ CHDK Cameras
     To temporarily fix this, run ``$ sudo chmod -R a+rw /dev/bus/usb/*``.
     To permanently fix the permissions, create a new udev rule that sets
     the permissions when the devices are plugged in.
+
+... ``[Error: :80: attempt to call global 'get_gui_screen_width' (a nil value)]``
+
+    spreads requires CHDK version 1.3.0 or later; you probably have the stable branch v1.2.0 installed on your camera.
