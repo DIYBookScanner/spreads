@@ -90,7 +90,7 @@ def test_index(client):
     assert cfg['plugins'] == ['test_output', 'test_process', 'test_process2']
     assert cfg['driver'] == 'testdriver'
     assert cfg['web']['mode'] == 'full'
-    templates = json.loads(re.findall(r"window.pluginTemplates = ({.*});",
+    templates = json.loads(re.findall(r"window.configTemplates = ({.*});",
                                       rv.data)[0])
     assert 'a_boolean' in templates['test_process']
     assert 'flip_target_pages' in templates['device']
@@ -114,7 +114,7 @@ def test_get_plugins(client):
 
 
 def test_get_plugin_templates(client):
-    rv = client.get('/api/plugins/templates')
+    rv = client.get('/api/templates')
     templates = json.loads(rv.data)
     assert 'a_boolean' in templates['test_process']
     assert 'flip_target_pages' in templates['device']
