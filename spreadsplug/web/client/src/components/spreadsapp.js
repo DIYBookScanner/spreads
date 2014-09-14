@@ -22,6 +22,7 @@
 
   var React = require('react/addons'),
       _ = require('underscore'),
+      jQuery = require('jquery'),
       WorkflowForm = require('./workflowform'),
       CaptureScreen = require('./capture').CaptureScreen,
       WorkflowDetails = require('./workflow'),
@@ -29,6 +30,7 @@
       SubmissionForm = require('./submission'),
       NavigationBar = require('./navbar'),
       LogDisplay = require('./logdisplay.js'),
+      Preferences = require('./preferences.js'),
       F = require('./foundation');  // Shorthand for Foundation components
 
 
@@ -45,7 +47,8 @@
     propTypes: {
       workflows: React.PropTypes.object.isRequired,
       workflowSlug: React.PropTypes.string,
-      view: React.PropTypes.string
+      view: React.PropTypes.string,
+      globalConfig: React.PropTypes.object
     },
 
     componentWillMount: function() {
@@ -65,6 +68,9 @@
           });
         }
       }, this);
+      window.router.events.on('defaultconfig:changed', function(config) {
+        // TODO: Upate default configuration
+      });
       window.router.on('route:displayLog', function() {
         this.setState({messages: [], numUnreadErrors: 0});
       }, this);
@@ -83,8 +89,22 @@
       return {
         messages: [],
         numUnreadErrors: 0,
-        viewComponent: null
+        globalConfig: window.config,
+        viewComponent: null,
+        errors: {}
       };
+    },
+
+    handleSavePreferences: function(config, onSuccess) {
+      jQuery.ajax('/api/config', {
+        type: 'PUT',
+        data: JSON.stringify(config),
+        contentType: "application/json; charset=utf-8"
+      }).fail(function(xhr) {
+        // TODO: Set this.state.errors.preferences
+      }).done(function() {
+        this.setState({globalConfig: config});
+      });
     },
 
     /**
@@ -123,15 +143,20 @@
       if (viewName === 'create') {
         var newWorkflow = new workflows.model();
         workflows.add(newWorkflow);
-        viewComponent = <WorkflowForm workflow={newWorkflow} isNew={true}/>;
+        viewComponent = <WorkflowForm workflow={newWorkflow} isNew={true}
+                                      globalConfig={this.state.globalConfig} />;
       } else if (viewName === "capture") {
         viewComponent = <CaptureScreen workflow={displayed} />;
       } else if (viewName === "view") {
         viewComponent = <WorkflowDetails workflow={displayed} />;
       } else if (viewName === "edit") {
-        viewComponent = <WorkflowForm workflow={displayed} isNew={false} />;
+        viewComponent = <WorkflowForm workflow={displayed} isNew={false}
+                                      globalConfig={this.state.globalConfig} />;
       } else if (viewName === "submit") {
         viewComponent = <SubmissionForm workflow={displayed} />;
+      } else if (viewName === "preferences") {
+        viewComponent = <Preferences globalConfig={this.state.globalConfig}
+                                     onSave={this.handleSavePreferences} />;
       } else if (viewName === "log") {
         viewComponent = <LogDisplay />;
       } else {

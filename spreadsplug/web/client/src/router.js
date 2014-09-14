@@ -54,7 +54,8 @@
       "workflow/:slug/edit":      "editWorkflow",
       "workflow/:slug/capture":   "startCapture",
       "workflow/:slug/submit":    "submitWorkflow",
-      "logging":                  "displayLog"
+      "logging":                  "displayLog",
+      "preferences":              "editPreferences"
     },
 
 
@@ -115,6 +116,10 @@
 
     displayLog: function() {
       this._renderView("log");
+    },
+
+    editPreferences: function() {
+      this._renderView("preferences");
     }
   });
 }());

@@ -27,8 +27,8 @@
       ProgressOverlay = require('./overlays.js').Progress,
       Overlay = require('./overlays.js').Overlay,
       LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
-      PluginWidget = require('./config.js').PluginWidget,
-      PluginConfiguration = require('./config.js').PluginConfiguration;
+      ConfigWidget = require('./config.js').ConfigWidget,
+      Configuration = require('./config.js').Configuration;
 
   var SubmissionForm = React.createClass({
     mixins: [LayeredComponentMixin],
@@ -43,6 +43,7 @@
         availableServers: [],
         availablePlugins: {},
         configTemplates: {},
+        remoteConfig: {},
         /** Errors from validation */
         errors: {},
         submissionWaiting: false,
@@ -67,11 +68,11 @@
 
       function loadTemplates() {
         jQuery.getJSON(
-          '/api/remote/plugins/templates',
+          '/api/remote/templates',
           {'server': this.state.selectedServer},
           function(data) {
             this.setState({
-              configTemplates: data
+              configTemplates: _.omit(data, 'core', 'web')
             });
           }.bind(this))
           .fail(function(xhr) {
@@ -97,6 +98,8 @@
           });
           console.error("Could not get list of remote plugins");
         }.bind(this));
+
+      // TODO: Get remote configuration and set this.state.remoteConfig
     },
 
     handleSubmitSuccess: function() {
@@ -198,11 +201,12 @@
             {this.state.selectedServer && this.props.workflow &&
              !_.isEmpty(this.state.configTemplates) &&
             <div>
-              <PluginConfiguration ref="configuration"
-                                   config={this.props.workflow.get('config')}
-                                   errors={this.state.errors || {}}
-                                   templates={this.state.configTemplates}
-                                   availablePlugins={this.state.availablePlugins} />
+              <Configuration ref="configuration"
+                             config={this.props.workflow.get('config')}
+                             errors={this.state.errors || {}}
+                             templates={this.state.configTemplates}
+                             availablePlugins={this.state.availablePlugins}
+                             defaultConfig={this.state.remoteConfig} />
               <F.Row>
                 <F.Column size={[12,9]}>
                   <button className={_.isEmpty(this.state.errors) ? '': 'disabled'}>

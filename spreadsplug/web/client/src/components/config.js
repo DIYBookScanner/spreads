@@ -107,9 +107,9 @@
 
 
   /**
-   * Collection of options for a single plugin
+   * Collection of options for a single section
    */
-  var PluginWidget = React.createClass({
+  var ConfigWidget = React.createClass({
     propTypes: {
       /** Whether to show advanced options */
       showAdvanced: React.PropTypes.bool,
@@ -243,22 +243,26 @@
    * Offers a dropdown to select a plugin to configure and displays its
    * configuration widget.
    */
-  var PluginConfiguration = React.createClass({
+  var Configuration = React.createClass({
     propTypes: {
       /** Available plugins by type */
       availablePlugins: React.PropTypes.object,
+      /** Application default configuration */
+      defaultConfig: React.PropTypes.object,
       /** Current configuration */
       config: React.PropTypes.object,
       /** Configuration templates for available plugins */
       templates: React.PropTypes.object.isRequired,
       /** Errors from server-side validation */
-      errors: React.PropTypes.object
+      errors: React.PropTypes.object,
+      /** Allow editing of core options **/
+      enableCore: React.PropTypes.bool
     },
 
     getDefaultProps: function() {
       var availablePlugins;
       if (!_.isUndefined(window.plugins)) {
-        if (window.config.mode == 'scanner') {
+        if (window.config.web.mode == 'scanner') {
           availablePlugins = _.omit(window.plugins, "postprocessing", "output");
         } else {
           availablePlugins = window.plugins;
@@ -314,9 +318,9 @@
       var template = this.props.templates[pluginName],
           config = {};
       _.each(template, function(option, key) {
-        var value = window.config[pluginName][key] || option.value;
+        var value = this.props.defaultConfig[pluginName][key] || option.value;
         config[key] = _.isArray(option.value) ? option.value[0] : option.value;
-      });
+      }, this);
       return config;
     },
 
@@ -348,14 +352,13 @@
           availablePlugins = this.props.availablePlugins,
           selectedSection;
 
-      configSections = _.filter(config.plugins, function(plugin) {
-          return !_.isEmpty(templates[plugin]);
-      });
-
-      if (window.config.web.mode !== 'processor' &&
-          !_.isEmpty(templates['device'])) {
-          configSections.push('device');
-      }
+      configSections = _.filter(_.keys(config), function(section) {
+        var enabled = !_.isEmpty(templates[section]);
+        if (section === 'core' || section === 'web') {
+          enabled = this.props.enableCore
+        }
+        return enabled;
+      }, this);
 
       /* If no section is explicitely selected, use the first one */
       selectedSection = this.state.selectedSection;
@@ -421,7 +424,7 @@
                 {sectionPicker}
                 <paneContainer>
                   <F.Column size={[12, 9]} className="config-pane">
-                    <PluginWidget template={_.pick(templates[selectedSection], this.shouldDisplayOption)}
+                    <ConfigWidget template={_.pick(templates[selectedSection], this.shouldDisplayOption)}
                                   cfgValues={this.state.config[selectedSection] || this.getDefaultConfig(selectedSection)}
                                   errors={errors[selectedSection] || {}}
                                   onChange={_.partial(this.handleChange, selectedSection)} />
@@ -435,7 +438,7 @@
   });
 
   module.exports = {
-      PluginWidget: PluginWidget,
-      PluginConfiguration: PluginConfiguration
+      ConfigWidget: ConfigWidget,
+      Configuration: Configuration
   }
 }());

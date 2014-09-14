@@ -12,7 +12,7 @@ from isbnlib import is_isbn10, is_isbn13
 import pkg_resources
 import requests
 from flask import (json, jsonify, request, send_file, render_template,
-                   redirect, make_response, Response, after_this_request)
+                   redirect, make_response, Response)
 from werkzeug.contrib.cache import SimpleCache
 
 import spreads.metadata
@@ -94,7 +94,7 @@ def index():
         cache.set('default-config', default_config)
     templates = cache.get('plugin-templates')
     if templates is None:
-        templates = get_plugin_templates()
+        templates = get_templates()
         cache.set('plugin-templates', templates)
     return render_template(
         "index.html",
@@ -102,7 +102,7 @@ def index():
         debug=app.config['debug'],
         default_config=default_config,
         plugins=list_plugins(),
-        plugin_templates=templates,
+        config_templates=templates,
         metaschema=spreads.metadata.Metadata.SCHEMA,
     )
 
@@ -122,10 +122,7 @@ def list_plugins():
     }
 
 
-def get_plugin_templates():
-    """ Return the names of all globally activated plugins and their
-        configuration templates.
-    """
+def get_templates():
     plugins = list_plugins()
     config = app.config['default_config']
     if app.config['mode'] == 'scanner':
@@ -133,16 +130,17 @@ def get_plugin_templates():
                      for section in config.templates
                      if section in plugins['capture'] or
                      section in plugins['trigger'] or
-                     section == 'device'}
+                     section in ('core', 'device', 'web')}
     elif app.config['mode'] == 'processor':
         templates = {section: config.templates[section]
                      for section in config.templates
-                     if section in plugins['postprocessing']}
+                     if section in plugins['postprocessing']
+                     or section in ('core', 'web')}
     elif app.config['mode'] == 'full':
         templates = {section: config.templates[section]
                      for section in config.templates
                      if section in itertools.chain(*plugins.values())
-                     or section == 'device'}
+                     or section in ('core', 'device', 'web')}
     rv = dict()
     for plugname, options in templates.iteritems():
         if options is None:
@@ -178,9 +176,9 @@ def get_available_plugins():
     })
 
 
-@app.route('/api/plugins/templates')
+@app.route('/api/templates')
 def template_endpoint():
-    return jsonify(get_plugin_templates())
+    return jsonify(get_templates())
 
 
 @app.route("/api/config", methods=['GET'])
@@ -237,12 +235,12 @@ def get_remote_plugins():
     return make_response(data, status, {'Content-Type': 'application/json'})
 
 
-@app.route('/api/remote/plugins/templates')
+@app.route('/api/remote/templates')
 def get_remote_templates():
     # TODO: Shouldn't this the done via a CORS request on the client-side?
     check_submit_allowed()
     data, status = get_from_remote_server(request.args.get("server"),
-                                          '/api/plugins/templates')
+                                          '/api/templates')
     return make_response(data, status, {'Content-Type': 'application/json'})
 
 

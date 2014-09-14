@@ -192,11 +192,12 @@
                     {this.props.numUnreadErrors > 0 && <F.Label severity='alert' round={true}> {this.props.numUnreadErrors}</F.Label>}
                   </a>
                 </li>
+                <li><a href="/preferences"><i className="fa fa-cog"> Preferences</i></a></li>
+                <li><a onClick={_.partial(this.setState.bind(this), {aboutModal: true}, null)}
+                       alt="About Spreads"><i className="fa fa-info-circle" /> About</a></li>
                 {/* Only show shutdown button if the application is running in standalone mode */}
                 {window.config.web.standalone_device &&
                 (<li><a onClick={this.handleShutdown}><i className="fa fa-power-off"></i> Shut down</a></li>)}
-                <li><a onClick={_.partial(this.setState.bind(this), {aboutModal: true}, null)}
-                       alt="About Spreads"><i className="fa fa-info-circle" /> About</a></li>
               </ul>
             </section>
           </nav>

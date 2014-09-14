@@ -25,14 +25,16 @@
       F = require('./foundation.js'),
       ModelMixin = require('../../vendor/backbonemixin.js'),
       MetadataEditor = require('./metaeditor.js').MetadataEditor,
-      PluginConfiguration = require('./config.js').PluginConfiguration;
+      Configuration = require('./config.js').Configuration;
 
   /**
    * View component for workflow creation
    */
   var WorkflowForm = React.createClass({
     propTypes: {
-      workflow: React.PropTypes.object
+      workflow: React.PropTypes.object,
+      isNew: React.PropTypes.bool,
+      globalConfig: React.PropTypes.object
     },
 
     /** Enables two-way databinding with Backbone model */
@@ -106,10 +108,11 @@
             </F.Row>
             <MetadataEditor ref="metadata" metadata={this.props.workflow.get('metadata')}
                             errors={this.state.errors.metadata}/>
-            <PluginConfiguration ref="config"
-                                 config={this.props.workflow.get('config')}
-                                 errors={this.state.errors || {}}
-                                 templates={window.pluginTemplates}/>
+            <Configuration ref="config"
+                           config={this.props.workflow.get('config')}
+                           errors={this.state.errors || {}}
+                           templates={_.omit(window.configTemplates, 'core', 'web')}
+                           defaultConfig={this.props.globalConfig}/>
             <F.Row>
               <F.Column>
                 <F.Button size='small' disabled={this.state.submitting}

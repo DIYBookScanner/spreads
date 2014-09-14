@@ -29,7 +29,7 @@
       LoadingAnimation = require('./overlays.js').Activity,
       lightbox = require('./overlays.js').LightBox,
       LayeredComponentMixin = require('./overlays.js').LayeredComponentMixin,
-      PluginWidget = require('./config.js').PluginWidget,
+      ConfigWidget = require('./config.js').ConfigWidget,
       CropWidget = require('./cropdialog.js'),
       util = require('../util.js');
 
@@ -222,7 +222,7 @@
                    value={this.state.advancedOpts}
                    onChange={this.toggleAdvanced} />
             <label htmlFor="check-advanced">Show advanced options</label>
-            <PluginWidget template={window.pluginTemplates.device}
+            <ConfigWidget template={window.configTemplates.device}
                           cfgValues={this.props.workflow.get('config').device}
                           errors={this.state.validationErrors}
                           showAdvanced={this.state.advancedOpts}
