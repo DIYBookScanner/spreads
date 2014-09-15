@@ -477,6 +477,7 @@ class Workflow(object):
                 cropped.save(fname)
             else:
                 img.save(filename=fname)
+                img.close()
 
         fname = unicode(page.raw_image)
         if async:
