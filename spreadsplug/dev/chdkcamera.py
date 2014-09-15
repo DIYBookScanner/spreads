@@ -74,10 +74,6 @@ class CHDKCameraDevice(DevicePlugin):
              'dpi': OptionTemplate(300, "The capturing resolution"),
              'shoot_raw': OptionTemplate(False, "Shoot in RAW format (DNG)",
                                          advanced=True),
-             'focus_distance': OptionTemplate(0, "Set focus distance"),
-             'focus_odd': OptionTemplate(
-                 0, "Different focus for other device, (0 = use same)",
-                 advanced=True),
              'monochrome': OptionTemplate(
                  False, "Shoot in monochrome mode (reduces file size)"),
              'whitebalance': OptionTemplate(
@@ -199,6 +195,14 @@ class CHDKCameraDevice(DevicePlugin):
         self._cli_flags[0] = ("-c-d={1:03} -b={0:03}".format(*self._usbport))
         return True
 
+    @property
+    def focus(self):
+        val = self.config['focus_distance'].get()
+        if ',' in val:
+            idx = 0 if self.target_page == 'odd' else 1
+            val = val.split(',')[idx]
+        return int(val)
+
     def set_target_page(self, target_page):
         """ Set the device target page.
 
@@ -317,7 +321,7 @@ class CHDKCameraDevice(DevicePlugin):
     def update_configuration(self, updated):
         if 'zoom_level' in updated:
             self._set_zoom()
-        if 'focus_distance' in updated:
+        if any(x in updated for x in ('focus_distance', 'focus_mode')):
             self._set_focus()
         if 'whitebalance' in updated:
             self._set_whitebalance()
@@ -428,27 +432,24 @@ class CHDKCameraDevice(DevicePlugin):
         time.sleep(0.5)
         return self._execute_lua("get_focus()", get_result=True)
 
-    def _get_focus(self):
-        result = int(self.config['focus_distance'].get())
-        focus_odd = int(self.config['focus_odd'].get())
-        if self.target_page == "odd" and int(focus_odd) != 0:
-            result = focus_odd
-        return result
-
     def _set_focus(self):
         self.logger.info("Running default focus")
-        focus_distance = self._get_focus()
-        if int(focus_distance) == 0:
+        focus_mode = self.config['focus_mode'].get()
+        if focus_mode == "autofocus_all":
             self._execute_lua("set_aflock(0)")
+            return
+        elif focus_mode == "autofocus_initial":
+            focus_distance = self._acquire_focus()
         else:
-            self._execute_lua(
-                "press('shoot_half');"
-                "sleep(1000);"
-                "click('left');"
-                "release('shoot_half');",
-                wait=True)
-            time.sleep(0.25)
-            self._execute_lua("set_focus({0:.0f})".format(focus_distance))
+            focus_distance = self.focus
+        self._execute_lua(
+            "press('shoot_half');"
+            "sleep(1000);"
+            "click('left');"
+            "release('shoot_half');",
+            wait=True)
+        time.sleep(0.25)
+        self._execute_lua("set_focus({0:.0f})".format(focus_distance))
 
     def _set_whitebalance(self):
         value = WHITEBALANCE_MODES.get(self.config['whitebalance'].get())

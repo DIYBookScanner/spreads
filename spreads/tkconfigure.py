@@ -7,6 +7,8 @@ import spreads.plugin as plugin
 
 logger = logging.getLogger("guiconfig")
 
+# TODO: Implement inter-dependant display of widgets
+
 
 class TkConfigurationWindows(tk.Frame):
     def __init__(self, spreads_config, master=None):
@@ -167,6 +169,7 @@ class TkConfigurationWindows(tk.Frame):
         messagebox.showinfo(message="Please turn off the device.")
 
     def configure_focus(self):
+        # TODO: Handle independent focus for both devices
         rv = messagebox.askokcancel(
             message="Please connect and turn on one of your cameras.",
             title="Configure focus")

@@ -21,7 +21,7 @@ def add_argument_from_template(extname, key, template, parser, current_val):
     kwargs = {'help': ("{0} [default: {1}]"
                        .format(template.docstring, default)),
               'dest': "{0}{1}".format(extname, '.'+key if extname else key)}
-    if isinstance(template.value, basestring):
+    if isinstance(template.value, basestring) or template.value is None:
         kwargs['type'] = unicode
         kwargs['metavar'] = "<str>"
     elif isinstance(template.value, bool):

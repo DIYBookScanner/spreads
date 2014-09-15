@@ -193,6 +193,7 @@ def configure(config):
                            "[y/N]: ")
         answer = True if answer.lower() == 'y' else False
         if answer:
+            # TODO: Set focus for both devices independently
             print("Please turn on one of your capture devices.\n"
                   "Press any key to continue")
             getch()
@@ -201,7 +202,10 @@ def configure(config):
                   "under your cameras.\nPress any button to continue")
             getch()
             focus = devs[0]._acquire_focus()
+            config['device']['focus_mode'] = 'manual'
             config['device']['focus_distance'] = focus
+        else:
+            config['device']'focus_mode'] = 'autofocus_all'
     print("Configuration file written to '{0}'".format(config.cfg_path))
     config.dump(filename=config.cfg_path)
 

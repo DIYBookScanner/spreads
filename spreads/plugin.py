@@ -132,9 +132,13 @@ class DevicePlugin(SpreadsPlugin):  # pragma: no cover
                 "upside_down": OptionTemplate(
                     value=False,
                     docstring="Cameras are mounted upside-down."),
-                "focus_odd": OptionTemplate(
-                    value=0,
-                    docstring="Manual focus for the odd-page camera (0 to use main focus value)"),
+                "focus_mode": OptionTemplate(
+                    value=["autofocus_all", "autofocus_initial",
+                           "manual"],
+                    docstring="Select focus mode", selectable=True),
+                "focus_distance": OptionTemplate(
+                    value=None, docstring="Distance to focus subject",
+                    depends={'device': {'focus_mode': 'manual'}})
             }
 
     @abstractclassmethod
