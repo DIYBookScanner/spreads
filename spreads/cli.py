@@ -205,7 +205,7 @@ def configure(config):
             config['device']['focus_mode'] = 'manual'
             config['device']['focus_distance'] = focus
         else:
-            config['device']'focus_mode'] = 'autofocus_all'
+            config['device']['focus_mode'] = 'autofocus_all'
     print("Configuration file written to '{0}'".format(config.cfg_path))
     config.dump(filename=config.cfg_path)
 
