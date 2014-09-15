@@ -244,6 +244,15 @@ def get_remote_templates():
     return make_response(data, status, {'Content-Type': 'application/json'})
 
 
+@app.route('/api/remote/config')
+def get_remote_config():
+    # TODO: Shouldn't this the done via a CORS request on the client-side?
+    check_submit_allowed()
+    data, status = get_from_remote_server(request.args.get("server"),
+                                          '/api/config')
+    return make_response(data, status, {'Content-Type': 'application/json'})
+
+
 @app.route('/api/log')
 def get_logs():
     start = int(request.args.get('start', '0'))

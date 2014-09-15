@@ -99,7 +99,20 @@
           console.error("Could not get list of remote plugins");
         }.bind(this));
 
-      // TODO: Get remote configuration and set this.state.remoteConfig
+      jQuery.getJSON(
+        '/api/remote/config',
+        {'server': this.state.selectedServer},
+        function(data) {
+          this.setState({
+            remoteConfig: data
+          });
+        }.bind(this))
+        .fail(function(xhr) {
+          this.setState({
+            errors: xhr.responseJSON.errors
+          });
+          console.error("Could not get remote default configuration");
+        }.bind(this));
     },
 
     handleSubmitSuccess: function() {
