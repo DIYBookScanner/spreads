@@ -348,18 +348,19 @@
     render: function() {
       var templates = this.props.templates,
           config = this.state.config,
-          configSections = [],
           errors = merge(this.state.internalErrors, this.props.errors),
           availablePlugins = this.props.availablePlugins,
           selectedSection;
 
-      configSections = _.filter(_.keys(config), function(section) {
-        var enabled = !_.isEmpty(templates[section]);
-        if (section === 'core' || section === 'web') {
-          enabled = this.props.enableCore
-        }
-        return enabled;
-      }, this);
+      var configSections = _.filter(
+        _.union(_.keys(config), _.keys(this.props.defaultConfig)),
+        function(section) {
+          if (section === 'core' || section === 'web') {
+            return this.props.enableCore;
+          } else {
+            return !_.isEmpty(templates[section]);
+          }
+        }, this);
 
       /* If no section is explicitely selected, use the first one */
       selectedSection = this.state.selectedSection;
