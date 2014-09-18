@@ -76,7 +76,7 @@ CLI
    :alt: command-line interface
 
 A text-only command-line interface that exposes each step as a subcommand.
-Ideal for controlling a scanner over SSH and for comand-line fetishists.
+Ideal for controlling a scanner over SSH and for command-line fetishists.
 
 
 Getting Started

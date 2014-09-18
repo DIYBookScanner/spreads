@@ -5,7 +5,7 @@ Prerequisites
 -------------
 * Python 2.7 with a recent version of pip_ installed
 
-Installl requirements
+Install requirements
 ---------------------
 To use some of the included plugins, you might want to install the following
 dependencies:
