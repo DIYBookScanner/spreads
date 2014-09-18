@@ -1,5 +1,33 @@
 Extending *spreads*
 *******************
+
+.. _development_environment:
+
+Setting up a development environment
+====================================
+
+The easiest way to work on spreads is to install it to an editable
+virtual Python environment using the ``virtualenv`` tool and installing
+spreads into it using ``pip`` with the
+``-e`` option. This option allows the virtual environment to treat a
+spreads repository checked out from git as a live installation.
+
+For example, on a Debian-based system, assuming the git repository
+for spreads is checked out to ``./spreads``::
+
+  virtualenv spreadsenv
+  cd spreadsenv
+  source ./bin/activate
+  # The following dependencies are not pulled in automatically by
+  # setuptools
+  pip install cffi
+  pip install jpegtran-cffi
+  pip install -e ../spreads
+
+Other prerequisite packages you may require include:
+
+  libffi-dev libjpeg8-dev libturbojpeg
+
 .. _add_devices:
 
 Adding support for new devices
