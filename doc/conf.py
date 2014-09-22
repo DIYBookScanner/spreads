@@ -8,7 +8,7 @@ MOCK_MODULES = ['usb', 'stevedore.extension', 'stevedore.named']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
-import spreads
+import spreads.util as util
 
 sys.path.append(os.path.abspath('_themes'))
 sys.path.insert(0, os.path.abspath(os.path.join('..')))
@@ -23,7 +23,7 @@ master_doc = 'content'
 
 project = u'spreads'
 copyright = u'2013, Johannes Baiter (jbaiter)'
-version = spreads.__version__
+version = util.get_version()
 release = version
 exclude_patterns = ['_build']
 add_function_parentheses = True

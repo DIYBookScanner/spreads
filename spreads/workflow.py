@@ -90,7 +90,7 @@ Sent by a :class:`Workflow` after a capture failed.
 """)
 
 
-def signal_on_error(signal):
+def _signal_on_error(signal):
     """ Decorator for emitting a signal when a function throws an exception.
 
     :param signal:      The signal to emit when an exception is thrown
@@ -686,7 +686,7 @@ class Workflow(object):
         self._run_hook('start_trigger_loop', self.capture)
         self._update_status(prepared=True)
 
-    @signal_on_error(on_capture_failed)
+    @_signal_on_error(on_capture_failed)
     def capture(self, retake=False):
         if not self.status['prepared']:
             raise util.SpreadsException("Capture was not prepared before.")

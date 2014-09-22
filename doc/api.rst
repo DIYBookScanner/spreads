@@ -1,6 +1,18 @@
 API Reference
 =============
 
+spreads
+-------
+.. automodule:: spreads
+   :members:
+   :member-order: bysource
+
+spreadsplug
+-----------
+.. automodule:: spreadsplug
+   :members:
+   :member-order: bysource
+
 spreads.plugin
 --------------
 
