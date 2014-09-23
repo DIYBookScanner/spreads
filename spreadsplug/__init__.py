@@ -16,7 +16,7 @@ In alphabetical order:
 :py:mod:`spreadsplug.dev.gphoto2`
     Driver for cameras supported by libgphoto2
 
-:py:mod:`spreadsplug.dev.gphoto2`
+:py:mod:`spreadsplug.dev.dummy`
     Dummy driver that implements the driver interface and just spits out one
     of the two test images. Intended for rapid development, not for general
     usage.
