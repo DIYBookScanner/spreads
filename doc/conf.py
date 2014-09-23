@@ -15,7 +15,8 @@ sys.path.insert(0, os.path.abspath(os.path.join('..')))
 
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.coverage',
               'sphinx.ext.intersphinx', 'sphinxcontrib.fulltoc',
-              'sphinxcontrib.autohttp.flask']
+              'sphinxcontrib.autohttp.flask', 'sphinx.ext.viewcode',
+              'sphinxcontrib.aafig']
 
 templates_path = ['_templates']
 source_suffix = '.rst'
