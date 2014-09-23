@@ -116,6 +116,27 @@ def setup_parser(config):
     :rtype:         :py:class:`argparse.ArgumentParser`
     """
     plugins = plugin.get_plugins(*config["plugins"].get())
+
+    def _add_arguments(parsers, mixins, extra_names=None):
+        if extra_names is None:
+            extra_names = []
+        for parser in parsers:
+            # Only plugins that implement the capture or trigger hook mixins and
+            # the currently active device configuration are relevant for this
+            # subcommand.
+            ext_names = [name for name, cls in plugins.iteritems()
+                         if any(issubclass(cls, mixin) for mixin in mixins)]
+            ext_names.extend(extra_names)
+            for ext in ext_names:
+                for key, tmpl in config.templates.get(ext, {}).iteritems():
+                    if not should_show_argument(option, config['plugins'].get()):
+                        continue
+                    try:
+                        add_argument_from_template(ext, key, tmpl, parser,
+                                                config[ext][key].get())
+                    except TypeError:
+                        continue
+
     rootparser = argparse.ArgumentParser(
         description="Scanning Tool for  DIY Book Scanner",
         formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -158,7 +179,7 @@ def setup_parser(config):
             'guiconfigure', help="Perform initial configuration with a GUI")
         guiconfig_parser.set_defaults(subcommand=tkconfigure.configure)
     except ImportError:
-        print "Could not load _tkinter module, disabling guiconfigure command"
+        pass
 
     capture_parser = subparsers.add_parser(
         'capture', help="Start the capturing workflow")
@@ -166,21 +187,9 @@ def setup_parser(config):
         "path", type=unicode, help="Project path")
     capture_parser.set_defaults(subcommand=cli.capture)
     # Add arguments from plugins
-    for parser in (capture_parser, wizard_parser):
-        ext_names = [
-            name for name, cls in plugins.iteritems()
-            if any(issubclass(cls, mixin) for mixin in
-                   (plugin.CaptureHooksMixin, plugin.TriggerHooksMixin))]
-        ext_names.append('device')
-        for ext in ext_names:
-            for key, tmpl in config.templates.get(ext, {}).iteritems():
-                if not should_show_argument(option, config['plugins'].get()):
-                    continue
-                try:
-                    add_argument_from_template(ext, key, tmpl, parser,
-                                               config[ext][key].get())
-                except TypeError:
-                    continue
+    _add_arguments(parsers=(capture_parser, wizard_parser),
+                   mixins=(plugin.CaptureHooksMixin, plugin.TriggerHooksMixin),
+                   extra_names=('device',))
 
     postprocess_parser = subparsers.add_parser(
         'postprocess',
@@ -191,19 +200,8 @@ def setup_parser(config):
         "--jobs", "-j", dest="jobs", type=int, default=None,
         metavar="<int>", help="Number of concurrent processes")
     postprocess_parser.set_defaults(subcommand=cli.postprocess)
-    # Add arguments from plugins
-    for parser in (postprocess_parser, wizard_parser):
-        ext_names = [name for name, cls in plugins.iteritems()
-                     if issubclass(cls, plugin.ProcessHookMixin)]
-        for ext in ext_names:
-            for key, tmpl in config.templates.get(ext, {}).iteritems():
-                if not should_show_argument(option, config['plugins'].get()):
-                    continue
-                try:
-                    add_argument_from_template(ext, key, tmpl, parser,
-                                               config[ext][key].get())
-                except TypeError:
-                    continue
+    _add_arguments(parsers=(postprocess_parser, wizard_parser),
+                   mixins=(plugin.ProcessHookMixin))
 
     output_parser = subparsers.add_parser(
         'output',
@@ -211,19 +209,8 @@ def setup_parser(config):
     output_parser.add_argument(
         "path", type=unicode, help="Project path")
     output_parser.set_defaults(subcommand=cli.output)
-    # Add arguments from plugins
-    for parser in (output_parser, wizard_parser):
-        ext_names = [name for name, cls in plugins.iteritems()
-                     if issubclass(cls, plugin.OutputHookMixin)]
-        for ext in ext_names:
-            for key, tmpl in config.templates.get(ext, {}).iteritems():
-                if not should_show_argument(option, config['plugins'].get()):
-                    continue
-                try:
-                    add_argument_from_template(ext, key, tmpl, parser,
-                                               config[ext][key].get())
-                except TypeError:
-                    continue
+    _add_arguments(parsers=(output_parser, wizard_parser),
+                   mixins=(plugin.OutputHookMixin))
 
     # Add custom subcommands from plugins
     if config["plugins"].get():
