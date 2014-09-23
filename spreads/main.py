@@ -1,3 +1,24 @@
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""
+Core logic for application startup and parsing of command-line arguments
+"""
+
 import argparse
 import logging
 import logging.handlers
@@ -16,6 +37,21 @@ from spreads.config import Configuration
 
 
 def add_argument_from_template(extname, key, template, parser, current_val):
+    """ Add option from `template` to `parser` under the name `key`.
+
+    Templates with a boolean value type will create a `--<key>` or
+    `--no-<key>` flag, depending on their current value.
+
+    :param extname:     Name of the configuration section this option's result
+                        should be stored in
+    :param key:         Configuration key in section, will also determine the
+                        name of the argument.
+    :param template:    Template for the argument
+    :type template:     :py:class:`spreads.config.OptionTemplate`
+    :param parser:      Argument parser the argument should be added to
+    :type parser:       :py:class:`argparse.ArgumentParser`
+    :param current_val: Current value of the option
+    """
     flag = "--{0}".format(key.replace('_', '-'))
     default = current_val
     kwargs = {'help': ("{0} [default: {1}]"
@@ -49,9 +85,19 @@ def add_argument_from_template(extname, key, template, parser, current_val):
 
 
 def should_show_argument(template, active_plugins):
-    """ Checks for an OptionTemplate's `depends` attribute for dependencies
-        on other plugins and validates them against the list of activated
-        plugins.
+    """ Checks the :py:attr:`spreads.config.OptionTemplate.depends` attribute
+    for dependencies on other plugins and validates them against the list of
+    activated plugins.
+
+    We do not validate dependencies on other configuration settings because
+    we don't have access to the final state of the configuration at this time,
+    since the configuration can potentially be changed by other command-line
+    flags.
+
+    :param template:        Template to check
+    :type template:         :py:class:`spreads.config.OptionTemplate`
+    :param active_plugins:  List of names of activated plugins
+    :returns:               Whether or not the argument should be displayed
     """
     if template.depends is None or type(template.depends) == dict:
         return True
@@ -60,6 +106,15 @@ def should_show_argument(template, active_plugins):
 
 
 def setup_parser(config):
+    """ Sets up an :py:class:`argparse.ArgumentParser` instance with all
+    options and subcommands that are available in the core and activated
+    plugins.
+
+    :param config:  Current application configuration
+    :type config:   :py:class:`spreads.config.Configuration`
+    :returns:       Fully initialized argument parser
+    :rtype:         :py:class:`argparse.ArgumentParser`
+    """
     plugins = plugin.get_plugins(*config["plugins"].get())
     rootparser = argparse.ArgumentParser(
         description="Scanning Tool for  DIY Book Scanner",
@@ -180,6 +235,11 @@ def setup_parser(config):
 
 
 def setup_logging(config):
+    """ Conigure application-wide logger.
+
+    :param config:  Global configuration
+    :type config:   :py:class:`spreads.config.Configuration`
+    """
     loglevel = config['core']['loglevel'].as_choice({
         'none':     logging.NOTSET,
         'info':     logging.INFO,
@@ -223,6 +283,8 @@ def setup_logging(config):
 
 
 def run_config_windows():
+    """ Entry point to launch graphical configuration dialog on Windows. """
+    # Needed so that .exe files in Program Files can be launched.
     os.environ['PATH'] += (";" + os.environ['PROGRAMFILES'])
     config = Configuration()
     setup_logging(config)
@@ -231,6 +293,8 @@ def run_config_windows():
 
 
 def run_service_windows():
+    """ Entry point to launch web plugin server on Windows. """
+    # Needed so that .exe files in Program Files can be launched.
     os.environ['PATH'] += (";" + os.environ['PROGRAMFILES'])
     config = Configuration()
     config['core']['loglevel'] = 'debug'
@@ -245,20 +309,17 @@ def run_service_windows():
 
 
 def run():
+    """ Setup the application and run subcommand"""
     config = Configuration()
-
     parser = setup_parser(config)
     args = parser.parse_args()
-    # Set configuration from parsed arguments
     config.set_from_args(args)
-
     setup_logging(config)
-
-    # Run subcommand
     args.subcommand(config)
 
 
 def main():
+    """ Entry point for `spread` command-line application. """
     # Initialize color support
     colorama.init()
     try:
