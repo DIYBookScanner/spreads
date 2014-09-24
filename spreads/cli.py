@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-spreads CLI code.
+Command-Line interface for configuration, capture, output and postprocessing.
 """
 
 from __future__ import division, unicode_literals, print_function
@@ -31,13 +31,20 @@ import spreads.plugin as plugin
 from spreads.util import DeviceException
 
 if sys.platform == 'win32':
+    # On Windows, getch is included in the standard library
     import msvcrt
     getch = msvcrt.getch()
 else:
+    # On POSIX systems we have to do it ourselves
     import termios
     import tty
 
     def getch():
+        """ Waits for a single character to be entered on stdin and returns it.
+
+        :return:    Character that was entered
+        :rtype:     str
+        """
         fd = sys.stdin.fileno()
         old = termios.tcgetattr(fd)
         char = None
@@ -50,10 +57,22 @@ else:
 
 
 def colorize(text, color):
+    """ Return text with a new foreground color.
+
+    :param text:    Text to be wrapped
+    :param color:   ANSI color to wrap text in
+    :type color:    str (from :py:class:`colorama.ansi.AnsiCodes`)
+    :return:        Colorized text
+    """
     return color + text + colorama.Fore.RESET
 
 
 def draw_progress(progress):
+    """ Draw a progress bar to stdout.
+
+    :param progress:    Progress value between 0 and 1
+    :type progress:     float
+    """
     width = 32
     num_bars = int(width*progress/1.0)
     sys.stdout.write('[{0}{1}] {2}%\r'.format(
@@ -63,8 +82,14 @@ def draw_progress(progress):
 
 
 def _select_driver(current):
+    """ Display driver selection dialog.
+
+    :param current:     Name of currently selected driver
+    :return:            Name of newly selected driver
+    """
     print(colorize("Please select a device driver from the following list:",
                    colorama.Fore.BLUE))
+    # Add None as an option to configure spreads without a device
     available_drivers = plugin.available_drivers() + [None]
     print("  [0]: Keep current ({0})".format(current))
     for pos, ext in enumerate(available_drivers, 1):
@@ -84,9 +109,15 @@ def _select_driver(current):
 
 
 def _select_plugins(preselected=None):
+    """ Display plugin selection dialog.
+
+    :param preselected:     Names of currently selected plugins
+    :return:                Names of newly selected plugins
+    """
     if preselected is None:
         selected_plugins = []
     else:
+        # Create a local clone of the preselected list
         selected_plugins = preselected[:]
     print("Please select your desired plugins from the following list:")
     available_plugins = plugin.available_plugins()
@@ -110,6 +141,14 @@ def _select_plugins(preselected=None):
 
 
 def _setup_processing_pipeline(config):
+    """ Display dialog to configure order of postprocessing plugins and update
+    the configuration accordingly.
+
+    :param config:      Currently active global configuration
+    :type config:       :py:class:`spreads.config.Configuration`
+    """
+    # Only get names of postprocessing plugins. For this we have to load all
+    # enabled plugins first and check if they implement the correct hook.
     exts = [name for name, cls in plugin.get_plugins(*config["plugins"].get())
             .iteritems() if issubclass(cls, plugin.ProcessHookMixin)]
     if not exts:
@@ -129,11 +168,19 @@ def _setup_processing_pipeline(config):
                            "found, please try again!", colorama.Fore.RED))
         else:
             break
+    # Append other plugins after the postprocessing plugins
     config["plugins"] = plugins + [x for x in config["plugins"].get()
                                    if x not in plugins]
 
 
 def _set_device_target_page(config, target_page):
+    """ Display dialog for setting the target page on a device.
+
+    :param config:      Currently active global configuration
+    :type config:       :py:class:`spreads.config.Configuration`
+    :param target_page: Target page to set on the device
+    :type target_page:  One of 'odd' or 'even'
+    """
     print("Please connect and turn on the device labeled \'{0}\'"
           .format(target_page))
     print("Press any key when ready.")
@@ -153,6 +200,12 @@ def _set_device_target_page(config, target_page):
 
 
 def configure(config):
+    """ Configuration subcommand that runs through the various dialogs, builds
+    a new configuration and writes it to disk.
+
+    :param config:      Currently active global configuration
+    :type config:       :py:class:`spreads.config.Configuration`
+    """
     old_plugins = config["plugins"].get()
     driver_name = _select_driver(
         config["driver"].get() if 'driver' in config.keys() else None)
@@ -211,27 +264,33 @@ def configure(config):
 
 
 def capture(config):
+    """ Dialog to run through the capture process.
+
+    :param config:      Currently active global configuration
+    :type config:       :py:class:`spreads.config.Configuration`
+    """
     path = config['path'].get()
     workflow = spreads.workflow.Workflow(config=config, path=path)
     spreads.workflow.on_created.send(workflow)
     capture_keys = workflow.config['core']['capture_keys'].as_str_seq()
 
     # Some closures
-    def refresh_stats():
-        # Callback to print statistics
-        if refresh_stats.start_time is not None:
-            pages_per_hour = ((3600/(time.time() - refresh_stats.start_time))
+    def _refresh_stats():
+        """ Callback that prints up-to-date capture statistics to stdout """
+        if _refresh_stats.start_time is not None:
+            pages_per_hour = ((3600/(time.time() - _refresh_stats.start_time))
                               * len(workflow.pages))
         else:
             pages_per_hour = 0.0
-            refresh_stats.start_time = time.time()
+            _refresh_stats.start_time = time.time()
         status = ("\rShot {0: >3} pages [{1: >4.0f}/h] "
                   .format(len(workflow.pages), pages_per_hour))
         sys.stdout.write(status)
         sys.stdout.flush()
-    refresh_stats.start_time = None
+    _refresh_stats.start_time = None
 
-    def trigger_loop():
+    def _trigger_loop():
+        """ Waits for input on stdin and launches appropriate actions. """
         is_posix = sys.platform != 'win32'
         old_count = len(workflow.pages)
         if is_posix:
@@ -251,14 +310,16 @@ def capture(config):
                 time.sleep(0.01)
                 if len(workflow.pages) != old_count:
                     old_count = len(workflow.pages)
-                    refresh_stats()
+                    _refresh_stats()
                 if not data_available():
                     continue
                 char = read_char()
                 if char in tuple(capture_keys) + ('r', ):
+                    # Capture or retake
                     workflow.capture(retake=(char == 'r'))
-                    refresh_stats()
+                    _refresh_stats()
                 elif char == 'f':
+                    # Finish capturing
                     break
         finally:
             if is_posix:
@@ -281,17 +342,24 @@ def capture(config):
     print("({0}) capture | (r) retake last shot | (f) finish "
           .format("/".join(capture_keys)))
     # Start trigger loop
-    trigger_loop()
+    _trigger_loop()
 
     workflow.finish_capture()
 
 
-def _update_callback(wf, changes):
+def _update_callback(_, changes):
+    """ Signal handler callback that draws a step's progress. """
     if 'status' in changes and 'step_progress' in changes['status']:
         draw_progress(changes['status']['step_progress'])
 
 
+
 def postprocess(config):
+    """ Launch postprocessing plugins and display their progress
+
+    :param config:      Currently active global configuration
+    :type config:       :py:class:`spreads.config.Configuration`
+    """
     path = config['path'].get()
     workflow = spreads.workflow.Workflow(config=config, path=path)
     draw_progress(0.0)
@@ -301,9 +369,11 @@ def postprocess(config):
 
 
 def output(config):
-    def update_callback(wf, changes):
-        if 'status' in changes and 'step_progress' in changes['status']:
-            draw_progress(changes['status']['step_progress'])
+    """ Launch output plugins and display their progress
+
+    :param config:      Currently active global configuration
+    :type config:       :py:class:`spreads.config.Configuration`
+    """
     path = config['path'].get()
     workflow = spreads.workflow.Workflow(config=config, path=path)
     draw_progress(0)
@@ -313,8 +383,11 @@ def output(config):
 
 
 def wizard(config):
-    # TODO: Think about how we can make this more dynamic, i.e. get list of
-    #       options for plugin with a description for each entry
+    """ Launch every step in succession with the same configuration.
+
+    :param config:      Currently active global configuration
+    :type config:       :py:class:`spreads.config.Configuration`
+    """
     print("==========================\n",
           "Starting capturing process\n",
           "==========================")
