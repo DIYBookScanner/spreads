@@ -380,5 +380,5 @@ class CustomJSONEncoder(json.JSONEncoder):
             if base:
                 return unicode(obj.relative_to(base))
             else:
-                return unicode(obj)
+                return unicode(obj.absolute())
         return json.JSONEncoder.default(self, obj)
