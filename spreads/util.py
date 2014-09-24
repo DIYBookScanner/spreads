@@ -15,10 +15,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" Various utility functions.
+"""
+Various utility functions and classes.
 """
 
-from __future__ import division, unicode_literals
+from __future__ import division, unicode_literals, print_function
 
 import abc
 import glob
@@ -40,27 +41,32 @@ from spreads.vendor.pathlib import Path
 
 
 class SpreadsException(Exception):
+    """ General exception """
     pass
 
 
 class DeviceException(SpreadsException):
+    """ Raised when a device-related error occured. """
     pass
 
 
 class MissingDependencyException(SpreadsException):
+    """ Raised when a dependency for a plugin is missing. """
     pass
 
 
 def get_version():
+    """ Get installed version via pkg_resources. """
     return pkg_resources.require('spreads')[0].version
 
 
 def find_in_path(name):
     """ Find executable in $PATH.
 
-    :param name:  name of the executable
-    :type name:   unicode
-    :returns:     unicode -- Path to executable or None if not found
+    :param name:    name of the executable
+    :type name:     unicode
+    :returns:       Path to executable or None if not found
+    :rtype:         unicode or None
 
     """
     candidates = None
@@ -87,27 +93,52 @@ def find_in_path(name):
     else:
         candidates = (os.path.join(p, name)
                       for p in os.environ.get('PATH').split(':'))
-    try:
-        return next(c for c in candidates if os.path.exists(c))
-    except StopIteration:
-        return None
+    return next((c for c in candidates if os.path.exists(c)), None)
 
 
 def is_os(osname):
+    """ Check if the current operating system matches the expected.
+
+    :param osname:  Operating system name as returned by
+                    :py:func:`platform.system`
+    :returns:       Whether the OS matches or not
+    :rtype:         bool
+    """
     return platform.system().lower() == osname
 
 
 def check_futures_exceptions(futures):
+    """" Go through passed :py:class:`concurrent.futures._base.Future` objects
+         and re-reaise the first Exception raised by any one of them.
+
+    :param futures:     Iterable that contains the futures to be checked
+    :type futures:      iterable with :py:class:`concurrent.futures._base.Future`
+                        instances
+    """
     if any(x.exception() for x in futures):
         exc = next(x for x in futures if x.exception()).exception()
         raise exc
 
 
 def get_free_space(path):
+    """ Return free space on file-system underlying the passed path.
+
+    :param path:    Path on file-system the free space of which is desired
+    :type path;     unicode
+    :return:        Free space in bytes
+    :rtype:         int
+    """
     return psutil.disk_usage(unicode(path)).free
 
 
 def get_subprocess(cmdline, **kwargs):
+    """ Get a :py:class:`subprocess.Popen` instance.
+
+    On Windows systems, the process will be ran in the background and won't
+    open a cmd-window or appear in the taskbar.
+    The function signature matches that of the :py:class:`subprocess.Popen`
+    initialization method.
+    """
     if subprocess.mswindows and not 'startupinfo' in kwargs:
         su = subprocess.STARTUPINFO()
         su.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -117,7 +148,8 @@ def get_subprocess(cmdline, **kwargs):
 
 
 def wildcardify(pathnames):
-    """ Generate a single path with wildcards that matches all `pathnames`.
+    """ Try to generate a single path with wildcards that matches all
+        `pathnames`.
 
     :param pathnames:   List of pathnames to find a wildcard string for
     :type pathanmes:    List of str/unicode
@@ -137,6 +169,16 @@ def wildcardify(pathnames):
 
 
 def diff_dicts(old, new):
+    """ Get the difference between two dictionaries.
+
+    :param old: Dictionary to base comparison on
+    :type old:  dict
+    :param new: Dictionary to compare with
+    :type new:  dict
+    :return:    A (possibly nested) dictionary containing all items from `new`
+                that differ from the ones in `old`
+    :rtype:     dict
+    """
     out = {}
     for key, value in old.iteritems():
         if new[key] != value:
@@ -218,7 +260,8 @@ class abstractclassmethod(_classmethod):
 class ColourStreamHandler(logging.StreamHandler):
     """ A colorized output StreamHandler
     Kudos to Leigh MacDonald:
-    http://leigh.cudd.li/article/Cross_Platform_Colorized_Logger_Output_Using_Pythons_logging_Module_And_Colorama
+    http://leigh.cudd.li/article/Cross_Platform_Colorized_Logger_Output_Using_\
+    Pythons_logging_Module_And_Colorama
     """
 
     # Some basic colour scheme defaults
@@ -262,6 +305,9 @@ class ColourStreamHandler(logging.StreamHandler):
 
 
 class EventHandler(logging.Handler):
+    """ Subclass of :py:class:`logging.Handler` that emits a
+        :py:class:`blinker.base.Signal` whenever a new record is emitted.
+    """
     signals = blinker.Namespace()
     on_log_emit = signals.signal('logrecord', doc="""\
     Sent when a log record was emitted.
@@ -274,6 +320,13 @@ class EventHandler(logging.Handler):
 
 
 def get_data_dir(create=False):
+    """ Return (and optionally create) the user's default data directory.
+
+    :param create:  Create the data directory if it doesn't exist
+    :type create:   bool
+    :return:        Path to the default data directory
+    :rtype:         unicode
+    """
     UNIX_DIR_VAR = 'XDG_DATA_HOME'
     UNIX_DIR_FALLBACK = '~/.config'
     WINDOWS_DIR_VAR = 'APPDATA'
@@ -313,11 +366,27 @@ def colorize(text, color):
 
 
 class RomanNumeral(object):
+    """ Number type that represents integers as Roman numerals and that
+        can be used in all arithmetic operations applicable to integers.
+    """
     @staticmethod
     def is_roman(value):
+        """ Check if `value` is a valid Roman numeral.
+
+        :param value:   Value to be checked
+        :type value:    unicode
+        :returns:       Whether the value is valid or not
+        :rtype:         bool
+        """
         return bool(roman.romanNumeralPattern.match(value))
 
     def __init__(self, value, case='upper'):
+        """ Create a new instance.
+
+        :param value:   Value of the instance
+        :type value:    int, unicode containing valid Roman numeral or
+                        :py:class:`RomanNumeral`
+        """
         self._val = self._to_int(value)
         self._case = case
         if isinstance(value, basestring) and not self.is_roman(value):
@@ -369,6 +438,14 @@ class RomanNumeral(object):
 
 
 class CustomJSONEncoder(json.JSONEncoder):
+    """ Custom :py:class:`json.JSONEncoder`.
+
+        Uses an object's `to_dict` method if present for serialization.
+
+        Serializes :py:class:`pathlib.Path` instances to the string
+        representation of their relative path to a BagIt-compliant directory or
+        their absolute path if not applicable.
+    """
     def default(self, obj):
         if hasattr(obj, 'to_dict'):
             return obj.to_dict()
