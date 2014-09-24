@@ -19,6 +19,8 @@
 Core logic for application startup and parsing of command-line arguments
 """
 
+from __future__ import division, unicode_literals, print_function
+
 import argparse
 import logging
 import logging.handlers
@@ -309,34 +311,33 @@ def main():
     """ Entry point for `spread` command-line application. """
     # Initialize color support
     colorama.init()
+    print_error = lambda x: print(util.colorize(x, colorama.Fore.RED),
+                                  file=sys.stderr)
     try:
         run()
     except util.DeviceException as e:
         typ, val, tb = sys.exc_info()
         logging.debug("".join(traceback.format_exception(typ, val, tb)))
-        print(colorama.Fore.RED + "There is a problem with your device"
-                                  " configuration:")
-        print(colorama.Fore.RED + e.message)
+        print_error("There is a problem with your device configuration:")
+        print_error(e.message)
     except ConfigError as e:
         typ, val, tb = sys.exc_info()
         logging.debug("".join(traceback.format_exception(typ, val, tb)))
-        print(colorama.Fore.RED +
-              "There is a problem with your configuration file(s):")
-        print(colorama.Fore.RED + e.message)
+        print_error("There is a problem with your configuration file(s):")
+        print_error(e.message)
     except util.MissingDependencyException as e:
         typ, val, tb = sys.exc_info()
         logging.debug("".join(traceback.format_exception(typ, val, tb)))
-        print(colorama.Fore.RED +
-              "You are missing a dependency for one of your enabled plugins:")
-        print(colorama.Fore.RED + e.message)
+        print_error("You are missing a dependency for one of your "
+                    "enabled plugins:")
+        print_error(e.message)
     except KeyboardInterrupt:
         colorama.deinit()
         sys.exit(1)
     except Exception as e:
         typ, val, tb = sys.exc_info()
-        print(colorama.Fore.RED + "spreads encountered an error:")
-        print(colorama.Fore.RED +
-              "".join(traceback.format_exception(typ, val, tb)))
+        print_error("spreads encountered an error:")
+        print_error("".join(traceback.format_exception(typ, val, tb)))
     # Deinitialize color support
     colorama.deinit()
 

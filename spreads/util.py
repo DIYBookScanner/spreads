@@ -32,6 +32,7 @@ import subprocess
 from unicodedata import normalize
 
 import blinker
+import colorama
 import psutil
 import roman
 from colorama import Fore, Back, Style
@@ -298,6 +299,17 @@ def get_data_dir(create=False):
     if create and not app_path.exists():
         app_path.mkdir()
     return unicode(app_path)
+
+
+def colorize(text, color):
+    """ Return text with a new ANSI foreground color.
+
+    :param text:    Text to be wrapped
+    :param color:   ANSI color to wrap text in
+    :type color:    str (from :py:class:`colorama.ansi.AnsiCodes`)
+    :return:        Colorized text
+    """
+    return color + text + colorama.Fore.RESET
 
 
 class RomanNumeral(object):

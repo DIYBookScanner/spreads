@@ -28,7 +28,7 @@ import colorama
 
 import spreads.workflow
 import spreads.plugin as plugin
-from spreads.util import DeviceException
+from spreads.util import DeviceException, colorize
 
 if sys.platform == 'win32':
     # On Windows, getch is included in the standard library
@@ -54,17 +54,6 @@ else:
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
         return char
-
-
-def colorize(text, color):
-    """ Return text with a new foreground color.
-
-    :param text:    Text to be wrapped
-    :param color:   ANSI color to wrap text in
-    :type color:    str (from :py:class:`colorama.ansi.AnsiCodes`)
-    :return:        Colorized text
-    """
-    return color + text + colorama.Fore.RESET
 
 
 def draw_progress(progress):
