@@ -201,7 +201,7 @@ def setup_parser(config):
         metavar="<int>", help="Number of concurrent processes")
     postprocess_parser.set_defaults(subcommand=cli.postprocess)
     _add_arguments(parsers=(postprocess_parser, wizard_parser),
-                   mixins=(plugin.ProcessHookMixin))
+                   mixins=(plugin.ProcessHookMixin,))
 
     output_parser = subparsers.add_parser(
         'output',
@@ -210,7 +210,7 @@ def setup_parser(config):
         "path", type=unicode, help="Project path")
     output_parser.set_defaults(subcommand=cli.output)
     _add_arguments(parsers=(output_parser, wizard_parser),
-                   mixins=(plugin.OutputHookMixin))
+                   mixins=(plugin.OutputHookMixin,))
 
     # Add custom subcommands from plugins
     if config["plugins"].get():
