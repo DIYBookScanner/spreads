@@ -105,11 +105,10 @@ class DeviceFeatures(object):  # pragma: no cover
     CAN_DISPLAY_TEXT = 'CAN_DISPLAY_TEXT'
 
 
-class DevicePlugin(SpreadsPlugin):  # pragma: no cover
-    """ Base class for devices.
+class DeviceDriver(SpreadsPlugin):  # pragma: no cover
+    """ Base class for device drivers.
 
         Subclass to implement support for different devices.
-
     """
     __metaclass__ = abc.ABCMeta
 
@@ -262,8 +261,7 @@ class CaptureHooksMixin(object):
         """ Perform some action before capturing begins.
 
         :param devices:     The devices used for capturing
-        :type devices:      list(DevicePlugin)
-
+        :type devices:      list of :py:class:`DeviceDriver`
         """
         pass
 
@@ -272,10 +270,9 @@ class CaptureHooksMixin(object):
         """ Perform some action after each successful capture.
 
         :param devices:     The devices used for capturing
-        :type devices:      list(DevicePlugin)
-        :param path:        Project path
-        :type path:         pathlib.Path
-
+        :type devices:      list of :py:class:`DeviceDriver`
+        :param path:        Workflow path
+        :type path:         :py:class:`pathlib.Path`
         """
         pass
 

@@ -6,12 +6,12 @@ import tempfile
 from jpegtran import JPEGImage
 
 from spreads.config import OptionTemplate
-from spreads.plugin import DevicePlugin, DeviceFeatures
+from spreads.plugin import DeviceDriver, DeviceFeatures
 
 import piggyphoto as pp
 
 
-class GPhoto2CameraDevice(DevicePlugin):
+class GPhoto2CameraDevice(DeviceDriver):
     """ Plugin for digital cameras communicating via raw PTP.
 
     """

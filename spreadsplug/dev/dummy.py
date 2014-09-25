@@ -9,11 +9,11 @@ from wand.drawing import Drawing
 from wand.image import Image
 
 from spreads.config import OptionTemplate
-from spreads.plugin import DevicePlugin, DeviceFeatures
+from spreads.plugin import DeviceDriver, DeviceFeatures
 from spreads.vendor.pathlib import Path
 
 
-class DummyDevice(DevicePlugin):
+class DummyDevice(DeviceDriver):
     """ Plugin for dummy device. For development purposes only.
 
     """
@@ -60,8 +60,9 @@ class DummyDevice(DevicePlugin):
     def set_target_page(self, target_page):
         self.target_page = target_page
 
-    def prepare_capture(self, path):
-        self.logger.info("Preparing capture for path '{0}'".format(path))
+    def prepare_capture(self):
+        self.logger.info("Preparing capture for dummy device '{0}'"
+                         .format(self.target_page))
         self.logger.debug(self.config.flatten())
         time.sleep(3)
 

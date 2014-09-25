@@ -83,7 +83,7 @@ class TestPluginOutput(plugin.HookPlugin,
         (target_path/'output.txt').touch()
 
 
-class TestDriver(plugin.DevicePlugin):
+class TestDriver(plugin.DeviceDriver):
     __name__ = 'testdriver'
 
     features = (plugin.DeviceFeatures.IS_CAMERA, )

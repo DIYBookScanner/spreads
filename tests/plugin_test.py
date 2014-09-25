@@ -22,7 +22,7 @@ def test_set_default_config(config):
 
 
 def test_bad_driver():
-    class BadDriver(plugin.DevicePlugin):
+    class BadDriver(plugin.DeviceDriver):
         pass
 
     with pytest.raises(TypeError):

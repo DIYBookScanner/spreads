@@ -12,7 +12,7 @@ import usb
 from spreads.vendor.pathlib import Path
 
 from spreads.config import OptionTemplate
-from spreads.plugin import DevicePlugin, DeviceFeatures
+from spreads.plugin import DeviceDriver, DeviceFeatures
 from spreads.util import DeviceException, MissingDependencyException
 
 try:
@@ -47,7 +47,7 @@ class CHDKPTPException(Exception):
     pass
 
 
-class CHDKCameraDevice(DevicePlugin):
+class CHDKCameraDevice(DeviceDriver):
     """ Plugin for digital cameras running the CHDK firmware.
 
     """
