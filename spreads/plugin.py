@@ -233,7 +233,7 @@ class HookPlugin(SpreadsPlugin):
     pass
 
 
-class SubcommandHookMixin(object):
+class SubcommandHooksMixin(object):
     __metaclass__ = abc.ABCMeta
 
     @abstractclassmethod
@@ -317,7 +317,7 @@ class TriggerHooksMixin(object):
         pass
 
 
-class ProcessHookMixin(object):
+class ProcessHooksMixin(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
@@ -334,7 +334,7 @@ class ProcessHookMixin(object):
         pass
 
 
-class OutputHookMixin(object):
+class OutputHooksMixin(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod

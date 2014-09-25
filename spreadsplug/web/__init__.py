@@ -75,7 +75,7 @@ except ImportError:
             return None
 
 
-class WebCommands(plugin.HookPlugin, plugin.SubcommandHookMixin):
+class WebCommands(plugin.HookPlugin, plugin.SubcommandHooksMixin):
     __name__ = 'web'
 
     @classmethod

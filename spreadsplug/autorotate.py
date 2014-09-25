@@ -22,7 +22,7 @@ import shutil
 
 from concurrent.futures import ProcessPoolExecutor
 
-from spreads.plugin import HookPlugin, ProcessHookMixin
+from spreads.plugin import HookPlugin, ProcessHooksMixin
 
 logger = logging.getLogger('spreadsplug.autorotate')
 
@@ -81,7 +81,7 @@ except ImportError:
         img.save(filename=out_path)
 
 
-class AutoRotatePlugin(HookPlugin, ProcessHookMixin):
+class AutoRotatePlugin(HookPlugin, ProcessHooksMixin):
     __name__ = 'autorotate'
 
     def _get_progress_callback(self, idx, num_total):

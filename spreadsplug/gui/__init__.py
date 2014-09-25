@@ -19,14 +19,14 @@ import logging
 
 from PySide import QtGui
 
-from spreads.plugin import HookPlugin, SubcommandHookMixin
+from spreads.plugin import HookPlugin, SubcommandHooksMixin
 import gui
 import gui_rc
 
 logger = logging.getLogger('spreadsplug.gui')
 
 
-class GuiCommand(HookPlugin, SubcommandHookMixin):
+class GuiCommand(HookPlugin, SubcommandHooksMixin):
     __name__ = 'gui'
 
     @classmethod

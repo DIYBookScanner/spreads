@@ -120,7 +120,7 @@ class IntroPage(QtGui.QWizardPage):
         available = [
             name for name, cls
             in plugin.get_plugins(*wizard.config['plugins'].get()).items()
-            if not issubclass(cls, plugin.SubcommandHookMixin)
+            if not issubclass(cls, plugin.SubcommandHooksMixin)
         ]
         available.append('device')
 

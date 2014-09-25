@@ -348,7 +348,7 @@ class Workflow(object):
             (name, cls)
             for name, cls in plugin.get_plugins(*self.config["plugins"]
                                                 .get()).iteritems()
-            if not cls.__bases__ == (plugin.SubcommandHookMixin,)]
+            if not cls.__bases__ == (plugin.SubcommandHooksMixin,)]
         self.plugins = [cls(self.config) for name, cls in plugin_classes]
         self.config['plugins'] = [name for name, cls in plugin_classes]
 

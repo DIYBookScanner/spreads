@@ -28,7 +28,7 @@ import time
 from spreads.vendor.pathlib import Path
 
 import spreads.util as util
-from spreads.plugin import HookPlugin, OutputHookMixin
+from spreads.plugin import HookPlugin, OutputHooksMixin
 
 BIN = util.find_in_path('pdfbeads')
 IS_WIN = util.is_os('windows')
@@ -42,7 +42,7 @@ if not BIN:
 logger = logging.getLogger('spreadsplug.pdfbeads')
 
 
-class PDFBeadsPlugin(HookPlugin, OutputHookMixin):
+class PDFBeadsPlugin(HookPlugin, OutputHooksMixin):
     __name__ = 'pdfbeads'
 
     def output(self, pages, target_path, metadata, table_of_contents):

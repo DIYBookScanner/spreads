@@ -116,9 +116,9 @@ def list_plugins():
         'trigger': [name for name, cls in plugins.iteritems()
                     if issubclass(cls, plugin.TriggerHooksMixin)],
         'postprocessing': [name for name, cls in plugins.iteritems()
-                           if issubclass(cls, plugin.ProcessHookMixin)],
+                           if issubclass(cls, plugin.ProcessHooksMixin)],
         'output': [name for name, cls in plugins.iteritems()
-                   if issubclass(cls, plugin.OutputHookMixin)]
+                   if issubclass(cls, plugin.OutputHooksMixin)]
     }
 
 
@@ -167,12 +167,12 @@ def get_available_plugins():
     activated = app.config['default_config']['plugins'].get()
     post_plugins = sorted(
         [ext.name for ext in exts if ext.name in activated
-         and issubclass(ext.load(), plugin.ProcessHookMixin)],
+         and issubclass(ext.load(), plugin.ProcessHooksMixin)],
         key=lambda x: activated.index(x))
     return jsonify({
         'postprocessing': post_plugins,
         'output': [ext.name for ext in exts if ext.name in activated
-                   and issubclass(ext.load(), plugin.OutputHookMixin)]
+                   and issubclass(ext.load(), plugin.OutputHooksMixin)]
     })
 
 

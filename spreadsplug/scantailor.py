@@ -33,7 +33,7 @@ from spreads.vendor.pathlib import Path
 
 import spreads.util as util
 from spreads.config import OptionTemplate
-from spreads.plugin import HookPlugin, ProcessHookMixin
+from spreads.plugin import HookPlugin, ProcessHooksMixin
 
 IS_WIN = util.is_os('windows')
 CLI_BIN = util.find_in_path('scantailor-cli')
@@ -47,7 +47,7 @@ if not CLI_BIN:
 logger = logging.getLogger('spreadsplug.scantailor')
 
 
-class ScanTailorPlugin(HookPlugin, ProcessHookMixin):
+class ScanTailorPlugin(HookPlugin, ProcessHooksMixin):
     __name__ = 'scantailor'
 
     @classmethod

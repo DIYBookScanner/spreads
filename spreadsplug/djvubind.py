@@ -25,7 +25,7 @@ import tempfile
 
 from spreads.vendor.pathlib import Path
 
-from spreads.plugin import HookPlugin, OutputHookMixin
+from spreads.plugin import HookPlugin, OutputHooksMixin
 from spreads.util import MissingDependencyException, find_in_path
 
 if not find_in_path('djvubind'):
@@ -36,7 +36,7 @@ if not find_in_path('djvubind'):
 logger = logging.getLogger('spreadsplug.djvubind')
 
 
-class DjvuBindPlugin(HookPlugin, OutputHookMixin):
+class DjvuBindPlugin(HookPlugin, OutputHooksMixin):
     __name__ = 'djvubind'
 
     # TODO: Adapt to new API

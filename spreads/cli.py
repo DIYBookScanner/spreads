@@ -139,7 +139,7 @@ def _setup_processing_pipeline(config):
     # Only get names of postprocessing plugins. For this we have to load all
     # enabled plugins first and check if they implement the correct hook.
     exts = [name for name, cls in plugin.get_plugins(*config["plugins"].get())
-            .iteritems() if issubclass(cls, plugin.ProcessHookMixin)]
+            .iteritems() if issubclass(cls, plugin.ProcessHooksMixin)]
     if not exts:
         return
     print("The following postprocessing plugins were detected:")

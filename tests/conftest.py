@@ -18,7 +18,7 @@ logging.getLogger().level = logging.DEBUG
 
 
 class TestPluginProcess(plugin.HookPlugin,
-                        plugin.ProcessHookMixin):
+                        plugin.ProcessHooksMixin):
     __name__ = 'test_process'
 
     @classmethod
@@ -57,8 +57,8 @@ class TestPluginProcessB(TestPluginProcess):
 
 
 class TestPluginOutput(plugin.HookPlugin,
-                       plugin.OutputHookMixin,
-                       plugin.SubcommandHookMixin):
+                       plugin.OutputHooksMixin,
+                       plugin.SubcommandHooksMixin):
     __name__ = 'test_output'
 
     @classmethod

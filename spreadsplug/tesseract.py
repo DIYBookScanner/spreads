@@ -28,7 +28,7 @@ from itertools import chain
 
 import spreads.util as util
 from spreads.config import OptionTemplate
-from spreads.plugin import HookPlugin, ProcessHookMixin
+from spreads.plugin import HookPlugin, ProcessHooksMixin
 from spreads.vendor.pathlib import Path
 
 BIN = util.find_in_path('tesseract')
@@ -54,7 +54,7 @@ except (subprocess.CalledProcessError, ValueError):
 logger = logging.getLogger('spreadsplug.tesseract')
 
 
-class TesseractPlugin(HookPlugin, ProcessHookMixin):
+class TesseractPlugin(HookPlugin, ProcessHooksMixin):
     __name__ = 'tesseract'
 
     @classmethod
