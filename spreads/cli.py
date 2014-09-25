@@ -342,7 +342,6 @@ def _update_callback(_, changes):
         draw_progress(changes['status']['step_progress'])
 
 
-
 def postprocess(config):
     """ Launch postprocessing plugins and display their progress
 

@@ -111,9 +111,9 @@ def check_futures_exceptions(futures):
     """" Go through passed :py:class:`concurrent.futures._base.Future` objects
          and re-reaise the first Exception raised by any one of them.
 
-    :param futures:     Iterable that contains the futures to be checked
-    :type futures:      iterable with :py:class:`concurrent.futures._base.Future`
-                        instances
+    :param futures: Iterable that contains the futures to be checked
+    :type futures:  iterable with :py:class:`concurrent.futures._base.Future`
+                    instances
     """
     if any(x.exception() for x in futures):
         exc = next(x for x in futures if x.exception()).exception()
@@ -190,7 +190,6 @@ def diff_dicts(old, new):
     return out
 
 
-PUNCTUATION_REXP = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
 def slugify(text, delimiter=u'-'):
     """Generates an ASCII-only slug.
 
@@ -204,8 +203,9 @@ def slugify(text, delimiter=u'-'):
     :return:            The generated slug
     :rtype:             unicode
     """
+    punctuation_re = r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+'
     result = []
-    for word in PUNCTUATION_REXP.split(text.lower()):
+    for word in re.split(punctuation_re, text.lower()):
         word = normalize('NFKD', word).encode('ascii', 'ignore')
         if word:
             result.append(word)
