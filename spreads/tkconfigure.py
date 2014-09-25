@@ -1,3 +1,26 @@
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""
+Graphical configuration dialog.
+"""
+
+from __future__ import division, unicode_literals
+
 import logging
 import Tkinter as tk
 import tkMessageBox as messagebox
@@ -10,8 +33,14 @@ logger = logging.getLogger("guiconfig")
 # TODO: Implement inter-dependant display of widgets
 
 
-class TkConfigurationWindows(tk.Frame):
+class TkConfigurationWindow(tk.Frame):
+    """ Window that holds the dialog """
     def __init__(self, spreads_config, master=None):
+        """ Initialize Window with global configuration.
+
+        :param spreads_config:  Global configuration
+        :type spreads_config:   :py:class:`spreads.config.Configuration`
+        """
         tk.Frame.__init__(self, master)
         self.spreads_config = spreads_config
         self.grid()
@@ -24,6 +53,12 @@ class TkConfigurationWindows(tk.Frame):
         self.load_values()
 
     def update_plugin_config(self, plugins):
+        """ Update list of activated plugins and load its default
+            configuration.
+
+        :param plugins:     List of names of plugins to activate
+        :type plugins:      list of unicode
+        """
         config = self.spreads_config
         new_plugins = [x for x in plugins
                        if x not in config["plugins"].get()]
@@ -35,6 +70,14 @@ class TkConfigurationWindows(tk.Frame):
             self.spreads_config.set_from_template(name, config.templates[name])
 
     def on_update_driver(self, event):
+        """ Callback for when the user selects a driver.
+
+        Updates the driver in the configuration and toggles the status of
+        widgets that depend on certain device features.
+
+        :param event:   Event from Tkinter
+        :type event:    :py:class:`Tkinter.Event`
+        """
         driver_name = self.driver_select.get()
         driver = plugin.get_driver(driver_name)
         self.spreads_config["driver"] = driver_name
@@ -45,6 +88,18 @@ class TkConfigurationWindows(tk.Frame):
                 widget['state'] = "enabled"
 
     def on_update_plugin_selection(self, event):
+        """ Callback for when the user toggles a plugin.
+
+        Tries to load the newly selected plugins. If loading fails, a dialog
+        with the cause of failure will be displayed and the plugin will be
+        highlighted in the list and made inactive. If successful, the plugin
+        will be added to the 'postprocessing order' widget (if it implements
+        :py:class:`spreads.plugin.ProcessHooksMixin`) and the configuration
+        will be updated.
+
+        :param event:   Event from Tkinter
+        :type event:    :py:class:`Tkinter.Event`
+        """
         selection = self.plugin_select.selection()
         self.selected_plugins = list(selection)
         try:
@@ -73,6 +128,14 @@ class TkConfigurationWindows(tk.Frame):
         self.update_plugin_config(selection)
 
     def on_process_plugin_move(self, event):
+        """ Callback for when the user changes the position of a plugin in
+            the postprocessing order widget.
+
+        Updates the widget and writes the new order to the configuration.
+
+        :param event:   Event from Tkinter
+        :type event:    :py:class:`Tkinter.Event`
+        """
         tree = event.widget
         moveto = tree.index(tree.identify_row(event.y))
         tree.move(tree.selection()[0], '', moveto)
@@ -81,6 +144,8 @@ class TkConfigurationWindows(tk.Frame):
              if x not in tree.get_children()] + list(tree.get_children()))
 
     def create_driver_widgets(self):
+        """ Create widgets for driver-related actions. """
+        # Dropdown for driver selection
         self.driver_label = ttk.Label(self, text="Select a driver")
         self.driver_label.grid(column=0, row=2, sticky="E")
         self.driver_select = ttk.Combobox(
@@ -88,6 +153,7 @@ class TkConfigurationWindows(tk.Frame):
         self.driver_select.bind("<<ComboboxSelected>>", self.on_update_driver)
         self.driver_select.grid(column=1, row=2, sticky="WE")
 
+        # Buttons for setting of target page
         self.orient_label = ttk.Label(self, text="Set device for target pages",
                                       state="disabled")
         self.orient_label.grid(column=0, row=3, columnspan=2)
@@ -100,6 +166,7 @@ class TkConfigurationWindows(tk.Frame):
             command=lambda: self.set_orientation('even'))
         self.orient_even_btn.grid(column=1, row=4)
 
+        # Button to configure device focus
         self.focus_label = ttk.Label(self, text="Configure focus",
                                      state="disabled")
         self.focus_label.grid(column=0, row=5, columnspan=2)
@@ -108,7 +175,10 @@ class TkConfigurationWindows(tk.Frame):
         self.focus_btn.grid(column=0, row=6, columnspan=2)
 
     def create_plugin_widgets(self):
+        """ Create widgets for plugin-related actions. """
         available_plugins = plugin.available_plugins()
+
+        # List of available boxes with checkboxes
         self.plugin_label = ttk.Label(self, text="Select plugins\n"
                                                  "to be activated")
         self.plugin_label.grid(column=0, row=0, sticky="E")
@@ -122,6 +192,7 @@ class TkConfigurationWindows(tk.Frame):
         )
         self.plugin_select.grid(column=1, row=0, sticky="WE")
 
+        # Widget to configure postprocessing plugin order
         self.processorder_label = ttk.Label(
             self, text="Select order of\npostprocessing plugins")
         self.processorder_label.grid(column=0, row=1, sticky="E")
@@ -133,6 +204,7 @@ class TkConfigurationWindows(tk.Frame):
         self.processorder_tree.grid(column=1, row=1)
 
     def load_values(self):
+        """ Set widget state from configuration. """
         if 'driver' in self.spreads_config.keys():
             self.driver_select.set(self.spreads_config["driver"].get())
             self.on_update_driver(None)
@@ -142,6 +214,15 @@ class TkConfigurationWindows(tk.Frame):
             self.on_update_plugin_selection(None)
 
     def set_orientation(self, target):
+        """ Set target page on a device.
+
+        Prompts the user to connect a device, prompts to retry or cancel
+        on failure. If successful, updates the target page setting on the
+        device.
+
+        :param target:  Target page to set on device
+        :type target:   unicode, one of "odd" or "even"
+        """
         rv = messagebox.askokcancel(
             message=("Please connect and turn on the camera for {0} pages"
                      .format(target)),
@@ -169,6 +250,13 @@ class TkConfigurationWindows(tk.Frame):
         messagebox.showinfo(message="Please turn off the device.")
 
     def configure_focus(self):
+        """ Acquire auto-focus value from devices and update the configuration
+            with it.
+
+        Prompts the user to connect a device, asks for cancel/retry on failure.
+        On successful connection, acquires focus and writes the value to the
+        configuration.
+        """
         # TODO: Handle independent focus for both devices
         rv = messagebox.askokcancel(
             message="Please connect and turn on one of your cameras.",
@@ -191,12 +279,14 @@ class TkConfigurationWindows(tk.Frame):
                     continue
 
     def save_config(self):
+        """ Write configuration to disk. """
         config = self.spreads_config
         config.dump(filename=config.cfg_path)
 
 
 def configure(config):
-    app = TkConfigurationWindows(config)
+    """ Initialize and display configuration dialog. """
+    app = TkConfigurationWindow(config)
     app.master.title = "Initial configuration"
     app.master.resizable(False, False)
     tk.mainloop()
