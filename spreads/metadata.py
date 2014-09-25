@@ -15,7 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" Metadata class and utility function
+"""
+Metadata class and utility functions.
+
+:py:func:`get_isbn_suggestions` and :py:func:`get_isbn_metadata` return a
+dictionary with the following keys (which corresponds to the Dublin Core
+field of the same name): `creator`, `identifier`, `date`, `language`.
 """
 
 from __future__ import division, unicode_literals
@@ -49,6 +54,13 @@ def _format_isbnlib(isbnrecord):
 
 
 def get_isbn_suggestions(query):
+    """ For a given `query`, return a list of metadata suggestions.
+
+    :param query:   Search query
+    :type query:    unicode
+    :returns:       List of suggestions
+    :rtype:         list of dict
+    """
     if isinstance(query, unicode):
         query = query.encode('utf-8')
     results = googlebooks.query(query)
@@ -59,6 +71,14 @@ def get_isbn_suggestions(query):
 
 
 def get_isbn_metadata(isbn):
+    """ For a given valid ISBN number (-10 or -13) return the corresponding
+        metadata.
+
+    :param isbn:    A valid ISBN-10 or ISBN-13
+    :type isbn:     unicode
+    :returns:       Metadata for ISBN
+    :rtype:         dict or `None` if ISBN is not valid or does not exist
+    """
     try:
         rv = isbnlib.meta(isbn)
         if rv:
@@ -68,6 +88,15 @@ def get_isbn_metadata(isbn):
 
 
 class SchemaField(object):
+    """ Definition of a field in a metadata schema.
+
+    :attr key:          Key/field name
+    :type key:          unicode
+    :attr description:  Description of the field
+    :type description:  unicode
+    :attr multivalued:  Whether the field can hold multiple values
+    :type multivalued:  bool
+    """
     def __init__(self, key, description=None, multivalued=False):
         self.key = key
         self.multivalued = multivalued
@@ -88,6 +117,13 @@ class SchemaField(object):
 
 
 class Metadata(MutableMapping):
+    """ dict-like object that has a schema of metadata fields (currently
+    hard-wired to Dublin Core) and persists all operations to a `dcmeta.txt`
+    text file on the disk.
+    """
+    #TODO: This should really be exposed over the plugin API so that plugins
+    #      can specify custom schemas that would render across all UIs,
+    #      similar to `OptionTemplate` for the configuration.
     FILENAME = 'dcmeta.txt'
     SCHEMA = [
         SchemaField('title'),
@@ -107,6 +143,12 @@ class Metadata(MutableMapping):
             raise KeyError("Could not find field '{0}' in schema".format(key))
 
     def __init__(self, base_path):
+        """ Create a new instance and try to load current values from an
+            existing file.
+
+        :param base_path:   Directory where `dcmeta.txt` should be stored
+        :type path:         :py:class:`pathlib.Path`
+        """
         self.filepath = base_path/self.FILENAME
         self._backingstore = BagInfo(unicode(self.filepath))
 
