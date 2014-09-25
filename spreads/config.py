@@ -15,6 +15,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+Configuration entities.
+"""
+
 import copy
 import logging
 
@@ -25,16 +29,17 @@ import spreads.util as util
 
 
 class OptionTemplate(object):
-    """ A configuration option.
+    """ Definition of a configuration option.
 
     :attr value:      The default value for the option or a list of available
-                      options if :attr selectable: is True
-    :type value:      object (or list/tuple when :attr selectable: is True)
+                      options if :py:attr`selectable` is True
+    :type value:      object (or list/tuple when :py:attr:`selectable` is True)
     :attr docstring:  A string explaining the configuration option
     :type docstring:  unicode
-    :attr selectable: Make the OptionTemplate a selectable, i.e. value contains
-                      a list or tuple of acceptable values for this option,
-                      with the first member being the default selection.
+    :attr selectable: Make the `OptionTemplate` a selectable, i.e. value
+                      contains a list or tuple of acceptable values for this
+                      option, with the first member being the default
+                      selection.
     :type selectable: bool
     :attr advanced:   Whether the option is an advanced option
     :type advanced:   bool
@@ -58,6 +63,8 @@ class OptionTemplate(object):
                         repr(self.selectable), repr(self.advanced),
                         repr(self.depends)))
 
+
+# Configuration templates for the core
 CORE_OPTIONS = {
     'verbose': OptionTemplate(value=False,
                               docstring="Enable verbose output"),
@@ -75,7 +82,19 @@ CORE_OPTIONS = {
 
 
 class Configuration(object):
+    """ Entity managing configuration state.
+
+    Uses :py:class:`confit.Configuration` underneath the hood and follows
+    its 'overlay'-principle.
+    Proxies :py:meth:`__getitem__` and :py:meth:`__setitem__` from it, so
+    it can be used as a dict-like type.
+    """
     def __init__(self, appname='spreads'):
+        """ Create new instance and load default and current configuration.
+
+        :param appname:     Application name, configuration will be loaded from
+                            this name's default configuration directory
+        """
         self._config = confit.Configuration(appname, __name__)
         self._config.read()
         if 'plugins' not in self._config.keys():
@@ -86,26 +105,33 @@ class Configuration(object):
     # ----------------------------------------- #
     # Proxied methods from confit.Configuration #
     def __getitem__(self, key):
+        """ See :py:meth:`confit.ConfigView.__getitem__` """
         return self._config[key]
 
     def __setitem__(self, key, value):
+        """ See :py:meth:`confit.ConfigView.__setitem__` """
         self._config[key] = value
 
     def keys(self):
+        """ See :py:meth:`confit.ConfigView.keys` """
         return self._config.keys()
 
     def dump(self, filename=None, full=True, sections=None):
+        """ See :py:meth:`confit.Configuration.dump` """
         return self._config.dump(unicode(filename), full, sections)
 
     def flatten(self):
+        """ See :py:meth:`confit.Configuration.flatten` """
         return self._config.flatten()
     # ----------------------------------------- #
 
     def load_templates(self):
-        """ Get all available configuration templates.
+        """ Get all available configuration templates from the activated
+        plugins.
 
-        :rtype: dict
-
+        :returns:   Mapping from plugin name to template mappings.
+        :rtype:     dict unicode -> (dict unicode ->
+                    :py:class:`OptionTemplate`)
         """
         import spreads.plugin
         self.templates = {}
@@ -124,6 +150,11 @@ class Configuration(object):
 
     @property
     def cfg_path(self):
+        """ Path to YAML file of the user-specific configuration.
+
+        :returns:   Path
+        :rtype:     :py:class:`pathlib.Path`
+        """
         return Path(self._config.config_dir()) / confit.CONFIG_FILENAME
 
     def with_overlay(self, overlay):
@@ -131,16 +162,18 @@ class Configuration(object):
         over the present configuration.
 
         :param overlay:   The configuration to be overlaid
-        :type overlay:    confit.ConfigSource or dict
+        :type overlay:    :py:class:`confit.ConfigSource` or dict
         :return:          A new, merged configuration
-        :rtype:           confit.Configuration
-
+        :rtype:           :py:class:`confit.Configuration`
         """
         new_config = copy.deepcopy(self._config)
         new_config.set(overlay)
         return new_config
 
     def as_view(self):
+        """ Return the `Configuration` as a :py:class:`confit.ConfigView`
+            instance.
+        """
         return self._config
 
     def load_defaults(self, overwrite=True):
@@ -156,9 +189,8 @@ class Configuration(object):
 
         :param section:   Target section for settings
         :type section:    unicode
-        :type template:   OptionTemplate
+        :type template:   :py:class:`OptionTemplate`
         :param overwrite: Whether to overwrite already existing values
-
         """
         old_settings = self[section].flatten()
         settings = copy.deepcopy(old_settings)
@@ -174,10 +206,10 @@ class Configuration(object):
         self[section].set(settings)
 
     def set_from_args(self, args):
-        """ Apply settings from parsed arguments.
+        """ Apply settings from parsed command-line arguments.
 
-        :type args:   argparse.Namespace
-
+        :param args:    Parsed command-line arguments
+        :type args:     :py:class:`argparse.Namespace`
         """
         for argkey, value in args.__dict__.iteritems():
             skip = (value is None
