@@ -123,19 +123,20 @@ def setup_parser(config):
         if extra_names is None:
             extra_names = []
         for parser in parsers:
-            # Only plugins that implement the capture or trigger hook mixins and
-            # the currently active device configuration are relevant for this
-            # subcommand.
+            # Only plugins that implement the capture or trigger hook mixins
+            # and the currently active device configuration are relevant for
+            # this subcommand.
             ext_names = [name for name, cls in plugins.iteritems()
                          if any(issubclass(cls, mixin) for mixin in mixins)]
             ext_names.extend(extra_names)
             for ext in ext_names:
                 for key, tmpl in config.templates.get(ext, {}).iteritems():
-                    if not should_show_argument(option, config['plugins'].get()):
+                    if not should_show_argument(option,
+                                                config['plugins'].get()):
                         continue
                     try:
                         add_argument_from_template(ext, key, tmpl, parser,
-                                                config[ext][key].get())
+                                                   config[ext][key].get())
                     except TypeError:
                         continue
 

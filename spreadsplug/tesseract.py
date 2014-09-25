@@ -150,7 +150,8 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
             # NOTE: This modifies the hOCR files to make them compatible with
             #       pdfbeads.
             #       See the following bugreport for more information:
-            #       http://rubyforge.org/tracker/index.php?func=detail&aid=29737&group_id=9752&atid=37737
+            #       http://rubyforge.org/tracker/index.php?func=detail&\
+            #       aid=29737&group_id=9752&atid=37737
             # FIXME: Somehow this does not work for some files, find out why
             content = re.sub(
                 r'(<span[^>]*>(<strong>)? +(<\/strong>)?<\/span> *)'
