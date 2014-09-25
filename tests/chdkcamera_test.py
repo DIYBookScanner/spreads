@@ -154,14 +154,14 @@ def test_set_target_page(write, camera):
 
 
 def test_prepare_capture(camera):
-    camera.prepare_capture(Path('/tmp/foo.jpg'))
+    camera.prepare_capture()
     camera._execute_lua.assert_any_call('enter_alt()')
     camera._run.assert_any_call('rec')
 
 
 def test_prepare_capture_withrec(camera):
     camera._run.side_effect = chdkcamera.CHDKPTPException()
-    camera.prepare_capture(Path('/tmp/foo.jpg'))
+    camera.prepare_capture()
     camera._execute_lua.assert_any_call('enter_alt()')
     camera._run.assert_any_call('rec')
 

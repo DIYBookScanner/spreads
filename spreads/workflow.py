@@ -673,7 +673,7 @@ class Workflow(object):
             futures = []
             self._logger.debug("Preparing capture in devices")
             for dev in self.devices:
-                futures.append(executor.submit(dev.prepare_capture, self.path))
+                futures.append(executor.submit(dev.prepare_capture))
         util.check_futures_exceptions(futures)
 
         flip_target = ('flip_target_pages' in self.config['device'].keys()
@@ -682,7 +682,7 @@ class Workflow(object):
             (self.devices[0].target_page,
              self.devices[1].target_page) = (self.devices[1].target_page,
                                              self.devices[0].target_page)
-        self._run_hook('prepare_capture', self.devices, self.path)
+        self._run_hook('prepare_capture', self.devices)
         self._run_hook('start_trigger_loop', self.capture)
         self._update_status(prepared=True)
 

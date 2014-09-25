@@ -109,7 +109,7 @@ class TestDriver(plugin.DevicePlugin):
     def set_target_page(self, target):
         self.target_page = target
 
-    def prepare_capture(self, path):
+    def prepare_capture(self):
         pass
 
     def capture(self, path):

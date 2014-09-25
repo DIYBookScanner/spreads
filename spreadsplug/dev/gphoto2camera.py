@@ -96,7 +96,7 @@ class GPhoto2CameraDevice(DevicePlugin):
         serialnumber = self._camera.config['status']['serialnumber'].value
         self.config['target_page'][serialnumber].set(target_page)
 
-    def prepare_capture(self, path):
+    def prepare_capture(self):
         iso = str(self.config['iso'].get())
         shoot_raw = self.config['shoot_raw'].get(bool)
         shutter_speed = str(self.config["shutter_speed"].get())

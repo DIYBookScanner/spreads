@@ -181,7 +181,7 @@ class DevicePlugin(SpreadsPlugin):  # pragma: no cover
         raise NotImplementedError
 
     @abc.abstractmethod
-    def prepare_capture(self, path):
+    def prepare_capture(self):
         """ Prepare device for scanning.
 
         What this means exactly is up to the implementation and the type,
@@ -258,13 +258,11 @@ class CaptureHooksMixin(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def prepare_capture(self, devices, path):
+    def prepare_capture(self, devices):
         """ Perform some action before capturing begins.
 
         :param devices:     The devices used for capturing
         :type devices:      list(DevicePlugin)
-        :param path:        Project path
-        :type path:         pathlib.Path
 
         """
         pass
