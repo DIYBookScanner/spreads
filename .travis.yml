@@ -11,9 +11,11 @@ before_install:
     - "sh -e /etc/init.d/xvfb start"
     - sleep 3
 install:
-    - pip install cffi
+    - pip install cffi flake8 pep8 pyflakes
     - pip install -e ".[web,hidtrigger,autorotate,chdkcamera]"
     - pip install -r test-requirements.txt
     - pip install -e .
-script:  py.test --cov spreads --cov spreadsplug tests
+script:
+    - flake8 spreads spreadsplug tests --exclude=vendor
+    - py.test --cov spreads --cov spreadsplug tests
 after_success: coveralls
