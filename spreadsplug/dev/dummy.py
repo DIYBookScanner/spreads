@@ -30,11 +30,18 @@ class DummyDevice(DeviceDriver):
                                        True, True)
         tmpl['depends'] = OptionTemplate(0, "A dependant option",
                                          depends={'device': {'super': 'bar'}})
+        tmpl['single'] = OptionTemplate(
+            value=False,
+            docstring="Simulate a single device instead of a pair")
         return tmpl
 
     @classmethod
     def yield_devices(cls, config):
-        return [cls(config, None, 'even'), cls(config, None, 'odd')]
+        if not config['single'].get(bool):
+            return [cls(config, None, 'even'), cls(config, None, 'odd')]
+        else:
+            # Single page emulation, only yield one device
+            return [cls(config, None, 'odd')]
 
     def __init__(self, config, device, target_page):
         base_path = Path(os.path.expanduser('~/.config/spreads'))
