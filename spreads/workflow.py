@@ -16,7 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-spreads workflow object.
+Central :py:class:`Workflow` entity (and its signals) and various associated
+entities.
 """
 
 from __future__ import division, unicode_literals
@@ -110,7 +111,17 @@ def _signal_on_error(signal):
 
 
 class ValidationError(ValueError):
+    """ Raised when some kind of validation error occured.
+
+    :attr message:  General error message
+    :attr errors:   Mapping from field name to validation error message
+    """
     def __init__(self, message=None, **kwargs):
+        """ Create new instance.
+
+        ``**kwargs`` should be a mapping from a field name to an error
+        message.
+        """
         if message is None:
             message = "Invalid values for {0}".format(kwargs.keys())
         super(ValueError, self).__init__(message)
@@ -118,33 +129,35 @@ class ValidationError(ValueError):
 
 
 class Page(object):
+    """ Entity that holds information about a single page.
+
+    :attr raw_image:        The path to the raw image.
+    :attr processed_images: A dictionary of plugin names mapped to the path of
+                            a processed file.
+    :attr capture_num:      The capture number of the page, i.e. at what
+                            position in the workflow it was recorded, including
+                            aborted and retaken shots.
+    :attr sequence_num:     The sequence number of the page, i.e. at what
+                            position in the list of 'good' captures it is.
+                            Usually identical with the position in the
+                            containing `pages` list. Defaults to the capture
+                            number.
+    :attr page_label:       A label for the page. Must be an integer, a string
+                            of digits or a roman numeral (e.g. 12, '12',
+                            'XII'). Defaults to the sequence number.
+    """
     __slots__ = ["sequence_num", "capture_num", "raw_image", "page_label",
                  "processed_images"]
 
     def __init__(self, raw_image, sequence_num=None, capture_num=None,
                  page_label=None, processed_images=None):
-
-        #: The path to the raw image
         self.raw_image = raw_image
-
-        #: A dictionary of plugin names mapped to the path of a processed file
         self.processed_images = processed_images or {}
-
-        #: The capture number of the page, i.e. at what position in the
-        #  workflow it was recorded, including aborted and retaken shots
         if capture_num:
             self.capture_num = capture_num
         else:
             self.capture_num = int(raw_image.stem)
-
-        #: The sequence number of the page, i.e. at what position in the
-        #  list of 'good' captures it is. Usually identical with the position
-        #  in the containing `pages` list. Defaults to the capture number
         self.sequence_num = sequence_num or self.capture_num
-
-        #: A label for the page. Must be an integer, a string of digits or
-        #  a roman numeral (e.g. 12, '12', 'XII'). Defaults to the sequence
-        # number
         if page_label:
             # TODO: Add support for letter numbering (e.g. 'a' -> 1,
             #       'aa' -> 27, 'zz' -> 52, etc)
@@ -162,6 +175,13 @@ class Page(object):
             self.page_label = unicode(self.sequence_num)
 
     def get_latest_processed(self, image_only=True):
+        """ Get the least recent postprocessed file
+
+        :param image_only:  Only return image files (e.g. no OCR files)
+        :type image_only:   bool
+        :returns:           Path to least recent postprocessed file
+        :rtype:             :py:class:`pathlib.Path`
+        """
         img_exts = ('.jpg', '.jpeg', '.png', '.tif', '.tiff')
         paths = self.processed_images.values()
         if image_only:
@@ -173,6 +193,10 @@ class Page(object):
             return None
 
     def to_dict(self):
+        """ Serialize entity to a dict.
+
+        Used by :py:class:`spreads.util.CustomJSONEncoder`.
+        """
         return {
             'sequence_num': self.sequence_num,
             'capture_num': self.capture_num,
@@ -183,6 +207,14 @@ class Page(object):
 
 
 class TocEntry(object):
+    """ Represent a 'table of contents' entry.
+
+    :attr title:        Label/title of the entry
+    :attr start_page:   First page of the entry
+    :attr end_page:     First page no longer part of the entry
+    :attr children;     Other :py:class:`TocEntry` objects that designate a
+                        sub-range of this entry
+    """
     __slots__ = ("title", "start_page", "end_page", "children")
 
     def __init__(self, title, start_page, end_page, children=None):
@@ -199,6 +231,10 @@ class TocEntry(object):
                  repr(self.children))
 
     def to_dict(self):
+        """ Serialize entity to a dict.
+
+        Used by :py:class:`spreads.util.CustomJSONEncoder`.
+        """
         return {
             'title': self.title,
             'start_page': self.start_page.sequence_num,
@@ -208,16 +244,60 @@ class TocEntry(object):
 
 
 class Workflow(object):
+    """ Core entity for managing scanning workflows.
+
+    :attr id:           UUID for the workflow
+    :attr status:       Current status. Keys are ``step`` ('capture', 'process'
+                        or 'output'), ``step_progress`` (Progress as a value
+                        between 0 and 1) and ``prepared`` (whether capture is
+                        already prepared).
+    :type status:       dict
+    :attr path:         Path to directory containing the
+                        workflow's data.
+    :type path;         :py:class:`pathlib.Path`
+    :attr bag:          Underlying  BagIt data structure
+    :type bag:          py:class:`spreads.vendor.bagit.Bag`
+    :attr slug:         ASCIIfied version of workflow title without spaces.
+    :attr config:       Configuration for the worklfow, takes precedence
+                        over the global configuration).
+    :type config:       py:class:`confit.ConfigView`
+    :attr metadata:     Metadata, contains at least a ``title`` field.
+    :type metadata:     :py:class:`spreads.metadata.Metadata`
+    :attr pages:        Pages available in the workflow
+    :type pages:        list of :py:class:`Page`
+    :attr table_of_contents: Table of contents entries in the workflow
+    :type table_of_contents: list of :py:class:`TocEntry`
+    :attr last_modified: Time of last modification
+    :type last_modified: py:class:`datetime.datetime`
+    :attr devices:      Active devices
+    :type devices:      list of py:class:`spreads.plugin.DeviceDriver`
+    :attr out_files:    Generated output files
+    :type out_files:    list of :py:class:`pathlib.Path`
+    """
+    # Class-wide cache of :py:class:`Workflow` instances
     _cache = {}
 
     def __new__(cls, *args, **kwargs):
-        # Put workflows into cache when they're created
+        """ Automatically cache every new :py:class:`Workflow` instance. """
         on_created.connect(lambda sender, **kwargs: cls._add_to_cache(sender),
                            weak=False)
         return super(Workflow, cls).__new__(cls, *args, **kwargs)
 
     @classmethod
     def create(cls, location, metadata=None, config=None):
+        """ Create a new Workflow.
+
+        :param location:    Base directory that the workflow should be created
+                            in
+        :type location:     unicode or :py:class:`pathlib.Path`
+        :param metadata:    Initial metadata for workflow. Must at least
+                            contain a `title` item.
+        :type metadata:     dict
+        :param config:      Initial configuration for workflow
+        :type config:       dict or :py:class:`spreads.config.Configuration`
+        :return:            The new instance
+        :rtype:             :py:class:`Workflow`
+        """
         if not isinstance(location, Path):
             location = Path(location)
         if metadata is None or not 'title' in metadata:
@@ -243,7 +323,7 @@ class Workflow(object):
         """ List all workflows in the given location.
 
         :param location:    Location where the workflows are located
-        :type location:     unicode/pathlib.Path
+        :type location:     unicode or :py:class:`pathlib.Path`
         :param key:         Attribute to use as key for returned dict
         :type key:          str
         :param reload:      Do not load workflows from cache
@@ -276,6 +356,14 @@ class Workflow(object):
 
     @classmethod
     def find_by_id(cls, location, id):
+        """ Try to locate a workflow with the given id in a directory.
+
+        :param location:    Base directory that contains workflows to be
+                            searched among
+        :type location:     unicode or :py:class:`pathlib.Path`
+        :param id:          ID of workflow to be searched for
+        :rtype:             :py:class:`Workflow` or None
+        """
         if not isinstance(location, Path):
             location = Path(location)
         try:
@@ -285,6 +373,15 @@ class Workflow(object):
 
     @classmethod
     def find_by_slug(cls, location, slug):
+        """ Try to locate a workflow that matches a given slug in a directory.
+
+        :param location:    Base directory that contains workflows to be
+                            searched among
+        :type location:     unicode or :py:class:`pathlib.Path`
+        :param slug:        Slug of workflow to be searched for
+        :type slug:         unicode
+        :rtype:             :py:class:`Workflow` or None
+        """
         if not isinstance(location, Path):
             location = Path(location)
         try:
@@ -294,6 +391,11 @@ class Workflow(object):
 
     @classmethod
     def remove(cls, workflow):
+        """ Delete a workflow from the disk and cache.
+
+        :param workflow:    Workflow to be deleted
+        :type workflow:     :py:class:`Workflow`
+        """
         wf_busy = (workflow.status['step'] is not None and
                    workflow.status['step_progress'] < 1)
         if wf_busy:
@@ -307,6 +409,7 @@ class Workflow(object):
     def __init__(self, path, config=None, metadata=None):
         self._logger = logging.getLogger('Workflow')
         self._logger.debug("Initializing workflow {0}".format(path))
+
         self.status = {
             'step': None,
             'step_progress': None,
@@ -332,15 +435,23 @@ class Workflow(object):
             self.config = config.as_view()
         else:
             self.config = self._load_config(config)
+        #: :py:class:`spreads.metadata.Metadata` instance that backs the
+        #: corresponding getter and setter
         self._metadata = Metadata(self.path)
 
+        # This will invoke the setter
         if metadata:
             self.metadata = metadata
 
+        #: Lock that is held when a shot is being executed during the capture
+        #: phase
         self._capture_lock = threading.RLock()
+        #: List of :py:class:`spreads.plugin.DeviceDriver` instances that
+        #: backs the corresponding getters and setters
         self._devices = None
-        self._pluginmanager = None
+        # Thread pool for background tasks
         self._threadpool = concfut.ThreadPoolExecutor(max_workers=1)
+        # List of unfinished :py:class:`concurrent.futures.Future` instances
         self._pending_tasks = []
 
         # Filter out subcommand plugins, since these are not workflow-specific
@@ -349,14 +460,12 @@ class Workflow(object):
             for name, cls in plugin.get_plugins(*self.config["plugins"]
                                                 .get()).iteritems()
             if not cls.__bases__ == (plugin.SubcommandHooksMixin,)]
-        self.plugins = [cls(self.config) for name, cls in plugin_classes]
+        self._plugins = [cls(self.config) for name, cls in plugin_classes]
         self.config['plugins'] = [name for name, cls in plugin_classes]
-
-        # Save configuration
         self._save_config()
 
         self.pages = self._load_pages()
-        self.table_of_contents = self.load_toc()
+        self.table_of_contents = self._load_toc()
 
         if is_new:
             on_created.send(self, workflow=self)
@@ -371,6 +480,7 @@ class Workflow(object):
 
     @property
     def slug(self):
+        # Read from Bag info
         return self.bag.info.get('spreads-slug')
 
     @slug.setter
@@ -380,6 +490,10 @@ class Workflow(object):
 
     @property
     def last_modified(self):
+        # We use the most recent of the modified timestamps of the two
+        # checksum files of the BagIt directory, since any relevant changes
+        # to the workflow's structure will cause a change in at least one
+        # file hash.
         return datetime.fromtimestamp(
             max(Path(self.path/fname).stat().st_mtime
                 for fname in ('manifest-md5.txt', 'tagmanifest-md5.txt')))
@@ -401,6 +515,7 @@ class Workflow(object):
         return self._devices
 
     def _fix_page_numbers(self, page_to_remove):
+        """ Fix page numbers and numeric page labels if a page was removed. """
         def get_num_type(num_str):
             if page_to_remove.page_label.isdigit():
                 return int, None
@@ -427,6 +542,7 @@ class Workflow(object):
             next_page.sequence_num = idx
 
     def _fix_table_of_contents(self, page_to_remove):
+        """ Fix table of contents if a page was removed. """
         def find_page_in_toc(toc):
             matches = []
             for entry in toc:
@@ -445,6 +561,14 @@ class Workflow(object):
         self._save_toc()
 
     def remove_pages(self, *pages):
+        """ Remove one or more pages from the workflow.
+
+        This will irrevocably remove the page metadata as well as all of its
+        associated files, so use responsibly!
+
+        :param pages:   One or more pages to remove
+        :type pages:    :py:class:`Page`
+        """
         for page in pages:
             page.raw_image.unlink()
             for fp in page.processed_images.itervalues():
@@ -456,6 +580,18 @@ class Workflow(object):
         self.bag.update_payload(fast=True)
 
     def crop_page(self, page, left, top, width=None, height=None, async=False):
+        """ Crop a page's raw image.
+
+        :param page:    Page the raw image of which should be cropped
+        :param left:    X coordinate of crop boundary
+        :param top:     Y coordinate of crop boundary
+        :param width:   Width of crop box
+        :param height:  Height of crop box
+        :param async:   Perform the cropping in a background thread
+        :return:        The Future object when ``async`` was ``True``
+        :rtype:         :py:class:`concurrent.futures.Future`
+        """
+        # FIXME: Does this really have to be a Workflow method?
         def do_crop(fname, left, top, width, height):
             if HAS_JPEGTRAN:
                 img = JPEGImage(fname)
@@ -511,11 +647,13 @@ class Workflow(object):
         on_modified.send(self, changes={'metadata': value})
 
     def save(self):
+        """ Persist all changes to the corresponding files on disk. """
         self._save_config()
         self._save_toc()
         self._save_pages()
 
     def _update_status(self, **kwargs):
+        """ Update :py:attr:`status` and emit a ``on_modified``  signal. """
         trigger_event = True
         if 'step_progress' in kwargs and kwargs['step_progress'] is not None:
             # Don't trigger event if we only made very little progress
@@ -531,9 +669,18 @@ class Workflow(object):
         for key, value in kwargs.items():
             self.status[key] = value
         if trigger_event:
+            # We really want to pass the status by value...
             on_modified.send(self, changes={'status': copy.copy(self.status)})
 
     def _load_config(self, value):
+        """ Load configuartion from file in bag and optionally overlay it with
+            new values.
+
+        :param value:   Values to overlay over over loaded configuration
+        :type value:    dict or :py:class:`confit.ConfigView`
+        :returns:       Loaded (and overlaid) configuration
+        :rtype:         :py:class:`confit.Configuration`
+        """
         # Load default configuration
         config = Configuration()
         cfg_file = self.path / 'config.yml'
@@ -548,12 +695,21 @@ class Workflow(object):
 
     def _save_config(self):
         cfg_path = self.path/'config.yml'
+        # Only save configuration from active plugins in addition to plugin
+        # selection and device configuration
         self.config.dump(
             unicode(cfg_path), True,
             self.config["plugins"].get() + ["plugins", "device"])
         self.bag.add_tagfiles(unicode(cfg_path))
 
-    def load_toc(self, data=None):
+    def _load_toc(self, data=None):
+        """ Load TOC entries from ``toc.json`` in bag or a passed list of
+            dictionaries.
+
+        :param data:    List of dictionaries to be deserialized
+        :type data:     list of dict
+        :rtype:         list of :py:class:`TocEntry`
+        """
         def from_dict(dikt):
             start_page, end_page = None, None
             try:
@@ -577,6 +733,7 @@ class Workflow(object):
         return [from_dict(e) for e in data]
 
     def _save_toc(self):
+        """ Write TOC entries to ``toc.json`` in bag. """
         if not self.table_of_contents:
             return
         toc_path = self.path / 'toc.json'
@@ -588,6 +745,11 @@ class Workflow(object):
                          changes={'table_of_contents': self.table_of_contents})
 
     def _load_pages(self):
+        """ Load pages from ``pagemeta.json`` in bag.
+
+        :returns:   Deserialized pages
+        :rtype:     list of :py:class:`Page`
+        """
         def from_dict(dikt):
             raw_image = self.path/dikt['raw_image']
             processed_images = {}
@@ -606,6 +768,7 @@ class Workflow(object):
                           key=lambda p: p.sequence_num)
 
     def _save_pages(self):
+        """ Write pages to ``pagemeta.json`` in bag. """
         fpath = self.path / 'pagemeta.json'
         with fpath.open('wb') as fp:
             json.dump([x.to_dict() for x in self.pages], fp,
@@ -614,10 +777,17 @@ class Workflow(object):
         on_modified.send(self, changes={'pages': self.pages})
 
     def _run_hook(self, hook_name, *args):
+        """ Run a specific hook method on all activated plugins.
+
+        :param hook_name:   Name of hook method to run
+        :param *args:       Arguments to pass to hook method
+        """
         self._logger.debug("Running '{0}' hooks".format(hook_name))
-        plugins = [x for x in self.plugins if hasattr(x, hook_name)]
+        plugins = [x for x in self._plugins if hasattr(x, hook_name)]
 
         def update_progress(idx, plug_progress):
+            """ Signal callback that updates the status and converts from
+                per-plugin progress to per-workflow progress. """
             step_progress = float(idx) / len(plugins)
             internal_progress = plug_progress * (1.0 / len(plugins))
             self._update_status(
@@ -635,12 +805,13 @@ class Workflow(object):
         """ Get next page that a capture should be stored as.
 
         If the workflow is shooting with two devices, this will select a
-        filename that matches the device's target page (odd/even).
+        page with a sequence number that matches the device's target page
+        (odd/even).
 
         :param target_page: target page of file ('odd/even')
         :type target_page:  str/unicode/None if not applicable
-        :return:            the target page object
-        :rtype:             Page
+        :returns:           the target page object
+        :rtype:             :py:class:`Page`
         """
         base_path = self.path / 'data' / 'raw'
         if not base_path.exists():
@@ -662,6 +833,7 @@ class Workflow(object):
         return Page(path, capture_num=next_num)
 
     def prepare_capture(self):
+        """ Prepare capture on devices and initialize trigger plugins. """
         self._logger.info("Preparing capture.")
         self._update_status(step='capture')
         if any(dev.target_page is None for dev in self.devices):
@@ -688,8 +860,14 @@ class Workflow(object):
 
     @_signal_on_error(on_capture_failed)
     def capture(self, retake=False):
+        """ Perform a single capture.
+
+        :param retake:  Replace the previous capture
+        """
         if not self.status['prepared']:
             raise util.SpreadsException("Capture was not prepared before.")
+        # To prevent multiple captures from interfering with each other,
+        # we hold a lock during the whole process.
         with self._capture_lock:
             self._logger.info("Triggering capture.")
             on_capture_triggered.send(self)
@@ -733,6 +911,7 @@ class Workflow(object):
         on_capture_succeeded.send(self, pages=captured_pages, retake=retake)
 
     def finish_capture(self):
+        """ Wrap up capture process. """
         # Waits for last capture to finish
         with self._capture_lock:
             concfut.wait(self._pending_tasks)
@@ -750,6 +929,7 @@ class Workflow(object):
         self._update_status(step=None, prepared=False)
 
     def process(self):
+        """ Run all captured pages through post-processing. """
         self._update_status(step='process', step_progress=0)
         self._logger.info("Starting postprocessing...")
         processed_path = self.path/'data'/'done'
@@ -761,6 +941,7 @@ class Workflow(object):
         self._logger.info("Done with postprocessing!")
 
     def output(self):
+        """ Assemble pages into output files. """
         self._logger.info("Generating output files...")
         self._update_status(step='output', step_progress=0)
         out_path = self.path / 'data' / 'out'
@@ -773,6 +954,7 @@ class Workflow(object):
         self._logger.info("Done generating output files!")
 
     def update_configuration(self, values):
+        """ Update the workflow's configuration. """
         # TODO: Validate values against schema in template
         old_cfg = self.config.flatten()
         self.config.set(values)

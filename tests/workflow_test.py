@@ -10,13 +10,11 @@ from conftest import TestDriver
 
 @pytest.fixture
 def workflow(config, tmpdir):
-    # NOTE: To avoid accessing the filesystem and to have more control, we
-    #       monkey-patch the relevant methods to be mocks.
     return spreads.workflow.Workflow(config=config, path=unicode(tmpdir))
 
 
 def test_get_plugins(workflow):
-    plugins = workflow.plugins
+    plugins = workflow._plugins
     names = [x.__name__ for x in plugins]
     assert 'test_output' in names
     assert 'test_process' in names
