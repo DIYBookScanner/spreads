@@ -17,6 +17,10 @@
 
 # -*- coding: utf-8 -*-
 
+""" Postprocessing plugin that rotates images according to their EXIF
+    orientation tag.
+"""
+
 import logging
 import shutil
 
@@ -26,10 +30,20 @@ from spreads.plugin import HookPlugin, ProcessHooksMixin
 
 logger = logging.getLogger('spreadsplug.autorotate')
 
+# We provide two implementations, one with the fast :py:module:`jpegtran`
+# library and one with :py:module:`pyexiv2`, that is also compatible with
+# Windows systems
 try:
     from jpegtran import JPEGImage
 
     def autorotate_image(in_path, out_path):
+        """ Rotate an image according to its EXIF orientation tag.
+
+        :param in_path:     Path to image that should be rotated
+        :type in_path:      unicode
+        :param out_path:    Path where rotated image should be written to
+        :type out_path:     unicode
+        """
         img = JPEGImage(in_path)
         if img.exif_orientation is None:
             logger.warn(
@@ -47,6 +61,13 @@ except ImportError:
     from wand.image import Image
 
     def autorotate_image(in_path, out_path):
+        """ Rotate an image according to its EXIF orientation tag.
+
+        :param in_path:     Path to image that should be rotated
+        :type in_path:      unicode
+        :param out_path:    Path where rotated image should be written to
+        :type out_path:     unicode
+        """
         try:
             metadata = pyexiv2.ImageMetadata(in_path)
             metadata.read()
@@ -85,17 +106,46 @@ class AutoRotatePlugin(HookPlugin, ProcessHooksMixin):
     __name__ = 'autorotate'
 
     def _get_progress_callback(self, idx, num_total):
+        """ Get a callback that sends out a :py:attr:`on_progressed` signal.
+
+        :param idx:         Index of processed image
+        :type idx:          int
+        :param num_total:   Total number of images to be processed.
+        :type num_total:    int
+        :returns:           A callback that sends out the signal with the
+                            passed values.
+        :rtype:             function
+        """
         return lambda x: self.on_progressed.send(
             self,
             progress=float(idx)/num_total)
 
     def _get_update_callback(self, page, out_path):
+        """ Get a callback that updates the list of processed images for a page
+
+        :param page:        Page for which the
+                            :py:attr:`spreads.workflow.Page.processed_images`
+                            mapping should be updated
+        :type page:         :py:class:`spreads.workflow.Page`
+        :param out_path:    Path where the rotated image is located
+        :type out_path:     :py:class:`pathlib.Path`
+        """
         return lambda x: page.processed_images.update(
             {self.__name__: out_path})
 
     def process(self, pages, target_path):
+        """ For each page, rotate the most recent image according to its EXIF
+            orientation tag.
+
+        :param pages:
+        :type pages:        list of :py:class:`spreads.workflow.Page`
+        :param target_path: Base directory where rotated images are to be
+                            stored
+        :type target_path:  :py:class:`pathlib.Path`
+        """
         logger.info("Rotating images")
         futures = []
+        # Distribute the work across all processor cores
         with ProcessPoolExecutor() as executor:
             num_total = len(pages)
             for (idx, page) in enumerate(pages):
