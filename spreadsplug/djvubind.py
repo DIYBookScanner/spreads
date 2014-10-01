@@ -15,6 +15,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+""" Plugin that creates a DJVU file from a workflow's pages.
+
+If there is hOCR data for a page, a hidden OCR-layer will be included.
+"""
+
 from __future__ import division, unicode_literals
 
 import logging
@@ -39,8 +44,17 @@ logger = logging.getLogger('spreadsplug.djvubind')
 class DjvuBindPlugin(HookPlugin, OutputHooksMixin):
     __name__ = 'djvubind'
 
-    # TODO: Adapt to new API
     def output(self, pages, target_path, metadata, table_of_contents):
+        """ Go through pages and bundle their most recent images into a DJVU
+            file.
+
+        :param pages:               Pages to bundle
+        :param target_path:         list of :py:class:`spreads.workflow.Page`
+        :param metadata:            Metadata to include in DJVU file
+        :type metadata:             :py:class:`spreads.metadata.Metadata`
+        :param table_of_contents:   Table of contents to include in DJVU file
+        :type table_of_contents:    list of :py:class:`TocEntry`
+        """
         logger.info("Assembling DJVU.")
 
         tmpdir = Path(tempfile.mkdtemp())
@@ -50,6 +64,9 @@ class DjvuBindPlugin(HookPlugin, OutputHooksMixin):
                 fpath = page.raw_image
             link_path = (tmpdir/fpath.name)
             link_path.symlink_to(fpath)
+
+        # TODO: Add metadata
+        # TODO: Add table of contents
 
         djvu_file = target_path/"book.djvu"
         cmd = ["djvubind", unicode(tmpdir), '--no-ocr']
