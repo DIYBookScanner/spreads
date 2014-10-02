@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+""" Trigger plugin that triggers in a configurable interval. """
+
 import logging
 import threading
 import time
@@ -37,6 +39,11 @@ class IntervalTrigger(HookPlugin, TriggerHooksMixin):
                                                 " (in seconds)")}
 
     def start_trigger_loop(self, capture_callback):
+        """ Launch the triggering loop in a background thread.
+
+        :param capture_callback:    Callback for triggering a capture
+        :type capture_callback:     function
+        """
         logger.debug("Starting event loop")
         self._exit_event = threading.Event()
         self._loop_thread = threading.Thread(target=self._trigger_loop,
@@ -44,11 +51,18 @@ class IntervalTrigger(HookPlugin, TriggerHooksMixin):
         self._loop_thread.start()
 
     def stop_trigger_loop(self):
+        """ Stop the triggering loop and its thread. """
         logger.debug("Stopping event loop")
         self._exit_event.set()
         self._loop_thread.join()
 
     def _trigger_loop(self, capture_func):
+        """ Read interval from configuration and run a loop that captures every
+            time the interval has elapsed.
+
+        :param capture_func:    Callback for triggering a capture
+        :type capture_func:     function
+        """
         interval = self.config['interval'].get(float)
         while True and interval > 0.0:
             sleep_time = 0
