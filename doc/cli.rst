@@ -14,7 +14,7 @@ flags are the same as for the `capture`, `process` and `output` commands.
 
 ::
 
-    $ spread capture [OPTIONS] <project-director>
+    $ spread capture [OPTIONS] <project-directory>
 
 This command will start a capturing workflow. Make sure that your devices are
 turned on. After the application is done setting them up, you will enter a
