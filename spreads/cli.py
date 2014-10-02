@@ -212,7 +212,7 @@ def configure(config):
     # Load default configuration for newly added plugins
     new_plugins = [x for x in config["plugins"].get() if x not in old_plugins]
     for name in new_plugins:
-        if not name in config.templates:
+        if name not in config.templates:
             continue
         config.set_from_template(name, config.templates[name])
 

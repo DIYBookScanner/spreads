@@ -242,7 +242,7 @@ class QueueIO(object):
     over the network without buffering them in RAM or on disk.
     """
     def __init__(self, handler):
-        #That's right, length 1, we want to save memory, after all...
+        # That's right, length 1, we want to save memory, after all...
         self.queue = Queue.Queue(maxsize=1)
         self.closed = False
         self.last_read = None

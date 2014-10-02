@@ -139,7 +139,7 @@ def get_subprocess(cmdline, **kwargs):
     The function signature matches that of the :py:class:`subprocess.Popen`
     initialization method.
     """
-    if subprocess.mswindows and not 'startupinfo' in kwargs:
+    if subprocess.mswindows and 'startupinfo' not in kwargs:
         su = subprocess.STARTUPINFO()
         su.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         su.wShowWindow = subprocess.SW_HIDE

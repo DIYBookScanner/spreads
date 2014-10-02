@@ -87,10 +87,9 @@ def transfer_to_stick(wf_id, base_path):
             unmount = stick.get_dbus_method(
                 "FilesystemUnmount",
                 dbus_interface="org.freedesktop.UDisks.Device")
-            unmount([], timeout=1e6)  # dbus-python doesn't know an infinite
-                                      # timeout... unmounting sometimes takes a
-                                      # long time, since the device has to be
-                                      # synced.
+            # dbus-python doesn't know an infinite timeout... unmounting
+            # sometimes takes a long time, since the device has to be synced.
+            unmount([], timeout=1e6)
         signals['transfer:completed'].send(workflow)
         workflow.status['step'] = None
 

@@ -64,7 +64,7 @@ class TkConfigurationWindow(tk.Frame):
                        if x not in config["plugins"].get()]
         config["plugins"] = plugins
         for name in new_plugins:
-            if not name in config.templates:
+            if name not in config.templates:
                 logger.debug("No template found for {0}".format(name))
                 continue
             self.spreads_config.set_from_template(name, config.templates[name])
@@ -109,7 +109,6 @@ class TkConfigurationWindow(tk.Frame):
             exts = []
             failed_ext = e.extension
             messagebox.showerror(message=e.message)
-            #self.plugin_select.selection_remove(failed_ext)
             ext_id = self.plugin_select.index(failed_ext)
             self.plugin_select.delete(failed_ext)
             self.plugin_select.insert('', ext_id, failed_ext, text=failed_ext,

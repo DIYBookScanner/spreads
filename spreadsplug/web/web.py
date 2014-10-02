@@ -151,7 +151,7 @@ def get_templates():
                 value += [x for x in option.value if x not in value]
             else:
                 value = config[plugname][key].get()
-            if not plugname in rv:
+            if plugname not in rv:
                 rv[plugname] = dict()
             rv[plugname][key] = dict(value=value,
                                      docstring=option.docstring,

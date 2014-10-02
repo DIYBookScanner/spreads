@@ -209,15 +209,13 @@ class ScanTailorPlugin(HookPlugin, ProcessHooksMixin):
                 elem_root = root.find(elem)
                 to_keep = elem_root.getchildren()[start:end]
                 to_remove = [x for x in elem_root.getchildren()
-                             if not x in to_keep]
+                             if x not in to_keep]
                 for node in to_remove:
                     elem_root.remove(node)
             out_file = temp_dir / "{0}-{1}.ScanTailor".format(projectfile.stem,
                                                               idx)
             subtree.write(unicode(out_file))
             splitfiles.append(out_file)
-            # Restore tree to original state
-            #tree = ET.parse(unicode(projectfile))
         return splitfiles
 
     def _generate_output(self, projectfile, out_dir, num_pages):

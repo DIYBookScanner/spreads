@@ -167,7 +167,7 @@ class IntroPage(QtGui.QWizardPage):
         widgets, config = {}, self.wizard().config
         for key, option in plugin_tmpl.items():
             label = (option.docstring
-                     if not option.docstring is None else key.title())
+                     if option.docstring is not None else key.title())
             cur_value = config[plugname][key].get()
             # Do we need a dropdown?
             if (option.selectable and
@@ -247,7 +247,7 @@ class IntroPage(QtGui.QWizardPage):
     def _update_config_from_plugin_widgets(self):
         config = self.wizard().config
         for section in config.templates:
-            if not section in self.plugin_widgets:
+            if section not in self.plugin_widgets:
                 continue
             logger.debug("Updating config from widgets for plugin {0}"
                          .format(section))

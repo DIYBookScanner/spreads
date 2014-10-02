@@ -300,7 +300,7 @@ class Workflow(object):
         """
         if not isinstance(location, Path):
             location = Path(location)
-        if metadata is None or not 'title' in metadata:
+        if metadata is None or 'title' not in metadata:
             raise ValidationError(
                 metadata={'title': 'Please specify at least a title'})
         path = Path(location/util.slugify(metadata['title']))
@@ -313,9 +313,9 @@ class Workflow(object):
     @classmethod
     def _add_to_cache(cls, workflow):
         location = workflow.path.parent
-        if not location in cls._cache:
+        if location not in cls._cache:
             cls._cache[location] = [workflow]
-        elif not workflow in Workflow._cache[location]:
+        elif workflow not in Workflow._cache[location]:
             cls._cache[location].append(workflow)
 
     @classmethod

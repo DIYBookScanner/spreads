@@ -121,9 +121,9 @@ class Metadata(MutableMapping):
     hard-wired to Dublin Core) and persists all operations to a `dcmeta.txt`
     text file on the disk.
     """
-    #TODO: This should really be exposed over the plugin API so that plugins
-    #      can specify custom schemas that would render across all UIs,
-    #      similar to `OptionTemplate` for the configuration.
+    # TODO: This should really be exposed over the plugin API so that plugins
+    #       can specify custom schemas that would render across all UIs,
+    #       similar to `OptionTemplate` for the configuration.
     FILENAME = 'dcmeta.txt'
     SCHEMA = [
         SchemaField('title'),
