@@ -2,7 +2,6 @@ import time
 from itertools import chain, repeat
 
 import mock
-import pytest
 
 with mock.patch('cffi.FFI'):
     import spreadsplug.hidtrigger as hidtrigger

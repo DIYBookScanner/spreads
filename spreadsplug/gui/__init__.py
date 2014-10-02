@@ -21,7 +21,7 @@ from PySide import QtGui
 
 from spreads.plugin import HookPlugin, SubcommandHooksMixin
 import gui
-import gui_rc
+import gui_rc  # noqa
 
 logger = logging.getLogger('spreadsplug.gui')
 

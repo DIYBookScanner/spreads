@@ -24,7 +24,7 @@ from PySide import QtCore, QtGui
 import spreads.plugin as plugin
 import spreads.workflow as workflow
 
-import gui_rc
+import gui_rc  # noqa
 
 logger = logging.getLogger('spreadsplug.gui')
 

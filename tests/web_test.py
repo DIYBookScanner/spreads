@@ -7,9 +7,7 @@ import time
 import jpegtran
 import mock
 import pytest
-from multiprocessing.pool import ThreadPool
 
-from spreads.workflow import signals as workflow_signals
 from conftest import TestPluginOutput, TestPluginProcess, TestPluginProcessB
 
 

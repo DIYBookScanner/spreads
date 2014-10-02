@@ -30,7 +30,7 @@ def test_get_devices(workflow):
 def test_get_devices_no_device(workflow):
     TestDriver.num_devices = 0
     with pytest.raises(util.DeviceException):
-        _ = workflow.devices
+        _ = workflow.devices  # noqa
     TestDriver.num_devices = 2
 
 
@@ -68,7 +68,7 @@ def test_capture(workflow):
     workflow.config['device']['parallel_capture'] = True
     workflow.config['device']['flip_target_pages'] = False
     for dev in workflow.devices:
-        dev.delay = 1.0 # subsecond checks fails on some filesystems
+        dev.delay = 1.0  # subsecond checks fails on some filesystems
     workflow.prepare_capture()
     workflow.capture()
     assert len(workflow.pages) == 2
@@ -81,7 +81,7 @@ def test_capture_noparallel(workflow):
     workflow.config['device']['parallel_capture'] = False
     workflow.config['device']['flip_target_pages'] = False
     for dev in workflow.devices:
-        dev.delay = 1.0 # subsecond checks fails on some filesystems
+        dev.delay = 1.0  # subsecond checks fails on some filesystems
     workflow.prepare_capture()
     workflow.capture()
     assert len(workflow.pages) == 2

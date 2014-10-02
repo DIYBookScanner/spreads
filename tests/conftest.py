@@ -23,12 +23,13 @@ class TestPluginProcess(plugin.HookPlugin,
 
     @classmethod
     def configuration_template(cls):
-        return {'a_boolean': OptionTemplate(
-                    value=True, docstring="A boolean",
-                    selectable=False),
-                'float': OptionTemplate(
-                    value=3.14, docstring="A float",
-                    selectable=False)}
+        return {
+            'a_boolean': OptionTemplate(
+                value=True, docstring="A boolean",
+                selectable=False),
+            'float': OptionTemplate(
+                value=3.14, docstring="A float",
+                selectable=False)}
 
     def process(self, pages, target_path):
         for page in pages:
@@ -42,12 +43,13 @@ class TestPluginProcessB(TestPluginProcess):
 
     @classmethod
     def configuration_template(cls):
-        return {'an_integer': OptionTemplate(
-                    value=10, docstring="An integer",
-                    selectable=False),
-                'list': OptionTemplate(
-                    value=[1, 2, 3], docstring="A list",
-                    selectable=False)}
+        return {
+            'an_integer': OptionTemplate(
+                value=10, docstring="An integer",
+                selectable=False),
+            'list': OptionTemplate(
+                value=[1, 2, 3], docstring="A list",
+                selectable=False)}
 
     def process(self, pages, target_path):
         for page in pages:
@@ -63,12 +65,13 @@ class TestPluginOutput(plugin.HookPlugin,
 
     @classmethod
     def configuration_template(cls):
-        return {'string': OptionTemplate(
-                    value="moo", docstring="A string",
-                    selectable=False),
-                'selectable': OptionTemplate(
-                    value=["a", "b", "c"], docstring="A selectable",
-                    selectable=True)}
+        return {
+            'string': OptionTemplate(
+                value="moo", docstring="A string",
+                selectable=False),
+            'selectable': OptionTemplate(
+                value=["a", "b", "c"], docstring="A selectable",
+                selectable=True)}
 
     @classmethod
     def add_command_parser(cls, rootparser, config):

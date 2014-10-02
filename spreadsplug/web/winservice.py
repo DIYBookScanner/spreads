@@ -130,7 +130,8 @@ class SysTrayIcon(object):
         #win32gui.SetMenuDefaultItem(menu, 1000, 0)
 
         pos = win32gui.GetCursorPos()
-        # See http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/menus_0hdi.asp
+        # See http://msdn.microsoft.com/library/default.asp?url=/library/
+        # en-us/winui/menus_0hdi.asp
         win32gui.SetForegroundWindow(self.hwnd)
         win32gui.TrackPopupMenu(menu, win32con.TPM_LEFTALIGN, pos[0], pos[1],
                                 0, self.hwnd, None)
@@ -187,16 +188,6 @@ class SysTrayIcon(object):
             win32gui.DestroyWindow(self.hwnd)
         else:
             menu_action(self)
-
-    def show_message_bubble(self, title, message):
-        icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
-        hicon = LoadIcon(0, win32con.IDI_APPLICATION)
-        flags = NIF_ICON | NIF_MESSAGE | NIF_TIP
-        nid = (self.hwnd, 0, flags, win32con.WM_USER+20, hicon, "tooltip")
-        Shell_NotifyIcon(NIM_ADD, nid)
-        Shell_NotifyIcon(NIM_MODIFY, \
-                         (self.hwnd, 0, NIF_INFO, win32con.WM_USER+20,
-                          hicon, "Balloon  tooltip", msg, 200, title))
 
 
 def non_string_iterable(obj):
