@@ -15,6 +15,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+""" Postprocessing plugin that runs a workflow's images through optical
+    character recognition (by using tesseract).
+
+The output is saved as hOCR files that can be used by other plugins (e.g.
+:py:module:`spreadsplug.djvubind` and :py:module:`spreadsplug.pdfbeads`)
+"""
+
 import logging
 import multiprocessing
 import os
@@ -37,6 +44,9 @@ if not BIN:
         "Could not find executable `tesseract`. Please install the appropriate"
         " package(s)!")
 
+# Newer versions of Tesseract provide a flag to obtain a list of installed
+# OCR languages, for older versions we have to read out the directory
+# containing the training data for languages.
 try:
     AVAILABLE_LANGS = (util.get_subprocess([BIN, "--list-langs"],
                                            stderr=subprocess.STDOUT,
@@ -66,8 +76,18 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
         return conf
 
     def process(self, pages, target_path):
+        """ For each page, rotate the most recent image according to its EXIF
+            orientation tag.
+
+        :param pages:       Pages to be processed
+        :type pages:        list of :py:class:`spreads.workflow.Page`
+        :param target_path: Base directory where processed images are to be
+                            stored
+        :type target_path:  :py:class:`pathlib.Path`
+        """
         # TODO: This plugin should be 'output' only, since we ideally work
         #       with fully binarized output images
+
         # Map input paths to their pages so we can more easily associate
         # the generated output files with their pages later on
         in_paths = {}
@@ -86,6 +106,8 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
 
         for fname in chain(out_dir.glob('*.hocr'), out_dir.glob('*.html')):
             self._perform_replacements(fname)
+            # For each hOCR file, try to find a corresponding input image
+            # and associate it to the image's page
             out_stem = fname.stem
             for in_path, page in in_paths.iteritems():
                 if in_path.stem == out_stem:
@@ -98,9 +120,23 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
                             .format(fname))
 
     def _perform_ocr(self, in_paths, out_dir, language):
+        """ For each input image, launch tesseract and keep track of how far
+            along the work is.
+
+        :param in_paths:    Input images
+        :type in_paths:     list of :py:class:`pathlib.Path`
+        :param out_dir:     Output directory for hOCR files
+        :type out_dir:      :py:class:`pathlib.Path`
+        :param language:    Language to use for OCRing, must be among tesseract
+                            languages installed on the system.
+        :type language:     unicode
+        """
         processes = []
 
         def _clean_processes():
+            """ Go through processes, remove completed and emit a
+                :py:attr:`on_progressed` signal for it.
+            """
             for p in processes[:]:
                 if p.poll() is not None:
                     processes.remove(p)
@@ -110,6 +146,7 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
                                              .num_cleaned)/len(in_paths))
         _clean_processes.num_cleaned = 0
 
+        # Run as many simultaneous Tesseract instances as there are CPU cores
         max_procs = multiprocessing.cpu_count()
         FNULL = open(os.devnull, 'w')
         for fpath in in_paths:
@@ -127,6 +164,11 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
             _clean_processes()
 
     def _perform_replacements(self, fpath):
+        """ Perform user-supplied replacements on a hOCR file.
+
+        :param fpath:   hOCR file to perform replacements on
+        :type fpath:    :py:class:`pathlib.Path`
+        """
         def get_flags(group):
             flags = 0
             if 'flags' not in group:
@@ -157,6 +199,7 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
                 r'(<span[^>]*>(<strong>)? +(<\/strong>)?<\/span> *)'
                 r'(<span[^>]*>(<strong>)? +(<\/strong>)?<\/span> *)',
                 r'\g<1>', content)
+            # Perform user-configured replacements
             if 'replacements' in self.config.keys():
                 replacements = self.config['replacements'].get()
                 for name, group in replacements.iteritems():
@@ -166,6 +209,16 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
             fp.write(content)
 
     def output(self, pages, target_path, metadata, table_of_contents):
+        """ Combine all processed hOCR files into a single output file.
+
+        :param pages:               Pages for which hOCR files should be
+                                    bundled
+        :param target_path:         list of :py:class:`spreads.workflow.Page`
+        :param metadata:            ignored
+        :type metadata:             :py:class:`spreads.metadata.Metadata`
+        :param table_of_contents:   ignored
+        :type table_of_contents:    list of :py:class:`TocEntry`
+        """
         outfile = target_path/"text.html"
         out_root = ET.Element('html')
         ET.SubElement(out_root, 'head')
