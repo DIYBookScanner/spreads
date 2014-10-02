@@ -18,19 +18,19 @@ def wizard(config):
 
 
 @pytest.fixture
-def workflow(config):
+def workflow(config, tmpdir):
     from spreads.workflow import Workflow
-    wf = Workflow(path="/tmp/foobar", config=config)
+    wf = Workflow(path=unicode(tmpdir), config=config)
     return wf
 
 
-def test_intro_page(wizard):
+def test_intro_page(wizard, tmpdir):
     page = wizard.page(0)
     page.initializePage()
-    page.line_edit.setText('/tmp/foobar')
+    page.line_edit.setText(unicode(tmpdir))
     assert 'device' in page.plugin_widgets
     assert page.validatePage()
-    assert unicode(wizard.workflow.path) == '/tmp/foobar'
+    assert unicode(wizard.workflow.path) == unicode(tmpdir)
     # TODO: Check plugin options
 
 
