@@ -15,6 +15,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+""" Plugin that runs a workflow's pages through ScanTailor for post-processing.
+
+It proceeds in two steps. The first step is to roughly crop the pages, rotate
+them so the lines appear straight, try to auto-detect the text content and
+to apply a margin. This will currently always run on a single thread.
+If the ``autopilot`` setting is disabled, the ScanTailor GUI will be opened
+after this to allow the user to make manual adjustments to the auto-generated
+settings.
+Finally, the resulting configuration file will be split into multiple files
+(the number equalling the CPU core count) and the output TIF files will be
+generated in on a separate ScanTailor instance for every split file, greatly
+increasing post-processing performance.
+"""
+
 from __future__ import division, unicode_literals
 
 import copy
@@ -79,17 +93,32 @@ class ScanTailorPlugin(HookPlugin, ProcessHooksMixin):
                               help_out.splitlines()[7]))
 
     def _generate_configuration(self, in_paths, projectfile, out_dir):
+        """ Run images through ScanTailor pre-processing steps.
+
+        :param in_paths:        Paths to images to be processed
+        :type in_paths:         list of :py:class:`pathlib.Path`
+        :param projectfile:     Path ScanTailor configuration file
+        :type projectfile:      :py:class:`pathlib.Path`
+        :param out_dir:         Output directory for processed files
+        :type out_dir:          :py:class:`pathlib.Path`
+        """
+        # Filters are numbered from 1 to 6, with 6 being the 'create output
+        # files' step.
         filterconf = [self.config[x].get(bool)
                       for x in ('rotate', 'split_pages', 'deskew', 'content',
                                 'auto_margins')]
         start_filter = filterconf.index(True)+1
         end_filter = len(filterconf) - list(reversed(filterconf)).index(True)
         marginconf = self.config['margins'].as_str_seq()
+
+        # Build initial command-line
         generation_cmd = [CLI_BIN,
                           '--start-filter={0}'.format(start_filter),
                           '--end-filter={0}'.format(end_filter),
                           '--layout=1.5',
                           '-o={0}'.format(projectfile)]
+
+        # The 'enhanced' fork of ScanTailor has some additional features
         page_detection = self.config['detection'].get() == 'page'
         if self._enhanced and page_detection:
             generation_cmd.extend([
@@ -121,6 +150,11 @@ class ScanTailorPlugin(HookPlugin, ProcessHooksMixin):
             sp = util.get_subprocess(generation_cmd)
         proc = psutil.Process(sp.pid)
 
+        # Keep track of the progress by monitoring the files opened by the
+        # ScanTailor process. Since it processes the files in order and we
+        # know in advance how often a file will be opened (= number of steps)
+        # we can reliably calculate how far a long we are and emit
+#       # :py:attr:`on_progressed` events.
         num_images = len(in_paths)
         num_steps = (end_filter - start_filter)+1
         last_fileidx = 0
@@ -148,6 +182,16 @@ class ScanTailorPlugin(HookPlugin, ProcessHooksMixin):
         # TODO: Check exit status for errors
 
     def _split_configuration(self, projectfile, temp_dir):
+        """ Split a single ScanTailor configuration file into as many
+            individual files as the machine has CPU cores
+
+        :param projectfile:     Path ScanTailor configuration file
+        :type projectfile:      :py:class:`pathlib.Path`
+        :param temp_dir:        Output directory for split files
+        :type temp_dir:         :py:class:`pathlib.Path`
+        :returns:               Paths to split files
+        :rtype:                 list of :py:class:`pathlib.Path`
+        """
         num_pieces = multiprocessing.cpu_count()
         whole_tree = ET.parse(unicode(projectfile))
         num_files = len(whole_tree.findall('./files/file'))
@@ -177,6 +221,16 @@ class ScanTailorPlugin(HookPlugin, ProcessHooksMixin):
         return splitfiles
 
     def _generate_output(self, projectfile, out_dir, num_pages):
+        """ Run last step for the project file and keep track of the progress
+            by emitting :py:attr:`on_progressed` signals.
+
+        :param projectfile:     Path ScanTailor configuration file
+        :type projectfile:      :py:class:`pathlib.Path`
+        :param out_dir:         Output directory for processed files
+        :type out_dir:          :py:class:`pathlib.Path`
+        :param num_pages:       Total number of pages to process
+        :type num_pages:        int
+        """
         logger.debug("Generating output...")
         temp_dir = Path(tempfile.mkdtemp(prefix="spreads."))
         split_config = self._split_configuration(projectfile, temp_dir)
@@ -199,6 +253,14 @@ class ScanTailorPlugin(HookPlugin, ProcessHooksMixin):
         shutil.rmtree(unicode(temp_dir))
 
     def process(self, pages, target_path):
+        """ Run the most recent image of every page through ScanTailor.
+
+        :param pages:       Pages to be processed
+        :type pages:        list of :py:class:`spreads.workflow.Page`
+        :param target_path: Base directory where rotated images are to be
+                            stored
+        :type target_path:  :py:class:`pathlib.Path`
+        """
         autopilot = self.config['autopilot'].get(bool)
         if not autopilot and not util.find_in_path('scantailor'):
             raise util.MissingDependencyException(

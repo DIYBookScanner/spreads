@@ -137,7 +137,7 @@ class AutoRotatePlugin(HookPlugin, ProcessHooksMixin):
         """ For each page, rotate the most recent image according to its EXIF
             orientation tag.
 
-        :param pages:
+        :param pages:       Pages to be processed
         :type pages:        list of :py:class:`spreads.workflow.Page`
         :param target_path: Base directory where rotated images are to be
                             stored
