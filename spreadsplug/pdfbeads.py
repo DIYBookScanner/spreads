@@ -15,6 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+""" Plugin that creates a PDF file from a workflow's pages.
+
+Page images will be separated into a black-and-white text layer that is
+compressed with JBIG2 and an image layer that is compressed with JPEG2000.
+
+If there is hOCR data for a page, a hidden OCR-layer will be included.
+"""
+
 from __future__ import division, unicode_literals
 
 import codecs
@@ -46,6 +54,16 @@ class PDFBeadsPlugin(HookPlugin, OutputHooksMixin):
     __name__ = 'pdfbeads'
 
     def output(self, pages, target_path, metadata, table_of_contents):
+        """ Go through pages and bundle their most recent images into a PDF
+            file.
+
+        :param pages:               Pages to bundle
+        :param target_path:         list of :py:class:`spreads.workflow.Page`
+        :param metadata:            Metadata to include in PDF file
+        :type metadata:             :py:class:`spreads.metadata.Metadata`
+        :param table_of_contents:   Table of contents to include in PDF file
+        :type table_of_contents:    list of :py:class:`TocEntry`
+        """
         logger.info("Assembling PDF.")
 
         tmpdir = Path(tempfile.mkdtemp())
