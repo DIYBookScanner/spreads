@@ -514,6 +514,10 @@ class Workflow(object):
             self._devices = None
         return self._devices
 
+    @property
+    def is_single_camera(self):
+        return len(self.devices) == 1
+
     def _fix_page_numbers(self, page_to_remove):
         """ Fix page numbers and numeric page labels if a page was removed. """
         def get_num_type(num_str):
@@ -827,7 +831,9 @@ class Workflow(object):
 
         is_raw = ('shoot_raw' in self.config['device'].keys()
                   and self.config['device']['shoot_raw'].get(bool))
-        next_num = (last_num+2 if target_page == 'odd' else last_num+1)
+        next_num = (last_num+1 if (self.is_single_camera 
+                                    or target_page == 'even')
+            else last_num+2)
         path = base_path / "{0:03}.{1}".format(next_num,
                                                'dng' if is_raw else 'jpg')
         return Page(path, capture_num=next_num)
