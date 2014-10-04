@@ -240,7 +240,7 @@ def configure(config):
                   "Press any key to continue")
             getch()
             devs = plugin.get_devices(config, force_reload=True)
-            print("Please put a book with as little whitespace as possible"
+            print("Please put a book with as little whitespace as possible "
                   "under your cameras.\nPress any button to continue")
             getch()
             focus = devs[0]._acquire_focus()
