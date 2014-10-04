@@ -831,9 +831,9 @@ class Workflow(object):
 
         is_raw = ('shoot_raw' in self.config['device'].keys()
                   and self.config['device']['shoot_raw'].get(bool))
-        next_num = (last_num+1 if (self.is_single_camera 
-                                    or target_page == 'even')
-            else last_num+2)
+        next_num = (last_num+1 if (self.is_single_camera
+                                   or target_page == 'even')
+                    else last_num+2)
         path = base_path / "{0:03}.{1}".format(next_num,
                                                'dng' if is_raw else 'jpg')
         return Page(path, capture_num=next_num)
