@@ -185,6 +185,7 @@ def restrict_to_modes(*modes):
         return view_func
     return decorator
 
+
 @app.route('/api/plugins')
 def get_available_plugins():
     exts = list(pkg_resources.iter_entry_points('spreadsplug.hooks'))
