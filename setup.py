@@ -135,7 +135,7 @@ setup(
             "djvubind       =spreadsplug.djvubind:DjvuBindPlugin",
             "tesseract      =spreadsplug.tesseract:TesseractPlugin",
             "gui            =spreadsplug.gui:GuiCommand",
-            "web            =spreadsplug.web:WebCommands",
+            "web            =spreadsplug.web.app:WebCommands",
             "intervaltrigger=spreadsplug.intervaltrigger:IntervalTrigger",
             "hidtrigger     =spreadsplug.hidtrigger:HidTrigger",
         ]

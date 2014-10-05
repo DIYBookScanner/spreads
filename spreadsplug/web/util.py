@@ -120,7 +120,7 @@ class CustomJSONEncoder(JSONEncoder):
 
 class WorkflowConverter(BaseConverter):
     def to_python(self, value):
-        from spreadsplug.web import app
+        from spreadsplug.web.app import app
         try:
             uuid.UUID(value)
             workflow = Workflow.find_by_id(app.config['base_path'], value)

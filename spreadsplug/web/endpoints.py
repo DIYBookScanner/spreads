@@ -20,7 +20,7 @@ import spreads.plugin as plugin
 from spreads.util import is_os, get_version, DeviceException
 from spreads.workflow import Workflow, ValidationError
 
-from spreadsplug.web import app
+from spreadsplug.web.app import app
 from discovery import discover_servers
 from util import WorkflowConverter, get_thumbnail, scale_image, convert_image
 
