@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
+import functools
 import itertools
 import logging
 import logging.handlers
@@ -82,9 +83,9 @@ def handle_general_exception(error):
     return response
 
 
-# ========= #
-#  General  #
-# ========= #
+# =================== #
+#  General endpoints  #
+# =================== #
 @app.route('/')
 def index():
     """ Deliver static landing page that launches the client-side app. """
@@ -161,6 +162,29 @@ def get_templates():
     return rv
 
 
+def restrict_to_modes(*modes):
+    """ Checks if the application is running in one or more specific modes and
+        raises an error if otherwise.
+
+    :raises:    :py:class:`ApiError` when not running in one of the specified
+                modes
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def view_func(*args, **kwargs):
+            if app.config['mode'] not in modes:
+                if len(modes) == 1:
+                    raise ApiException(
+                        "Action only possible when running in '{0}'  mode."
+                        .format(modes[0]), 503)
+                else:
+                    raise ApiException(
+                        "Action only possible when running {0} or {1} modes"
+                        .format(", ".join(modes[:-1]), modes[-1]), 503)
+            return func(*args, **kwargs)
+        return view_func
+    return decorator
+
 @app.route('/api/plugins')
 def get_available_plugins():
     exts = list(pkg_resources.iter_entry_points('spreadsplug.hooks'))
@@ -202,21 +226,6 @@ def update_default_config():
     return ""
 
 
-def check_submit_allowed():
-    if app.config['mode'] != 'scanner':
-        raise ApiException("Action only possible when running in 'scanner'"
-                           " mode.", 503)
-
-
-@app.route('/api/remote/discover')
-def discover_postprocessors():
-    check_submit_allowed()
-    servers = discover_servers()
-    if app.config['postprocessing_server']:
-        servers.append(app.config['postprocessing_server'].split(':'))
-    return jsonify(servers=["{0}:{1}".format(*addr) for addr in servers])
-
-
 def get_from_remote_server(server, endpoint):
     try:
         resp = requests.get('http://' + server + endpoint)
@@ -226,28 +235,37 @@ def get_from_remote_server(server, endpoint):
     return resp.content, resp.status_code
 
 
+@app.route('/api/remote/discover')
+@restrict_to_modes("scanner")
+def discover_postprocessors():
+    servers = discover_servers()
+    if app.config['postprocessing_server']:
+        servers.append(app.config['postprocessing_server'].split(':'))
+    return jsonify(servers=["{0}:{1}".format(*addr) for addr in servers])
+
+
 @app.route('/api/remote/plugins')
+@restrict_to_modes("scanner")
 def get_remote_plugins():
     # TODO: Shouldn't this the done via a CORS request on the client-side?
-    check_submit_allowed()
     data, status = get_from_remote_server(request.args.get("server"),
                                           '/api/plugins')
     return make_response(data, status, {'Content-Type': 'application/json'})
 
 
 @app.route('/api/remote/templates')
+@restrict_to_modes("scanner")
 def get_remote_templates():
     # TODO: Shouldn't this the done via a CORS request on the client-side?
-    check_submit_allowed()
     data, status = get_from_remote_server(request.args.get("server"),
                                           '/api/templates')
     return make_response(data, status, {'Content-Type': 'application/json'})
 
 
 @app.route('/api/remote/config')
+@restrict_to_modes("scanner")
 def get_remote_config():
     # TODO: Shouldn't this the done via a CORS request on the client-side?
-    check_submit_allowed()
     data, status = get_from_remote_server(request.args.get("server"),
                                           '/api/config')
     return make_response(data, status, {'Content-Type': 'application/json'})
@@ -405,10 +423,10 @@ def transfer_workflow(workflow):
 
 
 @app.route('/api/workflow/<workflow:workflow>/submit', methods=['POST'])
+@restrict_to_modes("scanner")
 def submit_workflow(workflow):
     """ Submit the requested workflow to the postprocessing server.
     """
-    check_submit_allowed()
     data = json.loads(request.data)
     server = data.get('server')
     if not server:
@@ -437,17 +455,62 @@ def get_output_file(workflow, fname):
 # =============== #
 #  Page-related  #
 # =============== #
-def find_page(workflow, number):
-    page = next((p for p in workflow.pages if p.capture_num == number), None)
-    if not page:
-        raise ApiException("Could not find page with capture number {1}"
-                           .format(number), 404)
-    return page
+def inject_page(func):
+    """ Decorator that must be placed after the :py:func:`flask.Flask.route`
+        decorator and which injects a :py:class:`spreads.workflow.Page` object
+        into the decorated function as the first argument.
+    """
+    @functools.wraps(func)
+    def view_func(*args, **kwargs):
+        # If we can't obtain a page from the arguments, just pass directly
+        # through to the original function
+        if 'workflow' not in kwargs and 'number' not in kwargs:
+            return func(*args, **kwargs)
+        page = next((p for p in kwargs['workflow'].pages
+                    if p.capture_num == kwargs['number']), None)
+        if not page:
+            raise ApiException(
+                "Could not find page with capture number {1}"
+                .format(kwargs['number']), 404)
+        return func(*args, page=page, **kwargs)
+    return view_func
+
+
+def inject_page_image(func):
+    """ Decorator that must be placed after the :py:func:`flask.Flask.route`
+        decorator and which injects the path to a request image into the
+        decorated function as the first argument, along with the
+        :py:class:`spreads.workflow.Page` instance as the second argument.
+    """
+    @functools.wraps(func)
+    def view_func(*args, **kwargs):
+        if 'img_type' not in kwargs and 'plugname' not in kwargs:
+            return func(*args, **kwargs)
+        page = kwargs['page']
+        img_type = kwargs['img_type']
+        plugname = kwargs['plugname']
+        if img_type not in ('raw', 'processed'):
+            raise ValidationError(
+                route=("Image type must be one of 'raw' or 'processed' "
+                       "(was {0})".format(img_type)))
+        exists = (plugname is None or plugname in page.processed_images)
+        if not exists:
+            raise ApiException(
+                "No processed file present for plugin '{0}'"
+                .format(plugname))
+        if img_type == 'raw':
+            fpath = page.raw_image
+        elif plugname is None:
+            fpath = page.get_latest_processed(image_only=True)
+        else:
+            fpath = page.processed_images[plugname]
+        return func(fpath, *args, **kwargs)
+    return inject_page(view_func)
 
 
 @app.route('/api/workflow/<workflow:workflow>/page/<int:number>')
-def get_single_page(workflow, number):
-    page = find_page(workflow, number)
+@inject_page
+def get_single_page(page, workflow):
     return jsonify(dict(page=page))
 
 
@@ -457,33 +520,16 @@ def get_all_pages(workflow):
                          200, {'Content-Type': 'application/json'})
 
 
-def check_page_params(page, img_type, plugname):
-    if img_type not in ('raw', 'processed'):
-        raise ValidationError(
-            route=("Image type must be one of 'raw' or 'processed' (was {0})"
-                   .format(img_type)))
-    if plugname is not None and plugname not in page.processed_images:
-        raise ApiException("No processed file present for plugin '{0}'"
-                           .format(plugname))
-
-
 @app.route('/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>',
            defaults={'plugname': None})
 @app.route('/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>'
            '/<plugname>')
-def get_page_image(workflow, number, img_type, plugname):
+@inject_page_image
+def get_page_image(fpath, page, workflow, number, img_type, plugname):
     """ Return image for requested page. """
     # Scale image if requested
     width = request.args.get('width', None)
     img_format = request.args.get('format', None)
-    page = find_page(workflow, number)
-    check_page_params(page, img_type, plugname)
-    if img_type == 'raw':
-        fpath = page.raw_image
-    elif plugname is None:
-        fpath = page.get_latest_processed(image_only=True)
-    else:
-        fpath = page.processed_images[plugname]
     if width and fpath.suffix.lower() in ('.jpg', '.jpeg', '.tif', '.tiff',
                                           '.png'):
         return scale_image(fpath, width=int(width))
@@ -498,16 +544,9 @@ def get_page_image(workflow, number, img_type, plugname):
            'thumb', defaults={'plugname': None})
 @app.route('/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>/'
            '<plugname>/thumb', methods=['GET'])
-def get_page_image_thumb(workflow, number, img_type, plugname):
+@inject_page_image
+def get_page_image_thumb(fpath, page, workflow, number, img_type, plugname):
     """ Return thumbnail for page image from requested workflow. """
-    page = find_page(workflow, number)
-    check_page_params(page, img_type, plugname)
-    if img_type == 'raw':
-        fpath = page.raw_image
-    elif plugname is None:
-        fpath = page.get_latest_processed(image_only=True)
-    else:
-        fpath = page.processed_images[plugname]
     if fpath.suffix.lower() not in ('.jpg', '.jpeg', '.tif', '.tiff', '.png'):
         raise ApiException("Can not serve thumbnails for files with type {0}"
                            .format(fpath.suffix), 500)
@@ -523,19 +562,19 @@ def get_page_image_thumb(workflow, number, img_type, plugname):
 
 @app.route('/api/workflow/<workflow:workflow>/page/<int:number>',
            methods=['DELETE'])
-def delete_page(workflow, number):
+@inject_page
+def delete_page(page, workflow):
     """ Remove a single page from a workflow. """
-    page = find_page(workflow, number)
     workflow.remove_pages(page)
     return jsonify(dict(page=page))
 
 
 @app.route(
     '/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>/crop',
-    methods=['POST'])
-def crop_workflow_image(workflow, number, img_type):
+    methods=['POST'], defaults={'plugname': None})
+@inject_page
+def crop_workflow_image(page, workflow, img_type, plugname):
     # TODO: We have to update the checksum!
-    page = find_page(workflow, number)
     if img_type != 'raw':
         raise ApiException("Can only crop raw images.", 400)
     left = int(request.args.get('left', 0))
@@ -562,19 +601,13 @@ def bulk_delete_pages(workflow):
 # ================= #
 #  Capture-related  #
 # ================= #
-def check_capture_allowed():
-    if app.config['mode'] not in ('scanner', 'full'):
-        raise ApiException("Only possible when running in 'scanner' or 'full'"
-                           " mode.", 503)
-
-
 @app.route('/api/workflow/<workflow:workflow>/prepare_capture',
            methods=['POST'])
+@restrict_to_modes("scanner", "full")
 def prepare_capture(workflow):
     """ Prepare capture for the requested workflow.
 
     """
-    check_capture_allowed()
     # Check if any other workflow is active and finish, if neccessary
     logger.debug("Finishing previous workflows")
     wfitems = Workflow.find_all(app.config['base_path'], key='id').iteritems()
@@ -593,6 +626,7 @@ def prepare_capture(workflow):
 
 
 @app.route('/api/workflow/<workflow:workflow>/capture', methods=['POST'])
+@restrict_to_modes("scanner", "full")
 def trigger_capture(workflow):
     """ Trigger a capture on the requested workflow.
 
@@ -601,7 +635,6 @@ def trigger_capture(workflow):
     Returns the number of pages shot and a list of the pages captured by
     this call in JSON notation.
     """
-    check_capture_allowed()
     status = workflow.status
     if status['step'] != 'capture' or not status['prepared']:
         workflow.prepare_capture()
@@ -623,22 +656,19 @@ def trigger_capture(workflow):
 
 @app.route('/api/workflow/<workflow:workflow>/finish_capture',
            methods=['POST'])
+@restrict_to_modes("scanner", "full")
 def finish_capture(workflow):
     """ Wrap up capture process on the requested workflow. """
-    check_capture_allowed()
     workflow.finish_capture()
     return 'OK'
 
 
-def check_processing_allowed():
-    if app.config['mode'] not in ('processor', 'full'):
-        raise ApiException("Only possible when running in 'processor' or"
-                           " 'full' mode.", 503)
-
-
+# ======================= #
+#  Postprocessing/Output  #
+# ======================= #
 @app.route('/api/workflow/<workflow:workflow>/process', methods=['POST'])
+@restrict_to_modes("processor", "full")
 def start_processing(workflow):
-    check_processing_allowed()
     workflow._update_status(step='process', step_progress=None)
     from tasks import process_workflow
     process_workflow(workflow.id, app.config['base_path'])
@@ -646,8 +676,8 @@ def start_processing(workflow):
 
 
 @app.route('/api/workflow/<workflow:workflow>/output', methods=['POST'])
+@restrict_to_modes("processor", "full")
 def start_output_generation(workflow):
-    check_processing_allowed()
     workflow._update_status(step='output', step_progress=None)
     from tasks import output_workflow
     output_workflow(workflow.id, app.config['base_path'])
@@ -657,15 +687,19 @@ def start_output_generation(workflow):
 # ================== #
 #   System-related   #
 # ================== #
-def check_for_standalone_mode():
-    if not app.config['standalone']:
-        raise ApiException("Only available when server is run in standalone "
-                           "mode", 503)
+def standalone_only(func):
+    @functools.wraps(func)
+    def view_func(*args, **kwargs):
+        if not app.config['standalone']:
+            raise ApiException(
+                "Only available when server is run in standalone mode", 503)
+        return func(*args, **kwargs)
+    return view_func
 
 
 @app.route('/api/system/shutdown', methods=['POST'])
+@standalone_only
 def shutdown():
-    check_for_standalone_mode()
     logger.info("Shutting device down")
     try:
         subprocess.check_call("/usr/bin/sudo -n /sbin/shutdown -h now".split())
@@ -675,9 +709,9 @@ def shutdown():
     return ''
 
 
+@standalone_only
 @app.route('/api/system/reboot', methods=['POST'])
 def reboot():
-    check_for_standalone_mode()
     try:
         subprocess.check_call("/usr/bin/sudo -n /sbin/shutdown -r now".split())
     except (subprocess.CalledProcessError, OSError):

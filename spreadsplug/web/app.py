@@ -39,7 +39,7 @@ from spreads.main import add_argument_from_template, should_show_argument
 app = Flask('spreadsplug.web', static_url_path='/static',
             static_folder='./client/build', template_folder='./client')
 task_queue = None
-import web
+import endpoints
 import util
 import handlers
 app.json_encoder = util.CustomJSONEncoder
