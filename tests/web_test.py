@@ -13,7 +13,7 @@ from conftest import TestPluginOutput, TestPluginProcess, TestPluginProcessB
 
 @pytest.yield_fixture
 def app(config, tmpdir):
-    from spreadsplug.web import WebApplication, app
+    from spreadsplug.web.app import WebApplication, app
     config.load_defaults(overwrite=False)
 
     config['web']['mode'] = 'full'
@@ -24,7 +24,7 @@ def app(config, tmpdir):
 
     webapp = WebApplication(config)
     webapp.setup_logging()
-    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+    with mock.patch('spreadsplug.web.app.task_queue') as mock_tq:
         mock_tq.task.return_value = lambda x: x
         webapp.setup_signals()
     webapp.setup_tornado()
@@ -103,7 +103,7 @@ def test_get_plugins(client):
     exts[1].load.return_value = TestPluginProcess
     exts[2].name = "test_process2"
     exts[2].load.return_value = TestPluginProcessB
-    with mock.patch('spreadsplug.web.web.pkg_resources') as pkgr:
+    with mock.patch('spreadsplug.web.endpoints.pkg_resources') as pkgr:
         pkgr.iter_entry_points.return_value = exts
         rv = client.get('/api/plugins')
     plugins = json.loads(rv.data)
@@ -164,7 +164,7 @@ def test_delete_workflow(client):
 
 def test_transfer_workflow(client, mock_dbus, tmpdir):
     wfid = create_workflow(client, 10)
-    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+    with mock.patch('spreadsplug.web.app.task_queue') as mock_tq:
         mock_tq.task.return_value = lambda x: x
         client.post('/api/workflow/{0}/transfer'.format(wfid))
     assert len([x for x in tmpdir.visit('stick/*/data/raw/*.jpg')]) == 20
@@ -176,7 +176,7 @@ def test_submit_workflow(requests, app, tmpdir):
     app.config['mode'] = 'scanner'
     client = app.test_client()
     wfid = create_workflow(client)
-    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+    with mock.patch('spreadsplug.web.app.task_queue') as mock_tq:
         mock_tq.task.return_value = lambda x: x
         requests.post.return_value.json.return_value = {'id': 1}
         client.post('/api/workflow/{0}/submit'.format(wfid),
@@ -253,7 +253,7 @@ def test_finish_capture(client):
 
 
 def test_shutdown(client):
-    with mock.patch('spreadsplug.web.web.subprocess.check_call') as sp:
+    with mock.patch('spreadsplug.web.endpoints.subprocess.check_call') as sp:
         client.post('/api/system/shutdown')
     sp.assert_called_once_with(['/usr/bin/sudo', '-n',
                                 '/sbin/shutdown', '-h', 'now'])
@@ -261,14 +261,14 @@ def test_shutdown(client):
 
 def test_start_processing(client):
     wfid = create_workflow(client, num_captures=None)
-    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+    with mock.patch('spreadsplug.web.app.task_queue') as mock_tq:
         mock_tq.task.return_value = lambda x: x
         client.post('/api/workflow/{0}/process'.format(wfid))
 
 
 def test_start_outputting(client):
     wfid = create_workflow(client, num_captures=None)
-    with mock.patch('spreadsplug.web.task_queue') as mock_tq:
+    with mock.patch('spreadsplug.web.app.task_queue') as mock_tq:
         mock_tq.task.return_value = lambda x: x
         client.post('/api/workflow/{0}/output'.format(wfid))
     time.sleep(.1)

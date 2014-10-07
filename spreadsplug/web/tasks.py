@@ -27,7 +27,7 @@ from spreads.vendor.pathlib import Path
 
 import spreads.util as util
 from spreads.workflow import Workflow
-from spreadsplug.web import task_queue
+from app import task_queue
 from util import GeneratorIO
 
 IS_WIN = util.is_os('windows')
