@@ -22,6 +22,8 @@ The output is saved as hOCR files that can be used by other plugins (e.g.
 :py:module:`spreadsplug.djvubind` and :py:module:`spreadsplug.pdfbeads`)
 """
 
+from __future__ import unicode_literals
+
 import logging
 import multiprocessing
 import os
