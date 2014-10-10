@@ -123,10 +123,11 @@ def check_futures_exceptions(futures):
 def get_free_space(path):
     """ Return free space on file-system underlying the passed path.
 
-    :param path:    Path on file-system the free space of which is desired
+    :param path:    Path on file-system the free space of which is desired.
     :type path;     unicode
-    :return:        Free space in bytes
+    :return:        Free space in bytes.
     :rtype:         int
+
     """
     return psutil.disk_usage(unicode(path)).free
 
@@ -249,8 +250,7 @@ class abstractclassmethod(_classmethod):
     """ New decorator class that implements the @abstractclassmethod decorator
         added in Python 3.3 for Python 2.7.
 
-        Kudos to http://stackoverflow.com/a/13640018/487903
-
+    Kudos to http://stackoverflow.com/a/13640018/487903
     """
     def __init__(self, func):
         func = abc.abstractmethod(func)
@@ -259,9 +259,8 @@ class abstractclassmethod(_classmethod):
 
 class ColourStreamHandler(logging.StreamHandler):
     """ A colorized output StreamHandler
-    Kudos to Leigh MacDonald:
-    http://leigh.cudd.li/article/Cross_Platform_Colorized_Logger_Output_Using_\
-    Pythons_logging_Module_And_Colorama
+
+    Kudos to Leigh MacDonald: http://goo.gl/Lpr6C5
     """
 
     # Some basic colour scheme defaults
@@ -359,7 +358,7 @@ def colorize(text, color):
 
     :param text:    Text to be wrapped
     :param color:   ANSI color to wrap text in
-    :type color:    str (from :py:class:`colorama.ansi.AnsiCodes`)
+    :type color:    str (from `colorama.ansi <http://git.io/9qnt0Q>`)
     :return:        Colorized text
     """
     return color + text + colorama.Fore.RESET

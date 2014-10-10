@@ -60,7 +60,7 @@ documentation <web_doc>` and the `REST API documentation <rest_api>`
 .. _postproc_plugs:
 
 *postprocess* plugins
-======================
+=====================
 An extension to the *postprocess* command. Performs one or more actions that
 either modify the captured images or generate a different output.
 

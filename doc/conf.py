@@ -30,6 +30,21 @@ exclude_patterns = ['_build']
 add_function_parentheses = True
 pygments_style = 'sphinx'
 
+intersphinx_mapping = {
+    'python': ('http://docs.python.org/2.7', None),
+    'flask': ('http://flask.pocoo.org/docs/0.10/', None),
+    'tornado': ('http://tornado.readthedocs.org/en/branch4.0/', None),
+    'pillow': ('http://pillow.readthedocs.org/', None),
+    'wand': ('http://docs.wand-py.org/en/0.3.8/', None),
+    'pathlib': ('http://pathlib.readthedocs.org/en/pep428/', None),
+    'confit': ('http://confit.readthedocs.org/en/latest/', None),
+    'futures': ('http://pythonhosted.org//futures/', None)
+}
+
+http_index_shortname = 'api'
+http_index_localname = 'Spreads HTTP API'
+http_index_ignore_prefixes = ['/api']
+
 
 html_theme = 'flask'
 html_theme_path = ['_themes']

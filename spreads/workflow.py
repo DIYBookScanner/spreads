@@ -325,7 +325,7 @@ class Workflow(object):
         :param location:    Location where the workflows are located
         :type location:     unicode or :py:class:`pathlib.Path`
         :param key:         Attribute to use as key for returned dict
-        :type key:          str
+        :type key:          str/unicode
         :param reload:      Do not load workflows from cache
         :type reload:       bool
         :return:            All found workflows

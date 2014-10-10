@@ -89,12 +89,3 @@ the last capture and trigger a new one. Once you are done, use the *finish*
 button.
 
 .. TODO: Capture interface screenshot
-
-API
----
-The web plugin also exposes all of its functions through a REST-ish API.
-You can use it to write small scripts or even for a full-blown Android
-or iPhone application, if you feel so inclined.
-
-.. autoflask:: spreadsplug.web:app
-   :undoc-endpoints: index

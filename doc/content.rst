@@ -2,8 +2,8 @@
    :maxdepth: 2
 
    start
-   setup-spreadpi
    setup-other
+   setup-spreadpi
    web
    gui
    cli

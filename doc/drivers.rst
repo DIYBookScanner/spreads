@@ -93,7 +93,7 @@ compatible cameras can be found here: http://www.gphoto.org/doc/remote/
 
 For it to work, the following must be installed:
 
-* libgphoto2: http://www.gphoto.org/ 
+* libgphoto2: http://www.gphoto.org/
   This provides the low-level PTP interface.
 
   You can either build from source (http://sourceforge.net/projects/gphoto/files/)
@@ -105,7 +105,7 @@ For it to work, the following must be installed:
 * piggyphoto: https://github.com/YesVideo/piggyphoto
   This is the python interface to libgphoto2.  The original source is
   https://github.com/alexdu/piggyphoto (our pull request to merge is pending).
-  
+
   The easiest way to install is:
     $ pip install -e git://github.com/YesVideo/piggyphoto#egg=piggyphoto
 
@@ -119,6 +119,8 @@ with this driver, please `open an issue on GitHub`_, we would love to make
 it work.
 
 The following configuration keys/command-line flags are available:
+
+.. program:: gphoto2-driver
 
 .. option:: --iso <string>
 
