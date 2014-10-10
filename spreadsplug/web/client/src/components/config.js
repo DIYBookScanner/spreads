@@ -78,7 +78,7 @@
         /* Use a regular input to represent number or string cfgValues */
         var value = option.value === null ? "" : option.value;
         var types = { "number": "number",
-                      "string": "text" }
+                      "string": "text" };
 
         input = <input id={name} type={types[typeof value]}
                        value={this.props.value} onChange={this.props.onChange} />;

@@ -250,17 +250,23 @@ class Bag(object):
         # TODO: Implement
         raise NotImplementedError
 
-    def package_as_tar(self, tarpath, fetch_mapping={}, compression='gz'):
+    def package_as_tar(self, tarpath, fetch_mapping=None, compression='gz'):
+        if not fetch_mapping:
+            fetch_mapping = {}
         BagPackager(self).make_tar(tarpath, compression)
 
     def package_as_tarstream(self, fobj):
         BagPackager(self).make_tar(None, fileobj=fobj, compression=None,
                                    stream=True)
 
-    def package_as_zip(self, zippath, fetch_mapping={}, compression='gz'):
+    def package_as_zip(self, zippath, fetch_mapping=None, compression='gz'):
+        if not fetch_mapping:
+            fetch_mapping = {}
         BagPackager(self).make_zip(zippath, compression)
 
-    def package_as_zipstream(self, fetch_mapping={}, compression='gz'):
+    def package_as_zipstream(self, fetch_mapping=None, compression='gz'):
+        if not fetch_mapping:
+            fetch_mapping = {}
         return BagPackager(self).make_zipstream(compression)
 
     def _init_bag(self):
@@ -436,7 +442,6 @@ class BagValidator(object):
             raise ValidationError("Missing bagit.txt")
 
     def _validate_contents(self, fast=False, check_oxum=True):
-        #import ipdb; ipdb.set_trace()
         errors = []
         if self._bag.tagfiles:
             errors.extend(self._validate_files(self._bag.path,
@@ -542,7 +547,9 @@ class BagValidator(object):
 
 
 class BagPackager(object):
-    def __init__(self, bag, fetch_mapping={}):
+    def __init__(self, bag, fetch_mapping=None):
+        if not fetch_mapping:
+            fetch_mapping = {}
         self._bag = bag
         self._fetch_mapping = fetch_mapping
 
@@ -588,7 +595,7 @@ class BagPackager(object):
         if stream and ':' in mode:
             mode = mode.replace(':', '|')
         elif stream:
-            mode = mode + "|"
+            mode += "|"
         with tarfile.open(name=tar_path, mode=mode, fileobj=fileobj) as tf:
             if PY26:
                 tf.add(self._bag.path, os.path.basename(self._bag.path),
@@ -597,7 +604,7 @@ class BagPackager(object):
             else:
                 tf.add(self._bag.path, os.path.basename(self._bag.path),
                        recursive=True,
-                       filter=lambda x: (x if not x.path in self._fetch_mapping
+                       filter=lambda x: (x if x.path not in self._fetch_mapping
                                          else None))
 
 
@@ -606,9 +613,9 @@ class BagError(Exception):
 
 
 class ValidationError(BagError):
-    def __init__(self, message="", errors=[]):
+    def __init__(self, message="", errors=None):
         self.message = message
-        self.details = errors
+        self.details = errors or []
 
     def __str__(self):
         out = self.message

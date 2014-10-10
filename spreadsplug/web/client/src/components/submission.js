@@ -128,7 +128,7 @@
             submissionCurrentFile: data.status
           });
         }
-      }.bind(this))
+      }.bind(this));
       window.router.events.on('submit:completed', function() {
         window.router.navigate('/', {trigger: true});
       }.bind(this));

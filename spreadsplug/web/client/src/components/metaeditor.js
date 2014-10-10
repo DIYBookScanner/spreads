@@ -388,7 +388,7 @@
                                    errors={errors[field.key] || []}
                                    onChange={function(values) {
                                      var update = {};
-                                     update[field.key] = values
+                                     update[field.key] = values;
                                      this.updateMetadata(update);
                                    }.bind(this)} />;
                 } else {

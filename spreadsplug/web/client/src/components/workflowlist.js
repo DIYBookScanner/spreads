@@ -163,7 +163,7 @@
         </div>
       );
     }
-  })
+  });
 
 
   var StepStatus = React.createClass({
@@ -234,7 +234,7 @@
         </F.Row>
       );
     }
-  })
+  });
 
 
   /**
@@ -484,7 +484,7 @@
 
     render: function() {
       var verb;
-      if (window.config.web.mode == 'processor') verb = 'uploaded'
+      if (window.config.web.mode == 'processor') verb = 'uploaded';
       else verb = 'scanned';
       return(
         <main>

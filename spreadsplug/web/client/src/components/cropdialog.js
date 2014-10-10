@@ -333,7 +333,7 @@
               classes[pos] = true;
               classes["drag"] = true;
               classes["active"] = (pos === this.state.dragOrigin);
-              classes["touch"] = hasTouch
+              classes["touch"] = hasTouch;
               return <div key={pos} ref={pos} className={cx(classes)}
                           onMouseDown={(!hasTouch) && this.handleMouseDown}
                           onTouchStart={hasTouch && this.handleTouchStart} />;

@@ -81,13 +81,11 @@ class SpreadsWizard(QtGui.QWizard):
         self.setPixmap(QtGui.QWizard.WatermarkPixmap,
                        QtGui.QPixmap(':/pixmaps/monk.png'))
 
-        button_layout = []
-        button_layout.append(QtGui.QWizard.BackButton)
-        button_layout.append(QtGui.QWizard.Stretch)
-        button_layout.append(QtGui.QWizard.CancelButton)
-        button_layout.append(QtGui.QWizard.Stretch)
-        button_layout.append(QtGui.QWizard.NextButton)
-        button_layout.append(QtGui.QWizard.FinishButton)
+        button_layout = [
+            QtGui.QWizard.BackButton, QtGui.QWizard.Stretch,
+            QtGui.QWizard.CancelButton, QtGui.QWizard.Stretch,
+            QtGui.QWizard.NextButton, QtGui.QWizard.FinishButton
+        ]
         self.setButtonLayout(button_layout)
 
         self.setWindowTitle("Spreads Wizard")

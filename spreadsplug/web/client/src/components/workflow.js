@@ -79,7 +79,7 @@
           </F.Row>
         </li>);
     }
-  })
+  });
 
   /**
    * Component that displays details for a single workflow along with
@@ -268,7 +268,7 @@
     renderLayer: function() {
       if (!_.isNumber(this.state.lightboxSeqNum)) return null;
       var page = _.findWhere(this.props.workflow.get('pages'),
-                             {sequence_num: this.state.lightboxSeqNum})
+                             {sequence_num: this.state.lightboxSeqNum});
       var imageUrl = util.getPageUrl(this.props.workflow, page.capture_num,
                                      this.state.imageType, false);
       return (

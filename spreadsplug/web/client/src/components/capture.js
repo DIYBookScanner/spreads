@@ -140,7 +140,7 @@
     render: function() {
       var cropPreviewStyle = this.props.showCropPreview ? this.getCropPreviewStyle() : {};
       var imageSrc = this.props.imageSrc + "?numtype=capture";
-      var thumbSrc = this.props.imageSrc + "/thumb?numtype=capture"
+      var thumbSrc = this.props.imageSrc + "/thumb?numtype=capture";
       return (
         <li>
           {this.props.imageSrc &&
@@ -595,7 +595,7 @@
         'small-block-grid-2': util.getOrientation() === 'landscape',
         'small-block-grid-1': util.getOrientation() === 'portrait',
         'medium-block-grid-2': util.getOrientation() === 'portrait'
-      }
+      };
 
       captureKeys = [] ;
       _.each(window.config.core.capture_keys, function(key) {

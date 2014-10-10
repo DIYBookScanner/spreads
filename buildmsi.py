@@ -33,6 +33,7 @@ from spreads.vendor.pathlib import Path
 
 import spreads
 
+
 class SourceDep(namedtuple('SourceDep', ['project_name', 'module_name'])):
     def __new__(cls, project_name, module_name=None):
         if module_name is None:
@@ -141,9 +142,9 @@ def build_msi(bitness=32):
         copy_info(pkg, pkg_dir)
 
     icon = os.path.abspath("spreads.ico")
-    extra_files = [(unicode((Path('win_deps')/'extra'/
-                            x.format(arch='.amd64' if bitness == 64 else ''))
-                           .absolute()), None) for x in EXTRA_FILES]
+    extra_files = [(unicode((Path('win_deps') / 'extra' /
+                             x.format(arch='.amd64' if bitness == 64 else ''))
+                            .absolute()), None) for x in EXTRA_FILES]
     nsi_template = os.path.abspath("template.nsi")
 
     # NOTE: We need to remove the working directory from sys.path to force

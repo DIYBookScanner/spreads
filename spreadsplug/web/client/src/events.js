@@ -67,7 +67,7 @@
           this.emitEvent(events[i]);
       }
     }
-  }
+  };
 
   var EventDispatcher = _.extend(Backbone.Events, {
     connect: function() {
