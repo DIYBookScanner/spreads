@@ -169,5 +169,8 @@ class GPhoto2CameraDevice(DeviceDriver):
             img.exif_orientation = 6 if upside_down else 8  # 90°
         img.save(local_path)
 
+    def update_configuration(self, updated):
+        pass
+
     def _acquire_focus(self):
         raise NotImplementedError
