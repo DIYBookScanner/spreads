@@ -54,10 +54,10 @@ class SysTrayIcon(object):
         window_class.hCursor = win32gui.LoadCursor(0, win32con.IDC_ARROW)
         window_class.hbrBackground = win32con.COLOR_WINDOW
         window_class.lpfnWndProc = message_map  # could also specify a wndproc.
-        classAtom = win32gui.RegisterClass(window_class)
+        class_atom = win32gui.RegisterClass(window_class)
         # Create the Window.
         style = win32con.WS_OVERLAPPED | win32con.WS_SYSMENU
-        self.hwnd = win32gui.CreateWindow(classAtom, self.window_class_name,
+        self.hwnd = win32gui.CreateWindow(class_atom, self.window_class_name,
                                           style, 0, 0, win32con.CW_USEDEFAULT,
                                           win32con.CW_USEDEFAULT, 0, 0, hinst,
                                           None)
@@ -159,21 +159,21 @@ class SysTrayIcon(object):
         hicon = win32gui.LoadImage(0, icon, win32con.IMAGE_ICON,
                                    ico_x, ico_y, win32con.LR_LOADFROMFILE)
 
-        hdcBitmap = win32gui.CreateCompatibleDC(0)
-        hdcScreen = win32gui.GetDC(0)
-        hbm = win32gui.CreateCompatibleBitmap(hdcScreen, ico_x, ico_y)
-        hbmOld = win32gui.SelectObject(hdcBitmap, hbm)
+        hdc_bitmap = win32gui.CreateCompatibleDC(0)
+        hdc_screen = win32gui.GetDC(0)
+        hbm = win32gui.CreateCompatibleBitmap(hdc_screen, ico_x, ico_y)
+        hbm_old = win32gui.SelectObject(hdc_bitmap, hbm)
         # Fill the background.
         brush = win32gui.GetSysColorBrush(win32con.COLOR_MENU)
-        win32gui.FillRect(hdcBitmap, (0, 0, 16, 16), brush)
+        win32gui.FillRect(hdc_bitmap, (0, 0, 16, 16), brush)
         # unclear if brush needs to be feed.  Best clue I can find is:
         # "GetSysColorBrush returns a cached brush instead of allocating a new
         # one." - implies no DeleteObject
         # draw the icon
-        win32gui.DrawIconEx(hdcBitmap, 0, 0, hicon, ico_x, ico_y, 0, 0,
+        win32gui.DrawIconEx(hdc_bitmap, 0, 0, hicon, ico_x, ico_y, 0, 0,
                             win32con.DI_NORMAL)
-        win32gui.SelectObject(hdcBitmap, hbmOld)
-        win32gui.DeleteDC(hdcBitmap)
+        win32gui.SelectObject(hdc_bitmap, hbm_old)
+        win32gui.DeleteDC(hdc_bitmap)
 
         return hbm
 

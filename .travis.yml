@@ -11,7 +11,7 @@ before_install:
     - "sh -e /etc/init.d/xvfb start"
     - sleep 3
 install:
-    - pip install cffi flake8 pep8 pyflakes
+    - pip install cffi flake8 pep8 pyflakes pep8-naming
     - pip install -e ".[web,hidtrigger,autorotate,chdkcamera]"
     - pip install -r test-requirements.txt
     - pip install -e .

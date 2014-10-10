@@ -158,7 +158,7 @@ class DeviceDriver(SpreadsPlugin):  # pragma: no cover
             }
 
     @abstractclassmethod
-    def yield_devices(cls, config):
+    def yield_devices(cls, config):  # noqa
         """ Search for usable devices, return a generator that yields them one
         at a time as instances of the implementing class.
 
@@ -254,7 +254,7 @@ class SubcommandHooksMixin(object):
     __metaclass__ = abc.ABCMeta
 
     @abstractclassmethod
-    def add_command_parser(cls, rootparser, config):
+    def add_command_parser(cls, rootparser, config):  # noqa
         """ Allows a plugin to register a new command with the command-line
             parser.
 

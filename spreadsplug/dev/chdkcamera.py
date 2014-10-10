@@ -93,7 +93,7 @@ class CHDKCameraDevice(DeviceDriver):
         :param config:  spreads configuration
         :type config:   spreads.confit.ConfigView
         """
-        SPECIAL_CASES = {
+        SPECIAL_CASES = {  # noqa
             # (idVendor, idProduct): SpecialClass
             (0x4a9, 0x31ef): QualityFix,  # not r47, but has the same bug
             (0x4a9, 0x3218): QualityFix,

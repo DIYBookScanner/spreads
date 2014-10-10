@@ -213,7 +213,7 @@ def slugify(text, delimiter=u'-'):
     return unicode(delimiter.join(result))
 
 
-class _instancemethodwrapper(object):
+class _instancemethodwrapper(object):  # noqa
     def __init__(self, callable):
         self.callable = callable
         self.__dontcall__ = False
@@ -227,7 +227,7 @@ class _instancemethodwrapper(object):
         return self.callable(*args, **kwargs)
 
 
-class _classmethod(classmethod):
+class _classmethod(classmethod):  # noqa
     def __init__(self, func):
         super(_classmethod, self).__init__(func)
         isabstractmethod = getattr(func, '__isabstractmethod__', False)
@@ -246,7 +246,7 @@ class _classmethod(classmethod):
         return result
 
 
-class abstractclassmethod(_classmethod):
+class abstractclassmethod(_classmethod):  # noqa
     """ New decorator class that implements the @abstractclassmethod decorator
         added in Python 3.3 for Python 2.7.
 
@@ -326,27 +326,27 @@ def get_data_dir(create=False):
     :return:        Path to the default data directory
     :rtype:         unicode
     """
-    UNIX_DIR_VAR = 'XDG_DATA_HOME'
-    UNIX_DIR_FALLBACK = '~/.config'
-    WINDOWS_DIR_VAR = 'APPDATA'
-    WINDOWS_DIR_FALLBACK = '~\\AppData\\Roaming'
-    MAC_DIR = '~/Library/Application Support'
+    unix_dir_var = 'XDG_DATA_HOME'
+    unix_dir_fallback = '~/.config'
+    windows_dir_var = 'APPDATA'
+    windows_dir_fallback = '~\\AppData\\Roaming'
+    mac_dir = '~/Library/Application Support'
     base_dir = None
     if is_os('darwin'):
-        if Path(UNIX_DIR_FALLBACK).exists:
-            base_dir = UNIX_DIR_FALLBACK
+        if Path(unix_dir_fallback).exists:
+            base_dir = unix_dir_fallback
         else:
-            base_dir = MAC_DIR
+            base_dir = mac_dir
     elif is_os('windows'):
-        if WINDOWS_DIR_VAR in os.environ:
-            base_dir = os.environ[WINDOWS_DIR_VAR]
+        if windows_dir_var in os.environ:
+            base_dir = os.environ[windows_dir_var]
         else:
-            base_dir = WINDOWS_DIR_FALLBACK
+            base_dir = windows_dir_fallback
     else:
-        if UNIX_DIR_VAR in os.environ:
-            base_dir = os.environ[UNIX_DIR_VAR]
+        if unix_dir_var in os.environ:
+            base_dir = os.environ[unix_dir_var]
         else:
-            base_dir = UNIX_DIR_FALLBACK
+            base_dir = unix_dir_fallback
     app_path = Path(base_dir)/'spreads'
     if create and not app_path.exists():
         app_path.mkdir()

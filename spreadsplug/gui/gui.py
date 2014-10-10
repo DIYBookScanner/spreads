@@ -93,7 +93,7 @@ class SpreadsWizard(QtGui.QWizard):
 
 
 class IntroPage(QtGui.QWizardPage):
-    def initializePage(self):
+    def initializePage(self):  # noqa
         wizard = self.wizard()
         self.setTitle("Welcome!")
 
@@ -193,15 +193,15 @@ class IntroPage(QtGui.QWizardPage):
             # Seems like we need another value...
             elif isinstance(option.value, int):
                 widget = QtGui.QSpinBox()
-                maxVlu = max(1024, option.value * 2)
-                widget.setMaximum(maxVlu)
-                widget.setMinimum(-maxVlu)
+                max_val = max(1024, option.value * 2)
+                widget.setMaximum(max_val)
+                widget.setMinimum(-max_val)
                 widget.setValue(cur_value)
             elif isinstance(option.value, float):
                 widget = QtGui.QDoubleSpinBox()
-                maxVlu = max(1024.0, option.value * 2)
-                widget.setMaximum(maxVlu)
-                widget.setMinimum(-maxVlu)
+                max_val = max(1024.0, option.value * 2)
+                widget.setMaximum(max_val)
+                widget.setMinimum(-max_val)
                 widget.setValue(cur_value)
             else:
                 widget = QtGui.QLineEdit()
@@ -216,10 +216,10 @@ class IntroPage(QtGui.QWizardPage):
         dialog.exec_()
         self.line_edit.setText(dialog.selectedFiles()[0])
 
-    def isComplete(self):
+    def isComplete(self):  # noqa
         return bool(self.line_edit.text())
 
-    def validatePage(self):
+    def validatePage(self):  # noqa
         wizard = self.wizard()
         project_path = self.line_edit.text()
         if not project_path:
@@ -235,7 +235,7 @@ class IntroPage(QtGui.QWizardPage):
         wizard.workflow.prepare_capture()
         return True
 
-    def saveSettings(self):
+    def saveSettings(self):  # noqa
         self._update_config_from_plugin_widgets()
         config = self.wizard().config
         logger.debug("Writing configuration file to '{0}'"
@@ -271,7 +271,7 @@ class IntroPage(QtGui.QWizardPage):
 
 
 class CapturePage(QtGui.QWizardPage):
-    def initializePage(self):
+    def initializePage(self):  # noqa
         self.setTitle("Capturing from devices")
         self.start_time = None
         self.shot_count = 0
@@ -315,15 +315,15 @@ class CapturePage(QtGui.QWizardPage):
         layout.addWidget(self.logbox)
         self.setLayout(layout)
 
-    def validatePage(self):
+    def validatePage(self):  # noqa
         self.wizard().workflow.finish_capture()
         return True
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event):  # noqa
         if event.key() in (QtCore.Qt.Key_B, QtCore.Qt.Key_Space):
             self.doCapture()
 
-    def updateControl(self):
+    def updateControl(self):  # noqa
         images = [p.raw_image for p in self.wizard().workflow.pages[-2:]]
         self.control_odd.setPixmap(
             QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[0]))
@@ -332,12 +332,12 @@ class CapturePage(QtGui.QWizardPage):
             QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[1]))
                                     .scaledToWidth(250)))
 
-    def retakeCapture(self):
+    def retakeCapture(self):  # noqa
         self.retake_btn.setEnabled(False)
         self.doCapture(retake=True)
         self.retake_btn.setEnabled(True)
 
-    def doCapture(self, retake=False):
+    def doCapture(self, retake=False):  # noqa
         self.capture_btn.setEnabled(False)
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(self.wizard().workflow.capture, retake)
@@ -364,7 +364,7 @@ class PostprocessPage(QtGui.QWizardPage):
     done = False
     progress = QtCore.Signal(int)
 
-    def initializePage(self):
+    def initializePage(self):  # noqa
         self.setTitle("Postprocessing")
 
         self.progressbar = QtGui.QProgressBar(self)
@@ -384,7 +384,7 @@ class PostprocessPage(QtGui.QWizardPage):
         self.logbox.clear()
         QtCore.QTimer.singleShot(0, self.doPostprocess)
 
-    def doPostprocess(self):
+    def doPostprocess(self):  # noqa
         # Workaround for Qt threading issue:
         # QWidget::repaint: Recursive repaint detected, Segfaults
         # Use Qt event loop instead, it's thread safe
@@ -409,10 +409,10 @@ class PostprocessPage(QtGui.QWizardPage):
         self.done = True
         self.completeChanged.emit()
 
-    def isComplete(self):
+    def isComplete(self):  # noqa
         return self.done
 
-    def validatePage(self):
+    def validatePage(self):  # noqa
         logging.getLogger().removeHandler(self.log_handler)
         return True
 
@@ -421,7 +421,7 @@ class OutputPage(QtGui.QWizardPage):
     done = False
     progress = QtCore.Signal(int)
 
-    def initializePage(self):
+    def initializePage(self):  # noqa
         self.setTitle("Generating output files")
         self.setFinalPage(True)
 
@@ -442,7 +442,7 @@ class OutputPage(QtGui.QWizardPage):
         self.logbox.clear()
         QtCore.QTimer.singleShot(0, self.doGenerateOutput)
 
-    def doGenerateOutput(self):
+    def doGenerateOutput(self):  # noqa
         # Workaround for Qt threading issue:
         # QWidget::repaint: Recursive repaint detected, Segfaults
         # Use Qt event loop instead, it's thread safe
@@ -465,9 +465,9 @@ class OutputPage(QtGui.QWizardPage):
         self.done = True
         self.completeChanged.emit()
 
-    def isComplete(self):
+    def isComplete(self):  # noqa
         return self.done
 
-    def validatePage(self):
+    def validatePage(self):  # noqa
         logging.getLogger().removeHandler(self.log_handler)
         return True

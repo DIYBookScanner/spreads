@@ -150,7 +150,7 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
 
         # Run as many simultaneous Tesseract instances as there are CPU cores
         max_procs = multiprocessing.cpu_count()
-        FNULL = open(os.devnull, 'w')
+        devnull = open(os.devnull, 'w')
         for fpath in in_paths:
             # Wait until another process has finished
             while len(processes) >= max_procs:
@@ -159,7 +159,7 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
             cmd = [BIN, unicode(fpath), unicode(out_dir / fpath.stem),
                    "-l", language, "hocr"]
             logger.debug(cmd)
-            proc = util.get_subprocess(cmd, stderr=FNULL, stdout=FNULL)
+            proc = util.get_subprocess(cmd, stderr=devnull, stdout=devnull)
             processes.append(proc)
         # Wait for remaining processes to finish
         while processes:
@@ -177,12 +177,12 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
                 return flags
             for flag in group['flags']:
                 try:
-                    flags |= RE_FLAGS[flag]
+                    flags |= re_flags[flag]
                 except KeyError:
                     raise ValueError("Unknown flag: '{0}'".format(flag))
             return flags
 
-        RE_FLAGS = {
+        re_flags = {
             'debug': re.DEBUG,
             'ignorecase': re.IGNORECASE,
             'locale': re.LOCALE,
