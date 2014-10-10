@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+""" Core web application code. """
+
 import logging
 import logging.handlers
 import os
@@ -36,8 +38,14 @@ from spreads.util import is_os
 from spreads.config import OptionTemplate
 from spreads.main import add_argument_from_template, should_show_argument
 
+#: Global application object
 app = Flask('spreadsplug.web', static_url_path='/static',
             static_folder='./client/build', template_folder='./client')
+
+#: Global task queue object
+# NOTE: This has to be imported before the other modules since they depend
+#       on it. However, it cannot be instantiated since we don't yet know
+#       where we're supposed to store the queue.
 task_queue = None
 import endpoints
 import util
@@ -45,6 +53,7 @@ import handlers
 app.json_encoder = util.CustomJSONEncoder
 from discovery import DiscoveryListener
 
+#: Global logger
 logger = logging.getLogger('spreadsplug.web')
 
 try:
@@ -53,6 +62,11 @@ try:
     import netifaces
 
     def get_ip_address():
+        """ Return the first external IPv4 address using the
+            :py:mod:`netifaces` module.
+
+        :returns:   The IP address or ``None`` if it could not be determined
+        """
         try:
             iface = next(dev for dev in netifaces.interfaces()
                          if 'wlan' in dev or 'eth' in dev
@@ -67,6 +81,11 @@ except ImportError:
     import socket
 
     def get_ip_address():
+        """ Return the first external IPv4 address using the :py:mod:`socket`
+            module from the standard library.
+
+        :returns:   The IP address or ``None`` if it could not be determined
+        """
         try:
             return next(
                 ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
@@ -76,10 +95,19 @@ except ImportError:
 
 
 class WebCommands(plugin.HookPlugin, plugin.SubcommandHooksMixin):
+    """ Plugin instance that registers the subcommands for the web plugin. """
     __name__ = 'web'
 
     @classmethod
     def add_command_parser(cls, rootparser, config):
+        """
+        Add subcommand parsers to root parser.
+
+        :param rootparser: The root parser to add the subcommands to.
+        :type rootparser:  :py:class:`argparse.ArgumentParser`
+        :param config:     The application configuration
+        :type config:      :py:class:`spreads.config.Configuration`
+        """
         cmdparser = rootparser.add_parser(
             'web', help="Start the web interface")
         cmdparser.set_defaults(subcommand=cls.run)
@@ -136,11 +164,15 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHooksMixin):
 
     @staticmethod
     def run(config):
+        """ Initialize the web application and run it. """
         app = WebApplication(config)
         app.run_server()
 
     @staticmethod
     def run_windows_service(config):
+        """ Initialize the web application and run it in the background, while
+            displaying a small system tray icon to interact with the it.
+        """
         import webbrowser
         from winservice import SysTrayIcon
 
@@ -149,6 +181,7 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHooksMixin):
         server_thread.start()
 
         def on_quit(systray):
+            """ Callback that stops the application. """
             IOLoop.instance().stop()
             server_thread.join()
 
@@ -168,17 +201,31 @@ class WebCommands(plugin.HookPlugin, plugin.SubcommandHooksMixin):
 
 
 class WebApplication(object):
+    """ Manages initialization, configuration and launch of the web app.
+
+    :attr config:           Web plugin configuration
+    :type config:           :py:class:`confit.ConfigView`
+    :attr global_config:    Global application configuration
+    :type global_config:    :py:class:`spreads.config.Configuration`
+    :attr consumer:         Background task consumer
+    :type consumer:         :py:class:`huey.consumer.Consumer`
+    :attr application:      Tornado web application
+    :type application:      :py:class:`tornado.web.Application`
+    """
     def __init__(self, config):
         self.global_config = config
         self.config = config['web']
         mode = self.config['mode'].get()
         logger.debug("Starting scanning station server in \"{0}\" mode"
                      .format(mode))
+        # Directory that workflows should be stored in
         project_dir = os.path.expanduser(self.config['project_dir'].get())
         if not os.path.exists(project_dir):
             os.mkdir(project_dir)
 
         self._debug = self.config['debug'].get(bool)
+
+        # Expose some configuration to the WSGI app
         app.config['debug'] = self._debug
         app.config['mode'] = mode
         app.config['base_path'] = project_dir
@@ -191,6 +238,7 @@ class WebApplication(object):
                 endpoints.handle_general_exception)
 
     def setup_task_queue(self):
+        """ Configure task queue and consumer. """
         # Initialize huey task queue
         global task_queue
         db_location = self.global_config.cfg_path.parent / 'queue.db'
@@ -198,6 +246,7 @@ class WebApplication(object):
         self.consumer = Consumer(task_queue)
 
     def setup_logging(self):
+        """ Configure loggers. """
         # Add in-memory log handler
         memoryhandler = logging.handlers.BufferingHandler(1024*10)
         memoryhandler.setLevel(logging.DEBUG)
@@ -212,13 +261,21 @@ class WebApplication(object):
         logging.getLogger('tornado.access').setLevel(logging.ERROR)
 
     def setup_signals(self):
+        """ Connect signal handlers. """
         def get_signal_callback_http(signal):
+            """ Create a signal callback that adds a signal as a
+                :py:class:`util.Event` to the buffer in :py:mod:`handlers`.
+            """
             def signal_callback(sender, **kwargs):
                 event = util.Event(signal, sender, kwargs)
                 handlers.event_buffer.new_events([event])
             return signal_callback
 
         def get_signal_callback_websockets(signal):
+            """ Create a signal callback that sends out a signals as a
+                :py:class:`util.Event` via the
+                :py:class:`tornado.web.WebSocketHandler` in :py:mod:`handlers`.
+            """
             def signal_callback(sender, **kwargs):
                 handlers.WebSocketHandler.send_event(
                     util.Event(signal, sender, kwargs))
@@ -235,7 +292,9 @@ class WebApplication(object):
             signal.connect(get_signal_callback_websockets(signal), weak=False)
 
     def setup_tornado(self):
+        """ Configure Tornado web application. """
         if self._debug:
+            # Exposes Werkzeug's interactive debugger for WSGI endpoints.
             logger.info("Starting server in debugging mode")
             from werkzeug.debug import DebuggedApplication
             container = WSGIContainer(DebuggedApplication(app, evalex=True))
@@ -253,10 +312,12 @@ class WebApplication(object):
              handlers.StreamingUploadHandler,
              dict(base_path=app.config['base_path'])),
             (r"/api/poll", handlers.EventLongPollingHandler),
+            # Fall back to WSGI endpoints
             (r".*", FallbackHandler, dict(fallback=container))
         ], debug=self._debug)
 
     def display_ip(self):
+        """ Display external IP address on device displays. """
         # Display the address of the web interface on the camera displays
         try:
             for cam in plugin.get_devices(self.global_config):
@@ -270,6 +331,7 @@ class WebApplication(object):
             return
 
     def run_server(self):
+        """ Run the web application. """
         self.setup_logging()
         self.setup_task_queue()
         self.setup_signals()
@@ -281,14 +343,17 @@ class WebApplication(object):
         try:
             device_driver = plugin.get_driver(self.global_config['driver']
                                               .get())
+            should_display_ip = (app.config['standalone'] and self._ip_address
+                                 and plugin.DeviceFeatures.CAN_DISPLAY_TEXT in
+                                 device_driver.features)
         except ConfigError:
+            if self.config['mode'] not in ('scanner', 'full'):
+                should_display_ip = False
             raise ConfigError(
                 "You need to specify a value for `driver`.\n"
                 "Either run `spread [gui]configure` or edit the configuration "
                 "file.")
-        should_display_ip = (app.config['standalone'] and self._ip_address
-                             and plugin.DeviceFeatures.CAN_DISPLAY_TEXT in
-                             device_driver.features)
+
         if should_display_ip:
             # Every 30 seconds, see if there are devices attached and display
             # IP address and port on them, then disable the callback
@@ -311,6 +376,7 @@ class WebApplication(object):
         try:
             IOLoop.instance().start()
         finally:
+            # Shut everything down that is still running in the background
             self.consumer.shutdown()
             if app.config['mode'] in ('processor', 'full'):
                 discovery_listener.stop()
