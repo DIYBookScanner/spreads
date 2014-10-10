@@ -50,7 +50,7 @@ class LogBoxHandler(logging.Handler):
             self.handleError(record)
 
         if record.levelname in ('ERROR', 'CRITICAL', 'WARNING'):
-            QtGui.QApplication.beep()
+            QtGui.QApplication.instance().beep()
 
 
 class LogBoxFormatter(logging.Formatter):
