@@ -301,7 +301,7 @@ class CHDKCameraDevice(DeviceDriver):
             self._run(cmd)
         except CHDKPTPException as e:
             if 'not in rec mode' in e.message:
-                self.prepare_capture(None)
+                self.prepare_capture()
                 self.capture(path)
             else:
                 self.logger.error("Capture command failed.")
