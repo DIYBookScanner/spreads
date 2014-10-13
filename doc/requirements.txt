@@ -1,5 +1,4 @@
 Sphinx>=1.2b1
 sphinxcontrib-fulltoc>=1.0
 sphinxcontrib-httpdomain>=1.3.0
-sphinxcontrib-aafig>=1.0
 mock>=1.0.1
