@@ -4,7 +4,9 @@ import os
 import sys
 
 import mock
-MOCK_MODULES = ['usb', 'stevedore.extension', 'stevedore.named', 'flask']
+MOCK_MODULES = ['usb', 'stevedore.extension', 'stevedore.named', 'flask',
+                'tornado.wsgi', 'tornado.web', 'tornado.ioloop', 'requests',
+                'isbnlib', 'werkzeug.contrib.cache']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
