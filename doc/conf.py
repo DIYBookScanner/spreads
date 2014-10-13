@@ -4,7 +4,7 @@ import os
 import sys
 
 import mock
-MOCK_MODULES = ['usb', 'stevedore.extension', 'stevedore.named']
+MOCK_MODULES = ['usb', 'stevedore.extension', 'stevedore.named', 'flask']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
