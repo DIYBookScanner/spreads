@@ -22,7 +22,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.coverage',
 
 templates_path = ['_templates']
 source_suffix = '.rst'
-master_doc = 'content'
+master_doc = 'index'
 
 project = u'spreads'
 copyright = u'2013, Johannes Baiter (jbaiter)'
