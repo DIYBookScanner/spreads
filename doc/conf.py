@@ -66,14 +66,14 @@ latex_elements = {
     'fontpkg': '\\usepackage{palatino}',
 }
 latex_documents = [
-    ('content', 'spreads.tex', u'Documentation',
+    ('index', 'spreads.tex', u'Documentation',
      u'Johannes Baiter', 'manual', True),
 ]
 latex_logo = '_static/logo.png'
 latex_show_urls = 'footnote'
 
 man_pages = [
-    ('content', 'spreads', u'spreads Documentation',
+    ('index', 'spreads', u'spreads Documentation',
      [u'Johannes Baiter'], 1)
 ]
 
