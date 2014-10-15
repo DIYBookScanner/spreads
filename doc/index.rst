@@ -1,3 +1,19 @@
+.. toctree::
+   :maxdepth: 2
+
+   setup-other
+   setup-spreadpi
+   web
+   gui
+   cli
+   faq
+   drivers
+   plugins
+   contributing
+   developers
+   api
+   changelog
+
 About Spreads
 =============
 
@@ -9,31 +25,31 @@ At its core, it handles the communication with the imaging devices, the
 post-processing of the captured material and its assembly into output formats
 like PDF or ePub. On top of this base layer, we have built a variety of
 interfaces that should fit into most use cases: A full-fledged and
-mobile-friendly web interface that works on even the most low-powered devices
-(like a Raspberry Pi, through the spreadpi distribution), a graphical wizard
-for classical desktop users and a bare-bones command-line interface for
-purists.
+mobile-friendly :doc:`web interface <web>` that works on even the most
+low-powered devices (like a Raspberry Pi, through the spreadpi distribution), a
+:doc:`graphical wizard <gui>` for classical desktop users and a bare-bones
+:doc:`command-line interface <cli>` for purists.
 
 As for extensibility, we offer a plugin API that allows developers to hook into
 almost every part of the architecture and extend the application according to
-their needs. There are interfaces for developing a device driver to communicate
-with new hardware, for writing new postprocessing or output plugins to take
-advantage of a as of yet unsupported third-party software. There is even the
-possibility to create a completely new user interface that is better suited for
-specific environments.
+their needs. There are :ref:`interfaces for developing a device driver
+<add_devices>` to communicate with new hardware, for writing new postprocessing
+or output plugins to take advantage of a as of yet unsupported third-party
+software. There is even the possibility to :ref:`create a completely new user
+interface <add_commands>` that is better suited for specific environments.
 
 The spreads core is completely written in the Python programming language,
 which is widespread, easy to read and to learn (and beautiful on top of that).
 Individual plugins also contain parts written in JavaScript and Lua. Through
-the web-plugin it also offers a REST(-ish) API that can be accessed with any
-programming language that has a HTTP library.
+the web-plugin it also offers a :doc:`REST(-ish) API <web_api>` that can be
+accessed with any programming language that has a HTTP library.
 
 To get started with the software, we suggest you begin by reading the
 Introductory Notes that lay out the general workflow of the application and
 explain some of the terminology used across all interfaces. Then, if you want
-to install and configure the software yourself, head over to Installation and
-Setup. If you are a user of the spreadpi distribution, feel free to skip to
-Using the Web-Interface.
+to install and configure the software yourself, head over to the
+:doc:`Installation and Setup guide <setup-other>`. If you are a user of the
+spreadpi distribution, use the :doc:`spreadpi guide <setup-spreadpi>`.
 
 .. note::
 
@@ -55,20 +71,3 @@ Using the Web-Interface.
     .. _Wenceslaus Hollar: http://en.wikipedia.org/wiki/Wenceslaus_Hollar
     .. _Benedictines: http://en.wikipedia.org/wiki/Order_of_Saint_Benedict
     .. _copiers of books: http://en.wikipedia.org/wiki/Scriptorium
-
-.. toctree::
-   :maxdepth: 2
-
-   start
-   setup-other
-   setup-spreadpi
-   web
-   gui
-   cli
-   faq
-   drivers
-   plugins
-   contributing
-   developers
-   api
-   changelog

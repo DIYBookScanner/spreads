@@ -415,3 +415,8 @@ li.current ul {
 .indexwrapper .toctree-wrapper li.current {
     display: none;
 }
+
+/* Hide TOC tree */
+.indexwrapper .toctree-wrapper {
+    display: none;
+}
