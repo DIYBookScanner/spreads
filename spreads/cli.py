@@ -240,7 +240,7 @@ def configure(config):
                   "Press any key to continue")
             getch()
             devs = plugin.get_devices(config, force_reload=True)
-            print("Please put a book with as little whitespace as possible"
+            print("Please put a book with as little whitespace as possible "
                   "under your cameras.\nPress any button to continue")
             getch()
             focus = devs[0]._acquire_focus()
@@ -314,8 +314,8 @@ def capture(config):
             if is_posix:
                 termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
-    if len(workflow.devices) != 2:
-        raise DeviceException("Please connect and turn on two"
+    if len(workflow.devices) not in (1, 2):
+        raise DeviceException("Please connect and turn on one or two"
                               " pre-configured devices! ({0} were"
                               " found)".format(len(workflow.devices)))
     print(colorize("Found {0} devices!".format(len(workflow.devices)),

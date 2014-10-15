@@ -290,10 +290,14 @@ class CapturePage(QtGui.QWizardPage):
         self.capture_btn.setFocus()
 
         control_layout = QtGui.QHBoxLayout()
-        self.control_odd = QtGui.QLabel()
-        self.control_even = QtGui.QLabel()
-        control_layout.addWidget(self.control_odd)
-        control_layout.addWidget(self.control_even)
+        if self.wizard().workflow.is_single_camera:
+            self.control_single = QtGui.QLabel()
+            control_layout.addWidget(self.control_single)
+        else:
+            self.control_odd = QtGui.QLabel()
+            self.control_even = QtGui.QLabel()
+            control_layout.addWidget(self.control_odd)
+            control_layout.addWidget(self.control_even)
 
         self.retake_btn = QtGui.QPushButton("Retake")
         self.retake_btn.clicked.connect(self.retakeCapture)
@@ -324,13 +328,19 @@ class CapturePage(QtGui.QWizardPage):
             self.doCapture()
 
     def updateControl(self):  # noqa
-        images = [p.raw_image for p in self.wizard().workflow.pages[-2:]]
-        self.control_odd.setPixmap(
-            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[0]))
-                                    .scaledToWidth(250)))
-        self.control_even.setPixmap(
-            QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[1]))
-                                    .scaledToWidth(250)))
+        if self.wizard().workflow.is_single_camera:
+            image = self.wizard().workflow.pages[-1].raw_image
+            self.control_single.setPixmap(
+                QtGui.QPixmap.fromImage(QtGui.QImage(unicode(image))
+                                        .scaledToWidth(250)))
+        else:
+            images = [p.raw_image for p in self.wizard().workflow.pages[-2:]]
+            self.control_odd.setPixmap(
+                QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[0]))
+                                        .scaledToWidth(250)))
+            self.control_even.setPixmap(
+                QtGui.QPixmap.fromImage(QtGui.QImage(unicode(images[1]))
+                                        .scaledToWidth(250)))
 
     def retakeCapture(self):  # noqa
         self.retake_btn.setEnabled(False)
