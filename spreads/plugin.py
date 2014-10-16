@@ -153,7 +153,7 @@ class DeviceDriver(SpreadsPlugin):  # pragma: no cover
                            "manual"],
                     docstring="Select focus mode", selectable=True),
                 "focus_distance": OptionTemplate(
-                    value=None, docstring="Distance to focus subject",
+                    value=0, docstring="Distance to focus subject",
                     depends={'device': {'focus_mode': 'manual'}})
             }
 
