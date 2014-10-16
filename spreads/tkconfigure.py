@@ -268,6 +268,7 @@ class TkConfigurationWindow(tk.Frame):
                                           force_reload=True)
                 focus = devs[0]._acquire_focus()
                 self.spreads_config['device']['focus_distance'] = focus
+                break
             except plugin.DeviceException:
                 rv = messagebox.askretrycancel(
                     message="No devices could be found."
