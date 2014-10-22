@@ -52,7 +52,7 @@ try:
                 "Image {0} did not have any EXIF rotation, did not rotate."
                 .format(in_path))
             return
-        elif img.exif_orientation == 1:
+        elif img.exif_orientation in (0, 1):
             logger.info("Image {0} is already rotated.".format(in_path))
             shutil.copyfile(in_path, out_path)
         else:

@@ -85,12 +85,20 @@ class DummyDevice(DeviceDriver):
                 img.save(filename=unicode(path))
         img = JPEGImage(fname=unicode(path))
         aspect = float(img.width)/img.height
+        upside_down = self.config["upside_down"].get(bool)
+        if self.target_page == 'odd':
+            img.exif_orientation = 8 if upside_down else 6
+        else:
+            img.exif_orientation = 6 if upside_down else 8
         img.exif_thumbnail = img.downscale(320, int(320/aspect))
         img.save(unicode(path))
 
     def finish_capture(self):
         time.sleep(5)
         self.logger.info("Finishing capture")
+
+    def _acquire_focus(self):
+        return 10
 
     def update_configuration(self, updated):
         pass
