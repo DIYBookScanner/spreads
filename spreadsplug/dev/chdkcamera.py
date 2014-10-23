@@ -365,8 +365,11 @@ class CHDKCameraDevice(DeviceDriver):
         return output
 
     def _execute_lua(self, script, wait=True, get_result=False, timeout=256):
-        if get_result and "return" not in script:
-            script = "return{{{0}}}".format(script)
+        # For single-statements we insert a return statement if the user
+        # forgot to provide one.
+        is_single = "\n" not in script and ";" not in script
+        if get_result and "return" not in script and is_single:
+            script = "return {0}".format(script)
         cmd = "luar" if wait else "lua"
         output = self._run("{0} {1}".format(cmd, script))
         if not get_result:
