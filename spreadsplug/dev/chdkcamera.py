@@ -342,7 +342,7 @@ class CHDKCameraDevice(DeviceDriver):
             .format(idx, msg) for idx, msg in enumerate(messages, 1)
         ])
         script.append("draw.overdraw();")
-        self._execute_lua("\n".join(script), get_result=True)
+        self._execute_lua("\n".join(script))
 
     def _run(self, *commands):
         chdkptp_path = Path(self.config["chdkptp_path"].get(unicode))
