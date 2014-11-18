@@ -148,7 +148,7 @@ class CHDKCameraDevice(DeviceDriver):
         self._serial_number = (
             usb.util.get_string(device, 256, device.iSerialNumber)
             .strip('\x00'))
-        self.logger.debug("Device has serial number {0}"
+        self.logger.debug(u"Device has serial number {0}"
                           .format(self._serial_number))
         self.config = config
 
@@ -374,7 +374,7 @@ class CHDKCameraDevice(DeviceDriver):
         output = self._run("{0} {1}".format(cmd, script))
         if not get_result:
             return
-        output = [x for x in output if x.find(":return:")][0]
+        output = next(x for x in output if ":return:" in x)
         return self._parse_lua_output(output)
 
     def _parse_table(self, data):
