@@ -20,7 +20,8 @@
 (function() {
   'use strict';
   var React = require('react/addons'),
-      _ = require('underscore');
+      _ = require('underscore'),
+      Mousetrap = require('mousetrap');
 
   /** Create a new "layer" on the page like a modal or overlay
    *
@@ -171,9 +172,11 @@
     },
     componentDidMount: function() {
       window.addEventListener("resize", this.handleResize);
+      Mousetrap.bind('escape', this.props.onClose);
     },
     componentWillUnmount: function() {
       window.removeEventListener("resize", this.handleResize);
+      Mousetrap.unbind('escape');
     },
     render: function() {
       var hasPrevious = this.props.sequenceNumber > 0;
