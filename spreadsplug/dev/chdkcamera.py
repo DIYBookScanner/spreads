@@ -52,7 +52,8 @@ class CHDKCameraDevice(DeviceDriver):
 
     """
     features = (DeviceFeatures.PREVIEW, DeviceFeatures.IS_CAMERA,
-                DeviceFeatures.CAN_DISPLAY_TEXT)
+                DeviceFeatures.CAN_DISPLAY_TEXT,
+                DeviceFeatures.CAN_ADJUST_FOCUS)
 
     target_page = None
     _cli_flags = None
