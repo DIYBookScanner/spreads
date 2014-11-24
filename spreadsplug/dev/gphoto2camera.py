@@ -57,6 +57,7 @@ class GPhoto2CameraDevice(DeviceDriver):
 
         """
         self.logger = logging.getLogger('GPhoto2Camera')
+        logging.getLogger('libgphoto2').setLevel(logging.CRITICAL)
         self._camera = camera
         self.config = config
 
