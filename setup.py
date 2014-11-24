@@ -153,7 +153,7 @@ setup(
     ],
     extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],
-        "gphoto2camera": ["piggyphoto >= 0.1"],
+        "gphoto2camera": ["gphoto2-cffi >= 0.2"],
         "autorotate": ["jpegtran-cffi >= 0.4"],
         "gui": ["PySide >= 1.2.1"],
         "hidtrigger": ["hidapi-cffi >= 0.1"],
