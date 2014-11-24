@@ -60,9 +60,8 @@ class GPhoto2CameraDevice(DeviceDriver):
         logging.getLogger('libgphoto2').setLevel(logging.CRITICAL)
         self._camera = camera
         self.config = config
-
+        self._serial_number = self._camera.status.serialnumber
         try:
-            self._serial_number = self._camera.status.serialnumber
             self.target_page = config['target_page'][self._serial_number].get()
         except:
             self.target_page = None
@@ -72,8 +71,9 @@ class GPhoto2CameraDevice(DeviceDriver):
 
     def connected(self):
         try:
-            return self._camera.status is not None
-        except gphoto2.errors.GPhoto2Error:
+            return bool(self._camera.supported_operations)
+        except gphoto2.errors.GPhoto2Error as e:
+            self.logger.error(e)
             return False
 
     def set_target_page(self, target_page):
@@ -108,7 +108,7 @@ class GPhoto2CameraDevice(DeviceDriver):
             img.exif_orientation = 8 if upside_down else 6  # -90°
         else:
             img.exif_orientation = 6 if upside_down else 8  # 90°
-        img.save(local_path)
+        img.save(unicode(path))
 
     def update_configuration(self, updated):
         pass
