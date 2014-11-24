@@ -6,8 +6,9 @@ from contextlib import contextmanager
 from datetime import datetime
 from subprocess import check_call, check_output
 from setuptools import setup
-from setuptools.command.sdist import sdist as SdistCommand
-from setuptools.command.bdist_wininst import bdist_wininst as WininstCommand
+from setuptools.command.sdist import sdist as SdistCommand  # flake8: noqa
+from setuptools.command.bdist_wininst import (
+    bdist_wininst as WininstCommand)  # flake8: noqa
 
 import spreads
 
@@ -57,7 +58,7 @@ class CustomSdistCommand(SdistCommand):
 
     def run(self):
         build_frontend_bundles()
-        if not 'git' in VERSION:
+        if 'git' not in VERSION:
             return SdistCommand.run(self)
         with self.override_setup_version():
             return SdistCommand.run(self)
@@ -148,6 +149,7 @@ setup(
         "roman >= 2.0.0",
         "psutil >= 2.0.0",
         "isbnlib >= 3.3.8",
+        "enum34 >= 1.0.3",
     ],
     extras_require={
         "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],
@@ -165,5 +167,6 @@ setup(
         ]
     },
     cmdclass={'sdist': CustomSdistCommand,
-              'bdist_wininst': CustomWininstCommand}
+              'bdist_wininst': CustomWininstCommand},
+    zip_safe=False
 )

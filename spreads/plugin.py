@@ -28,6 +28,7 @@ from collections import OrderedDict
 
 import pkg_resources
 from blinker import Namespace
+from enum import Enum
 
 from spreads.config import OptionTemplate
 from spreads.util import (abstractclassmethod, DeviceException,
@@ -101,22 +102,24 @@ class SpreadsPlugin(object):  # pragma: no cover
             self.config = config
 
 
-class DeviceFeatures(object):  # pragma: no cover
-    """ Pseudo-enum that provides various constants that
-        :py:class:`DeviceDriver` implementations can expose in their
-        :py:attr:`DeviceDriver.features` tuple to declare support for one or
-        more given features.
+class DeviceFeatures(Enum):  # pragma: no cover
+    """ Enum that provides various constants that :py:class:`DeviceDriver`
+    implementations can expose in their :py:attr:`DeviceDriver.features` tuple
+    to declare support for one or more given features.
     """
     #: Device can grab a preview picture
-    PREVIEW = 'PREVIEW'
+    PREVIEW = 1
 
     #: Device class allows the operation of two devices simultaneously
     #: (mainly to be used by cameras, where each device is responsible for
     #: capturing a single page.
-    IS_CAMERA = 'IS_CAMERA'
+    IS_CAMERA = 2
 
     #: Device can display arbitrary messages on its screen
-    CAN_DISPLAY_TEXT = 'CAN_DISPLAY_TEXT'
+    CAN_DISPLAY_TEXT = 3
+
+    #: Device can read set its own focus distance and read out its autofocus
+    CAN_ADJUST_FOCUS = 4
 
 
 class DeviceDriver(SpreadsPlugin):  # pragma: no cover
@@ -135,8 +138,9 @@ class DeviceDriver(SpreadsPlugin):  # pragma: no cover
         """ Returns some pre-defined options when the implementing devices
             has the :py:attr:`DeviceFeatures.IS_CAMERA` feature.
         """
+        templates = {}
         if DeviceFeatures.IS_CAMERA in cls.features:
-            return {
+            templates.update({
                 "parallel_capture": OptionTemplate(
                     value=True,
                     docstring="Trigger capture on multiple devices at once.",
@@ -147,15 +151,17 @@ class DeviceDriver(SpreadsPlugin):  # pragma: no cover
                               "e.g. East-Asian books)"),
                 "upside_down": OptionTemplate(
                     value=False,
-                    docstring="Cameras are mounted upside-down."),
+                    docstring="Cameras are mounted upside-down.")})
+        if DeviceFeatures.CAN_ADJUST_FOCUS in cls.features:
+            templates.update({
                 "focus_mode": OptionTemplate(
                     value=["autofocus_all", "autofocus_initial",
                            "manual"],
                     docstring="Select focus mode", selectable=True),
                 "focus_distance": OptionTemplate(
                     value=0, docstring="Distance to focus subject",
-                    depends={'device': {'focus_mode': 'manual'}})
-            }
+                    depends={'device': {'focus_mode': 'manual'}})})
+        return templates
 
     @abstractclassmethod
     def yield_devices(cls, config):  # noqa
