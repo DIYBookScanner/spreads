@@ -511,9 +511,9 @@ class Workflow(object):
             self._devices = plugin.get_devices(self.config, force_reload=True)
         if any(not dev.connected() for dev in self._devices):
             self._logger.warning(
-                "At least one of the devices has been disconnected."
-                "Please make sure it has been re-enabled before taking another"
-                "action.")
+                "At least one of the devices has been disconnected. "
+                "Please make sure it has been re-enabled before taking "
+                "another action.")
             self._devices = None
         return self._devices
 
