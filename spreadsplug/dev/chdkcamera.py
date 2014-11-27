@@ -98,14 +98,14 @@ class CHDKCameraDevice(DeviceDriver):
             # (idVendor, idProduct): SpecialClass
             (0x4a9, 0x31ef): QualityFix,  # not r47, but has the same bug
             (0x4a9, 0x3218): QualityFix,
-            (0x4a9, 0x3223): QualityFix,
+            (0x4a9, 0x3223): A3300,
             (0x4a9, 0x3224): QualityFix,
             (0x4a9, 0x3225): QualityFix,
             (0x4a9, 0x3226): QualityFix,
             (0x4a9, 0x3227): QualityFix,
             (0x4a9, 0x3228): QualityFix,
             (0x4a9, 0x3229): QualityFix,
-            (0x4a9, 0x322a): A2200,
+            (0x4a9, 0x322a): QualityFix,
             (0x4a9, 0x322b): QualityFix,
             (0x4a9, 0x322c): QualityFix,
         }
@@ -144,7 +144,7 @@ class CHDKCameraDevice(DeviceDriver):
         :type device:   `usb.core.Device <http://github.com/walac/pyusb>`_
 
         """
-        self.logger = logging.getLogger('ChdkCamera')
+        self.logger = logging.getLogger(self.__class__.__name__)
         self._usbport = (device.bus, device.address)
         self._serial_number = (
             usb.util.get_string(device, 256, device.iSerialNumber)
@@ -171,8 +171,7 @@ class CHDKCameraDevice(DeviceDriver):
         # Set camera to highest quality
         self._execute_lua('exit_alt(); set_config_value(291, 0);'
                           'enter_alt();')
-        self.logger = logging.getLogger('ChdkCamera[{0}]'
-                                        .format(self.target_page))
+        self.logger.name += "[{0}]".format(self.target_page)
 
     def connected(self):
         def match_serial(dev):
@@ -461,24 +460,6 @@ class CHDKCameraDevice(DeviceDriver):
                           .format(value))
 
 
-class A2200(CHDKCameraDevice):
-    """ Canon A2200 driver.
-
-        Works around some quirks of that CHDK port.
-
-    """
-    MAX_RESOLUTION = 0
-    MAX_QUALITY = 1
-
-    def __init__(self, config, device):
-        super(A2200, self).__init__(config, device)
-        if self.target_page is not None:
-            self.logger = logging.getLogger(
-                'A2200Device[{0}]'.format(self.target_page))
-        else:
-            self.logger = logging.getLogger('A2200Device')
-
-
 class QualityFix(CHDKCameraDevice):
     """ Fixes a bug that prevents remote capture with the highest resolution
     and quality from succeeding.  See this CHDK forum post for more details:
@@ -487,10 +468,20 @@ class QualityFix(CHDKCameraDevice):
     MAX_RESOLUTION = 0
     MAX_QUALITY = 1
 
-    def __init__(self, config, device):
-        super(QualityFix, self).__init__(config, device)
-        if self.target_page is not None:
-            self.logger = logging.getLogger(
-                'QualityFixDevice[{0}]'.format(self.target_page))
-        else:
-            self.logger = logging.getLogger('QualityFixDevice')
+
+class A3300(QualityFix):
+    """ Canon A3300 driver.
+
+    Works around the fact that this camera does not support remote shooting
+    in JPEG format even on very recent revisions of CHDK.
+    """
+
+    @property
+    def _can_remote(self):
+        # NOTE: Remote shooting only works with RAW/DNG.
+        return (self._chdk_buildnum >= 2927 and
+                self.config['shoot_raw'].get(bool))
+
+    @_can_remote.setter
+    def _can_remote(self, val):
+        pass
