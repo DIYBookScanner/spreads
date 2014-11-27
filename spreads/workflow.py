@@ -761,7 +761,13 @@ class Workflow(object):
             raw_image = self.path/dikt['raw_image']
             processed_images = {}
             for plugname, fpath in dikt['processed_images'].iteritems():
-                processed_images[plugname] = self.path/fpath
+                relpath = self.path/fpath
+                if relpath.exists():
+                    processed_images[plugname] = relpath
+                else:
+                    self._logger.warning(
+                        "Could not find processed file {0}, removing from "
+                        "workflow.")
             return Page(raw_image=raw_image,
                         capture_num=dikt['capture_num'],
                         processed_images=processed_images,
