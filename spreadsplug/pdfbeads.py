@@ -28,6 +28,7 @@ from __future__ import division, unicode_literals
 import codecs
 import logging
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -122,16 +123,35 @@ class PDFBeadsPlugin(HookPlugin, OutputHooksMixin):
             #       progress notification for the user.
             output, errors = proc.communicate()
         else:
-            last_count = 0
+            errors = ""
+            is_jbig2 = False
+            cur_jbig2_page = 0
             while proc.poll() is None:
-                current_count = sum(1 for x in tmpdir.glob('*.jbig2'))
-                if current_count > last_count:
-                    last_count = current_count
-                    self.on_progressed.send(
-                        self, progress=float(current_count)/len(images))
+                cur_line = proc.stderr.readline()
+                errors += "\n" + cur_line
+                prep_match = re.match(r"^Prepared data for processing (.*)$",
+                                      cur_line)
+                proc_match = re.match(r"^Processed (.*)$", cur_line)
+                jbig2_match = re.match(
+                    r"^JBIG2 compression complete. pages:(\d+) symbols:\d+ "
+                    r"log2:\d+$", cur_line)
+                progress = None
+                if prep_match:
+                    file_idx = next(idx for idx, f in enumerate(images)
+                                    if unicode(f) == prep_match.group(1))
+                    progress = file_idx/(len(images)*2)
+                elif jbig2_match:
+                    cur_jbig2_page += int(jbig2_match.group(1))
+                    progress = (len(images) + cur_jbig2_page) / (len(images)*2)
+                    is_jbig2 = True
+                elif proc_match and not is_jbig2:
+                    file_idx = next(idx for idx, f in enumerate(images)
+                                    if unicode(f) == proc_match.group(1))
+                    progress = (len(images) + file_idx)/(len(images)*2)
+                if progress is not None:
+                    self.on_progressed.send(self, progress=progress)
                 time.sleep(.01)
             output = proc.stdout.read()
-            errors = proc.stderr.read()
         logger.debug("pdfbeads stdout:\n{0}".format(output))
         logger.debug("pdfbeads stderr:\n{0}".format(errors))
         os.chdir(old_path)
