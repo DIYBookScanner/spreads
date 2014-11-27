@@ -2,6 +2,7 @@
 import logging
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import time
@@ -286,19 +287,23 @@ class CHDKCameraDevice(DeviceDriver):
                               .get(unicode)))
         shoot_raw = self.config['shoot_raw'].get(bool)
 
-        # chdkptp expects that there is no file extension, so we temporarily
-        # strip it
-        noext_path = path.parent/path.stem
         if self._can_remote:
+            # chdkptp expects that there is no file extension, so we
+            # temporarily strip it
+            noext_path = path.parent/path.stem
             cmd = ("remoteshoot -tv={0} -sv={1} {2} \"{3}\""
                    .format(shutter_speed, sensitivity*0.65,
                            "-dng" if shoot_raw else "", noext_path))
+            cwd = None
         else:
-            cmd = ("shoot -tv={0} -sv={1} -dng={2} -rm -dl \"{3}\""
+            cmd = ("shoot -tv={0} -sv={1} -dng={2} -rm -dl"
                    .format(shutter_speed, sensitivity*0.65,
-                           int(shoot_raw), noext_path))
+                           int(shoot_raw)))
+            # chdkptp downloads the image to the current working directory,
+            # so we have to specify our target directory as the working dir.
+            cwd = unicode(path.parent)
         try:
-            self._run(cmd)
+            self._run(cmd, cwd=cwd)
         except CHDKPTPException as e:
             if 'not in rec mode' in e.message:
                 self.prepare_capture()
@@ -309,6 +314,14 @@ class CHDKCameraDevice(DeviceDriver):
         except Exception as e:
             self.logger.error("Capture command failed.")
             raise e
+
+        if not self._can_remote:
+            # For the fallback solution, rename the camera-named file to our
+            # desired new name.
+            cam_file = max((p for p in path.parent.iterdir()
+                            if not p.stem.isdigit()),
+                           key=lambda p: p.stat().st_mtime)
+            shutil.move(unicode(cam_file), unicode(path))
 
         # Set EXIF orientation
         self.logger.debug("Setting EXIF orientation on captured image")
@@ -344,7 +357,8 @@ class CHDKCameraDevice(DeviceDriver):
         script.append("draw.overdraw();")
         self._execute_lua("\n".join(script))
 
-    def _run(self, *commands):
+    def _run(self, *commands, **kwargs):
+        cwd = kwargs.get('cwd', None)
         chdkptp_path = Path(self.config["chdkptp_path"].get(unicode))
         cmd_args = list(chain((unicode(chdkptp_path / "chdkptp"),),
                               self._cli_flags,
@@ -354,7 +368,8 @@ class CHDKCameraDevice(DeviceDriver):
                           .format(cmd_args))
         output = subprocess.check_output(
             cmd_args, env=env, stderr=subprocess.STDOUT,
-            close_fds=True  # see http://stackoverflow.com/a/1297785/487903
+            close_fds=True,  # see http://stackoverflow.com/a/1297785/487903,
+            cwd=cwd
         ).splitlines()
         self.logger.debug("Call returned:\n{0}".format(output))
         # Filter out connected message

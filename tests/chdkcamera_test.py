@@ -213,7 +213,8 @@ def test_capture_noprepare(jpeg, camera):
 
 
 @mock.patch('spreadsplug.dev.chdkcamera.JPEGImage')
-def test_capture_noremote(jpeg, camera):
+@mock.patch("shutil.move")
+def test_capture_noremote(move, jpeg, camera):
     jpeg.return_value = mock.Mock()
     camera._can_remote = False
     camera.capture(Path('/tmp/000.jpg'))
@@ -240,7 +241,7 @@ def test_run(sp, camera_nomock, tmpdir):
         [unicode(chdkptp_path.join('chdkptp')), '-c-d=002 -b=001',
          '-eset cli_verbose=2', '-efoobar'],
         env={'LUA_PATH': unicode(chdkptp_path.join('lua', '?.lua'))},
-        stderr=sp.STDOUT, close_fds=True)
+        stderr=sp.STDOUT, close_fds=True, cwd=None)
 
 
 @mock.patch('spreadsplug.dev.chdkcamera.subprocess')
