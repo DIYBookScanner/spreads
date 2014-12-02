@@ -767,7 +767,7 @@ def inject_page_image(func):
 
 @app.route('/api/workflow/<workflow:workflow>/page/<int:number>')
 @inject_page
-def get_single_page(page, workflow):
+def get_single_page(workflow, number, page):
     """ Get a single page.
 
     :param workflow:    UUID or slug for a workflow
@@ -872,7 +872,7 @@ def get_page_image_thumb(fpath, page, workflow, number, img_type, plugname):
 @app.route('/api/workflow/<workflow:workflow>/page/<int:number>',
            methods=['DELETE'])
 @inject_page
-def delete_page(page, workflow):
+def delete_page(workflow, number, page):
     """ Remove a single page from a workflow. """
     workflow.remove_pages(page)
     return jsonify(dict(page=page))
@@ -882,7 +882,7 @@ def delete_page(page, workflow):
     '/api/workflow/<workflow:workflow>/page/<int:number>/<img_type>/crop',
     methods=['POST'], defaults={'plugname': None})
 @inject_page
-def crop_workflow_image(page, workflow, img_type, plugname):
+def crop_workflow_image(workflow, number, img_type, plugname, page):
     """ Crop a page image in place. """
     # TODO: We have to update the checksum!
     if img_type != 'raw':
