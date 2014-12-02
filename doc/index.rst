@@ -49,7 +49,10 @@ Introductory Notes that lay out the general workflow of the application and
 explain some of the terminology used across all interfaces. Then, if you want
 to install and configure the software yourself, head over to the
 :doc:`Installation and Setup guide <setup-other>`. If you are a user of the
-spreadpi distribution, use the :doc:`spreadpi guide <setup-spreadpi>`.
+spreadpi distribution or plan on using it, use the :doc:`spreadpi guide
+<setup-spreadpi>`.
+
+.. TODO: Add buttons like in Sphinx or SKLearn docs to biggest points
 
 .. note::
 

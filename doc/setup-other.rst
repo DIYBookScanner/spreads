@@ -10,14 +10,13 @@ Install requirements
 To use some of the included plugins, you might want to install the following
 dependencies:
 
-.. TODO: Check with spreadpi/spreadslive
-
 * `chdkptp`_ to use cameras with the CHDK firmware (installed in
   `/usr/local/lib/chdkptp`)
 * An up-to date version of ScanTailor-enhanced_
 * pdfbeads_
 * djvubind_
 * PySide_ (available as `python-pyside` for Debian and Ubuntu)
+* libgphoto2_
 
 .. _pip: http://www.pip-installer.org
 .. _chdkptp: https://www.assembla.com/spaces/chdkptp/wiki
@@ -25,6 +24,7 @@ dependencies:
 .. _pdfbeads: http://rubygems.org/gems/pdfbeads
 .. _djvubind: http://code.google.com/p/djvubind/
 .. _PySide: http://pyside.org
+.. _libgphoto2: http://www.gphoto.org
 
 Installing the core from PyPi
 -----------------------------
@@ -41,12 +41,12 @@ This will grab all Python dependencies for the selected plugins::
 
 Adjust the list of plugins as needed.
 
-Installing from GitHub
-----------------------
-Like from PyPi, only using the development version from GitHub (might break,
-use with caution!)::
+Installing a nightly build
+--------------------------
+Like from PyPi, only using the latest development version (might break, use
+with caution!)::
 
-    $ sudo pip install git+git://github.com/DIYBookScanner/spreads.git@master
+    $ sudo pip install http://buildbot.diybookscanner.org/nightly/spreads-latest.tar.gz
 
 
 Configuration
@@ -54,9 +54,16 @@ Configuration
 
 Initial configuration
 ---------------------
-To perform the initial configuration, launch the `configure` subcommand::
+To perform the initial configuration, launch the either the `configure`
+subcommand or its graphical counterpart, `guiconfigure`::
 
     $ spread configure
+    # or
+    $ spread guiconfigure
+
+The following instructions are mostly target at users of the CLI configuration
+interface, but all of the available settings are also equally available from
+the GUI and should be pretty self-explanatory.
 
 You will be asked to select a device driver and some plugins. Next, configure
 the order in which your postprocessing plugins should be invoked. Think of
@@ -95,13 +102,14 @@ folder in your home directory.
 
 Configuration file
 ------------------
-Upon first launch, *spreads* writes a configuration file to
-`~/.config/spreads/config.yaml`. In it, you can change all of the available
-settings to your liking. The configuration options are the same ones that
-you can set on the command-line, so just call `spreads <command> --help`
-to view the documentation. Command-line flags that begin with `--no-...`
-should be entered without the `no` prefix and have `yes` or `no` as their
-value.
+*spreads* writes its configuration file to `~/.config/spreads/config.yaml`. In
+it, you can change all of the available settings to your liking. The
+configuration options are the same ones that you can set on the command-line,
+so just call `spreads <command> --help` to view the documentation. Command-line
+flags that begin with `--no-...` should be entered without the `no` prefix and
+have `yes` or `no` as their value.
+
+Here is an example that demonstrates the general layout:
 
 .. code-block:: yaml
 
