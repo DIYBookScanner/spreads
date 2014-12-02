@@ -615,12 +615,16 @@ class Workflow(object):
                 return
             self._logger.debug("Cropping \"{0}\" to x:{1} y:{2} w:{3} h:{4}"
                                .format(fname, left, top, width, height))
-            cropped = img.crop(left, top, width=width, height=height)
-            if HAS_JPEGTRAN:
-                cropped.save(fname)
-            else:
-                img.save(filename=fname)
-                img.close()
+            try:
+                cropped = img.crop(left, top, width=width, height=height)
+                if HAS_JPEGTRAN:
+                    cropped.save(fname)
+                else:
+                    img.save(filename=fname)
+                    img.close()
+            except Exception as e:
+                self._logger.error("Cropping failed")
+                self._logger.exception(e)
 
         fname = unicode(page.raw_image)
         if async:
