@@ -60,7 +60,7 @@ class GPhoto2CameraDevice(DeviceDriver):
         logging.getLogger('libgphoto2').setLevel(logging.CRITICAL)
         self._camera = camera
         self.config = config
-        self._serial_number = self._camera.status.serialnumber
+        self._serial_number = unicode(self._camera.status.serialnumber)
         try:
             self.target_page = config['target_page'][self._serial_number].get()
         except:
