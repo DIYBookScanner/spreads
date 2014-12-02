@@ -771,7 +771,7 @@ class Workflow(object):
                 else:
                     self._logger.warning(
                         "Could not find processed file {0}, removing from "
-                        "workflow.")
+                        "workflow.".format(relpath))
             return Page(raw_image=raw_image,
                         capture_num=dikt['capture_num'],
                         processed_images=processed_images,
