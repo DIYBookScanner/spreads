@@ -156,8 +156,8 @@
         }
       }
 
-      // Ensure that both offsets are multiples of 8
-      offsetX = roundTo(offsetX, 8);
+      // Ensure that the X offset is a multiple 16 and the Y offset of 8
+      offsetX = roundTo(offsetX, 16);
       offsetY = roundTo(offsetY, 8);
 
       // Calculate new top ofset
