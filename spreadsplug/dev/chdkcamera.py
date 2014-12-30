@@ -1,36 +1,31 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
-import re
-import shutil
-import subprocess
 import tempfile
 import time
 from fractions import Fraction
-from itertools import chain
 
-import usb
-from spreads.vendor.pathlib import Path
+import chdkptp
 
 from spreads.config import OptionTemplate
 from spreads.plugin import DeviceDriver, DeviceFeatures
-from spreads.util import DeviceException, MissingDependencyException
 
 try:
     from jpegtran import JPEGImage
 
-    def update_exif_orientation(fpath, orientation):
-        img = JPEGImage(fpath)
+    def update_exif_orientation(data, orientation):
+        img = JPEGImage(blob=data)
         img.exif_orientation = orientation
-        img.save(fpath)
+        return img.as_blob()
 except ImportError:
     import pyexiv2
 
-    def update_exif_orientation(fpath, orientation):
-        metadata = pyexiv2.ImageMetadata(fpath)
+    def update_exif_orientation(data, orientation):
+        metadata = pyexiv2.ImageMetadata.from_buffer(data)
         metadata.read()
         metadata['Exif.Image.Orientation'] = int(orientation)
         metadata.write()
+        return metadata.buffer
 
 
 WHITEBALANCE_MODES = {
@@ -57,7 +52,6 @@ class CHDKCameraDevice(DeviceDriver):
                 DeviceFeatures.CAN_ADJUST_FOCUS)
 
     target_page = None
-    _cli_flags = None
     _chdk_buildnum = None
     _can_remote = False
     _zoom_steps = 0
@@ -82,9 +76,6 @@ class CHDKCameraDevice(DeviceDriver):
                  value=sorted(WHITEBALANCE_MODES),
                  docstring='White balance mode', selectable=True,
                  advanced=True),
-             'chdkptp_path': OptionTemplate(u"/usr/local/lib/chdkptp",
-                                            "Path to CHDKPTP binary/libraries",
-                                            advanced=True),
              })
         return conf
 
@@ -111,89 +102,49 @@ class CHDKCameraDevice(DeviceDriver):
             (0x4a9, 0x322c): QualityFix,
         }
 
-        # Check if we can find the chdkptp executable
-        chdkptp_path = Path(config["chdkptp_path"].get(unicode))
-        if not chdkptp_path.exists() or not (chdkptp_path/'chdkptp').exists():
-            raise MissingDependencyException(
-                "Could not find executable `chdkptp`. Please make sure that "
-                "the `chdkptp_path` setting in your `chdkcamera` "
-                "configuration points to " "a directory containing chdkptp "
-                "and its libraries. Current setting is `{0}`"
-                .format(chdkptp_path)
-            )
-
-        # only match ptp devices in find_all
-        def is_ptp(dev):
-            for cfg in dev:
-                if usb.util.find_descriptor(cfg, bInterfaceClass=6,
-                                            bInterfaceSubClass=1):
-                    return True
-
-        for dev in usb.core.find(find_all=True, custom_match=is_ptp):
-            ids = (dev.idVendor, dev.idProduct)
+        for info in chdkptp.list_devices():
+            ids = (info.vendor_id, info.product_id)
             if ids in SPECIAL_CASES:
-                yield SPECIAL_CASES[ids](config, dev)
+                yield SPECIAL_CASES[ids](config, chdkptp.ChdkDevice(info))
             else:
-                yield cls(config, dev)
+                yield cls(config, chdkptp.ChdkDevice(info))
 
     def __init__(self, config, device):
         """ Set connection information and try to obtain target page.
 
         :param config:  spreads configuration
         :type config:   spreads.confit.ConfigView
-        :param device:  USB device to use for the object
-        :type device:   `usb.core.Device <http://github.com/walac/pyusb>`_
+        :param device:  Device to use for the object
+        :type device:   :py:class:`chdkptp.ChdkDevice`
 
         """
+        self._device = device
         self.logger = logging.getLogger(self.__class__.__name__)
-        self._usbport = (device.bus, device.address)
-        self._serial_number = (
-            usb.util.get_string(device, 256, device.iSerialNumber)
-            .strip('\x00'))
         self.logger.debug(u"Device has serial number {0}"
-                          .format(self._serial_number))
+                          .format(self._device.info.serial_num))
         self.config = config
-
-        self._cli_flags = []
-        self._cli_flags.append("-c-d={1:03} -b={0:03}".format(*self._usbport))
-        self._cli_flags.append("-eset cli_verbose=2")
-        self._chdk_buildnum = (self._execute_lua("get_buildinfo()",
-                                                 get_result=True)
-                               ["build_revision"])
+        self._chdk_buildnum = self._device.lua_execute(
+            "get_buildinfo()")['build_revision']
         # PTP remote shooting is available starting from SVN r2927
         self._can_remote = self._chdk_buildnum >= 2927
-        self._zoom_steps = self._execute_lua("get_zoom_steps()",
-                                             get_result=True)
+        self._zoom_steps = self._device.lua_execute("get_zoom_steps()")
         try:
             self.target_page = self._get_target_page()
         except:
             self.target_page = None
 
         # Set camera to highest quality
-        self._execute_lua('exit_alt(); set_config_value(291, 0);'
-                          'enter_alt();')
+        self._device.lua_execute('exit_alt(); set_config_value(291, 0);'
+                                 'enter_alt();')
         self.logger.name += "[{0}]".format(self.target_page)
 
     def connected(self):
-        def match_serial(dev):
-            serial = (
-                usb.util.get_string(dev, 256, dev.iSerialNumber)
-                .strip('\x00'))
-            return serial == self._serial_number
-
-        # Check if device is still attached
-        unchanged = usb.core.find(bus=self._usbport[0],
-                                  address=self._usbport[1],
-                                  custom_match=match_serial) is not None
-        if unchanged:
+        if self._device.is_connected:
             return True
-        new_device = usb.core.find(idVendor=0x04a9,  # Canon vendor ID
-                                   custom_match=match_serial)
-        if new_device is None:
+        try:
+            self._device.reconnect()
+        except (chdkptp.lua.PTPError, chdkptp.lua.lupa.LuaError):
             return False
-
-        self._usbport = (new_device.bus, new_device.address)
-        self._cli_flags[0] = ("-c-d={1:03} -b={0:03}".format(*self._usbport))
         return True
 
     @property
@@ -213,54 +164,44 @@ class CHDKCameraDevice(DeviceDriver):
         """
         tmp_handle = tempfile.mkstemp(text=True)
         os.write(tmp_handle[0], target_page.upper()+"\n")
-        self._run("upload {0} \"OWN.TXT\"".format(tmp_handle[1]))
+        self._device.upload_file(tmp_handle[1], "OWN.TXT")
         self.target_page = target_page
         os.remove(tmp_handle[1])
 
     def prepare_capture(self):
         # Try to go into alt mode to prevent weird behaviour
-        self._execute_lua("enter_alt()")
-        # Try to put into record mode
-        try:
-            self._run("rec")
-        except CHDKPTPException as e:
-            self.logger.debug(e)
-            self.logger.info("Camera already seems to be in recording mode")
+        self._device.lua_execute("enter_alt()")
+        self._device.switch_mode('rec')
         self._set_zoom()
         # Disable ND filter
-        self._execute_lua("set_nd_filter(2)")
-
+        self._device.lua_execute("set_nd_filter(2)")
         self._set_monochrome()
-        # Set White Balance mode
         self._set_whitebalance()
         # Disable flash
-        self._execute_lua(
+        self._device.lua_execute(
             "props = require(\"propcase\")\n"
             "if(get_flash_mode()~=2) then set_prop(props.FLASH_MODE, 2) end")
         # Set Quality
-        self._execute_lua("set_prop(require('propcase').QUALITY, {0})"
-                          .format(self.MAX_QUALITY))
-        self._execute_lua("set_prop(require('propcase').RESOLUTION, {0})"
-                          .format(self.MAX_RESOLUTION))
+        self._device.lua_execute("set_prop(require('propcase').QUALITY, {0})"
+                                 .format(self.MAX_QUALITY))
+        self._device.lua_execute(
+            "set_prop(require('propcase').RESOLUTION, {0})"
+            .format(self.MAX_RESOLUTION))
         self._set_focus()
 
     def _set_monochrome(self):
         if self.config['monochrome'].get(bool):
-            rv = self._execute_lua(
+            rv = self._device.lua_execute(
                 "capmode = require(\"capmode\")\n"
-                "return capmode.set(\"SCN_MONOCHROME\")",
-                get_result=True
-            )
+                "return capmode.set(\"SCN_MONOCHROME\")")
             if not rv:
                 self.logger.warn("Monochrome mode not supported on this "
                                  "device, will be disabled.")
                 self.config['monochrome'] = False
         else:
-            rv = self._execute_lua(
+            rv = self._device.lua_execute(
                 "capmode = require(\"capmode\")\n"
-                "return capmode.set(\"P\")",
-                get_result=True
-            )
+                "return capmode.set(\"P\")")
 
     def finish_capture(self):
         # NOTE: We should retract the lenses to protect them from dust by
@@ -270,66 +211,39 @@ class CHDKCameraDevice(DeviceDriver):
         pass
 
     def get_preview_image(self):
-        fpath = tempfile.mkstemp()[1]
-        cmd = "dumpframes -count=1 -nobm -nopal"
-        self._run("{0} {1}".format(cmd, fpath))
-        with open(fpath, 'rb') as fp:
-            data = fp.read()
-        os.remove(fpath)
-        return data
+        return next(self._device.get_frames())
 
     def capture(self, path):
         # NOTE: To obtain the "real" Canon ISO value, we multiply the
         #       "market" value from the config by 0.65.
         #       See core/shooting.c#~l150 in the CHDK source for more details
-        sensitivity = int(self.config["sensitivity"].get())
-        shutter_speed = float(Fraction(self.config["shutter_speed"]
-                              .get(unicode)))
-        shoot_raw = self.config['shoot_raw'].get(bool)
+        options = {
+            'shutter_speed': chdkptp.util.shutter_to_tv96(
+                float(Fraction(self.config["shutter_speed"].get(unicode)))),
+            'market_iso': int(self.config["sensitivity"].get()),
+            'dng': self.config['shoot_raw'].get(bool),
+            'stream': self._can_remote,
+            'download_after': not self._can_remote,
+            'remove_after': not self._can_remote
+        }
 
-        if self._can_remote:
-            # chdkptp expects that there is no file extension, so we
-            # temporarily strip it
-            noext_path = path.parent/path.stem
-            cmd = ("remoteshoot -tv={0} -sv={1} {2} \"{3}\""
-                   .format(shutter_speed, sensitivity*0.65,
-                           "-dng" if shoot_raw else "", noext_path))
-            cwd = None
-        else:
-            cmd = ("shoot -tv={0} -sv={1} -dng={2} -rm -dl"
-                   .format(shutter_speed, sensitivity*0.65,
-                           int(shoot_raw)))
-            # chdkptp downloads the image to the current working directory,
-            # so we have to specify our target directory as the working dir.
-            cwd = unicode(path.parent)
+        if self._device.mode != 'rec':
+            self.prepare_capture()
         try:
-            self._run(cmd, cwd=cwd)
-        except CHDKPTPException as e:
-            if 'not in rec mode' in e.message:
-                self.prepare_capture()
-                self.capture(path)
-            else:
-                self.logger.error("Capture command failed.")
-                raise e
+            data = self._device.capture(**options)
         except Exception as e:
             self.logger.error("Capture command failed.")
             raise e
-
-        if not self._can_remote:
-            # For the fallback solution, rename the camera-named file to our
-            # desired new name.
-            cam_file = max((p for p in path.parent.iterdir()
-                            if not p.stem.isdigit()),
-                           key=lambda p: p.stat().st_mtime)
-            shutil.move(unicode(cam_file), unicode(path))
 
         # Set EXIF orientation
         self.logger.debug("Setting EXIF orientation on captured image")
         upside_down = self.config["upside_down"].get(bool)
         if self.target_page == 'odd':
-            update_exif_orientation(unicode(path), 8 if upside_down else 6)
+            data = update_exif_orientation(data, 8 if upside_down else 6)
         else:
-            update_exif_orientation(unicode(path), 6 if upside_down else 8)
+            data = update_exif_orientation(data, 6 if upside_down else 8)
+        with path.open('wb') as fp:
+            fp.write(data)
 
     def update_configuration(self, updated):
         if 'zoom_level' in updated:
@@ -342,7 +256,7 @@ class CHDKCameraDevice(DeviceDriver):
             self._set_monochrome()
 
     def show_textbox(self, message):
-        self._execute_lua("enter_alt()")
+        self._device.lua_execute("enter_alt()")
         messages = message.split("\n")
         script = [
             'require("drawings");'
@@ -355,124 +269,55 @@ class CHDKCameraDevice(DeviceDriver):
             .format(idx, msg) for idx, msg in enumerate(messages, 1)
         ])
         script.append("draw.overdraw();")
-        self._execute_lua("\n".join(script))
-
-    def _run(self, *commands, **kwargs):
-        cwd = kwargs.get('cwd', None)
-        chdkptp_path = Path(self.config["chdkptp_path"].get(unicode))
-        cmd_args = list(chain((unicode(chdkptp_path / "chdkptp"),),
-                              self._cli_flags,
-                              ("-e{0}".format(cmd) for cmd in commands)))
-        env = {'LUA_PATH': unicode(chdkptp_path / "lua/?.lua")}
-        self.logger.debug("Calling chdkptp with arguments: {0}"
-                          .format(cmd_args))
-        output = subprocess.check_output(
-            cmd_args, env=env, stderr=subprocess.STDOUT,
-            close_fds=True,  # see http://stackoverflow.com/a/1297785/487903,
-            cwd=cwd
-        ).splitlines()
-        self.logger.debug("Call returned:\n{0}".format(output))
-        # Filter out connected message
-        output = [x for x in output if not x.startswith('connected:')]
-        # Check for possible CHDKPTP errors
-        if any('ERROR' in x for x in output):
-            raise CHDKPTPException("\n".join(output))
-        return output
-
-    def _execute_lua(self, script, wait=True, get_result=False, timeout=256):
-        # For single-statements we insert a return statement if the user
-        # forgot to provide one.
-        is_single = "\n" not in script and ";" not in script
-        if get_result and "return" not in script and is_single:
-            script = "return {0}".format(script)
-        cmd = "luar" if wait else "lua"
-        output = self._run("{0} {1}".format(cmd, script))
-        if not get_result:
-            return
-        output = next(x for x in output if ":return:" in x)
-        return self._parse_lua_output(output)
-
-    def _parse_table(self, data):
-        values = dict(re.findall(r'([\w_]+?)=(\d+|".*?"),*', data[6:]))
-        for k, v in values.iteritems():
-            if v.startswith('"') and v.endswith('"'):
-                values[k] = v.strip('"')  # String
-            else:
-                values[k] = int(v)  # Integer
-        return values
-
-    def _parse_lua_output(self, output):
-        ret_val = re.match(r'^\d+:return:(.*)', output).group(1)
-        if ret_val.startswith('table:'):
-            return self._parse_table(ret_val)  # Table
-        elif ret_val.startswith("'"):
-            return ret_val.strip("'")  # String
-        elif ret_val in ('true', 'false'):
-            return ret_val == 'true'
-        else:
-            return int(ret_val)  # Integer
+        self._device.lua_execute("\n".join(script))
 
     def _get_target_page(self):
-        tmp_handle = tempfile.mkstemp(text=True)
         try:
-            self._run("download \"OWN.TXT\" {0}".format(tmp_handle[1]))
-            with open(tmp_handle[1], 'r') as fp:
-                target_page = fp.readline().strip().lower()
-        except DeviceException:
-            raise ValueError("Could not find OWN.TXT")
-        finally:
-            os.remove(tmp_handle[1])
-        if not target_page:
+            return self._device.download_file('OWN.TXT').strip().lower()
+        except chdkptp.lua.PTPError:
             raise ValueError("Could not read OWN.TXT")
-        return target_page
 
     def _set_zoom(self):
         level = int(self.config['zoom_level'].get())
         if level >= self._zoom_steps:
             raise ValueError("Zoom level {0} exceeds the camera's range!"
                              " (max: {1})".format(level, self._zoom_steps-1))
-        self._execute_lua("set_zoom({0})".format(level), wait=True)
+        self._device.lua_execute("set_zoom({0})".format(level))
 
     def _acquire_focus(self):
         """ Acquire auto focus and lock it. """
-        self._execute_lua("enter_alt()")
-        # Try to put into record mode
-        try:
-            self._run("rec")
-        except CHDKPTPException as e:
-            self.logger.debug(e)
-            self.logger.info("Camera already seems to be in recording mode")
+        self._device.lua_execute("enter_alt()")
+        self._device.switch_mode('rec')
         self._set_zoom()
-        self._execute_lua("set_aflock(0)")
-        self._execute_lua("press('shoot_half')")
+        self._device.lua_execute("set_aflock(0)")
+        self._device.lua_execute("press('shoot_half')")
         time.sleep(0.8)
-        self._execute_lua("release('shoot_half')")
+        self._device.lua_execute("release('shoot_half')")
         time.sleep(0.5)
-        return self._execute_lua("get_focus()", get_result=True)
+        return self._device.lua_execute("get_focus()")
 
     def _set_focus(self):
         self.logger.info("Running default focus")
         focus_mode = self.config['focus_mode'].get()
         if focus_mode == "autofocus_all":
-            self._execute_lua("set_aflock(0)")
+            self._device.lua_execute("set_aflock(0)")
             return
         elif focus_mode == "autofocus_initial":
             focus_distance = self._acquire_focus()
         else:
-            focus_distance = self.focus
-        self._execute_lua(
+            focus_distance = self.config['focus_distance'].get()
+        self._device.lua_execute(
             "press('shoot_half');"
             "sleep(1000);"
             "click('left');"
-            "release('shoot_half');",
-            wait=True)
+            "release('shoot_half');")
         time.sleep(0.25)
-        self._execute_lua("set_focus({0:.0f})".format(focus_distance))
+        self._device.lua_execute("set_focus({0:.0f})".format(focus_distance))
 
     def _set_whitebalance(self):
         value = WHITEBALANCE_MODES.get(self.config['whitebalance'].get())
-        self._execute_lua("set_prop(require('propcase').WB_MODE, {0})"
-                          .format(value))
+        self._device.lua_execute("set_prop(require('propcase').WB_MODE, {0})"
+                                 .format(value))
 
 
 class QualityFix(CHDKCameraDevice):
