@@ -1,5 +1,6 @@
 import mock
 import pytest
+pytestmark = pytest.mark.guitest
 
 
 @pytest.yield_fixture
