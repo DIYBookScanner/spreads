@@ -199,10 +199,10 @@ class CHDKCameraDevice(DeviceDriver):
     @property
     def focus(self):
         val = self.config['focus_distance'].get()
-        if ',' in val:
+        if not isinstance(val, int):
             idx = 0 if self.target_page == 'odd' else 1
-            val = val.split(',')[idx]
-        return int(val)
+            val = int(val.split(',')[idx])
+        return val
 
     def set_target_page(self, target_page):
         """ Set the device target page.
