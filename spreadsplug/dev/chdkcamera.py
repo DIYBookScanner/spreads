@@ -124,10 +124,10 @@ class CHDKCameraDevice(DeviceDriver):
                           .format(self._device.info.serial_num))
         self.config = config
         self._chdk_buildnum = self._device.lua_execute(
-            "get_buildinfo()")['build_revision']
+            "return get_buildinfo()")['build_revision']
         # PTP remote shooting is available starting from SVN r2927
         self._can_remote = self._chdk_buildnum >= 2927
-        self._zoom_steps = self._device.lua_execute("get_zoom_steps()")
+        self._zoom_steps = self._device.lua_execute("return get_zoom_steps()")
         try:
             self.target_page = self._get_target_page()
         except:
@@ -135,7 +135,7 @@ class CHDKCameraDevice(DeviceDriver):
 
         # Set camera to highest quality
         self._device.lua_execute('exit_alt(); set_config_value(291, 0);'
-                                 'enter_alt();')
+                                 'enter_alt();', do_return=False)
         self.logger.name += "[{0}]".format(self.target_page)
 
     def connected(self):
@@ -171,7 +171,7 @@ class CHDKCameraDevice(DeviceDriver):
     def prepare_capture(self):
         # Try to go into alt mode to prevent weird behaviour
         self._device.lua_execute("enter_alt()")
-        self._device.switch_mode('rec')
+        self._device.switch_mode('record')
         self._set_zoom()
         # Disable ND filter
         self._device.lua_execute("set_nd_filter(2)")
@@ -180,7 +180,8 @@ class CHDKCameraDevice(DeviceDriver):
         # Disable flash
         self._device.lua_execute(
             "props = require(\"propcase\")\n"
-            "if(get_flash_mode()~=2) then set_prop(props.FLASH_MODE, 2) end")
+            "if(get_flash_mode()~=2) then set_prop(props.FLASH_MODE, 2) end",
+            do_return=False)
         # Set Quality
         self._device.lua_execute("set_prop(require('propcase').QUALITY, {0})"
                                  .format(self.MAX_QUALITY))
@@ -230,7 +231,7 @@ class CHDKCameraDevice(DeviceDriver):
         if self._device.mode != 'rec':
             self.prepare_capture()
         try:
-            data = self._device.capture(**options)
+            data = self._device.shoot(**options)
         except Exception as e:
             self.logger.error("Capture command failed.")
             raise e
@@ -269,7 +270,7 @@ class CHDKCameraDevice(DeviceDriver):
             .format(idx, msg) for idx, msg in enumerate(messages, 1)
         ])
         script.append("draw.overdraw();")
-        self._device.lua_execute("\n".join(script))
+        self._device.lua_execute("\n".join(script), do_return=False)
 
     def _get_target_page(self):
         try:
@@ -294,7 +295,7 @@ class CHDKCameraDevice(DeviceDriver):
         time.sleep(0.8)
         self._device.lua_execute("release('shoot_half')")
         time.sleep(0.5)
-        return self._device.lua_execute("get_focus()")
+        return self._device.lua_execute("return get_focus()")
 
     def _set_focus(self):
         self.logger.info("Running default focus")
