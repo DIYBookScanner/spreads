@@ -100,7 +100,7 @@ def test_set_target_page(write, camera):
 def test_prepare_capture(camera):
     camera.prepare_capture()
     camera._device.lua_execute.assert_any_call('enter_alt()')
-    camera._device.switch_mode.assert_any_call('rec')
+    camera._device.switch_mode.assert_any_call('record')
 
 
 @pytest.mark.xfail  # See docstring for `finish_capture` for details
@@ -123,8 +123,8 @@ def test_capture(jpeg, camera):
     fpath.__str__.return_value = '/tmp/000.jpg'
     camera.target_page = 'odd'
     camera.capture(fpath)
-    assert camera._device.capture.call_count == 1
-    cap_args = tuple(camera._device.capture.mock_calls[0])[-1]
+    assert camera._device.shoot.call_count == 1
+    cap_args = tuple(camera._device.shoot.mock_calls[0])[-1]
     assert not cap_args['dng']
     assert cap_args['stream']
     assert jpeg.called_once_with('/tmp/000.jpg')
@@ -142,7 +142,7 @@ def test_capture_raw(jpeg, camera):
     fpath.__str__.return_value = '/tmp/000.jpg'
     camera.target_page = 'odd'
     camera.capture(fpath)
-    cap_args = tuple(camera._device.capture.mock_calls[0])[-1]
+    cap_args = tuple(camera._device.shoot.mock_calls[0])[-1]
     assert cap_args['dng']
 
 
@@ -152,7 +152,7 @@ def test_capture_noprepare(jpeg, camera):
     camera._device.mode = 'play'
     camera.target_page = 'odd'
     camera.capture(mock.MagicMock())
-    camera._device.switch_mode.assert_called_once_with("rec")
+    camera._device.switch_mode.assert_called_once_with("record")
 
 
 @mock.patch('spreadsplug.dev.chdkcamera.JPEGImage')
@@ -162,18 +162,18 @@ def test_capture_noremote(jpeg, camera):
     camera._can_remote = False
     camera.target_page = 'odd'
     camera.capture(mock.MagicMock())
-    cap_args = tuple(camera._device.capture.mock_calls[0])[-1]
+    cap_args = tuple(camera._device.shoot.mock_calls[0])[-1]
     assert not cap_args['stream']
     assert cap_args['download_after']
     assert cap_args['remove_after']
 
 
 def test_capture_error(camera):
-    camera._device.capture.side_effect = chdkcamera.CHDKPTPException('foobar')
+    camera._device.shoot.side_effect = chdkcamera.CHDKPTPException('foobar')
     camera._device.mode = 'rec'
     with pytest.raises(chdkcamera.CHDKPTPException) as exc:
         camera.capture(mock.MagicMock())
-        assert exc is camera._device.capture.side_effect
+        assert exc is camera._device.shoot.side_effect
 
 
 def test_get_target_page(camera):
@@ -210,7 +210,8 @@ def test_acquire_focus(sleep, camera):
 def test_set_focus(sleep, camera):
     camera.config['focus_mode'] = 'autofocus_all'
     camera._set_focus()
-    camera._device.lua_execute.assert_called_with("set_aflock(0)")
+    camera._device.lua_execute.assert_called_with("set_aflock(0)",
+                                                  do_return=False)
     camera._device.lua_execute.reset_mock()
     camera.config['focus_mode'] = 'manual'
     camera.config['focus_distance'] = 300
