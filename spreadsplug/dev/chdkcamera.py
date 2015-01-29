@@ -119,9 +119,9 @@ class CHDKCameraDevice(DeviceDriver):
 
         """
         self._device = device
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.debug(u"Device has serial number {0}"
-                          .format(self._device.info.serial_num))
+        self.logger = logging.getLogger("{0}[{1}]".format(
+            self.__class__.__name__,
+            self._device.info.serial_num[:4]))
         self.config = config
         self._chdk_buildnum = self._device.lua_execute(
             "return get_buildinfo()")['build_revision']
@@ -136,7 +136,6 @@ class CHDKCameraDevice(DeviceDriver):
         # Set camera to highest quality
         self._device.lua_execute('exit_alt(); set_config_value(291, 0);'
                                  'enter_alt();', do_return=False)
-        self.logger.name += "[{0}]".format(self.target_page)
 
     def connected(self):
         if self._device.is_connected:
