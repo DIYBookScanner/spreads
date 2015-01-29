@@ -227,7 +227,7 @@ class CHDKCameraDevice(DeviceDriver):
             'remove_after': not self._can_remote
         }
 
-        if self._device.mode != 'rec':
+        if self._device.mode != 'record':
             self.prepare_capture()
         try:
             data = self._device.shoot(**options)
@@ -287,7 +287,7 @@ class CHDKCameraDevice(DeviceDriver):
     def _acquire_focus(self):
         """ Acquire auto focus and lock it. """
         self._device.lua_execute("enter_alt()")
-        self._device.switch_mode('rec')
+        self._device.switch_mode('record')
         self._set_zoom()
         self._device.lua_execute("set_aflock(0)")
         self._device.lua_execute("press('shoot_half')")
