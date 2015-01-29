@@ -109,15 +109,14 @@ def is_os(osname):
 
 def check_futures_exceptions(futures):
     """" Go through passed :py:class:`concurrent.futures._base.Future` objects
-         and re-reaise the first Exception raised by any one of them.
+         and re-raise the first Exception raised by any one of them.
 
     :param futures: Iterable that contains the futures to be checked
     :type futures:  iterable with :py:class:`concurrent.futures._base.Future`
                     instances
     """
     if any(x.exception() for x in futures):
-        exc = next(x for x in futures if x.exception()).exception()
-        raise exc
+        raise next(x for x in futures if x.exception()).exception()
 
 
 def get_free_space(path):

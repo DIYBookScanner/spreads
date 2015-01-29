@@ -8,7 +8,7 @@ from fractions import Fraction
 import chdkptp
 
 from spreads.config import OptionTemplate
-from spreads.plugin import DeviceDriver, DeviceFeatures
+from spreads.plugin import DeviceDriver, DeviceFeatures, DeviceException
 
 try:
     from jpegtran import JPEGImage
@@ -312,22 +312,27 @@ class CHDKCameraDevice(DeviceDriver):
         return self._device.lua_execute("return get_focus()")
 
     def _set_focus(self):
-        self.logger.info("Running default focus")
         focus_mode = self.config['focus_mode'].get()
+        self.logger.info("Setting focus to mode '{0}'".format(focus_mode))
         if focus_mode == "autofocus_all":
-            self._device.lua_execute("set_aflock(0)")
-            return
+            self._device.lua_execute("set_aflock(0)", do_return=False)
         elif focus_mode == "autofocus_initial":
-            focus_distance = self._acquire_focus()
+            self._device.lua_execute(
+                "press('shoot_half');"
+                "sleep(1000);"
+                "release('shoot_half');"
+                "set_aflock(1);", do_return=False)
         else:
             focus_distance = self.config['focus_distance'].get()
-        self._device.lua_execute(
-            "press('shoot_half');"
-            "sleep(1000);"
-            "click('left');"
-            "release('shoot_half');")
-        time.sleep(0.25)
-        self._device.lua_execute("set_focus({0:.0f})".format(focus_distance))
+            self._device.lua_execute(
+                "press('shoot_half');"
+                "sleep(1000);"
+                "click('left');"
+                "set_aflock(1);"
+                "release('shoot_half');", do_return=False)
+            time.sleep(0.25)
+            self._device.lua_execute("set_focus({0:.0f})"
+                                     .format(focus_distance))
 
     def _set_whitebalance(self):
         value = WHITEBALANCE_MODES.get(self.config['whitebalance'].get())
