@@ -152,7 +152,7 @@ setup(
         "enum34 >= 1.0.3",
     ],
     extras_require={
-        "chdkcamera": ["pyusb >= 1.0.0b1", "jpegtran-cffi >= 0.4"],
+        "chdkcamera": ["jpegtran-cffi >= 0.4", "chdkptp.py >= 0.1.2"],
         "gphoto2camera": ["gphoto2-cffi >= 0.2"],
         "autorotate": ["jpegtran-cffi >= 0.4"],
         "gui": ["PySide >= 1.2.1"],
