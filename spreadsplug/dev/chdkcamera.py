@@ -229,11 +229,26 @@ class CHDKCameraDevice(DeviceDriver):
 
         if self._device.mode != 'record':
             self.prepare_capture()
-        try:
-            data = self._device.shoot(**options)
-        except Exception as e:
-            self.logger.error("Capture command failed.")
-            raise e
+        retried = False
+        while True:
+            try:
+                data = self._device.shoot(**options)
+                if data:
+                    break
+                elif not retried:
+                    self.logger.warn("No data received, retrying shot.")
+                    retried = True
+                else:
+                    raise DeviceException("No data received from camera.")
+            except Exception as e:
+                if not retried:
+                    self.logger.warn("Error during capture, retrying shot.")
+                    self._device.reconnect()
+                    retried = True
+                    continue
+                self.logger.error("Capture command failed.")
+                self.logger.exception(e)
+                raise e
 
         # Set EXIF orientation
         self.logger.debug("Setting EXIF orientation on captured image")
