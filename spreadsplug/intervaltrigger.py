@@ -54,9 +54,11 @@ class IntervalTrigger(HookPlugin, TriggerHooksMixin):
 
     def stop_trigger_loop(self):
         """ Stop the triggering loop and its thread. """
-        logger.debug("Stopping event loop")
-        self._exit_event.set()
-        self._loop_thread.join()
+        if self._exit_event:
+            logger.debug("Stopping event loop")
+            self._exit_event.set()
+        if self._loop_thread:
+            self._loop_thread.join()
 
     def _trigger_loop(self, capture_func):
         """ Read interval from configuration and run a loop that captures every
