@@ -274,7 +274,7 @@
 
       return {
         availablePlugins: availablePlugins,
-        config: {plugins: _.flatten(availablePlugins)}
+        config: {plugins: _.flatten(_.values(availablePlugins))}
       };
     },
 
@@ -286,7 +286,9 @@
         internalErrors: {},
         /** Only for initialization purposes, not intended to be kept in sync
          *  at all times. */
-        config: this.props.config || {plugins: _.flatten(this.props.availablePlugins)},
+        config: this.props.config || {
+          plugins: _.flatten(_.values(this.props.availablePlugins))
+        },
         /** Whether to display advanced options */
         advancedOpts: false
       };
