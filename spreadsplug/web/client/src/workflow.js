@@ -40,12 +40,12 @@
       var options = options || {};
       jQuery.ajax('/api/workflow/' + this.id + '/submit', {
           type: 'POST',
-          data: {
+          data: JSON.stringify({
             config: options.config,
             start_process: options.startProcess,
             start_output: options.startOutput,
             server: options.server
-          },
+          }),
           contentType: "application/json; charset=utf-8"})
         .fail(function(xhr) {
           if (options.onError) options.onError(xhr.responseJSON);
