@@ -28,7 +28,7 @@ from spreads.vendor.pathlib import Path
 import spreads.util as util
 from spreads.workflow import Workflow
 from app import task_queue
-from util import GeneratorIO
+from util import GeneratorIO, calculate_zipsize
 
 IS_WIN = util.is_os('windows')
 if IS_WIN:
@@ -112,8 +112,7 @@ def upload_workflow(wf_id, base_path, endpoint, user_config,
 
     # Create a zipstream from the workflow-bag
     zstream = workflow.bag.package_as_zipstream(compression=None)
-    zstream_copy = copy.deepcopy(zstream)
-    zsize = sum(len(x) for x in zstream_copy)
+    zsize = calculate_zipsize(zstream.paths_to_write)
 
     def zstream_wrapper():
         """ Wrapper around our zstream so we can emit a signal when all data
@@ -138,6 +137,7 @@ def upload_workflow(wf_id, base_path, endpoint, user_config,
     #       GeneratorIO to make it appear as a file-like object with a
     #       known size.
     zstream_fp = GeneratorIO(zstream_wrapper(), zsize)
+    logger.debug("Projected size for upload: {}".format(zsize))
     signals['submit:started'].send(workflow)
     resp = requests.post(endpoint, data=zstream_fp,
                          headers={'Content-Type': 'application/zip'})

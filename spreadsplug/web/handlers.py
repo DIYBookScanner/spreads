@@ -158,7 +158,9 @@ class StreamingUploadHandler(RequestHandler):
         self.fp = os.fdopen(fdesc, 'wb')
 
     def data_received(self, chunk):
-        self.fp.write(self.stripper.process(chunk))
+        # FIXME: When do we need the stripper???
+        # self.fp.write(self.stripper.process(chunk))
+        self.fp.write(chunk)
         self.fp.flush()
 
     def post(self):
@@ -180,36 +182,6 @@ class ZipDownloadHandler(RequestHandler):
     def initialize(self, base_path):
         self.base_path = base_path
 
-    @staticmethod
-    def calculate_zipsize(frecords):
-        """ Calculate size of resulting ZIP.
-
-        We can only safely pre-calculate this because we use no compression,
-        assume that we neither store empty directories and files bigger
-        than 4GiB.
-        Many thanks to 'flocki' from StackOverflow, who provided the underlying
-        formula: https://stackoverflow.com/a/19380600/487903
-        """
-        size = 0
-        for args, kwargs in frecords:
-            filename = args[0]
-            arcname = kwargs['arcname']
-            isdir = os.path.isdir(filename)
-            if arcname is None:
-                arcname = filename
-            arcname = os.path.normpath(os.path.splitdrive(arcname)[1])
-            while arcname[0] in (os.sep, os.altsep):
-                arcname = arcname[1:]
-            if isdir:
-                arcname += '/'
-            size += (2*len(arcname))  # Once in file header, once in EOCD
-            size += 30  # Fixed part of local file header
-            size += 16  # Data descriptor
-            size += 46  # Central file directory header
-            size += os.path.getsize(filename)
-        size += 22  # End of central directory record (EOCD)
-        return size
-
     @asynchronous
     def get(self, workflow_id, filename):
         uuid.UUID(workflow_id)
@@ -219,7 +191,7 @@ class ZipDownloadHandler(RequestHandler):
         self.set_status(200)
         self.set_header('Content-type', 'application/zip')
         self.set_header('Content-length',
-                        str(self.calculate_zipsize(zstream.paths_to_write)))
+                        str(util.calculate_zipsize(zstream.paths_to_write)))
 
         self.zstream_iter = iter(zstream)
 
@@ -298,7 +270,7 @@ class TarDownloadHandler(RequestHandler):
             IOLoop.instance().add_callback(exception_cb, (e,))
 
     def calculate_tarsize(self, workflow):
-        """ Similar to ZipDownloadHandler.calculate_zipsize, we can safely
+        """ Similar to :py:func:`util.calculate_zipsize`, we can safely
         pre-calculate the size of the resulting tar-file since we don't
         compress and the resulting file is in the POSIX.1-1988 ustar format.
         """

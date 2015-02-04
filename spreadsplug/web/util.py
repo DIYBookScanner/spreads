@@ -19,6 +19,7 @@ from __future__ import division
 
 import logging
 import mimetypes
+import os
 import time
 import traceback
 import uuid
@@ -240,3 +241,33 @@ def find_stick_win():
     for drive in win32api.GetLogicalDriveStrings().split("\x00")[:-1]:
         if win32file.GetDriveType(drive) == win32file.DRIVE_REMOVABLE:
             return drive
+
+
+def calculate_zipsize(frecords):
+    """ Calculate size of resulting ZIP.
+
+    We can only safely pre-calculate this because we use no compression,
+    assume that we neither store empty directories and files bigger
+    than 4GiB.
+    Many thanks to 'flocki' from StackOverflow, who provided the underlying
+    formula: https://stackoverflow.com/a/19380600/487903
+    """
+    size = 0
+    for args, kwargs in frecords:
+        filename = args[0]
+        arcname = kwargs['arcname']
+        isdir = os.path.isdir(filename)
+        if arcname is None:
+            arcname = filename
+        arcname = os.path.normpath(os.path.splitdrive(arcname)[1])
+        while arcname[0] in (os.sep, os.altsep):
+            arcname = arcname[1:]
+        if isdir:
+            arcname += '/'
+        size += (2*len(arcname))  # Once in file header, once in EOCD
+        size += 30  # Fixed part of local file header
+        size += 16  # Data descriptor
+        size += 46  # Central file directory header
+        size += os.path.getsize(filename)
+    size += 22  # End of central directory record (EOCD)
+    return size
