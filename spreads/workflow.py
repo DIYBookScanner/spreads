@@ -926,7 +926,7 @@ class Workflow(object):
                                                for p in captured_pages))
             self._pending_tasks.append(future)
 
-        on_modified.send(self, changes={'pages': self.pages})
+        self._save_pages()
         on_capture_succeeded.send(self, pages=captured_pages, retake=retake)
 
     def finish_capture(self):
