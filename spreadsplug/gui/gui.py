@@ -358,8 +358,8 @@ class CapturePage(QtGui.QWizardPage):
         self.capture_btn.setFocus()
         self.shot_count += len(self.wizard().workflow.devices)
         if hasattr(self, '_start_time'):
-            capture_speed = ((3600 / (time.time() - self._start_time))
-                             * self.shot_count)
+            capture_speed = ((3600 / (time.time() - self._start_time)) *
+                             self.shot_count)
         else:
             self._start_time = time.time()
             capture_speed = 0.0

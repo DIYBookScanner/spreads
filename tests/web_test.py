@@ -280,5 +280,5 @@ def test_get_logs(client):
                                     query_string={'start': 2, 'count': 5,
                                                   'level': 'debug'}).data)
     assert len(records['messages']) == 5
-    assert (records['messages'][0]['message']
-            == u'Sending finish_capture command to devices')
+    assert (records['messages'][0]['message'] ==
+            u'Sending finish_capture command to devices')

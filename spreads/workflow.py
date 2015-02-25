@@ -344,8 +344,8 @@ class Workflow(object):
             found = []
         for candidate in location.iterdir():
             is_workflow = (location.is_dir() and
-                           ((candidate/'bagit.txt').exists
-                            or (candidate/'raw').exists))
+                           ((candidate/'bagit.txt').exists or
+                            (candidate/'raw').exists))
             if not is_workflow:
                 continue
             if not next((wf for wf in found if wf.path == candidate), None):
@@ -671,10 +671,10 @@ class Workflow(object):
             old_progress = self.status['step_progress']
             if old_progress is not None:
                 prog_diff = kwargs['step_progress'] - old_progress
-                trigger_event = (prog_diff >= 0.01     # Noticeable progress?
-                                 or prog_diff == -1    # New step?
-                                 or (old_progress < 1  # Completion?
-                                     and (old_progress + prog_diff) == 1))
+                trigger_event = (prog_diff >= 0.01 or   # Noticeable progress?
+                                 prog_diff == -1 or     # New step?
+                                 (old_progress < 1 and  # Completion?
+                                     (old_progress + prog_diff) == 1))
                 if not trigger_event:
                     kwargs.pop('step_progress', None)
         for key, value in kwargs.items():
@@ -842,10 +842,10 @@ class Workflow(object):
         if target_page is None:
             return base_path / "{03:0}".format(last_num+1)
 
-        is_raw = ('shoot_raw' in self.config['device'].keys()
-                  and self.config['device']['shoot_raw'].get(bool))
-        next_num = (last_num+1 if (self.is_single_camera
-                                   or target_page == 'even')
+        is_raw = ('shoot_raw' in self.config['device'].keys() and
+                  self.config['device']['shoot_raw'].get(bool))
+        next_num = (last_num+1 if (self.is_single_camera or
+                                   target_page == 'even')
                     else last_num+2)
         path = base_path / "{0:03}.{1}".format(next_num,
                                                'dng' if is_raw else 'jpg')
@@ -867,8 +867,8 @@ class Workflow(object):
                 futures.append(executor.submit(dev.prepare_capture))
         util.check_futures_exceptions(futures)
 
-        flip_target = ('flip_target_pages' in self.config['device'].keys()
-                       and self.config['device']['flip_target_pages'].get())
+        flip_target = ('flip_target_pages' in self.config['device'].keys() and
+                       self.config['device']['flip_target_pages'].get())
         if flip_target:
             (self.devices[0].target_page,
              self.devices[1].target_page) = (self.devices[1].target_page,
@@ -891,8 +891,8 @@ class Workflow(object):
             self._logger.info("Triggering capture.")
             on_capture_triggered.send(self)
             parallel_capture = (
-                'parallel_capture' in self.config['device'].keys()
-                and self.config['device']['parallel_capture'].get()
+                'parallel_capture' in self.config['device'].keys() and
+                self.config['device']['parallel_capture'].get()
             )
             num_devices = len(self.devices)
 

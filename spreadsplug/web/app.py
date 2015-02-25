@@ -69,8 +69,8 @@ try:
         """
         try:
             iface = next(dev for dev in netifaces.interfaces()
-                         if 'wlan' in dev or 'eth' in dev
-                         or dev.startswith('br'))
+                         if 'wlan' in dev or 'eth' in dev or
+                         dev.startswith('br'))
         except StopIteration:
             return None
         addresses = netifaces.ifaddresses(iface)
@@ -343,8 +343,9 @@ class WebApplication(object):
         try:
             device_driver = plugin.get_driver(self.global_config['driver']
                                               .get())
-            should_display_ip = (app.config['standalone'] and self._ip_address
-                                 and plugin.DeviceFeatures.CAN_DISPLAY_TEXT in
+            should_display_ip = (app.config['standalone'] and
+                                 self._ip_address and
+                                 plugin.DeviceFeatures.CAN_DISPLAY_TEXT in
                                  device_driver.features)
         except ConfigError:
             if self.config['mode'] not in ('scanner', 'full'):

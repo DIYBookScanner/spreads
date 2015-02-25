@@ -318,8 +318,8 @@ class TarDownloadHandler(RequestHandler):
         self.fp.close()
 
     def on_exception(self, exc):
-        skip = (isinstance(exc[0], ValueError)
-                and "closed file" in exc[0].message)
+        skip = (isinstance(exc[0], ValueError) and
+                "closed file" in exc[0].message)
         if not skip:
             raise exc
 

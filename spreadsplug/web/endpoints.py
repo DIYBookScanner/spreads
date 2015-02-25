@@ -275,13 +275,13 @@ def _get_templates():
     elif app.config['mode'] == 'processor':
         templates = {section: config.templates[section]
                      for section in config.templates
-                     if section in plugins['postprocessing']
-                     or section in ('core', 'web')}
+                     if section in plugins['postprocessing'] or
+                     section in ('core', 'web')}
     elif app.config['mode'] == 'full':
         templates = {section: config.templates[section]
                      for section in config.templates
-                     if section in itertools.chain(*plugins.values())
-                     or section in ('core', 'device', 'web')}
+                     if section in itertools.chain(*plugins.values()) or
+                     section in ('core', 'device', 'web')}
     rv = dict()
     for plugname, options in templates.iteritems():
         if options is None:
@@ -340,13 +340,13 @@ def get_available_plugins():
     exts = list(pkg_resources.iter_entry_points('spreadsplug.hooks'))
     activated = app.config['default_config']['plugins'].get()
     post_plugins = sorted(
-        [ext.name for ext in exts if ext.name in activated
-         and issubclass(ext.load(), plugin.ProcessHooksMixin)],
+        [ext.name for ext in exts if ext.name in activated and
+         issubclass(ext.load(), plugin.ProcessHooksMixin)],
         key=lambda x: activated.index(x))
     return jsonify({
         'postprocessing': post_plugins,
-        'output': [ext.name for ext in exts if ext.name in activated
-                   and issubclass(ext.load(), plugin.OutputHooksMixin)]
+        'output': [ext.name for ext in exts if ext.name in activated and
+                   issubclass(ext.load(), plugin.OutputHooksMixin)]
     })
 
 
