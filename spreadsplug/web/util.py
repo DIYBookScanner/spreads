@@ -94,8 +94,8 @@ class CustomJSONEncoder(JSONEncoder):
                            'mimetype': path}
                           for path in workflow.out_files],
             'config': {k: v for k, v in workflow.config.flatten().iteritems()
-                       if k in workflow.config['plugins'].get()
-                       or k in ('device', 'plugins')}
+                       if k in workflow.config['plugins'].get() or
+                       k in ('device', 'plugins')}
         }
 
     def _logrecord_to_dict(self, record):
@@ -224,8 +224,8 @@ def find_stick():
     idevices = [dbus.Interface(dev, "org.freedesktop.DBus.Properties")
                 for dev in devices]
     try:
-        istick = next(i for i in idevices if i.Get("", "DeviceIsPartition")
-                      and i.Get("", "DriveConnectionInterface") == "usb")
+        istick = next(i for i in idevices if i.Get("", "DeviceIsPartition") and
+                      i.Get("", "DriveConnectionInterface") == "usb")
     except StopIteration:
         return
     return dbus.Interface(

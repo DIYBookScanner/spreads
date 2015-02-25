@@ -214,9 +214,9 @@ class Configuration(object):
         :type args:     :py:class:`argparse.Namespace`
         """
         for argkey, value in args.__dict__.iteritems():
-            skip = (value is None
-                    or argkey == 'subcommand'
-                    or argkey.startswith('_'))
+            skip = (value is None or
+                    argkey == 'subcommand' or
+                    argkey.startswith('_'))
             if skip:
                 continue
             if '.' in argkey:

@@ -267,8 +267,9 @@ def capture(config):
     def _refresh_stats():
         """ Callback that prints up-to-date capture statistics to stdout """
         if _refresh_stats.start_time is not None:
-            pages_per_hour = ((3600/(time.time() - _refresh_stats.start_time))
-                              * len(workflow.pages))
+            pages_per_hour = ((3600/(time.time() -
+                                     _refresh_stats.start_time)) *
+                              len(workflow.pages))
         else:
             pages_per_hour = 0.0
             _refresh_stats.start_time = time.time()
@@ -285,9 +286,14 @@ def capture(config):
         if is_posix:
             import select
             old_settings = termios.tcgetattr(sys.stdin)
-            data_available = lambda: (select.select([sys.stdin], [], [], 0) ==
-                                      ([sys.stdin], [], []))
-            read_char = lambda: sys.stdin.read(1)
+
+            def data_available():
+                return (select.select([sys.stdin], [], [], 0) ==
+                        ([sys.stdin], [], []))
+
+            def read_char():
+                return sys.stdin.read(1)
+
         else:
             data_available = msvcrt.kbhit
             read_char = msvcrt.getch

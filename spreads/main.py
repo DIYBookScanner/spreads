@@ -312,8 +312,11 @@ def main():
     """ Entry point for `spread` command-line application. """
     # Initialize color support
     colorama.init()
-    print_error = lambda x: print(util.colorize(x, colorama.Fore.RED),
-                                  file=sys.stderr)
+
+    def print_error(x):
+        print(util.colorize(x, colorama.Fore.RED),
+              file=sys.stderr)
+
     try:
         run()
     except util.DeviceException as e:
