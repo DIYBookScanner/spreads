@@ -47,11 +47,11 @@ app = Flask('spreadsplug.web', static_url_path='/static',
 #       on it. However, it cannot be instantiated since we don't yet know
 #       where we're supposed to store the queue.
 task_queue = None
-import endpoints
-import util
-import handlers
+import endpoints  # NOQA
+import util  # NOQA
+import handlers  # NOQA
 app.json_encoder = util.CustomJSONEncoder
-from discovery import DiscoveryListener
+from discovery import DiscoveryListener  # NOQA
 
 #: Global logger
 logger = logging.getLogger('spreadsplug.web')
