@@ -82,20 +82,31 @@ Ideal for controlling a scanner over SSH and for command-line fetishists.
 Getting Started
 ---------------
 1. Install the system dependencies:
+
    * ``sudo apt-get install python2.7-dev python-pip build-essential pkg-config libffi-dev libturbojpeg-dev libmagickwand-dev python-cffi``
+
 2. If you want to use a CHDK device:
+
    * ``sudo apt-get install liblua5.2-dev libusb-dev``
    * ``sudo pip install lupa --install-option="--no-luajit"``
    * ``sudo pip install chdkptp.py``
+
 3. If you want to use a libgphoto2-supported device:
+
    * ``sudo apt-get install libgphoto2-dev``
    * ``sudo pip install gphoto2-cffi``
+
 4. Install Python dependencies:
+
    * ``sudo pip install jpegtran-cffi Flask requests zipstream tornado Wand``
    * ``sudo pip install http://buildbot.diybookscanner.org/nightly/spreads-latest.tar.gz``
+
 5. If you want to use the GUI:
+
    * ``sudo apt-get install python-pyside``
+
 6. Configure spreads and select the plugins you want to use:
+
    * ``spread configure``
 
 
