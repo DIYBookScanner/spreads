@@ -189,7 +189,7 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
             'multiline': re.MULTILINE,
             'unicode': re.UNICODE,
         }
-        with fpath.open('r') as fp:
+        with fpath.open('r', encoding='utf-8') as fp:
             content = fp.read()
             # NOTE: This modifies the hOCR files to make them compatible with
             #       pdfbeads.
@@ -207,7 +207,7 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
                 for name, group in replacements.iteritems():
                     content = re.sub(group['regex'], group['substitution'],
                                      content, flags=get_flags(group))
-        with fpath.open('w') as fp:
+        with fpath.open('w', encoding='utf-8') as fp:
             fp.write(content)
 
     def output(self, pages, target_path, metadata, table_of_contents):
@@ -233,7 +233,7 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
                 logger.warn("Could not find hOCR file for page {0}, skipping."
                             .format(page))
                 continue
-            with hocr_file.open('r+') as fp:
+            with hocr_file.open('r+', encoding='utf-8') as fp:
                 content = re.sub(r'<em><\/em>', '', fp.read())
                 content = re.sub(r'<strong><\/strong>', '', content)
             pagexml = ET.fromstring(content.encode('utf-8'))
@@ -246,7 +246,7 @@ class TesseractPlugin(HookPlugin, ProcessHooksMixin):
             # And tack it onto the output file
             if page_elem:
                 body.append(page_elem)
-        with outfile.open('w') as fp:
+        with outfile.open('w', encoding='utf-8') as fp:
             # Strip those annoying namespace tags...
             out_string = re.sub(r"(<\/*)html:", "\g<1>",
                                 ET.tostring(out_root))
