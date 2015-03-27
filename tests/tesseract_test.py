@@ -74,7 +74,7 @@ def test_output(plugin, tmpdir):
             Page(Path('000.jpg'), idx,
                  processed_images={'tesseract': Path('./tests/data/000.hocr')})
         )
-    plugin.output(dummy_pages, tmpdir, None, None)
+    plugin.output(dummy_pages, Path(unicode(tmpdir)), None, None)
     assert tmpdir.join('text.html').exists()
     tree = ET.parse(unicode(tmpdir.join('text.html')))
     assert len(tree.findall('.//span[@class="ocrx_word"]')) == 20*201

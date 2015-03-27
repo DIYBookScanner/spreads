@@ -1,4 +1,4 @@
-#spreads.vendor. -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
 #
