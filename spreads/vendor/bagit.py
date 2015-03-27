@@ -127,8 +127,7 @@ class Bag(object):
         shutil.rmtree(path)
         shutil.copytree(tmpdir, path)
         shutil.rmtree(tmpdir)
-        bag.path = path
-        return bag
+        return Bag(path, **kwargs)
 
     @classmethod
     def from_archive(cls, archpath, target_directory=None):
@@ -203,15 +202,15 @@ class Bag(object):
             self.validate(fast)
         except ValidationError as exc:
             new_paths = [self._get_path(e.path) for e in exc.details
-                         if isinstance(e, UnexpectedFile)
-                         and e.path.startswith('data')]
+                         if isinstance(e, UnexpectedFile) and
+                         e.path.startswith('data')]
             removed_paths = [self._get_path(e.path) for e in exc.details
-                             if isinstance(e, FileMissing)
-                             and e.path.startswith('data')]
+                             if isinstance(e, FileMissing) and
+                             e.path.startswith('data')]
             if not fast:
                 changed_paths = [self._get_path(e.path) for e in exc.details
-                                 if isinstance(e, ChecksumMismatch)
-                                 and e.path.startswith('data')]
+                                 if isinstance(e, ChecksumMismatch) and
+                                 e.path.startswith('data')]
                 self.add_payload(*changed_paths)
             self.add_payload(*new_paths)
             self.remove_payload(*removed_paths)
@@ -343,8 +342,8 @@ class Bag(object):
                 old_path = path
                 path = os.path.join(
                     base_dir,
-                    (os.path.basename(old_path)
-                     or os.path.basename(os.path.dirname(old_path))))
+                    (os.path.basename(old_path) or
+                     os.path.basename(os.path.dirname(old_path))))
                 if is_dir:
                     shutil.copytree(old_path, path)
                 else:
@@ -858,8 +857,8 @@ class ColorStreamHandler(logging.StreamHandler):
             if not colorama or not self.is_tty:
                 self.stream.write(message)
             else:
-                self.stream.write(colors[record.levelname]
-                                  + message + colorama.Style.RESET_ALL)
+                self.stream.write(colors[record.levelname] +
+                                  message + colorama.Style.RESET_ALL)
             self.stream.write(getattr(self, 'terminator', '\n'))
             self.flush()
         except (KeyboardInterrupt, SystemExit):
