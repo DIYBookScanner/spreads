@@ -422,15 +422,7 @@ class Workflow(object):
             path = Path(path)
         self.path = path
         is_new = not self.path.exists()
-        try:
-            self.bag = bagit.Bag(unicode(self.path))
-        except bagit.BagError:
-            # Convert non-bagit directories from older versions
-            self.bag = bagit.Bag.convert_directory(unicode(self.path))
-        if not self.slug:
-            self.slug = util.slugify(unicode(self.path.name))
-        if not self.id:
-            self.id = unicode(uuid.uuid4())
+
         # See if supplied `config` is already a valid ConfigView object
         if isinstance(config, confit.ConfigView):
             self.config = config
@@ -438,6 +430,22 @@ class Workflow(object):
             self.config = config.as_view()
         else:
             self.config = self._load_config(config)
+
+        try:
+            self.bag = bagit.Bag(unicode(self.path))
+        except bagit.BagError:
+            if self.config['core']['convert_old'].get(bool):
+                # Convert non-bagit directories from older versions
+                self.bag = bagit.Bag.convert_directory(unicode(self.path))
+            else:
+                raise bagit.BagError(
+                    "Specified workflow directory is not structured according "
+                    "to BagIt convertions and automatic conversion has been "
+                    "disabled (check `convert_old` setting)")
+        if not self.slug:
+            self.slug = util.slugify(unicode(self.path.name))
+        if not self.id:
+            self.id = unicode(uuid.uuid4())
         #: :py:class:`spreads.metadata.Metadata` instance that backs the
         #: corresponding getter and setter
         self._metadata = Metadata(self.path)

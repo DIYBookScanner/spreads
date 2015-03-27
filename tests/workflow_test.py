@@ -1,6 +1,7 @@
 from __future__ import division, unicode_literals
 
 import pytest
+import spreads.vendor.bagit as bagit
 from mock import Mock
 
 import spreads.util as util
@@ -11,6 +12,17 @@ from conftest import TestDriver
 @pytest.fixture
 def workflow(config, tmpdir):
     return spreads.workflow.Workflow(config=config, path=unicode(tmpdir))
+
+
+def test_convert_old_workflow(config, tmpdir):
+    tmpdir.join('test.txt').open('w').close()
+    config['core']['convert_old'] = False
+    with pytest.raises(bagit.BagError):
+        spreads.workflow.Workflow(config=config, path=unicode(tmpdir))
+    config['core']['convert_old'] = True
+    spreads.workflow.Workflow(config=config, path=unicode(tmpdir))
+    assert tmpdir.join('bagit.txt').check()
+    assert tmpdir.join('data', 'test.txt').check()
 
 
 def test_get_plugins(workflow):
