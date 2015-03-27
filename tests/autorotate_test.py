@@ -1,7 +1,7 @@
 import mock
 import shutil
 
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 import spreadsplug.autorotate as autorotate
 from spreads.workflow import Page

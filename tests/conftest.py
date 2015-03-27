@@ -182,8 +182,8 @@ def config():
 
 @pytest.yield_fixture(scope='module')
 def mock_path():
-    with mock.patch('spreads.vendor.pathlib.Path') as path:
-        mockpath = mock.MagicMock(wraps='spreas.vendor.pathlib.PosixPath')
+    with mock.patch('pathlib.Path') as path:
+        mockpath = mock.MagicMock(wraps='pathlib.PosixPath')
         mockpath.parent.return_value = mockpath
         mockpath.mkdir = mock.Mock()
         path.return_value = mockpath

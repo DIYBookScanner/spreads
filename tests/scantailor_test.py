@@ -4,7 +4,7 @@ import xml.etree.cElementTree as ET
 import mock
 import pytest
 import spreads.vendor.confit as confit
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 from spreads.workflow import Page
 

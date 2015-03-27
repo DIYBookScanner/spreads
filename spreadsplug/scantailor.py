@@ -43,7 +43,7 @@ import time
 import xml.etree.cElementTree as ET
 
 import psutil
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 import spreads.util as util
 from spreads.config import OptionTemplate

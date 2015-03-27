@@ -150,6 +150,7 @@ setup(
         "psutil >= 2.0.0",
         "isbnlib >= 3.3.8",
         "enum34 >= 1.0.3",
+        "pathlib >= 1.0.1",
     ],
     extras_require={
         "chdkcamera": ["jpegtran-cffi >= 0.4", "chdkptp.py >= 0.1.2"],

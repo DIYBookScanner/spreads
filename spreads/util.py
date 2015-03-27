@@ -37,7 +37,7 @@ import colorama
 import psutil
 import roman
 from colorama import Fore, Back, Style
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 
 class SpreadsException(Exception):

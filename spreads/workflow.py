@@ -34,7 +34,7 @@ import spreads.vendor.bagit as bagit
 import spreads.vendor.confit as confit
 import json
 from blinker import Namespace
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 import spreads.plugin as plugin
 import spreads.util as util

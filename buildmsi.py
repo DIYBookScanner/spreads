@@ -29,7 +29,7 @@ from collections import namedtuple
 
 import pkg_resources
 from nsist import InstallerBuilder
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 import spreads
 

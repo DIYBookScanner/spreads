@@ -28,7 +28,7 @@ import shutil
 import subprocess
 import tempfile
 
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 from spreads.plugin import HookPlugin, OutputHooksMixin
 from spreads.util import MissingDependencyException, find_in_path

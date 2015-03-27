@@ -28,7 +28,7 @@ from io import BufferedIOBase, UnsupportedOperation
 
 from flask import abort
 from flask.json import JSONEncoder
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 from wand.image import Image
 from werkzeug.routing import BaseConverter
 

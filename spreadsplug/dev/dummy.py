@@ -10,7 +10,7 @@ from wand.image import Image
 
 from spreads.config import OptionTemplate
 from spreads.plugin import DeviceDriver, DeviceFeatures
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 
 class DummyDevice(DeviceDriver):

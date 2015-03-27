@@ -30,7 +30,7 @@ import traceback
 
 import colorama
 from spreads.vendor.confit import ConfigError
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 import spreads.cli as cli
 import spreads.plugin as plugin

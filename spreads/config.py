@@ -25,7 +25,7 @@ import copy
 import logging
 
 import spreads.vendor.confit as confit
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 import spreads.util as util
 

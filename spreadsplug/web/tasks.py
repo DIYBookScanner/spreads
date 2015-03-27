@@ -23,7 +23,7 @@ import shutil
 
 import blinker
 import requests
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 import spreads.util as util
 from spreads.workflow import Workflow

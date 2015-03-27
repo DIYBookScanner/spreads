@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#spreads.vendor. -*- coding: utf-8 -*-
 
 # Copyright (C) 2014 Johannes Baiter <johannes.baiter@gmail.com>
 #
@@ -38,7 +38,7 @@ from itertools import chain
 import spreads.util as util
 from spreads.config import OptionTemplate
 from spreads.plugin import HookPlugin, ProcessHooksMixin
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 BIN = util.find_in_path('tesseract')
 if not BIN:

@@ -34,7 +34,7 @@ import subprocess
 import tempfile
 import time
 
-from spreads.vendor.pathlib import Path
+from pathlib import Path
 
 import spreads.util as util
 from spreads.plugin import HookPlugin, OutputHooksMixin
