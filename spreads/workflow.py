@@ -352,7 +352,11 @@ class Workflow(object):
                 logging.debug(
                     "Cache missed, instantiating workflow from {0}."
                     .format(candidate))
-                workflow = cls(candidate)
+                try:
+                    workflow = cls(candidate)
+                except bagit.BagError as e:
+                    logging.warn(e.message)
+                    continue
                 found.append(workflow)
         cls._cache[location] = found
         return {getattr(wf, key): wf for wf in cls._cache[location]}
