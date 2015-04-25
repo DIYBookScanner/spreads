@@ -153,7 +153,7 @@ setup(
         "pathlib >= 1.0.1",
     ],
     extras_require={
-        "chdkcamera": ["jpegtran-cffi >= 0.4", "chdkptp.py >= 0.1.2"],
+        "chdkcamera": ["jpegtran-cffi >= 0.4", "chdkptp.py >= 0.1.3"],
         "gphoto2camera": ["gphoto2-cffi >= 0.2"],
         "autorotate": ["jpegtran-cffi >= 0.4"],
         "gui": ["PySide >= 1.2.1"],
