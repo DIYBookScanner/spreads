@@ -441,6 +441,9 @@ class Workflow(object):
             if self.config['core']['convert_old'].get(bool):
                 # Convert non-bagit directories from older versions
                 self.bag = bagit.Bag.convert_directory(unicode(self.path))
+                self.pages = [Page(img)
+                              for img in (self.path/'data'/'raw').iterdir()]
+                self._save_pages()
             else:
                 raise bagit.BagError(
                     "Specified workflow directory is not structured according "

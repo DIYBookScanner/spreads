@@ -16,13 +16,19 @@ def workflow(config, tmpdir):
 
 def test_convert_old_workflow(config, tmpdir):
     tmpdir.join('test.txt').open('w').close()
+    tmpdir.join('raw').mkdir()
+    for num in xrange(10):
+        tmpdir.join('raw', '{0:03}.jpg'.format(num)).open('w').close()
     config['core']['convert_old'] = False
     with pytest.raises(bagit.BagError):
         spreads.workflow.Workflow(config=config, path=unicode(tmpdir))
     config['core']['convert_old'] = True
-    spreads.workflow.Workflow(config=config, path=unicode(tmpdir))
+    wf = spreads.workflow.Workflow(config=config, path=unicode(tmpdir))
+    assert len(wf.pages) == 10
     assert tmpdir.join('bagit.txt').check()
     assert tmpdir.join('data', 'test.txt').check()
+    for num in xrange(10):
+        assert tmpdir.join('data', 'raw', '{0:03}.jpg'.format(num)).check()
 
 
 def test_get_plugins(workflow):
