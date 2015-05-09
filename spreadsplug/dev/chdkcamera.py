@@ -191,9 +191,14 @@ class CHDKCameraDevice(DeviceDriver):
 
     def _set_monochrome(self):
         if self.config['monochrome'].get(bool):
-            rv = self._device.lua_execute(
-                "capmode = require(\"capmode\")\n"
-                "return capmode.set(\"SCN_MONOCHROME\")")
+            if(self._chdk_buildnum >= 3872):
+		rv = self._device.lua_execute(
+			"capmode = require(\"capmode\")\n"
+			"return capmode.set(\"MONOCHROME\")")
+            else:
+		rv = self._device.lua_execute(
+			"capmode = require(\"capmode\")\n"
+			"return capmode.set(\"SCN_MONOCHROME\")")
             if not rv:
                 self.logger.warn("Monochrome mode not supported on this "
                                  "device, will be disabled.")
