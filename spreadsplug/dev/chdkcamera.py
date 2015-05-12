@@ -248,6 +248,7 @@ class CHDKCameraDevice(DeviceDriver):
             except Exception as e:
                 if not retried:
                     self.logger.warn("Error during capture, retrying shot.")
+                    self.logger.debug(e)
                     self._device.reconnect()
                     retried = True
                     continue
