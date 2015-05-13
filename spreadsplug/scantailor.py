@@ -290,7 +290,8 @@ class ScanTailorPlugin(HookPlugin, ProcessHooksMixin):
                         "otherwise be ignored.")
             time.sleep(5)
             logger.info("Opening ScanTailor GUI for manual adjustment")
-            util.get_subprocess([GUI_BIN, unicode(projectfile)])
+            proc = util.get_subprocess([GUI_BIN, unicode(projectfile)])
+            proc.wait()
         # Check if the user already generated output files from the GUI
         if not sum(1 for x in out_dir.glob('*.tif')) == len(pages):
             logger.info("Generating output images from ScanTailor "
