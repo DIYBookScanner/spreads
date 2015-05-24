@@ -264,7 +264,7 @@ def setup_logging(config):
     file_handler = logging.handlers.RotatingFileHandler(
         filename=unicode(logfile), maxBytes=512*1024, backupCount=1)
     file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s %(message)s [%(name)s] [%(levelname)s]"))
+        '%(relativeCreated)s %(name)-5s %(levelname)-8s %(message)s'))
     file_handler.setLevel(loglevel)
     logger.addHandler(file_handler)
 
