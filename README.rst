@@ -105,6 +105,10 @@ Getting Started
 
    * ``sudo apt-get install python-pyside``
 
+6. If you want to use djvu functionality:
+
+   * ``sudo apt-get install djvubind``
+
 6. Configure spreads and select the plugins you want to use:
 
    * ``spread configure``
