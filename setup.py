@@ -162,7 +162,7 @@ setup(
             "Flask >= 0.10.1",
             "jpegtran-cffi >= 0.4",
             "requests >= 2.2.0",
-            "zipstream >= 1.0.2",
+            "zipstream >= 1.0.2,<1.1.0",
             "tornado >= 4.0",
             "Wand >= 0.3.5",
         ]
