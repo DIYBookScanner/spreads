@@ -149,8 +149,8 @@ class Page(object):
     # FIXME: This type is insufficient for the case where the raw images
     # contain two individual pages, i.e. the whole bookspreads was captured in
     # a single image. How would we deal with that scenario?
-    __slots__ = [b"sequence_num", b"capture_num", b"raw_image", b"page_label",
-                 b"processed_images"]
+    __slots__ = ["sequence_num", "capture_num", "raw_image", "page_label",
+                 "processed_images"]
 
     def __init__(self, raw_image, sequence_num=None, capture_num=None,
                  page_label=None, processed_images=None):
@@ -218,7 +218,7 @@ class TocEntry(object):
     :attr children;     Other :py:class:`TocEntry` objects that designate a
                         sub-range of this entry
     """
-    __slots__ = (b"title", b"start_page", b"end_page", b"children")
+    __slots__ = ("title", "start_page", "end_page", "children")
 
     def __init__(self, title, start_page, end_page, children=None):
         self.title = title
