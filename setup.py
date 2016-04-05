@@ -154,7 +154,7 @@ setup(
     ],
     extras_require={
         "chdkcamera": ["jpegtran-cffi >= 0.4", "chdkptp.py >= 0.1.3"],
-        "gphoto2camera": ["gphoto2-cffi >= 0.2"],
+        "gphoto2camera": ["gphoto2-cffi >= 0.2,<0.3"],
         "autorotate": ["jpegtran-cffi >= 0.4"],
         "gui": ["PySide >= 1.2.1"],
         "hidtrigger": ["hidapi-cffi >= 0.1"],
