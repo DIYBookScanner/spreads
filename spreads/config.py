@@ -81,7 +81,7 @@ CORE_OPTIONS = {
                                    docstring="Keys to trigger capture",
                                    selectable=False),
     'convert_old': OptionTemplate(
-        value=True,
+        value=False,
         docstring=("Convert workflows from older spreads version to the new "
                    "directory layout."),
         advanced=True)
