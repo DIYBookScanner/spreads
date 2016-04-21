@@ -870,7 +870,10 @@ class Workflow(object):
         """ Prepare capture on devices and initialize trigger plugins. """
         self._logger.info("Preparing capture.")
         self._update_status(step='capture')
-        if any(dev.target_page is None for dev in self.devices):
+        is_multicam = len(self.devices) > 1
+        are_targets_set = all(dev.target_page is not None
+                              for dev in self.devices)
+        if is_multicam and not are_targets_set:
             raise util.DeviceException(
                 "Target page for at least one of the devices could not be"
                 "determined, please run 'spread configure' to configure your"
